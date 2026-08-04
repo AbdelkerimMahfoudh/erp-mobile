@@ -57,6 +57,8 @@ interface PermissionState {
   status: PermissionStatus;
   error: string | null;
   load: (branchId: string | null) => Promise<void>;
+  /** Force a re-resolve even if this branch is already loaded. */
+  refresh: (branchId: string | null) => Promise<void>;
   clear: () => void;
 }
 
@@ -87,6 +89,17 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     } catch (e) {
       // Fail closed: an unresolved permission set grants nothing.
       set({ granted: EMPTY, status: 'error', error: toErrorMessage(e) });
+    }
+  },
+
+  refresh: async (branchId) => {
+    // Deliberately does NOT clear first: a brief empty set would flicker the
+    // UI on every resume. The server is the authority either way.
+    try {
+      const res = await api.get<PermissionsResponse>('/auth/permissions');
+      set({ granted: new Set(res.permissions as Permission[]), branchId, status: 'ready', error: null });
+    } catch {
+      // Keep the last known set; the next load or resume will try again.
     }
   },
 

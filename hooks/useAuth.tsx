@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import { api, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
@@ -75,6 +76,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     void usePermissionStore.getState().load(branchId);
+  }, [user, branchId]);
+
+  /**
+   * Re-resolve permissions when the app comes back to the foreground.
+   *
+   * A role can change while the app is open — an Owner promotes someone, or a
+   * migration reshapes roles. The server always enforces the current truth, so
+   * a stale client cannot grant anything it should not; but it can show the
+   * wrong screen set until the next branch switch, which reads as the app being
+   * broken. Refreshing on resume keeps what is shown honest.
+   */
+  useEffect(() => {
+    if (!user || !branchId) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void usePermissionStore.getState().refresh(branchId);
+      }
+    });
+    return () => sub.remove();
   }, [user, branchId]);
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
