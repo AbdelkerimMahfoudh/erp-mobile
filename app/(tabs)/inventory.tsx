@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Cable, PackageSearch } from 'lucide-react-native';
 import {
+  Button,
   EmptyState,
   ErrorState,
   FilterChip,
@@ -21,25 +22,30 @@ import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatQuantity } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
-import { productTitle, searchHaystack, variantSummary } from '../../lib/product-label';
+import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
-import type { InventoryRow, ScanResult, Unit } from '../../types/api';
+import type { InventoryPage, InventoryRow, ScanResult, Unit } from '../../types/api';
 
 /**
  * Inventory — what is physically here.
  *
- * Shows both shapes of stock, which the app previously could not: serialized
- * units (one row per device, each with a status) and quantity-tracked lines
- * (one row per exact variant with a count). An electronics shop sells
- * accessories daily; inventory that omits them is wrong, not merely partial.
+ * Shows both shapes of stock: serialized units (one row per device, each with a
+ * status) and quantity-tracked lines (one row per exact variant with a count).
+ * An electronics shop sells accessories daily; inventory that omits them is
+ * wrong, not merely partial.
  *
- * Both arrive from one `GET /inventory` call discriminated by `kind`, so there
- * is no second request to keep in sync and no misleading shared shape.
+ * Paging is cursor-based and search runs on the server, because the alternative
+ * — showing the first N rows and filtering only those on the phone — quietly
+ * answers "we don't have it" for stock that is sitting on the shelf.
  */
 
 const STATUS_FILTERS = ['in_stock', 'sold', 'faulty', ''] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+const PAGE_SIZE = 50;
+/** Long enough to feel deliberate, short enough not to feel laggy. */
+const SEARCH_DEBOUNCE_MS = 350;
 
 export default function InventoryScreen() {
   const { t } = useTranslation();
@@ -47,13 +53,22 @@ export default function InventoryScreen() {
   const { branchId } = useBranch();
   const [status, setStatus] = useState<StatusFilter>('in_stock');
   const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
 
   /** Unit lookups started the moment a code is captured, keyed by code. */
   const lookups = useRef(new Map<string, Promise<Unit | null>>());
 
-  const inventory = useQuery({
-    queryKey: qk.inventory(branchId, status),
-    queryFn: () => api.get<InventoryRow[]>(`/inventory${status ? `?status=${status}` : ''}`),
+  const inventory = useInfiniteQuery({
+    queryKey: qk.inventory(branchId, status, debounced),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (status) params.set('status', status);
+      if (debounced) params.set('search', debounced);
+      if (pageParam) params.set('cursor', pageParam);
+      return api.get<InventoryPage>(`/inventory?${params.toString()}`);
+    },
+    getNextPageParam: (last) => last.nextCursor,
   });
 
   // ── Lookup by scan ────────────────────────────────────────────────────────
@@ -66,11 +81,6 @@ export default function InventoryScreen() {
     );
   }, []);
 
-  /**
-   * The scan still goes through `/scan` so recognition keeps learning, while
-   * the unit lookup runs alongside — the lookup is what decides whether there
-   * is anything to open.
-   */
   const onScanResult = useCallback(
     async (result: ScanResult) => {
       const unit = (await lookups.current.get(result.code)) ?? null;
@@ -86,34 +96,28 @@ export default function InventoryScreen() {
     [router, t],
   );
 
-  // ── Filtering ─────────────────────────────────────────────────────────────
+  // ── Derived ───────────────────────────────────────────────────────────────
 
-  /**
-   * Search is local because the list is already capped server-side and a
-   * counter needs it to feel instant. If a branch ever outgrows that cap this
-   * has to move to the server — noted in docs/21.
-   */
-  const filtered = useMemo(() => {
-    const rows = inventory.data ?? [];
-    const needle = query.trim().toLowerCase();
-    if (!needle) return rows;
-    return rows.filter((row) =>
-      searchHaystack(
-        row.product,
-        row.kind === 'unit' ? row.identifier : undefined,
-      ).includes(needle),
-    );
-  }, [inventory.data, query]);
-
-  const units = filtered.filter((row): row is Extract<InventoryRow, { kind: 'unit' }> =>
-    row.kind === 'unit',
+  const rows: InventoryRow[] = useMemo(
+    () => inventory.data?.pages.flatMap((page) => page.rows) ?? [],
+    [inventory.data],
   );
-  const stock = filtered.filter((row): row is Extract<InventoryRow, { kind: 'stock' }> =>
-    row.kind === 'stock',
-  );
+  const totals = inventory.data?.pages[0]?.totals ?? { units: 0, stock: 0 };
 
-  const isEmpty = !inventory.isLoading && filtered.length === 0;
-  const searching = query.trim().length > 0;
+  const units = rows.filter((r): r is Extract<InventoryRow, { kind: 'unit' }> => r.kind === 'unit');
+  const stock = rows.filter((r): r is Extract<InventoryRow, { kind: 'stock' }> => r.kind === 'stock');
+
+  const isEmpty = !inventory.isLoading && rows.length === 0;
+  const searching = debounced.length > 0;
+
+  const onSearchChange = useCallback((value: string) => {
+    setQuery(value);
+  }, []);
+
+  /** Refetching from the first page — a cursor from the old filter is invalid. */
+  const refresh = useCallback(() => {
+    void inventory.refetch();
+  }, [inventory]);
 
   return (
     <Screen
@@ -129,7 +133,10 @@ export default function InventoryScreen() {
           />
           <SearchInput
             value={query}
-            onChangeText={setQuery}
+            onChangeText={onSearchChange}
+            onDebouncedChange={setDebounced}
+            debounceMs={SEARCH_DEBOUNCE_MS}
+            onSubmit={setDebounced}
             placeholder={t('inventory.search')}
           />
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -150,16 +157,25 @@ export default function InventoryScreen() {
       {inventory.error ? (
         // ErrorState reads the thrown value: a 403 renders "Not available to
         // you" with no retry, since retrying a role boundary never succeeds.
-        <ErrorState error={inventory.error} onRetry={() => void inventory.refetch()} />
+        <ErrorState error={inventory.error} onRetry={refresh} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          onScroll={({ nativeEvent: e }) => {
+            // Prefetch one screen ahead so the list rarely stalls visibly.
+            const nearEnd =
+              e.layoutMeasurement.height + e.contentOffset.y >= e.contentSize.height - 600;
+            if (nearEnd && inventory.hasNextPage && !inventory.isFetchingNextPage) {
+              void inventory.fetchNextPage();
+            }
+          }}
+          scrollEventThrottle={200}
           refreshControl={
             <RefreshControl
-              refreshing={inventory.isFetching}
-              onRefresh={() => void inventory.refetch()}
+              refreshing={inventory.isRefetching}
+              onRefresh={refresh}
               tintColor={colors.brand[600]}
               colors={[colors.brand[600]]}
             />
@@ -191,7 +207,12 @@ export default function InventoryScreen() {
                 <>
                   <SectionHeading
                     label={t('inventory.units')}
-                    count={t('inventory.count.units', { count: units.length })}
+                    // Shown vs total, never a bare count — a page is not the
+                    // whole branch, and implying otherwise hides stock.
+                    count={t('inventory.count.units', {
+                      shown: units.length,
+                      total: totals.units,
+                    })}
                   />
                   {units.map((row) => (
                     <ListRow
@@ -216,7 +237,10 @@ export default function InventoryScreen() {
                 <>
                   <SectionHeading
                     label={t('inventory.accessories')}
-                    count={t('inventory.count.stock', { count: stock.length })}
+                    count={t('inventory.count.stock', {
+                      shown: stock.length,
+                      total: totals.stock,
+                    })}
                     spaced={units.length > 0}
                   />
                   {stock.map((row) => (
@@ -234,11 +258,71 @@ export default function InventoryScreen() {
                   ))}
                 </>
               ) : null}
+
+              <ListFooter
+                loading={inventory.isFetchingNextPage}
+                hasMore={Boolean(inventory.hasNextPage)}
+                failed={Boolean(inventory.isFetchNextPageError)}
+                onRetry={() => void inventory.fetchNextPage()}
+              />
             </>
           )}
         </ScrollView>
       )}
     </Screen>
+  );
+}
+
+/**
+ * End-of-list state. Says explicitly when the list is complete — without it,
+ * a user cannot tell "that is all the stock" from "it stopped loading".
+ */
+function ListFooter({
+  loading,
+  hasMore,
+  failed,
+  onRetry,
+}: {
+  loading: boolean;
+  hasMore: boolean;
+  failed: boolean;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
+
+  if (failed) {
+    return (
+      <View style={styles.footer}>
+        <Text variant="caption" tone="danger" align="center">
+          {t('inventory.loadFailed')}
+        </Text>
+        <Button title={t('action.retry')} variant="secondary" size="sm" onPress={onRetry} />
+      </View>
+    );
+  }
+  if (loading) {
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator color={colors.brand[600]} />
+        <Text variant="caption" tone="tertiary" align="center">
+          {t('inventory.loadingMore')}
+        </Text>
+      </View>
+    );
+  }
+  if (hasMore) {
+    return (
+      <View style={styles.footer}>
+        <Button title={t('inventory.loadMore')} variant="secondary" size="sm" onPress={onRetry} />
+      </View>
+    );
+  }
+  return (
+    <View style={styles.footer}>
+      <Text variant="caption" tone="tertiary" align="center">
+        {t('inventory.endOfResults')}
+      </Text>
+    </View>
   );
 }
 
@@ -281,5 +365,10 @@ const styles = StyleSheet.create({
   },
   sectionSpaced: {
     marginTop: space.md,
+  },
+  footer: {
+    alignItems: 'center',
+    gap: space.sm,
+    paddingVertical: space.lg,
   },
 });

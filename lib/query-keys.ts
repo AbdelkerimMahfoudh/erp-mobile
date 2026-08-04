@@ -6,8 +6,13 @@ export const qk = {
   products: (q?: string) => ['products', q ?? ''] as const,
   categories: ['categories'] as const,
   suppliers: ['suppliers'] as const,
-  /** Serialized units and quantity stock together, discriminated by `kind`. */
-  inventory: (branchId: string | null, status?: string) => ['inventory', branchId, status ?? ''] as const,
+  /**
+   * Serialized units and quantity stock together, discriminated by `kind`.
+   * `search` is part of the key so changing it starts a fresh pagination run —
+   * a cursor issued under one query is meaningless under another.
+   */
+  inventory: (branchId: string | null, status?: string, search?: string) =>
+    ['inventory', branchId, status ?? '', search ?? ''] as const,
   sales: (branchId: string | null) => ['sales', branchId] as const,
   sale: (id: string) => ['sale', id] as const,
   transfers: (branchId: string | null) => ['transfers', branchId] as const,

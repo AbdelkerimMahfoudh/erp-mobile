@@ -147,6 +147,20 @@ export interface InventoryStockRow {
  */
 export type InventoryRow = InventoryUnitRow | InventoryStockRow;
 
+/**
+ * One page of `GET /inventory`.
+ *
+ * `totals` counts everything matching the filter, not the rows returned — the
+ * UI must never present a first page as if it were the whole stock.
+ */
+export interface InventoryPage {
+  rows: InventoryRow[];
+  /** Opaque. Pass back verbatim; null means this was the last page. */
+  nextCursor: string | null;
+  hasMore: boolean;
+  totals: { units: number; stock: number };
+}
+
 export interface DashboardHome {
   today: { revenue: number; grossProfit?: number; netProfit?: number; salesCount: number; qtySold: number };
   month: { revenue: number; grossProfit?: number; netProfit?: number };
