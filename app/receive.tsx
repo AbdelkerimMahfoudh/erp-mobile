@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +65,16 @@ export default function ReceiveScreen() {
    * employee who just counted six power banks that zero arrived.
    */
   const [done, setDone] = useState<{ response: PurchaseResponse; units: number } | null>(null);
+
+  /**
+   * One request identity per DELIVERY, not per attempt.
+   *
+   * Generated once when the session starts and reused across every retry —
+   * including an eventual offline replay — so a timeout cannot receive the same
+   * delivery twice. Regenerated only when a new delivery begins. Same
+   * convention as Sell.
+   */
+  const clientUuid = useRef(uuidv4());
 
   const suppliers = useQuery({
     queryKey: qk.suppliers,
@@ -191,6 +201,7 @@ export default function ReceiveScreen() {
   const finish = useMutation({
     mutationFn: () =>
       api.post<PurchaseResponse>('/purchases', {
+        clientUuid: clientUuid.current,
         supplierId: supplier!.id,
         items: staged.map((item) => ({
           productId: item.productId,
@@ -250,7 +261,11 @@ export default function ReceiveScreen() {
               icon={PackagePlus}
               size="lg"
               fullWidth
-              onPress={() => setDone(null)}
+              onPress={() => {
+                // A new delivery is a new logical action, so a new key.
+                clientUuid.current = uuidv4();
+                setDone(null);
+              }}
             />
             <Button
               title={t('action.done')}
