@@ -1,0 +1,256 @@
+/**
+ * English catalogue — the source of truth for translation keys.
+ *
+ * Every other locale is checked against this file's key set at compile time, so
+ * a missing or misspelled Arabic key is a type error rather than a blank label
+ * discovered at a shop counter.
+ *
+ * Voice (see docs/05): plain language, short, human. A number never appears
+ * without something telling you what it means. Warnings help, they don't scold.
+ */
+export const en = {
+  // ── Common actions ────────────────────────────────────────────────────────
+  'action.confirm': 'Confirm',
+  'action.cancel': 'Cancel',
+  'action.done': 'Done',
+  'action.save': 'Save',
+  'action.add': 'Add',
+  'action.remove': 'Remove',
+  'action.edit': 'Edit',
+  'action.retry': 'Try again',
+  'action.undo': 'Undo',
+  'action.close': 'Close',
+  'action.back': 'Back',
+  'action.next': 'Next',
+  'action.search': 'Search',
+  'action.scan': 'Scan',
+  'action.typeInstead': 'Type it instead',
+  'action.change': 'Change',
+  'action.selectAll': 'Select all',
+  'action.clear': 'Clear',
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  'tab.home': 'Home',
+  'tab.sell': 'Sell',
+  'tab.inventory': 'Inventory',
+  'tab.more': 'More',
+
+  // ── Generic states ────────────────────────────────────────────────────────
+  'state.loading': 'Loading…',
+  'state.empty.title': 'Nothing here yet',
+  'state.error.title': 'Something went wrong',
+  'state.error.body': 'We could not load this. Check your connection and try again.',
+  'state.error.offline.title': 'No connection',
+  'state.error.offline.body': 'You appear to be offline. This will work again once you reconnect.',
+  'state.error.permission.title': 'Not available to you',
+  'state.error.permission.body': 'Your role does not include this. Ask a manager if you need it.',
+  'state.error.notFound.title': 'Not found',
+  'state.noResults.title': 'No matches',
+  'state.noResults.body': 'Try a different search, or scan the item instead.',
+
+  // ── Field helpers ─────────────────────────────────────────────────────────
+  'field.required': 'Required',
+  'field.optional': 'Optional',
+  'field.password.show': 'Show password',
+  'field.password.hide': 'Hide password',
+
+  // ── Selection sheet ───────────────────────────────────────────────────────
+  'select.search': 'Search',
+  'select.create': 'Create “{name}”',
+  'select.selected': '{count} selected',
+  'select.confirm': 'Choose',
+
+  // ── Dialogs ───────────────────────────────────────────────────────────────
+  'dialog.discard.title': 'Discard changes?',
+  'dialog.discard.body': 'What you have entered will not be saved.',
+  'dialog.discard.confirm': 'Discard',
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  'toast.dismiss': 'Dismiss',
+
+  // ── Scanner ───────────────────────────────────────────────────────────────
+  'scanner.title': 'Scan',
+  'scanner.hint': 'Point the camera at the barcode',
+  'scanner.hint.continuous': 'Keep scanning — each item is added as you go',
+  'scanner.scanned': '{count} scanned',
+  'scanner.looking': 'Looking it up…',
+  'scanner.torch.on': 'Turn on the light',
+  'scanner.torch.off': 'Turn off the light',
+  'scanner.manual.title': 'Type the code',
+  'scanner.manual.placeholder': 'IMEI, serial or barcode',
+  'scanner.manual.submit': 'Look up',
+  'scanner.permission.title': 'Camera access needed',
+  'scanner.permission.body':
+    'Scanning is far faster than typing. Allow the camera to scan IMEIs, serials and barcodes.',
+  'scanner.permission.grant': 'Allow camera',
+  'scanner.permission.denied':
+    'Camera access is turned off. Turn it on in your phone settings, or type the code instead.',
+  'scanner.unavailable.title': 'No camera here',
+  'scanner.unavailable.body': 'This device has no camera available. You can type the code instead.',
+
+  // ── Sell ──────────────────────────────────────────────────────────────────
+  'sell.title': 'Sell',
+  'sell.scan.placeholder': 'Scan IMEI, serial or barcode',
+  'sell.empty.title': 'Ready to sell',
+  'sell.empty.body': 'Scan the first item to start a sale.',
+  'sell.alreadyInCart': 'Already in this sale',
+  'sell.addToSale': 'Add to sale',
+  'sell.priceRequired': 'This product has no price yet — enter one.',
+  'sell.cart.count': '{count} item(s)',
+  'sell.subtotal': 'Subtotal',
+  'sell.discount': 'Discount',
+  'sell.total': 'Total',
+  'sell.charge': 'Charge {amount}',
+  'sell.clear': 'Clear sale',
+  'sell.clear.confirm': 'Clear this sale?',
+  'sell.clear.body': 'Everything scanned so far will be removed.',
+
+  // ── Payment ───────────────────────────────────────────────────────────────
+  'sell.payment.title': 'Take payment',
+  'sell.payment.method': 'How are they paying?',
+  'sell.payment.amount': 'Amount',
+  'sell.payment.remaining': '{amount} still to pay',
+  'sell.payment.change': 'Change due {amount}',
+  'sell.payment.split': 'Split across methods',
+  'sell.payment.addMethod': 'Add another method',
+  'sell.payment.complete': 'Complete sale',
+  'sell.payment.exactOnly':
+    'The full amount must be paid. Credit sales are not available yet.',
+
+  // ── Below cost ────────────────────────────────────────────────────────────
+  'sell.belowCost.title': 'Sell below cost?',
+  'sell.belowCost.body': 'This sale is {amount} below what the stock cost.',
+  'sell.belowCost.confirm': 'Sell anyway',
+  'sell.belowCost.reason': 'Why?',
+  'sell.belowCost.reasonPlaceholder': 'Damaged box, agreed with the owner…',
+  'sell.belowCost.needsManager':
+    'This price is below cost. A manager has to approve it.',
+
+  // ── Sale complete ─────────────────────────────────────────────────────────
+  'sell.done.title': 'Sale complete',
+  'sell.done.invoice': 'Invoice {number}',
+  'sell.done.profit': 'Profit {amount}',
+  'sell.done.new': 'New sale',
+  'sell.done.share': 'Share receipt',
+  'sell.done.shareFailed': 'Could not create the receipt',
+
+  // ── Receipt ───────────────────────────────────────────────────────────────
+  'receipt.title': 'Receipt',
+  'receipt.invoice': 'Invoice',
+  'receipt.date': 'Date',
+  'receipt.servedBy': 'Served by',
+  'receipt.item': 'Item',
+  'receipt.qty': 'Qty',
+  'receipt.price': 'Price',
+  'receipt.lineTotal': 'Total',
+  'receipt.thanks': 'Thank you',
+
+  // ── Inventory ─────────────────────────────────────────────────────────────
+  'inventory.title': 'Inventory',
+  'inventory.scan.placeholder': 'Scan or type an IMEI or serial',
+  'inventory.filter.in_stock': 'In stock',
+  'inventory.filter.sold': 'Sold',
+  'inventory.filter.faulty': 'Faulty',
+  'inventory.filter.all': 'All',
+  'inventory.units': 'Tracked items',
+  'inventory.accessories': 'Accessories',
+  'inventory.inStock': 'in stock',
+  'inventory.empty.title': 'No stock here yet',
+  'inventory.empty.body': 'Receive a delivery and it will show up here.',
+  'inventory.empty.filtered.title': 'Nothing matches',
+  'inventory.empty.filtered.body': 'Try a different filter.',
+  'inventory.notFound': 'No item with that code at this branch',
+  'inventory.search': 'Search by name, variant or barcode',
+  'inventory.count.units': '{count} tracked',
+  'inventory.count.stock': '{count} accessories',
+  'inventory.empty.search.title': 'No matches',
+  'inventory.empty.search.body': 'Try fewer words, or scan the item instead.',
+
+  // ── Receive ───────────────────────────────────────────────────────────────
+  'receive.title': 'Receive stock',
+  'receive.scan.placeholder': 'Scan the item or its barcode',
+  'receive.supplier.choose': 'Choose supplier',
+  'receive.supplier.title': 'Supplier',
+  'receive.supplier.search': 'Search suppliers',
+  'receive.supplier.needed': 'Choose a supplier to finish',
+  'receive.session': 'This delivery',
+  'receive.empty.title': 'Nothing added yet',
+  'receive.empty.body': 'Scan the first item to start the delivery.',
+  'receive.cost': 'What it cost you',
+  'receive.cost.hint': 'Per unit, before any selling price',
+  'receive.price': 'Selling price',
+  'receive.price.hint': 'Optional — sets the price the shop sells it at',
+  'receive.quantity': 'How many',
+  'receive.units': '{count} unit(s)',
+  'receive.addItem': 'Add to delivery',
+  'receive.added': 'Added {label}',
+  'receive.counted': '{label} · {count}',
+  'receive.finish': 'Finish receiving',
+  'receive.estimated': '{count} item(s) · est.',
+  'receive.createProduct': 'Create this product first',
+  'receive.done.title': 'Stock received',
+  'receive.done.summary': '{units} item(s) · {lines} product line(s)',
+  'receive.done.more': 'Receive more',
+
+  // ── Product confirmation ──────────────────────────────────────────────────
+  'confirm.recognized': 'Recognized',
+  'confirm.checkThis': 'Check this is right',
+  'confirm.checkThis.body': 'We matched it from the device number. Confirm or pick the right one.',
+  'confirm.unknown.title': 'New to this shop',
+  'confirm.unknown.body': 'Choose the product and we will remember this code next time.',
+  'confirm.unreadable.title': 'Code not recognized',
+  'confirm.unreadable.body': 'Try scanning again, or choose the product by hand.',
+  'confirm.chooseProduct': 'Choose product',
+  'confirm.createProduct': 'Create new product',
+  'confirm.notThis': 'Not this one',
+  'confirm.scanAgain': 'Scan again',
+  'confirm.scannedCode': 'Scanned code',
+  'confirm.willLearn': 'We will remember this code for next time.',
+
+  // ── Unit status ───────────────────────────────────────────────────────────
+  'status.unit.in_stock': 'In stock',
+  'status.unit.reserved': 'Reserved',
+  'status.unit.sold': 'Sold',
+  'status.unit.returned': 'Returned',
+  'status.unit.faulty': 'Faulty',
+  'status.unit.in_transit': 'In transit',
+  'status.unit.transferred_out': 'Transferred out',
+
+  // ── Transfer status ───────────────────────────────────────────────────────
+  'status.transfer.ready_to_ship': 'Ready to ship',
+  'status.transfer.in_transit': 'In transit',
+  'status.transfer.received': 'Received',
+  'status.transfer.cancelled': 'Cancelled',
+
+  // ── Sale payment status ───────────────────────────────────────────────────
+  'status.sale.paid': 'Paid',
+  'status.sale.partial': 'Part paid',
+  'status.sale.credit': 'On credit',
+
+  // ── Purchase payment status ───────────────────────────────────────────────
+  'status.purchase.paid': 'Paid',
+  'status.purchase.partial': 'Part paid',
+  'status.purchase.unpaid': 'Unpaid',
+
+  // ── Tracking types ────────────────────────────────────────────────────────
+  'tracking.imei': 'IMEI',
+  'tracking.serial': 'Serial',
+  'tracking.quantity': 'Quantity',
+
+  // ── Payment methods ───────────────────────────────────────────────────────
+  'payment.cash': 'Cash',
+  'payment.card': 'Card',
+  'payment.mobile': 'Mobile money',
+  'payment.bank': 'Bank transfer',
+  'payment.other': 'Other',
+
+  // ── Money & numbers ───────────────────────────────────────────────────────
+  'money.hidden': 'Hidden',
+  'money.free': 'Free',
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+  'settings.language': 'Language',
+  'settings.language.restartTitle': 'Restart needed',
+  'settings.language.restartBody':
+    'Close and reopen the app to finish switching language.',
+} as const;

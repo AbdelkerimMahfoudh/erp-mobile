@@ -1,42 +1,48 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Retail ERP",
+    "slug": "phonestore-erp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "scheme": "retailerp",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true,
+      "bundleIdentifier": "mr.retailerp.app"
     },
     "android": {
+      "package": "mr.retailerp.app",
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+        "backgroundColor": "#4f46e5"
+      }
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#4f46e5"
+        }
+      ],
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Retail ERP uses the camera to scan IMEIs, serial numbers and barcodes so you do not have to type them.",
+          "recordAudioAndroid": false
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }
