@@ -257,4 +257,81 @@ export const en = {
   'settings.language.restartTitle': 'Restart needed',
   'settings.language.restartBody':
     'Close and reopen the app to finish switching language.',
+
+  'settings.title': 'Business settings',
+  'settings.subtitle': 'How your shop works. Everyone follows these.',
+  'settings.save': 'Save changes',
+  'settings.saved': 'Settings saved',
+  'settings.unsaved.title': 'Leave without saving?',
+  'settings.unsaved.body': 'Your changes will be lost.',
+  'settings.unsaved.confirm': 'Discard changes',
+  'settings.conflict.title': 'Changed on another device',
+  'settings.conflict.body':
+    'Someone saved different settings while this screen was open. We have loaded the current ones — check them before saving again.',
+  'settings.toggle.on': 'On',
+  'settings.toggle.off': 'Off',
+
+  // Return policy
+  'settings.returns.section': 'Returns',
+  'settings.returns.label': 'How long can a customer bring something back?',
+  'settings.returns.hint':
+    'Applies to new sales. The deadline is calculated from the moment of sale.',
+  'settings.returns.none': 'No returns',
+  'settings.returns.24h': '24 hours',
+  'settings.returns.48h': '48 hours',
+  'settings.returns.custom': 'Custom',
+  'settings.returns.customLabel': 'Hours',
+  'settings.returns.customHint': 'Between 1 and 8760 hours (one year).',
+  'settings.returns.invalid': 'Enter a whole number of hours between 1 and 8760.',
+  'settings.returns.noneExplained': 'Customers cannot return items after a sale.',
+  'settings.returns.windowExplained': 'Customers have {hours} hours to bring something back.',
+
+  // Receiving accounts
+  'settings.accounts.section': 'Where money arrives',
+  'settings.accounts.hint':
+    'Cash is always available and needs no setup. Add the accounts customers can send money to.',
+  'settings.accounts.add': 'Add account',
+  'settings.accounts.empty': 'No accounts yet',
+  'settings.accounts.emptyBody': 'Customers can pay cash. Add an account to accept transfers too.',
+  'settings.accounts.label': 'Name staff will see',
+  'settings.accounts.labelHint': 'Something they can tell apart at a glance, e.g. “Bankily – Main Counter”.',
+  'settings.accounts.labelRequired': 'Give this account a name.',
+  'settings.accounts.provider': 'Service',
+  'settings.accounts.providerName': 'Service name',
+  'settings.accounts.providerNameRequired': 'Name the service.',
+  'settings.accounts.newTitle': 'Add an account',
+  'settings.accounts.editTitle': 'Edit account',
+  'settings.accounts.active': 'Accepting money',
+  'settings.accounts.activeHint': 'Turn off to hide it from staff. Past records keep working.',
+  'settings.accounts.inactive': 'Not in use',
+  'settings.accounts.created': 'Account added',
+  'settings.accounts.updated': 'Account updated',
+  'settings.accounts.duplicate': 'Another account already has that name.',
+  'settings.provider.bankily': 'Bankily',
+  'settings.provider.sedad': 'Sedad',
+  'settings.provider.bim_bank': 'BIM Bank',
+  'settings.provider.other': 'Other',
+
+  // WhatsApp summaries
+  'settings.whatsapp.section': 'WhatsApp summaries',
+  'settings.whatsapp.hint': 'Sent to you only. Staff never receive these.',
+  'settings.whatsapp.language': 'Message language',
+  'settings.whatsapp.amounts': 'Include amounts',
+  'settings.whatsapp.amountsHint': 'Off means the summary describes activity without any figures.',
+  'settings.whatsapp.daily': 'Daily summary',
+  'settings.whatsapp.dailyHint': 'A short recap at the end of each day.',
+  'settings.whatsapp.monthly': 'Monthly summary',
+  'settings.whatsapp.monthlyHint': 'A fuller picture at the end of each month.',
+  'settings.whatsapp.notYet': 'Saved now, sent once WhatsApp is connected.',
+
+  // Security
+  'settings.security.section': 'Security',
+  'settings.security.autoLock': 'Lock the app after',
+  'settings.security.autoLockHint':
+    'The longest anyone may choose. Staff can pick a shorter time, never a longer one.',
+  'settings.security.immediate': 'Immediately',
+  'settings.security.30s': '30 seconds',
+  'settings.security.1m': '1 minute',
+  'settings.security.5m': '5 minutes',
+  'settings.security.15m': '15 minutes',
 } as const;
