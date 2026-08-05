@@ -68,6 +68,18 @@ export const paymentMethod = {
   other: { tone: 'neutral', labelKey: 'payment.other' },
 } as const satisfies Record<string, StatusMeta>;
 
+/**
+ * `UserStatus` — a team member's state. `active` (usable and contactable),
+ * `inactive` (deactivated, never deleted), `pending_contact` (active but no
+ * phone yet, so unreachable for OTP/recovery). Warning, not danger, for pending:
+ * it is a to-do, not a fault.
+ */
+export const userStatus = {
+  active: { tone: 'success', labelKey: 'status.user.active' },
+  inactive: { tone: 'neutral', labelKey: 'status.user.inactive' },
+  pending_contact: { tone: 'warning', labelKey: 'status.user.pending_contact' },
+} as const satisfies Record<string, StatusMeta>;
+
 export const statusRegistry = {
   unit: unitStatus,
   transfer: transferStatus,
@@ -75,6 +87,7 @@ export const statusRegistry = {
   purchase: purchaseStatus,
   tracking: trackingType,
   payment: paymentMethod,
+  user: userStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistry;

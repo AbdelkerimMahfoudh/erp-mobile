@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal } from 'lucide-react-native';
+import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -34,11 +34,16 @@ export default function MoreScreen() {
 
       {/* Each row is gated by the permission its destination actually requires,
           so nothing here leads to a 403. The heading hides with its contents. */}
-      <Can anyOf={['unit.add', 'report.view', 'closing.perform', 'settings.manage']}>
+      <Can anyOf={['unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">Manage</Text>
         <View className="mt-2 gap-3">
           <Can perm="unit.add">
             <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
+          </Can>
+          {/* Owner-only team management. The screen refuses non-Owners on its
+              own too, for the deep-link case where this menu never rendered. */}
+          <Can perm="user.manage">
+            <MenuRow icon={<Users size={20} color={colors.brand} />} label="Team" onPress={() => router.push('/team' as Href)} />
           </Can>
           <Can perm="report.view">
             <MenuRow icon={<BarChart3 size={20} color={colors.brand} />} label="Analytics" onPress={() => router.push('/analytics')} />

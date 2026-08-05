@@ -238,6 +238,11 @@ export const ar: Catalogue = {
   'status.purchase.partial': 'مدفوع جزئيًا',
   'status.purchase.unpaid': 'غير مدفوع',
 
+  // حالة عضو الفريق
+  'status.user.active': 'نشط',
+  'status.user.inactive': 'موقوف',
+  'status.user.pending_contact': 'بدون هاتف',
+
   // ── Tracking types ────────────────────────────────────────────────────────
   'tracking.imei': 'IMEI',
   'tracking.serial': 'الرقم التسلسلي',
@@ -334,4 +339,34 @@ export const ar: Catalogue = {
   'settings.security.1m': 'دقيقة واحدة',
   'settings.security.5m': '٥ دقائق',
   'settings.security.15m': '١٥ دقيقة',
+
+  // ── الفريق (المرحلة ١) ───────────────────────────────────────────────────────
+  'team.title': 'الفريق',
+  'team.subtitle': 'الأشخاص الذين يمكنهم استخدام تطبيق المتجر.',
+  'team.empty': 'لا يوجد أعضاء بعد',
+  'team.emptyBody': 'سيظهر هنا كل من تتم دعوته.',
+  'team.role.owner': 'المالك',
+  'team.role.store_manager': 'مدير',
+  'team.role.store_employee': 'موظف',
+  'team.role.administrator': 'مشرف',
+  'team.branchRole': '{role} · {branch}',
+  'team.noBranches': 'بدون فرع بعد',
+  'team.contact.none': 'لا يوجد هاتف بعد',
+  'team.editTitle': 'تعديل عضو الفريق',
+  'team.field.name': 'الاسم',
+  'team.field.login': 'اسم المستخدم',
+  'team.field.phone': 'الهاتف',
+  'team.field.phoneHint': 'صيغة دولية، مثل ‎+2223XXXXXX. تُستخدم لاحقًا لرموز واتساب.',
+  'team.field.email': 'البريد الإلكتروني (اختياري)',
+  'team.field.emailHint': 'للاسترجاع فقط. يمكن تركه فارغًا.',
+  'team.field.active': 'يمكنه استخدام التطبيق',
+  'team.field.activeHint': 'أوقفه لمنع هذا الشخص من تسجيل الدخول. يُحتفظ بسجله.',
+  'team.detail.lastLogin': 'آخر تسجيل دخول',
+  'team.detail.never': 'أبدًا',
+  'team.saved': 'تم تحديث عضو الفريق',
+  'team.error.phone': 'أدخل الهاتف بصيغة دولية، مثل ‎+2223XXXXXX.',
+  'team.error.email': 'هذا لا يبدو كبريد إلكتروني صحيح.',
+  'team.error.phoneTaken': 'عضو آخر يستخدم هذا الرقم بالفعل.',
+  'team.error.self': 'لا يمكنك إيقاف وصولك الخاص.',
+  'team.error.noChanges': 'لم يتغيّر شيء.',
 };

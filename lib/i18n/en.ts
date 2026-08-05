@@ -236,6 +236,11 @@ export const en = {
   'status.purchase.partial': 'Part paid',
   'status.purchase.unpaid': 'Unpaid',
 
+  // Team member status
+  'status.user.active': 'Active',
+  'status.user.inactive': 'Inactive',
+  'status.user.pending_contact': 'No phone yet',
+
   // ── Tracking types ────────────────────────────────────────────────────────
   'tracking.imei': 'IMEI',
   'tracking.serial': 'Serial',
@@ -334,4 +339,34 @@ export const en = {
   'settings.security.1m': '1 minute',
   'settings.security.5m': '5 minutes',
   'settings.security.15m': '15 minutes',
+
+  // ── Team (F1 Stage 1) ───────────────────────────────────────────────────────
+  'team.title': 'Team',
+  'team.subtitle': 'The people who can use this shop’s app.',
+  'team.empty': 'No team members yet',
+  'team.emptyBody': 'People you invite will appear here.',
+  'team.role.owner': 'Owner',
+  'team.role.store_manager': 'Manager',
+  'team.role.store_employee': 'Employee',
+  'team.role.administrator': 'Administrator',
+  'team.branchRole': '{role} · {branch}',
+  'team.noBranches': 'No branch yet',
+  'team.contact.none': 'No phone yet',
+  'team.editTitle': 'Edit team member',
+  'team.field.name': 'Name',
+  'team.field.login': 'Username',
+  'team.field.phone': 'Phone',
+  'team.field.phoneHint': 'International format, e.g. +2223XXXXXX. Used later for WhatsApp codes.',
+  'team.field.email': 'Email (optional)',
+  'team.field.emailHint': 'For account recovery only. Can be left empty.',
+  'team.field.active': 'Can use the app',
+  'team.field.activeHint': 'Turn off to stop this person signing in. Their history is kept.',
+  'team.detail.lastLogin': 'Last signed in',
+  'team.detail.never': 'Never',
+  'team.saved': 'Team member updated',
+  'team.error.phone': 'Enter the phone in international format, e.g. +2223XXXXXX.',
+  'team.error.email': 'That does not look like an email address.',
+  'team.error.phoneTaken': 'Another team member already uses that phone number.',
+  'team.error.self': 'You cannot switch off your own access.',
+  'team.error.noChanges': 'Nothing changed.',
 } as const;

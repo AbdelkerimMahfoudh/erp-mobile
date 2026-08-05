@@ -227,3 +227,32 @@ export interface OwnerSettings {
 }
 
 export type Settings = OwnerSettings | StaffSettings;
+
+// ── Team (F1 Stage 1) ────────────────────────────────────────────────────────
+export type UserStatus = 'active' | 'inactive' | 'pending_contact';
+
+export interface TeamUserBranch {
+  branchId: string;
+  branchName: string;
+  role: string;
+}
+
+/**
+ * A company user as the Owner's Team screen sees them. No password, PIN or token
+ * material is ever part of this shape — the server never selects it. The
+ * `*VerifiedAt` fields are null in Stage 1 (there is no verification mechanism
+ * yet), so the UI shows whether a contact is present, never a "verified" claim.
+ */
+export interface TeamUser {
+  id: string;
+  name: string;
+  login: string;
+  phone: string | null;
+  email: string | null;
+  phoneVerifiedAt: string | null;
+  emailVerifiedAt: string | null;
+  isActive: boolean;
+  status: UserStatus;
+  lastLoginAt: string | null;
+  branches: TeamUserBranch[];
+}

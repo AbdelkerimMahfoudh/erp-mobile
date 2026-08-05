@@ -26,4 +26,6 @@ export const qk = {
   notifications: ['notifications'] as const,
   /** Company-scoped, not branch-scoped — one policy for the whole business. */
   settings: ['settings'] as const,
+  /** Company-scoped team list — Owner-only, not per branch. */
+  users: ['users'] as const,
 };
