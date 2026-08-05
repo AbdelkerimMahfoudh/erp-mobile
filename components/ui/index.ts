@@ -40,6 +40,7 @@ export {
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { ListRow, type ListRowProps } from './ListRow';
+export { Toggle, type ToggleProps } from './Toggle';
 export { StatTile, type StatTileProps, type StatTrend } from './StatTile';
 
 // ───────────────────────────────────────────────────────────────────────────

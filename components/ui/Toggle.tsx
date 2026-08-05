@@ -1,0 +1,108 @@
+import React from 'react';
+import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { colors } from '../../lib/design/colors';
+import { radius, space, touch } from '../../lib/design/tokens';
+import { Text } from './Text';
+import { usePressed } from './use-pressed';
+
+/**
+ * A labelled on/off setting.
+ *
+ * The whole row is the target, not just the switch: a 51pt switch is a small
+ * thing to hit accurately with a thumb while holding a phone in the other hand,
+ * and someone reading the label has already told you what they mean to press.
+ *
+ * The state is always written out as well as shown — "On"/"Off" beneath the
+ * label — because a switch's position is the one control users routinely read
+ * backwards, and colour alone never carries meaning in this app.
+ */
+export interface ToggleProps {
+  label: string;
+  /** Quiet line explaining what turning this on actually does. */
+  hint?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  /** Words for the two states. Defaults to On / Off. */
+  onLabel?: string;
+  offLabel?: string;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+export function Toggle({
+  label,
+  hint,
+  value,
+  onValueChange,
+  onLabel = 'On',
+  offLabel = 'Off',
+  disabled = false,
+  style,
+}: ToggleProps) {
+  const { pressed, pressHandlers } = usePressed();
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={() => onValueChange(!value)}
+      {...pressHandlers}
+      style={[
+        styles.row,
+        {
+          backgroundColor: pressed && !disabled ? colors.surface.hover : colors.surface.card,
+          borderColor: colors.border.subtle,
+        },
+        disabled ? styles.disabled : null,
+        style,
+      ]}
+    >
+      <View style={styles.text}>
+        <Text variant="bodyStrong">{label}</Text>
+        {hint ? (
+          <Text variant="caption" tone="secondary" style={styles.hint}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+
+      <View style={styles.control}>
+        <Text variant="label" tone={value ? 'accent' : 'tertiary'}>
+          {value ? onLabel : offLabel}
+        </Text>
+        {/* `pointerEvents="none"`: the row owns the gesture, so a tap on the
+            switch itself cannot fire the change twice. */}
+        <View pointerEvents="none">
+          <Switch
+            value={value}
+            onValueChange={onValueChange}
+            disabled={disabled}
+            trackColor={{ false: colors.neutral[300], true: colors.brand[500] }}
+            thumbColor={colors.surface.card}
+            ios_backgroundColor={colors.neutral[300]}
+          />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+    minHeight: touch.min,
+    paddingVertical: space.md,
+    paddingHorizontal: space.base,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+  },
+  text: { flex: 1 },
+  hint: { marginTop: space.xs },
+  control: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  disabled: { opacity: 0.5 },
+});
