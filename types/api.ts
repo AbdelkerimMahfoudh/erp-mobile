@@ -180,3 +180,50 @@ export interface HealthScore {
   status: 'red' | 'amber' | 'green';
   components: HealthComponent[];
 }
+
+// ── Business settings ───────────────────────────────────────────────────────
+
+export type ReceivingProvider = 'bankily' | 'sedad' | 'bim_bank' | 'other';
+
+/** What every caller receives — an employee gets exactly this and no more. */
+export interface StaffReceivingAccount {
+  id: string;
+  provider: ReceivingProvider;
+  providerName: string | null;
+  label: string;
+}
+
+export interface OwnerReceivingAccount extends StaffReceivingAccount {
+  isActive: boolean;
+  sortOrder: number;
+  version: number;
+}
+
+/**
+ * The settings payload is discriminated by `canManage`, because the server
+ * genuinely sends different shapes: an employee's response has no WhatsApp
+ * preferences and no concurrency token at all. Modelling that as optional
+ * fields would invite the UI to ask for something that was never sent.
+ */
+export interface StaffSettings {
+  canManage: false;
+  returnWindowHours: number;
+  security: { autoLockMaxSeconds: number };
+  receivingAccounts: StaffReceivingAccount[];
+}
+
+export interface OwnerSettings {
+  canManage: true;
+  returnWindowHours: number;
+  whatsapp: {
+    language: 'en' | 'ar';
+    includeAmounts: boolean;
+    dailyEnabled: boolean;
+    monthlyEnabled: boolean;
+  };
+  security: { autoLockMaxSeconds: number };
+  receivingAccounts: OwnerReceivingAccount[];
+  version: number;
+}
+
+export type Settings = OwnerSettings | StaffSettings;

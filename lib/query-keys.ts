@@ -24,4 +24,6 @@ export const qk = {
   health: (branchId: string | null) => ['health', branchId] as const,
   expenses: (branchId: string | null, date?: string) => ['expenses', branchId, date ?? ''] as const,
   notifications: ['notifications'] as const,
+  /** Company-scoped, not branch-scoped — one policy for the whole business. */
+  settings: ['settings'] as const,
 };
