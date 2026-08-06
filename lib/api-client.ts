@@ -5,13 +5,16 @@ import { getActiveBranchId } from './branch';
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type Body = unknown;
 
-/** Non-2xx responses throw. Backend errors are `{ error, message }` (problem+json). */
+/** Non-2xx responses throw. Backend errors are `{ error, message, code? }`. */
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Machine-readable code when the server sends one, e.g. `device_unrecognized`. */
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -94,7 +97,11 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
   if (!res.ok) {
     const payload = await parse<any>(res).catch(() => null);
     const message = payload?.message || payload?.error || `Request failed (${res.status})`;
-    throw new ApiError(Array.isArray(message) ? message.join(', ') : message, res.status);
+    throw new ApiError(
+      Array.isArray(message) ? message.join(', ') : message,
+      res.status,
+      typeof payload?.code === 'string' ? payload.code : undefined,
+    );
   }
 
   return parse<T>(res);

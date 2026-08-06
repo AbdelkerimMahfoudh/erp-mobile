@@ -27,13 +27,36 @@ export interface DeviceCredential {
 }
 
 /**
- * Keyed by LOGIN, not user id — the login is the only identity known before the
- * server has authenticated anyone, and a returning installation must present
- * its credential in that very same request.
+ * Keyed by LOGIN, because the login is the only identity known before the server
+ * has authenticated anyone, and a returning installation must present its
+ * credential in that very same request.
  *
- * Isolation does not rest on this key. The server checks that the device row
- * belongs to the authenticated user, so a tampered local entry naming someone
- * else's credential is rejected there, not here.
+ * ⚠️ **Known limitation — login is company-ambiguous.** The database guarantees
+ * login uniqueness only within a company (`@@unique([companyId, login])`), so on
+ * one installation used across companies (two `owner`s, account switching), this
+ * key collides. Since Stage 3.1 the server FAILS CLOSED on a credential it
+ * cannot verify, so presenting company A's credential while signing into company
+ * B is rejected rather than silently mis-enrolled — and `signIn` recovers by
+ * forgetting the stale entry and enrolling fresh. That prevents a lock-out but
+ * still thrashes device records for colliding logins.
+ *
+ * A collision-free key is **not possible here without an auth-contract change**,
+ * because no company/store identifier is known before login. The required change
+ * is recorded in docs/23 (Stage 3.1): the login request must carry a stable,
+ * public company/store identifier (or the server must issue a recoverable
+ * account namespace), after which the key becomes `env + companyKey + login`.
+ * Until then this key is deliberately left as-is rather than replaced with a
+ * different ambiguous scheme.
+ *
+ * Isolation never rests on this key: the server checks that the device row
+ * belongs to the authenticated user, so a tampered or colliding local entry is
+ * rejected there, not trusted here.
+ *
+ * **Login rename (future):** renaming a login changes this key, which would
+ * orphan the stored credential and enroll a new device on the next sign-in. When
+ * a rename endpoint is built it must re-key this entry from the old login to the
+ * new one (a local `getItem(old) → setItem(new) → deleteItem(old)`), or the
+ * client must accept the re-enrollment as an intentional new device.
  */
 const keyFor = (login: string) => `${KEY_PREFIX}${login.trim().toLowerCase()}`;
 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { api, clearSession } from '../lib/api-client';
+import { api, ApiError, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
@@ -44,23 +44,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (login: string, password: string) => {
     /*
-     * Device identity (F1 Stage 3).
+     * Device identity (F1 Stage 3 / 3.1).
      *
      * A returning installation presents the credential it was issued, so the
-     * server recognises the same device instead of enrolling a new one every
-     * time. The credential is stored under the LOGIN because that is the only
-     * identity known before the server has authenticated anyone.
+     * server recognises the same device instead of enrolling a new one. The
+     * credential is keyed by LOGIN — the only identity known before the server
+     * has authenticated anyone. **This key is company-ambiguous** (login is
+     * unique only within a company), and no company identifier is available
+     * before login, so it cannot be made collision-free here without an
+     * auth-contract change — see `lib/device.ts` and docs/23 for the required
+     * change. Until then the fail-closed recovery below keeps a wrong/foreign
+     * credential from locking anyone out.
      *
-     * With no credential — a first sign-in, a reinstall, cleared storage, a
-     * different phone — the server enrolls this installation and returns a
-     * secret exactly once, which we keep. That is a new device by design.
+     * The server now FAILS CLOSED (Stage 3.1) on a credential it cannot verify:
+     * a wrong secret, an unknown/revoked device, or a foreign-company credential
+     * that happens to share this login. It never enrolls a device from a bad
+     * claim. When that happens we forget the stale credential and retry once
+     * WITHOUT it, which the server treats as a genuinely new installation and
+     * enrolls — the same path a reinstall takes. This is the client choosing to
+     * start over after its own credential failed, not the server trusting a bad
+     * secret.
      */
+    const withCredential = (cred: { deviceId: string; deviceSecret: string } | null) =>
+      api.post<AuthResponse>('/auth/login', {
+        login,
+        password,
+        deviceCredential: { ...deviceMeta(), ...(cred ?? {}) },
+      });
+
+    let res: AuthResponse;
     const existing = await loadCredential(login);
-    const res = await api.post<AuthResponse>('/auth/login', {
-      login,
-      password,
-      deviceCredential: { ...deviceMeta(), ...(existing ?? {}) },
-    });
+    try {
+      res = await withCredential(existing);
+    } catch (e) {
+      if (existing && e instanceof ApiError && e.code === 'device_unrecognized') {
+        await clearCredential(login);
+        res = await withCredential(null); // enroll fresh — a new device by design
+      } else {
+        throw e;
+      }
+    }
+
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
@@ -81,11 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
-    // Forget this installation's device credential. The server keeps the
-    // device row and its history — revocation is a server-side act — but this
-    // installation stops being able to prove it is that device, and the logout
-    // already told the server to require OTP re-verification here later.
-    if (user) await clearCredential(user.login);
+    // Remove SESSION material only (access + refresh). The device credential is
+    // deliberately KEPT: logout told the server to set `reverifyRequired` on
+    // THIS device, and that flag only means something if the next sign-in
+    // presents the same device to re-verify (Stage 4). Clearing it here would
+    // abandon the device and make the flag vestigial. The credential is not a
+    // session — it proves "same phone", not "signed in" — and it is keyed per
+    // login, so it is useless to anyone who cannot also enter this login's
+    // password. It is forgotten only when the server fails it closed (signIn).
     await clearSession();
     branch.clear();
     usePermissionStore.getState().clear();
