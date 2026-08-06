@@ -1,69 +1,186 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, RefreshControl } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TextInput, Pressable, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Search, Plus, Tag } from 'lucide-react-native';
 import { Badge, EmptyState } from '../../components/ui';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
-import { colors, money, trackingLabel } from '../../lib/theme';
-import type { Product } from '../../types/api';
+import { usePermission } from '../../lib/permissions';
+import { colors, trackingLabel } from '../../lib/theme';
+import type { ProductListRow, ProductPage, TrackingType } from '../../types/api';
+
+/**
+ * Catalog (G1).
+ *
+ * Everything is resolved server-side — search, filters and cursor pagination —
+ * because the catalog outgrows any fixed page long before a shop notices. The
+ * create control is gated on `catalog.manage`: employees browse the catalog,
+ * managers shape it. The server enforces that regardless; this only keeps the
+ * UI from offering a button that would 403.
+ */
+
+type ActiveFilter = 'active' | 'inactive' | 'all';
+
+const TRACKING_FILTERS: { value: TrackingType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All types' },
+  { value: 'imei', label: 'Phones' },
+  { value: 'serial', label: 'Serial' },
+  { value: 'quantity', label: 'Quantity' },
+];
 
 export default function CatalogScreen() {
   const router = useRouter();
+  const canManage = usePermission('catalog.manage');
   const [q, setQ] = useState('');
-  const all = useQuery({ queryKey: qk.products(), queryFn: () => api.get<Product[]>('/products') });
-  const search = useQuery({
-    queryKey: qk.products(q),
-    queryFn: () => api.get<Product[]>(`/products/search?q=${encodeURIComponent(q)}`),
-    enabled: q.trim().length > 0,
+  const [tracking, setTracking] = useState<TrackingType | 'all'>('all');
+  const [active, setActive] = useState<ActiveFilter>('active');
+
+  const params = useMemo(() => {
+    const p = new URLSearchParams();
+    if (q.trim()) p.set('q', q.trim());
+    if (tracking !== 'all') p.set('trackingType', tracking);
+    if (active !== 'active') p.set('active', active);
+    return p;
+  }, [q, tracking, active]);
+
+  const page = useInfiniteQuery({
+    queryKey: qk.products(params.toString()),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => {
+      const p = new URLSearchParams(params);
+      if (pageParam) p.set('cursor', pageParam);
+      return api.get<ProductPage>(`/products?${p.toString()}`);
+    },
+    getNextPageParam: (last) => last.nextCursor,
   });
-  const list = q.trim() ? search.data ?? [] : all.data ?? [];
+
+  const rows = page.data?.pages.flatMap((p) => p.rows) ?? [];
+  const total = page.data?.pages[0]?.totalActive ?? 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack.Screen options={{ headerShown: true, title: 'Catalog' }} />
+
       <View className="border-b border-slate-200 bg-white px-4 py-3">
         <View className="flex-row items-center gap-2 rounded-xl border border-slate-300 px-3">
           <Search size={18} color={colors.brand} />
-          <TextInput value={q} onChangeText={setQ} placeholder="Search products" placeholderTextColor={colors.muted} className="flex-1 py-3 text-base text-slate-900" autoCapitalize="none" />
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder="Search name, brand, barcode…"
+            placeholderTextColor={colors.muted}
+            className="flex-1 py-3 text-base text-slate-900"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          {TRACKING_FILTERS.map((f) => (
+            <Pressable
+              key={f.value}
+              onPress={() => setTracking(f.value)}
+              className={`rounded-full border px-3 py-1 ${
+                tracking === f.value ? 'border-brand-600 bg-brand-100' : 'border-slate-300 bg-white'
+              }`}
+            >
+              <Text className={tracking === f.value ? 'text-sm text-brand-700' : 'text-sm text-slate-600'}>
+                {f.label}
+              </Text>
+            </Pressable>
+          ))}
+          {/* Archived products are a manager concern; employees never need the toggle. */}
+          {canManage ? (
+            <Pressable
+              onPress={() => setActive(active === 'active' ? 'all' : 'active')}
+              className={`rounded-full border px-3 py-1 ${
+                active === 'active' ? 'border-slate-300 bg-white' : 'border-brand-600 bg-brand-100'
+              }`}
+            >
+              <Text className={active === 'active' ? 'text-sm text-slate-600' : 'text-sm text-brand-700'}>
+                {active === 'active' ? 'Active only' : 'Including archived'}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
-        refreshControl={<RefreshControl refreshing={all.isFetching} onRefresh={() => all.refetch()} tintColor={colors.brand} />}
-      >
-        {list.length === 0 ? (
-          <EmptyState title="No products" body="Tap + to create your first product" />
-        ) : (
-          <View className="gap-2">
-            {list.map((p) => (
-              <View key={p.id} className="flex-row items-center justify-between rounded-2xl border border-slate-200 bg-white p-3">
-                <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                  <Tag size={18} color={colors.brand} />
-                </View>
-                <View className="ml-3 flex-1">
-                  <Text className="font-semibold text-slate-900">{p.brand} {p.model}{p.variant ? ` ${p.variant}` : ''}</Text>
-                  <View className="mt-1 flex-row items-center gap-2">
-                    <Badge label={trackingLabel[p.trackingType]} tone="brand" />
-                    {p.barcode ? <Text className="text-xs text-slate-400">{p.barcode}</Text> : null}
-                  </View>
-                </View>
-                <Text className="font-semibold text-slate-700">{money(p.defaultPrice)}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+      {page.isError ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-center text-slate-600">We could not load the catalog.</Text>
+          <Pressable onPress={() => page.refetch()} className="mt-3 rounded-xl bg-brand-600 px-4 py-2">
+            <Text className="font-medium text-white">Try again</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(p) => p.id}
+          contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
+          refreshControl={
+            <RefreshControl refreshing={page.isRefetching} onRefresh={() => page.refetch()} tintColor={colors.brand} />
+          }
+          ListHeaderComponent={
+            rows.length > 0 ? (
+              <Text className="mb-2 text-xs text-slate-500">
+                {total} {total === 1 ? 'product' : 'products'}
+              </Text>
+            ) : null
+          }
+          ListEmptyComponent={
+            page.isLoading ? (
+              <ActivityIndicator color={colors.brand} />
+            ) : (
+              <EmptyState
+                title={q.trim() ? 'No matches' : 'No products yet'}
+                body={q.trim() ? 'Try a different search.' : canManage ? 'Tap + to add your first product.' : 'Ask a manager to add products.'}
+              />
+            )
+          }
+          renderItem={({ item }) => <ProductRow row={item} onPress={() => router.push(`/catalog/${item.id}` as never)} />}
+          onEndReachedThreshold={0.4}
+          onEndReached={() => {
+            if (page.hasNextPage && !page.isFetchingNextPage) void page.fetchNextPage();
+          }}
+          ListFooterComponent={page.isFetchingNextPage ? <ActivityIndicator color={colors.brand} /> : null}
+        />
+      )}
 
-      <Pressable
-        onPress={() => router.push('/catalog/new')}
-        className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-brand-600 shadow-lg active:opacity-80"
-      >
-        <Plus color="#fff" size={28} />
-      </Pressable>
+      {canManage ? (
+        <Pressable
+          onPress={() => router.push('/catalog/new' as never)}
+          className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-brand-600 shadow-lg"
+          accessibilityLabel="Add product"
+        >
+          <Plus size={26} color="#fff" />
+        </Pressable>
+      ) : null}
     </SafeAreaView>
+  );
+}
+
+function ProductRow({ row, onPress }: { row: ProductListRow; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="mb-2 flex-row items-center justify-between rounded-2xl border border-slate-200 bg-white p-3"
+    >
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+        <Tag size={18} color={colors.brand} />
+      </View>
+      <View className="ml-3 flex-1">
+        {/* The exact-variant label the server assembled — one name everywhere. */}
+        <Text className="font-medium text-slate-900" numberOfLines={1}>
+          {row.label}
+        </Text>
+        <View className="mt-1 flex-row items-center gap-2">
+          <Text className="text-xs text-slate-500">{trackingLabel[row.trackingType] ?? row.trackingType}</Text>
+          {/* Status by colour AND words, never colour alone. */}
+          {!row.isActive ? <Badge label="Archived" tone="slate" /> : null}
+        </View>
+      </View>
+    </Pressable>
   );
 }

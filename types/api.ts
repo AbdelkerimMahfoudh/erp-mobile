@@ -91,6 +91,53 @@ export interface Product {
   reorderThreshold: number;
 }
 
+// ── Catalog (G1) ─────────────────────────────────────────────────────────────
+
+/** One catalog row. `label` is the exact-variant name, assembled server-side. */
+export interface ProductListRow {
+  id: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  label: string;
+  trackingType: TrackingType;
+  serialized: boolean;
+  barcode: string | null;
+  categoryId: string | null;
+  isActive: boolean;
+}
+
+/** A page of catalog rows. `nextCursor` is null on the last page. */
+export interface ProductPage {
+  rows: ProductListRow[];
+  nextCursor: string | null;
+  totalActive: number;
+}
+
+export interface ProductStockRow {
+  branchId: string;
+  branchName: string;
+  quantity: number;
+  /** Per-branch quantity price; null for serialized stock. */
+  price: number | null;
+}
+
+export interface ProductDetail extends ProductListRow {
+  specifications: Record<string, unknown>;
+  categoryName: string | null;
+  reorderThreshold: number;
+  stockByBranch: ProductStockRow[];
+  totalStock: number;
+  /** The existing authoritative fallback price. Editing it is the Pricing phase. */
+  defaultPrice: number | null;
+  /** Stripped by the server for anyone without `cost.view`. */
+  defaultCost?: number | null;
+  lastSoldPrice: number | null;
+  lastSoldAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProductSuggestion {
   productId: string;
   brand: string;
