@@ -443,4 +443,5 @@ export const en = {
   'settings.storeId.share': 'Safe to share with your team. It is not a password and cannot be used on its own.',
   'settings.storeId.copy': 'Copy',
   'settings.storeId.copied': 'Store Account ID copied',
+  'settings.storeId.copyFailed': 'Could not copy. You can read the ID from the screen instead.',
 } as const;

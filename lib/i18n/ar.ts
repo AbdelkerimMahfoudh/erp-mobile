@@ -439,4 +439,5 @@ export const ar: Catalogue = {
   'settings.storeId.share': 'يمكن مشاركته مع فريقك بأمان. ليس كلمة مرور ولا يكفي وحده لتسجيل الدخول.',
   'settings.storeId.copy': 'نسخ',
   'settings.storeId.copied': 'تم نسخ معرّف حساب المتجر',
+  'settings.storeId.copyFailed': 'تعذّر النسخ. يمكنك قراءة المعرّف من الشاشة.',
 };

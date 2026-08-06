@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clipboard, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useNavigation } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -593,24 +594,36 @@ function StoreAccountIdCard() {
 
   if (!user?.publicStoreId) return null;
 
-  const copy = () => {
-    Clipboard.setString(user.publicStoreId);
-    // Confirmation matters more than usual: copying is invisible, and an Owner
-    // reading it aloud over the phone needs to know it actually took.
-    toast.success(t('settings.storeId.copied'));
+  const storeId = user.publicStoreId;
+
+  // `expo-clipboard` is asynchronous and reports whether the write actually
+  // landed. Both matter: confirmation is the only feedback a copy ever gives,
+  // and an Owner reading the ID aloud over the phone must not be told it
+  // copied when it did not. Nothing here ever *reads* the clipboard.
+  const copy = async () => {
+    try {
+      const ok = await Clipboard.setStringAsync(storeId);
+      if (!ok) {
+        toast.error(t('settings.storeId.copyFailed'));
+        return;
+      }
+      toast.success(t('settings.storeId.copied'));
+    } catch {
+      toast.error(t('settings.storeId.copyFailed'));
+    }
   };
 
   return (
     <Section title={t('settings.storeId.section')} subtitle={t('settings.storeId.hint')}>
       <Card>
         <View style={styles.storeIdRow}>
-          <Identifier tone="primary" style={styles.storeIdValue}>{user.publicStoreId}</Identifier>
+          <Identifier tone="primary" style={styles.storeIdValue}>{storeId}</Identifier>
           <Button
             title={t('settings.storeId.copy')}
             variant="secondary"
             size="sm"
             icon={Copy}
-            onPress={copy}
+            onPress={() => void copy()}
           />
         </View>
         <Text variant="caption" tone="secondary" style={styles.hint}>
