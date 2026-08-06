@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Store } from 'lucide-react-native';
@@ -6,22 +6,31 @@ import { Button, Field } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
+import { getRememberedStoreId } from '../../lib/device';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
 import { colors } from '../../lib/theme';
 
 export default function Login() {
   const { t } = useTranslation();
   const { signIn } = useAuth();
+  const [storeId, setStoreId] = useState('');
   const [login, setLogin] = useState('owner');
   const [password, setPassword] = useState('');
   const [failure, setFailure] = useState<LoginFailureKind | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Convenience only: prefill the last Store ID (it is not a secret).
+  useEffect(() => {
+    void getRememberedStoreId().then((v) => {
+      if (v) setStoreId(v);
+    });
+  }, []);
+
   const onSubmit = async () => {
     setFailure(null);
     setLoading(true);
     try {
-      await signIn(login.trim(), password);
+      await signIn(storeId.trim(), login.trim(), password);
     } catch (e) {
       // A fail-closed device error is NEVER auto-recovered here (Stage 3.2): it
       // maps to a blocking verification state, not a silent retry, and the stored
@@ -61,6 +70,15 @@ export default function Login() {
 
           <View className="gap-4">
             <Field
+              label={t('auth.field.storeId')}
+              hint={t('auth.field.storeId.hint')}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              value={storeId}
+              onChangeText={setStoreId}
+              placeholder="F62B8-D1EEB"
+            />
+            <Field
               label={t('auth.field.login')}
               autoCapitalize="none"
               autoCorrect={false}
@@ -92,7 +110,7 @@ export default function Login() {
               <Text className="text-center text-sm text-red-600">{inlineError}</Text>
             ) : null}
 
-            <Button title={t('auth.action.signIn')} onPress={onSubmit} loading={loading} disabled={!login || !password} />
+            <Button title={t('auth.action.signIn')} onPress={onSubmit} loading={loading} disabled={!storeId || !login || !password} />
           </View>
         </View>
       </KeyboardAvoidingView>

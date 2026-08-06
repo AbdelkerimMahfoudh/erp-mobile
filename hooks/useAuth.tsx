@@ -6,13 +6,21 @@ import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore } from '../lib/permissions';
-import { deviceMeta, loadCredential, saveCredential } from '../lib/device';
+import {
+  clearLegacyCredential,
+  deviceMeta,
+  loadCredential,
+  loadLegacyCredential,
+  migrateLegacyCredential,
+  rememberStoreId,
+  saveCredential,
+} from '../lib/device';
 import type { AuthResponse, AuthUser } from '../types/api';
 
 interface AuthContextValue {
   user: AuthUser | null;
   bootstrapping: boolean;
-  signIn: (login: string, password: string) => Promise<void>;
+  signIn: (storeAccountId: string, login: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -31,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const me = await api.get<AuthUser>('/auth/me');
           setUser(me);
           await branch.hydrate();
-          await adoptLegacyDevice(me.login);
+          await onRestoredSession(me);
         }
       } catch {
         await clearSession();
@@ -42,41 +50,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signIn = async (login: string, password: string) => {
+  const signIn = async (storeAccountId: string, login: string, password: string) => {
     /*
      * Device identity (F1 Stage 3 / 3.1 / 3.2).
      *
-     * A returning installation presents the credential it was issued, so the
-     * server recognises the same device instead of enrolling a new one.
+     * The credential is namespaced by Store ID + login now that the Store
+     * Account ID is known before login. We present the company-scoped
+     * credential; if there is none but a pre-3.2 login-only credential exists,
+     * we present THAT — and if the server recognises it for this company, we
+     * migrate it into the scoped key. If neither exists, no credential is sent
+     * and the server enrolls a new device.
      *
-     * The server FAILS CLOSED on a credential it cannot verify — a wrong secret,
-     * an unknown/revoked device. **Stage 3.2 removes the old auto-recovery
-     * bypass**: we no longer forget the rejected credential and retry without it.
-     * Silently retrying re-enrolled a fresh trusted device from a failed claim,
-     * which is exactly what the backend's fail-closed tree forbids. The error
-     * now propagates untouched — the credential is KEPT and the login screen
-     * shows a blocking "this device needs verification" state (recovery is a
-     * deliberate act, or the future OTP flow). See `lib/sign-in-decision.ts`.
-     *
-     * The credential is still keyed by LOGIN here; Stage 3.2 also introduces a
-     * company-scoped key once the Store Account ID is captured (see CP3).
+     * The server FAILS CLOSED on a credential it cannot verify. There is NO
+     * client retry: the error propagates untouched (the credential is kept) and
+     * the login screen shows a blocking device-verification state. See CP1.
      */
-    const existing = await loadCredential(login);
+    const typedStoreId = storeAccountId;
+    let presented = await loadCredential(typedStoreId, login);
+    let fromLegacy = false;
+    if (!presented) {
+      const legacy = await loadLegacyCredential(login);
+      if (legacy) {
+        presented = legacy;
+        fromLegacy = true;
+      }
+    }
+
     const res = await api.post<AuthResponse>('/auth/login', {
+      storeAccountId,
       login,
       password,
-      deviceCredential: { ...deviceMeta(), ...(existing ?? {}) },
+      deviceCredential: { ...deviceMeta(), ...(presented ?? {}) },
     });
 
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
 
+    // Key everything by the SERVER's canonical Store ID, so login-save and
+    // restore-load always agree. Remembering it is fine — it is not a secret.
+    const storeId = res.user.publicStoreId;
+    await rememberStoreId(storeId);
+
     if (res.device) {
-      await saveCredential(login, {
+      // Newly enrolled device: keep its secret under the scoped key.
+      await saveCredential(storeId, login, {
         deviceId: res.device.deviceId,
         deviceSecret: res.device.deviceSecret,
       });
+    } else if (fromLegacy && presented) {
+      // The server recognised the legacy pair for THIS company — migrate it into
+      // the scoped key, then drop the ambiguous login-only key.
+      await saveCredential(storeId, login, presented);
+      await clearLegacyCredential(login);
     }
     setUser(res.user);
   };
@@ -150,23 +176,28 @@ export function useAuth() {
 }
 
 /**
- * One-time legacy adoption for a session created before device identity existed.
+ * Restored-session device handling on launch (F1 Stage 3.2). We now know the
+ * user's Store ID from `/auth/me`, so:
  *
- * Those sessions are still valid and must stay that way — invalidating them
- * would push every signed-in user through an OTP flow that does not exist yet.
- * So on the first launch of the updated app, the still-valid session binds once
- * to a **legacy-trusted** device and we keep the credential it returns.
+ *  1. Migrate a pre-3.2 login-only credential into the company-scoped key — a
+ *     safe migration because the Store ID comes from the user's OWN session, so
+ *     it can never land in another company's namespace (write-before-delete,
+ *     one-time, idempotent).
+ *  2. If there is still no scoped credential, adopt the device for this
+ *     pre-Stage-3 session (bind it once to a legacy-trusted device).
  *
- * Best-effort by design: if it fails — offline, server busy — the session keeps
- * working exactly as before and the next launch tries again. Losing the network
- * must never cost anyone their session.
+ * Best-effort: if it fails — offline, server busy — the session keeps working
+ * and the next launch tries again. Losing the network never costs a session,
+ * and none of this asks for OTP or re-verification.
  */
-async function adoptLegacyDevice(login: string): Promise<void> {
+async function onRestoredSession(me: AuthUser): Promise<void> {
   try {
-    if (await loadCredential(login)) return; // already has one
+    const storeId = me.publicStoreId;
+    await migrateLegacyCredential(storeId, me.login);
+    if (await loadCredential(storeId, me.login)) return; // has a scoped credential now
     const res = await api.post<{ deviceId: string; deviceSecret?: string }>('/devices/adopt', deviceMeta());
     if (res.deviceSecret) {
-      await saveCredential(login, { deviceId: res.deviceId, deviceSecret: res.deviceSecret });
+      await saveCredential(storeId, me.login, { deviceId: res.deviceId, deviceSecret: res.deviceSecret });
     }
   } catch {
     /* offline or transient — the session is untouched; try again next launch */

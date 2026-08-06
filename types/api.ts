@@ -8,6 +8,11 @@ export interface AuthUser {
   name: string;
   login: string;
   companyId: string;
+  /**
+   * Public Store Account ID (Stage 3.2) — the client namespaces its device
+   * credential by this, at login and on a restored session. NOT a secret.
+   */
+  publicStoreId: string;
 }
 
 export interface AuthResponse {

@@ -421,6 +421,8 @@ export const ar: Catalogue = {
   // ── تسجيل الدخول ───────────────────────────────────────────────────────────
   'auth.title': 'نظام إدارة المتجر',
   'auth.subtitle': 'سجّل الدخول إلى متجرك',
+  'auth.field.storeId': 'معرّف المتجر',
+  'auth.field.storeId.hint': 'معرّف نشاطك التجاري — يجده المالك في الإعدادات. ليس كلمة مرور.',
   'auth.field.login': 'اسم المستخدم',
   'auth.field.password': 'كلمة المرور',
   'auth.action.signIn': 'تسجيل الدخول',

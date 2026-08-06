@@ -423,6 +423,8 @@ export const en = {
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Retail ERP',
   'auth.subtitle': 'Sign in to your store',
+  'auth.field.storeId': 'Store ID',
+  'auth.field.storeId.hint': 'Your business ID — the Owner finds it in Settings. Not a password.',
   'auth.field.login': 'Login',
   'auth.field.password': 'Password',
   'auth.action.signIn': 'Sign In',
