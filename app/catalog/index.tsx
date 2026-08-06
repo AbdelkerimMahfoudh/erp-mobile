@@ -8,7 +8,8 @@ import { Badge, EmptyState } from '../../components/ui';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { usePermission } from '../../lib/permissions';
-import { colors, trackingLabel } from '../../lib/theme';
+import { useTranslation } from '../../lib/i18n';
+import { colors } from '../../lib/theme';
 import type { ProductListRow, ProductPage, TrackingType } from '../../types/api';
 
 /**
@@ -23,15 +24,16 @@ import type { ProductListRow, ProductPage, TrackingType } from '../../types/api'
 
 type ActiveFilter = 'active' | 'inactive' | 'all';
 
-const TRACKING_FILTERS: { value: TrackingType | 'all'; label: string }[] = [
-  { value: 'all', label: 'All types' },
-  { value: 'imei', label: 'Phones' },
-  { value: 'serial', label: 'Serial' },
-  { value: 'quantity', label: 'Quantity' },
+const TRACKING_FILTERS: { value: TrackingType | 'all'; key: string }[] = [
+  { value: 'all', key: 'catalog.filter.allTypes' },
+  { value: 'imei', key: 'catalog.filter.phones' },
+  { value: 'serial', key: 'catalog.filter.serial' },
+  { value: 'quantity', key: 'catalog.filter.quantity' },
 ];
 
 export default function CatalogScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const canManage = usePermission('catalog.manage');
   const [q, setQ] = useState('');
   const [tracking, setTracking] = useState<TrackingType | 'all'>('all');
@@ -61,7 +63,7 @@ export default function CatalogScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack.Screen options={{ headerShown: true, title: 'Catalog' }} />
+      <Stack.Screen options={{ headerShown: true, title: t('catalog.title') }} />
 
       <View className="border-b border-slate-200 bg-white px-4 py-3">
         <View className="flex-row items-center gap-2 rounded-xl border border-slate-300 px-3">
@@ -69,7 +71,7 @@ export default function CatalogScreen() {
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder="Search name, brand, barcode…"
+            placeholder={t('catalog.search')}
             placeholderTextColor={colors.muted}
             className="flex-1 py-3 text-base text-slate-900"
             autoCapitalize="none"
@@ -87,7 +89,7 @@ export default function CatalogScreen() {
               }`}
             >
               <Text className={tracking === f.value ? 'text-sm text-brand-700' : 'text-sm text-slate-600'}>
-                {f.label}
+                {t(f.key as never)}
               </Text>
             </Pressable>
           ))}
@@ -100,7 +102,7 @@ export default function CatalogScreen() {
               }`}
             >
               <Text className={active === 'active' ? 'text-sm text-slate-600' : 'text-sm text-brand-700'}>
-                {active === 'active' ? 'Active only' : 'Including archived'}
+                {t(active === 'active' ? 'catalog.filter.activeOnly' : 'catalog.filter.includingArchived')}
               </Text>
             </Pressable>
           ) : null}
@@ -109,9 +111,9 @@ export default function CatalogScreen() {
 
       {page.isError ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-slate-600">We could not load the catalog.</Text>
+          <Text className="text-center text-slate-600">{t('catalog.error')}</Text>
           <Pressable onPress={() => page.refetch()} className="mt-3 rounded-xl bg-brand-600 px-4 py-2">
-            <Text className="font-medium text-white">Try again</Text>
+            <Text className="font-medium text-white">{t('catalog.retry')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -125,7 +127,7 @@ export default function CatalogScreen() {
           ListHeaderComponent={
             rows.length > 0 ? (
               <Text className="mb-2 text-xs text-slate-500">
-                {total} {total === 1 ? 'product' : 'products'}
+                {total === 1 ? t('catalog.count.one') : t('catalog.count', { count: total })}
               </Text>
             ) : null
           }
@@ -134,12 +136,19 @@ export default function CatalogScreen() {
               <ActivityIndicator color={colors.brand} />
             ) : (
               <EmptyState
-                title={q.trim() ? 'No matches' : 'No products yet'}
-                body={q.trim() ? 'Try a different search.' : canManage ? 'Tap + to add your first product.' : 'Ask a manager to add products.'}
+                title={q.trim() ? t('catalog.empty.search') : t('catalog.empty')}
+                body={q.trim() ? t('catalog.empty.searchBody') : t(canManage ? 'catalog.empty.manager' : 'catalog.empty.employee')}
               />
             )
           }
-          renderItem={({ item }) => <ProductRow row={item} onPress={() => router.push(`/catalog/${item.id}` as never)} />}
+          renderItem={({ item }) => (
+            <ProductRow
+              row={item}
+              archivedLabel={t('catalog.status.archived')}
+              trackingText={t(`catalog.tracking.${item.trackingType}` as never)}
+              onPress={() => router.push(`/catalog/${item.id}` as never)}
+            />
+          )}
           onEndReachedThreshold={0.4}
           onEndReached={() => {
             if (page.hasNextPage && !page.isFetchingNextPage) void page.fetchNextPage();
@@ -152,7 +161,7 @@ export default function CatalogScreen() {
         <Pressable
           onPress={() => router.push('/catalog/new' as never)}
           className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-brand-600 shadow-lg"
-          accessibilityLabel="Add product"
+          accessibilityLabel={t('catalog.add')}
         >
           <Plus size={26} color="#fff" />
         </Pressable>
@@ -161,7 +170,17 @@ export default function CatalogScreen() {
   );
 }
 
-function ProductRow({ row, onPress }: { row: ProductListRow; onPress: () => void }) {
+function ProductRow({
+  row,
+  archivedLabel,
+  trackingText,
+  onPress,
+}: {
+  row: ProductListRow;
+  archivedLabel: string;
+  trackingText: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -176,9 +195,9 @@ function ProductRow({ row, onPress }: { row: ProductListRow; onPress: () => void
           {row.label}
         </Text>
         <View className="mt-1 flex-row items-center gap-2">
-          <Text className="text-xs text-slate-500">{trackingLabel[row.trackingType] ?? row.trackingType}</Text>
+          <Text className="text-xs text-slate-500">{trackingText}</Text>
           {/* Status by colour AND words, never colour alone. */}
-          {!row.isActive ? <Badge label="Archived" tone="slate" /> : null}
+          {!row.isActive ? <Badge label={archivedLabel} tone="slate" /> : null}
         </View>
       </View>
     </Pressable>

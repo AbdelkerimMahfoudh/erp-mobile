@@ -4,6 +4,7 @@ export const qk = {
   branches: ['branches'] as const,
   permissions: (branchId: string | null) => ['permissions', branchId] as const,
   products: (q?: string) => ['products', q ?? ''] as const,
+  product: (id: string) => ['product', id] as const,
   categories: ['categories'] as const,
   suppliers: ['suppliers'] as const,
   /**
