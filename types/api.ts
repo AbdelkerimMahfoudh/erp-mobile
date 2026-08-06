@@ -16,6 +16,34 @@ export interface AuthResponse {
   expiresIn: number;
   refreshToken: string;
   user: AuthUser;
+  /**
+   * Present ONLY when this login enrolled a new device. The secret appears in
+   * this one response and nowhere else — store it, never log it.
+   */
+  device?: { deviceId: string; deviceSecret: string; trustMethod: DeviceTrustMethod };
+}
+
+/** How a device came to be trusted. `otp` is Stage 4 and is never set today. */
+export type DeviceTrustMethod = 'legacy' | 'password' | 'otp';
+
+/**
+ * A device the user has signed in from. Contains no secret and no hash — the
+ * server never selects them.
+ */
+export interface UserDeviceView {
+  id: string;
+  label: string | null;
+  platform: string | null;
+  model: string | null;
+  appVersion: string | null;
+  trustMethod: DeviceTrustMethod;
+  /** Derived server-side, so nothing can mistake a column for a verification. */
+  otpVerified: boolean;
+  reverifyRequired: boolean;
+  firstSeenAt: string;
+  lastSeenAt: string | null;
+  revokedAt: string | null;
+  isCurrent: boolean;
 }
 
 export interface UserBranch {

@@ -6,6 +6,7 @@ import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore } from '../lib/permissions';
+import { clearCredential, deviceMeta, loadCredential, saveCredential } from '../lib/device';
 import type { AuthResponse, AuthUser } from '../types/api';
 
 interface AuthContextValue {
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const me = await api.get<AuthUser>('/auth/me');
           setUser(me);
           await branch.hydrate();
+          await adoptLegacyDevice(me.login);
         }
       } catch {
         await clearSession();
@@ -41,10 +43,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (login: string, password: string) => {
-    const res = await api.post<AuthResponse>('/auth/login', { login, password });
+    /*
+     * Device identity (F1 Stage 3).
+     *
+     * A returning installation presents the credential it was issued, so the
+     * server recognises the same device instead of enrolling a new one every
+     * time. The credential is stored under the LOGIN because that is the only
+     * identity known before the server has authenticated anyone.
+     *
+     * With no credential — a first sign-in, a reinstall, cleared storage, a
+     * different phone — the server enrolls this installation and returns a
+     * secret exactly once, which we keep. That is a new device by design.
+     */
+    const existing = await loadCredential(login);
+    const res = await api.post<AuthResponse>('/auth/login', {
+      login,
+      password,
+      deviceCredential: { ...deviceMeta(), ...(existing ?? {}) },
+    });
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
+
+    if (res.device) {
+      await saveCredential(login, {
+        deviceId: res.device.deviceId,
+        deviceSecret: res.device.deviceSecret,
+      });
+    }
     setUser(res.user);
   };
 
@@ -55,6 +81,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
+    // Forget this installation's device credential. The server keeps the
+    // device row and its history — revocation is a server-side act — but this
+    // installation stops being able to prove it is that device, and the logout
+    // already told the server to require OTP re-verification here later.
+    if (user) await clearCredential(user.login);
     await clearSession();
     branch.clear();
     usePermissionStore.getState().clear();
@@ -106,6 +137,30 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
+}
+
+/**
+ * One-time legacy adoption for a session created before device identity existed.
+ *
+ * Those sessions are still valid and must stay that way — invalidating them
+ * would push every signed-in user through an OTP flow that does not exist yet.
+ * So on the first launch of the updated app, the still-valid session binds once
+ * to a **legacy-trusted** device and we keep the credential it returns.
+ *
+ * Best-effort by design: if it fails — offline, server busy — the session keeps
+ * working exactly as before and the next launch tries again. Losing the network
+ * must never cost anyone their session.
+ */
+async function adoptLegacyDevice(login: string): Promise<void> {
+  try {
+    if (await loadCredential(login)) return; // already has one
+    const res = await api.post<{ deviceId: string; deviceSecret?: string }>('/devices/adopt', deviceMeta());
+    if (res.deviceSecret) {
+      await saveCredential(login, { deviceId: res.deviceId, deviceSecret: res.deviceSecret });
+    }
+  } catch {
+    /* offline or transient — the session is untouched; try again next launch */
+  }
 }
 
 /** Redirect based on auth + branch state: login → select-branch → tabs. */

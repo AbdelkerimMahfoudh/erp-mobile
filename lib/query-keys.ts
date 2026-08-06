@@ -23,6 +23,8 @@ export const qk = {
   inventoryValue: (branchId: string | null) => ['inventory-value', branchId] as const,
   health: (branchId: string | null) => ['health', branchId] as const,
   expenses: (branchId: string | null, date?: string) => ['expenses', branchId, date ?? ''] as const,
+  /** The signed-in user's own devices (F1 Stage 3). */
+  devices: ['devices'] as const,
   notifications: ['notifications'] as const,
   /** Company-scoped, not branch-scoped — one policy for the whole business. */
   settings: ['settings'] as const,

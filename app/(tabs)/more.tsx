@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users } from 'lucide-react-native';
+import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -61,6 +61,9 @@ export default function MoreScreen() {
 
       <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">Account</Text>
       <View className="mt-2 gap-3">
+        {/* Every signed-in user can see and cut off their own devices — this is
+            personal account security, not an Owner power. */}
+        <MenuRow icon={<Smartphone size={20} color={colors.brand} />} label="Devices" onPress={() => router.push('/devices' as Href)} />
         <MenuRow icon={<Store size={20} color={colors.brand} />} label="Branch" value={branchName ?? undefined} onPress={changeBranch} />
         <MenuRow icon={<Repeat size={20} color={colors.brand} />} label="Switch branch" onPress={changeBranch} />
         <Pressable onPress={signOut}>
