@@ -432,4 +432,11 @@ export const ar: Catalogue = {
   'auth.device.title': 'هذا الجهاز بحاجة إلى تحقّق',
   'auth.device.body':
     'لأمانك، تعذّر التحقّق من هذا الجهاز. التحقّق من الجهاز غير متاح بعد في هذه النسخة — سجّل الدخول من الجهاز الذي استخدمته سابقًا، أو اطلب المساعدة من المسؤول.',
+
+  // Store Account ID (Stage 4A CP1)
+  'settings.storeId.section': 'معرّف حساب المتجر',
+  'settings.storeId.hint': 'يكتبه موظفوك عند تسجيل الدخول، مع اسم المستخدم وكلمة المرور الخاصة بهم.',
+  'settings.storeId.share': 'يمكن مشاركته مع فريقك بأمان. ليس كلمة مرور ولا يكفي وحده لتسجيل الدخول.',
+  'settings.storeId.copy': 'نسخ',
+  'settings.storeId.copied': 'تم نسخ معرّف حساب المتجر',
 };

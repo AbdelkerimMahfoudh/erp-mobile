@@ -435,4 +435,12 @@ export const en = {
   'auth.device.title': 'This device needs verification',
   'auth.device.body':
     'For your security, this device could not be verified. Device verification is not available yet in this version — sign in from the device you used before, or ask your administrator for help.',
+
+  // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  'settings.storeId.section': 'Store Account ID',
+  'settings.storeId.hint':
+    'Your staff type this when they sign in, together with their own username and password.',
+  'settings.storeId.share': 'Safe to share with your team. It is not a password and cannot be used on its own.',
+  'settings.storeId.copy': 'Copy',
+  'settings.storeId.copied': 'Store Account ID copied',
 } as const;

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Clipboard, StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
+import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -15,6 +15,7 @@ import {
   SegmentedControl,
   SkeletonList,
   Chip,
+  Identifier,
   Text,
   TextField,
   Toggle,
@@ -24,6 +25,7 @@ import { ApiError, api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { toFriendlyError } from '../lib/errors';
 import { useTranslation } from '../lib/i18n';
+import { useAuth } from '../hooks/useAuth';
 import { usePermission } from '../lib/permissions';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
@@ -250,6 +252,8 @@ export default function SettingsScreen() {
           {t('settings.subtitle')}
         </Text>
       </View>
+
+      <StoreAccountIdCard />
 
       {/* ── Returns ─────────────────────────────────────────────────────── */}
       <Section title={t('settings.returns.section')}>
@@ -570,6 +574,53 @@ function AccountSheet({
   );
 }
 
+
+/**
+ * The Store Account ID, where the Owner can actually find it.
+ *
+ * Employees are asked for this at sign-in, so an Owner who cannot read it off a
+ * screen cannot onboard anyone. It is deliberately presented as **shareable**:
+ * it selects the shop, it is not a secret, and it cannot sign anyone in on its
+ * own — the wording says so, because a code that looks like a password gets
+ * treated like one and never gets shared.
+ *
+ * Read-only by design. The internal BINARY(16) company id is never shown here
+ * or anywhere else in the app.
+ */
+function StoreAccountIdCard() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+
+  if (!user?.publicStoreId) return null;
+
+  const copy = () => {
+    Clipboard.setString(user.publicStoreId);
+    // Confirmation matters more than usual: copying is invisible, and an Owner
+    // reading it aloud over the phone needs to know it actually took.
+    toast.success(t('settings.storeId.copied'));
+  };
+
+  return (
+    <Section title={t('settings.storeId.section')} subtitle={t('settings.storeId.hint')}>
+      <Card>
+        <View style={styles.storeIdRow}>
+          <Identifier tone="primary" style={styles.storeIdValue}>{user.publicStoreId}</Identifier>
+          <Button
+            title={t('settings.storeId.copy')}
+            variant="secondary"
+            size="sm"
+            icon={Copy}
+            onPress={copy}
+          />
+        </View>
+        <Text variant="caption" tone="secondary" style={styles.hint}>
+          {t('settings.storeId.share')}
+        </Text>
+      </Card>
+    </Section>
+  );
+}
+
 const styles = StyleSheet.create({
   subtitle: { marginTop: space.xs },
   hint: { marginTop: space.xs },
@@ -577,4 +628,6 @@ const styles = StyleSheet.create({
   list: { gap: space.sm },
   lockList: { gap: space.sm, marginTop: space.md },
   sheet: { gap: space.base },
+  storeIdValue: { fontSize: 20, letterSpacing: 2 },
+  storeIdRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
 });
