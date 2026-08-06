@@ -17,7 +17,7 @@ import { toErrorMessage } from './errors';
  */
 
 /**
- * The 17-permission catalogue, mirroring `prisma/seed-data/permissions.ts`.
+ * The 18-permission catalogue, mirroring `prisma/seed-data/permissions.ts`.
  * Kept as a literal union so a typo is a compile error rather than a
  * permanently-false check that silently hides a feature forever.
  */
@@ -39,6 +39,7 @@ export const PERMISSIONS = [
   'user.manage',
   'settings.manage',
   'integrations.manage',
+  'price.edit',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

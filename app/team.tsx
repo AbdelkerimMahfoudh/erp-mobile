@@ -24,6 +24,7 @@ import { usePermission } from '../lib/permissions';
 import { useAuth } from '../hooks/useAuth';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
+import { dialog } from '../lib/dialog';
 import type { TeamUser } from '../types/api';
 
 /**
@@ -300,6 +301,8 @@ function EditSheet({
             />
           )}
 
+          <PriceEditDelegation user={user} />
+
           <Text variant="caption" tone="tertiary">
             {t('team.detail.lastLogin')}: {lastLogin}
           </Text>
@@ -309,10 +312,126 @@ function EditSheet({
   );
 }
 
+/** The one delegatable permission. Mirrors the server's allow-list. */
+const PRICE_EDIT = 'price.edit';
+
+/**
+ * Per-branch price-edit delegation.
+ *
+ * Deliberately NOT a permission picker: one explicit control per branch the
+ * person actually manages, because "which authority" is a decision the product
+ * makes, not the Owner. Employees have no eligible assignment, so the whole
+ * section disappears for them rather than showing a disabled control that
+ * invites the question "why not?".
+ *
+ * Each branch is its own switch and its own request. Authority is per branch on
+ * the server, so showing one combined toggle would be a lie about what is being
+ * granted.
+ */
+function PriceEditDelegation({ user }: { user: TeamUser }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [pendingBranch, setPendingBranch] = useState<string | null>(null);
+
+  // The server decides what is delegatable AND which assignments may receive
+  // it. If it ever stops offering price.edit, this section vanishes on its own.
+  const eligible = user.delegatablePermissions?.includes(PRICE_EDIT)
+    ? user.branches.filter((b) => b.canDelegate)
+    : [];
+
+  const mutate = useMutation({
+    mutationFn: ({ branchId, next }: { branchId: string; next: boolean }) => {
+      const path = `/users/${user.id}/branches/${branchId}/delegations/price-edit`;
+      return next ? api.put<TeamUser>(path, {}) : api.delete<TeamUser>(path);
+    },
+    onSuccess: (fresh, { branchId, next }) => {
+      const branch = user.branches.find((b) => b.branchId === branchId);
+      // Replace the row we have and refetch, so the list, this sheet and any
+      // permission-dependent screen all agree.
+      queryClient.setQueryData<TeamUser[]>(qk.users, (list) =>
+        list ? list.map((u) => (u.id === fresh.id ? fresh : u)) : list,
+      );
+      void queryClient.invalidateQueries({ queryKey: qk.users });
+      // Prefix, not `qk.permissions(branchId)`: the cache holds one entry per
+      // branch, and the grant changes what the TARGET user may do in one of
+      // them. Matching the prefix drops every branch's copy so the next read is
+      // the server's answer, whichever branch is active.
+      void queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast.success(
+        t(next ? 'team.delegation.granted' : 'team.delegation.revoked', {
+          branch: branch?.branchName ?? '',
+        }),
+      );
+    },
+    onError: (error) => {
+      // 409 means the assignment stopped being eligible while the sheet was
+      // open — a role change, or a deactivation. Retrying would not help.
+      if (error instanceof ApiError && error.status === 409) {
+        toast.error(t('team.delegation.conflict'));
+        void queryClient.invalidateQueries({ queryKey: qk.users });
+        return;
+      }
+      // 403, offline and everything else keep the server's own wording.
+      toast.error(toFriendlyError(error).body);
+    },
+    onSettled: () => setPendingBranch(null),
+  });
+
+  if (eligible.length === 0) return null;
+
+  const onToggle = async (branchId: string, branchName: string, next: boolean) => {
+    const ok = await dialog.confirm({
+      title: t(next ? 'team.delegation.confirmOnTitle' : 'team.delegation.confirmOffTitle'),
+      message: t(next ? 'team.delegation.confirmOnBody' : 'team.delegation.confirmOffBody', {
+        name: user.name,
+        branch: branchName,
+      }),
+      confirmLabel: t(next ? 'team.delegation.confirmOn' : 'team.delegation.confirmOff'),
+      cancelLabel: t('action.cancel'),
+      tone: next ? 'default' : 'danger',
+    });
+    if (!ok) return;
+    setPendingBranch(branchId);
+    mutate.mutate({ branchId, next });
+  };
+
+  return (
+    <View style={styles.delegation}>
+      <Text variant="label">{t('team.delegation.section')}</Text>
+      <Text variant="caption" tone="secondary">
+        {t('team.delegation.hint')}
+      </Text>
+
+      {eligible.map((b) => (
+        <Toggle
+          key={b.branchId}
+          label={t('team.delegation.allow', { branch: b.branchName })}
+          hint={t('team.delegation.allowHint')}
+          onLabel={t('settings.toggle.on')}
+          offLabel={t('settings.toggle.off')}
+          value={b.grantedPermissions.includes(PRICE_EDIT)}
+          disabled={mutate.isPending && pendingBranch === b.branchId}
+          onValueChange={(next) => void onToggle(b.branchId, b.branchName, next)}
+        />
+      ))}
+
+      {/* The limit is stated every time, not buried in a confirmation people
+          learn to dismiss. */}
+      <Text variant="caption" tone="warning">
+        {t('team.delegation.belowCost')}
+      </Text>
+      <Text variant="caption" tone="tertiary">
+        {t('team.delegation.notYet')}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   subtitle: { marginTop: space.xs },
   list: { gap: space.sm },
   sheet: { gap: space.base },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   readValue: { marginTop: space.xs },
+  delegation: { gap: space.sm },
 });

@@ -369,4 +369,23 @@ export const en = {
   'team.error.phoneTaken': 'Another team member already uses that phone number.',
   'team.error.self': 'You cannot switch off your own access.',
   'team.error.noChanges': 'Nothing changed.',
+
+  // Branch price-edit delegation (F1 Stage 2)
+  'team.delegation.section': 'Price editing',
+  'team.delegation.hint':
+    'Choose the branches where this manager may change ordinary selling prices.',
+  'team.delegation.allow': 'Can edit prices in {branch}',
+  'team.delegation.allowHint': 'Ordinary price changes only.',
+  'team.delegation.belowCost': 'Selling below cost still needs your approval — this does not change that.',
+  'team.delegation.granted': 'Price editing turned on for {branch}',
+  'team.delegation.revoked': 'Price editing turned off for {branch}',
+  'team.delegation.confirmOnTitle': 'Let them edit prices?',
+  'team.delegation.confirmOnBody':
+    '{name} will be able to change ordinary selling prices in {branch}. Selling below cost will still need your approval.',
+  'team.delegation.confirmOffTitle': 'Turn off price editing?',
+  'team.delegation.confirmOffBody': '{name} will no longer be able to change prices in {branch}.',
+  'team.delegation.confirmOn': 'Allow',
+  'team.delegation.confirmOff': 'Turn off',
+  'team.delegation.conflict': 'That is not possible any more — reload the team and try again.',
+  'team.delegation.notYet': 'Price editing itself arrives with the Pricing work. This sets who will be allowed to do it.',
 } as const;

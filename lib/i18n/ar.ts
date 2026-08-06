@@ -369,4 +369,22 @@ export const ar: Catalogue = {
   'team.error.phoneTaken': 'عضو آخر يستخدم هذا الرقم بالفعل.',
   'team.error.self': 'لا يمكنك إيقاف وصولك الخاص.',
   'team.error.noChanges': 'لم يتغيّر شيء.',
+
+  // Branch price-edit delegation (F1 Stage 2)
+  'team.delegation.section': 'تعديل الأسعار',
+  'team.delegation.hint': 'اختر الفروع التي يمكن لهذا المدير تغيير أسعار البيع العادية فيها.',
+  'team.delegation.allow': 'يمكنه تعديل الأسعار في {branch}',
+  'team.delegation.allowHint': 'تغييرات الأسعار العادية فقط.',
+  'team.delegation.belowCost': 'البيع بأقل من التكلفة ما زال يحتاج موافقتك — هذا لا يغيّر ذلك.',
+  'team.delegation.granted': 'تم تفعيل تعديل الأسعار في {branch}',
+  'team.delegation.revoked': 'تم إيقاف تعديل الأسعار في {branch}',
+  'team.delegation.confirmOnTitle': 'السماح له بتعديل الأسعار؟',
+  'team.delegation.confirmOnBody':
+    'سيتمكّن {name} من تغيير أسعار البيع العادية في {branch}. أمّا البيع بأقل من التكلفة فسيظل بحاجة إلى موافقتك.',
+  'team.delegation.confirmOffTitle': 'إيقاف تعديل الأسعار؟',
+  'team.delegation.confirmOffBody': 'لن يتمكّن {name} بعد الآن من تغيير الأسعار في {branch}.',
+  'team.delegation.confirmOn': 'سماح',
+  'team.delegation.confirmOff': 'إيقاف',
+  'team.delegation.conflict': 'لم يعد هذا ممكنًا — أعد تحميل الفريق وحاول مرة أخرى.',
+  'team.delegation.notYet': 'تعديل الأسعار نفسه يأتي مع مرحلة التسعير. هذا يحدّد من سيُسمح له بذلك.',
 };

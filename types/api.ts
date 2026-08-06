@@ -235,6 +235,18 @@ export interface TeamUserBranch {
   branchId: string;
   branchName: string;
   role: string;
+  /**
+   * Whether this assignment may receive delegated authority at all — true only
+   * for a Store Manager. The server decides; the UI must not infer it from the
+   * role string, or the two definitions drift.
+   */
+  canDelegate: boolean;
+  /**
+   * Delegated permissions currently granted on THIS branch assignment. Empty
+   * for almost every assignment. Authority is per branch, so the same person
+   * can appear here in one branch and not another.
+   */
+  grantedPermissions: string[];
 }
 
 /**
@@ -255,4 +267,11 @@ export interface TeamUser {
   status: UserStatus;
   lastLoginAt: string | null;
   branches: TeamUserBranch[];
+  /**
+   * Every permission an Owner is allowed to delegate — the server's allow-list.
+   * The screen renders one explicit control per known key rather than a generic
+   * picker, so a new entry here can never become a surprise UI that grants
+   * something nobody designed a screen for.
+   */
+  delegatablePermissions: string[];
 }
