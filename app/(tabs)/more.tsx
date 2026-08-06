@@ -37,9 +37,11 @@ export default function MoreScreen() {
       <Can anyOf={['unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">Manage</Text>
         <View className="mt-2 gap-3">
-          <Can perm="unit.add">
-            <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
-          </Can>
+          {/* Browsing the catalog is open to every store role — Sell and Receive
+              both depend on finding products. The create/edit/archive controls
+              inside are gated on `catalog.manage`, and the server enforces that
+              regardless of what this menu shows. */}
+          <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
           {/* Owner-only team management. The screen refuses non-Owners on its
               own too, for the deep-link case where this menu never rendered. */}
           <Can perm="user.manage">
