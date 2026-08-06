@@ -419,4 +419,18 @@ export const en = {
   'devices.owner.title': 'Devices',
   'devices.owner.subtitle': "Where {name} is signed in.",
   'devices.owner.revoke.body': 'That device will be signed out immediately.',
+
+  // ── Authentication ─────────────────────────────────────────────────────────
+  'auth.title': 'Retail ERP',
+  'auth.subtitle': 'Sign in to your store',
+  'auth.field.login': 'Login',
+  'auth.field.password': 'Password',
+  'auth.action.signIn': 'Sign In',
+  // Non-enumerating: never reveals which field was wrong.
+  'auth.error.failed': 'We could not sign you in. Check your details and try again.',
+  'auth.error.network': 'No connection. Check your network and try again.',
+  'auth.error.unknown': 'Something went wrong. Please try again.',
+  'auth.device.title': 'This device needs verification',
+  'auth.device.body':
+    'For your security, this device could not be verified. Device verification is not available yet in this version — sign in from the device you used before, or ask your administrator for help.',
 } as const;

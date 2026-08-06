@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { api, ApiError, clearSession } from '../lib/api-client';
+import { api, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore } from '../lib/permissions';
-import { clearCredential, deviceMeta, loadCredential, saveCredential } from '../lib/device';
+import { deviceMeta, loadCredential, saveCredential } from '../lib/device';
 import type { AuthResponse, AuthUser } from '../types/api';
 
 interface AuthContextValue {
@@ -44,46 +44,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (login: string, password: string) => {
     /*
-     * Device identity (F1 Stage 3 / 3.1).
+     * Device identity (F1 Stage 3 / 3.1 / 3.2).
      *
      * A returning installation presents the credential it was issued, so the
-     * server recognises the same device instead of enrolling a new one. The
-     * credential is keyed by LOGIN — the only identity known before the server
-     * has authenticated anyone. **This key is company-ambiguous** (login is
-     * unique only within a company), and no company identifier is available
-     * before login, so it cannot be made collision-free here without an
-     * auth-contract change — see `lib/device.ts` and docs/23 for the required
-     * change. Until then the fail-closed recovery below keeps a wrong/foreign
-     * credential from locking anyone out.
+     * server recognises the same device instead of enrolling a new one.
      *
-     * The server now FAILS CLOSED (Stage 3.1) on a credential it cannot verify:
-     * a wrong secret, an unknown/revoked device, or a foreign-company credential
-     * that happens to share this login. It never enrolls a device from a bad
-     * claim. When that happens we forget the stale credential and retry once
-     * WITHOUT it, which the server treats as a genuinely new installation and
-     * enrolls — the same path a reinstall takes. This is the client choosing to
-     * start over after its own credential failed, not the server trusting a bad
-     * secret.
+     * The server FAILS CLOSED on a credential it cannot verify — a wrong secret,
+     * an unknown/revoked device. **Stage 3.2 removes the old auto-recovery
+     * bypass**: we no longer forget the rejected credential and retry without it.
+     * Silently retrying re-enrolled a fresh trusted device from a failed claim,
+     * which is exactly what the backend's fail-closed tree forbids. The error
+     * now propagates untouched — the credential is KEPT and the login screen
+     * shows a blocking "this device needs verification" state (recovery is a
+     * deliberate act, or the future OTP flow). See `lib/sign-in-decision.ts`.
+     *
+     * The credential is still keyed by LOGIN here; Stage 3.2 also introduces a
+     * company-scoped key once the Store Account ID is captured (see CP3).
      */
-    const withCredential = (cred: { deviceId: string; deviceSecret: string } | null) =>
-      api.post<AuthResponse>('/auth/login', {
-        login,
-        password,
-        deviceCredential: { ...deviceMeta(), ...(cred ?? {}) },
-      });
-
-    let res: AuthResponse;
     const existing = await loadCredential(login);
-    try {
-      res = await withCredential(existing);
-    } catch (e) {
-      if (existing && e instanceof ApiError && e.code === 'device_unrecognized') {
-        await clearCredential(login);
-        res = await withCredential(null); // enroll fresh — a new device by design
-      } else {
-        throw e;
-      }
-    }
+    const res = await api.post<AuthResponse>('/auth/login', {
+      login,
+      password,
+      deviceCredential: { ...deviceMeta(), ...(existing ?? {}) },
+    });
 
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
