@@ -13,15 +13,17 @@ import { qk } from '../../lib/query-keys';
 import { money } from '../../lib/theme';
 import { toast } from '../../lib/toast';
 import { dialog } from '../../lib/dialog';
+import { ProductPricingSection } from '../../components/pricing';
+import { useBranch } from '../../lib/branch';
 import type { ProductDetail } from '../../types/api';
 
 /**
  * Product detail (G1).
  *
  * Shows the exact-variant identity, how it is tracked, where its stock sits, and
- * the price information the system already holds — it never invents a second
- * price source, and there is deliberately no price control here: prices are set
- * where stock is received and sold.
+ * what it sells for in the active branch and why. Precedence is the server's:
+ * this screen renders the price and source it is given and never re-derives
+ * them. Pricing controls appear only with branch-scoped `price.edit`.
  *
  * Cost appears only when the server actually returned it. The cost-gating
  * interceptor strips the field for anyone without `cost.view`, so a missing
@@ -37,6 +39,7 @@ export default function ProductDetailScreen() {
   const queryClient = useQueryClient();
   const canManage = usePermission('catalog.manage');
   const canViewCost = useCanViewCost();
+  const branchName = useBranch((s) => s.branchName);
 
   const product = useQuery({
     queryKey: qk.product(String(id)),
@@ -183,17 +186,17 @@ export default function ProductDetailScreen() {
         ) : null}
       </Section>
 
-      {/* ── Price ────────────────────────────────────────────────────────── */}
-      <Section title={t('catalog.detail.pricing')}>
+      {/* ── Selling price ─────────────────────────────────────────────────── */}
+      <ProductPricingSection product={p} branchName={branchName ?? ''} />
+
+      {/* ── Cost ─────────────────────────────────────────────────────────── */}
+      {/*
+        Kept apart from the selling price on purpose: mixing what a thing cost
+        with what it sells for is how a counter charges the wrong number. Never
+        a fake zero — when the server withheld cost, say so plainly.
+      */}
+      <Section title={t('catalog.detail.cost')}>
         <Card>
-          <Row
-            label={t('catalog.detail.defaultPrice')}
-            value={p.defaultPrice === null ? t('catalog.detail.noPrice') : money(p.defaultPrice)}
-          />
-          {p.lastSoldPrice !== null ? (
-            <Row label={t('catalog.detail.lastSold')} value={money(p.lastSoldPrice)} />
-          ) : null}
-          {/* Never a fake zero: when the server withheld cost, say so plainly. */}
           <Row
             label={t('catalog.detail.cost')}
             value={
@@ -204,9 +207,6 @@ export default function ProductDetailScreen() {
                   : t('catalog.detail.hidden')
             }
           />
-          <Text variant="caption" tone="tertiary" style={styles.note}>
-            {t('catalog.detail.priceReadOnly')}
-          </Text>
         </Card>
       </Section>
 

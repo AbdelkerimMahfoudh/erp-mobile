@@ -31,4 +31,16 @@ export const qk = {
   settings: ['settings'] as const,
   /** Company-scoped team list — Owner-only, not per branch. */
   users: ['users'] as const,
+
+  /**
+   * Pricing is per branch: the same variant legitimately costs different
+   * amounts in different shops, so the branch belongs in the key or switching
+   * branches would show the previous one's price.
+   */
+  pricingProduct: (branchId: string | null, productId: string) =>
+    ['pricing', 'product', branchId, productId] as const,
+  pricingUnit: (branchId: string | null, identifier: string) =>
+    ['pricing', 'unit', branchId, identifier] as const,
+  priceHistory: (branchId: string | null, productId?: string) =>
+    ['pricing', 'history', branchId, productId ?? ''] as const,
 };
