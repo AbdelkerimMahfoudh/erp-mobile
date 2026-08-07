@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { api } from './api-client';
+import { api, ApiError } from './api-client';
+import { useBranch } from './branch';
+import { classifyPermissionFailure } from './branch-recovery';
 import { toErrorMessage } from './errors';
 
 /**
@@ -89,6 +91,20 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
       const granted = new Set(res.permissions as Permission[]);
       set({ granted, branchId, status: 'ready', error: null });
     } catch (e) {
+      /**
+       * A restored session can still be holding a branch the user has since
+       * been removed from. The server answers 403 honestly, but retrying with
+       * that same branch can only ever 403 again — leaving the tab bar on an
+       * error screen whose only button is Retry, with no way out of the app.
+       *
+       * Dropping the branch is the escape: routing sends a user with no branch
+       * to the branch picker, which lists the branches they *do* have.
+       */
+      if (classifyPermissionFailure(e instanceof ApiError ? e.status : undefined) === 'reselect_branch') {
+        useBranch.getState().clear();
+        set({ granted: EMPTY, branchId: null, status: 'idle', error: null });
+        return;
+      }
       // Fail closed: an unresolved permission set grants nothing.
       set({ granted: EMPTY, status: 'error', error: toErrorMessage(e) });
     }

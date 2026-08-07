@@ -357,3 +357,107 @@ export interface TeamUser {
    */
   delegatablePermissions: string[];
 }
+
+// ─────────────────────────── Pricing (G2A-CP3/CP4) ───────────────────────────
+
+/**
+ * Which rung of the server's price ladder produced the effective price.
+ *
+ * **The app must never re-derive this order.** The server owns precedence
+ * (`unit_override` → `branch_variant` → `stock_item` → `product_default` →
+ * `unpriced`); the app only renders what came back. Two implementations of the
+ * same ladder is how a screen and a till start disagreeing about a price.
+ */
+export type PriceSource =
+  | 'unit_override'
+  | 'branch_variant'
+  | 'stock_item'
+  | 'product_default'
+  | 'unpriced';
+
+/** What would have to be edited to change the effective price. */
+export type PriceTargetType = 'unit' | 'branch_variant' | 'stock_item';
+
+/**
+ * The server's answer to "what does this cost here?".
+ *
+ * `version` is the compare-and-swap token: send back exactly what was received,
+ * or the server answers 409 rather than letting one edit silently overwrite
+ * another. It is `null` when the price comes from a fallback, because a fallback
+ * is not a row anyone can edit.
+ */
+export interface EffectivePrice {
+  /** `null` only when `source` is `unpriced` — never render this as 0. */
+  price: number | null;
+  source: PriceSource;
+  version: number | null;
+  targetType: PriceTargetType | null;
+  branchId: string;
+  /** True when a real row (not a fallback) is producing the price. */
+  canRemove: boolean;
+  /** What the price would become if that row were removed. Null when nothing to remove. */
+  fallback: { price: number | null; source: PriceSource } | null;
+  /**
+   * An override exists but does not apply in this branch — reported so the UI
+   * can explain the price instead of looking broken. Never applied.
+   */
+  staleOverrideIgnored: boolean;
+}
+
+/** Exact-unit pricing also identifies which unit answered. */
+export interface UnitEffectivePrice extends EffectivePrice {
+  unitId: string;
+}
+
+/**
+ * `PUT /pricing/products/:id/branch-price` and `PUT /pricing/units/:identifier/price`.
+ *
+ * `expectedVersion` is required when a price already exists and must be omitted
+ * when creating the first one — the server answers 409 `refresh_required` either
+ * way rather than guessing. `reason` is required only when the server says the
+ * price is below cost.
+ */
+export interface SetPriceBody {
+  price: number;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+/** `PUT /pricing/products/:id/stock-price` — quantity stock always has a row. */
+export interface SetStockPriceBody {
+  price: number;
+  expectedVersion: number;
+  reason?: string;
+}
+
+/** Removal always states the version it believed it was removing. */
+export interface RemovePriceBody {
+  expectedVersion: number;
+  reason?: string;
+}
+
+/**
+ * One entry in the append-only price history.
+ *
+ * `initiator` is `user` or `system` — deliberately not a role. The actor's name
+ * is recorded at the time; a role read today could have changed since, and
+ * history must not move. `newPrice` is `null` when the price was removed.
+ */
+export interface PriceHistoryRow {
+  id: string;
+  productId: string;
+  unitId: string | null;
+  scope: 'unit' | 'branch_variant' | 'stock_item';
+  initiator: 'user' | 'system';
+  previousPrice: number | null;
+  newPrice: number | null;
+  reason: string | null;
+  actorName: string | null;
+  at: string;
+}
+
+/** Keyset-paginated, newest first. Never fetch it unbounded. */
+export interface PriceHistoryPage {
+  rows: PriceHistoryRow[];
+  nextCursor: string | null;
+}
