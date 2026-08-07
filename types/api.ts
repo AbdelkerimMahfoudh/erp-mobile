@@ -126,6 +126,8 @@ export interface ProductDetail extends ProductListRow {
   specifications: Record<string, unknown>;
   categoryName: string | null;
   reorderThreshold: number;
+  /** False once stock/purchase/sale history exists — the edit form locks the control. */
+  canChangeTracking: boolean;
   stockByBranch: ProductStockRow[];
   totalStock: number;
   /** The existing authoritative fallback price. Editing it is the Pricing phase. */

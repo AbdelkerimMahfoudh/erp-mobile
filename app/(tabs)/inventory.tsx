@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Cable, PackageSearch } from 'lucide-react-native';
 import {
@@ -51,6 +51,9 @@ export default function InventoryScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { branchId } = useBranch();
+  // Arriving from a product's detail screen: filter to that exact product
+  // rather than guessing from its name, which two variants can share.
+  const { productId } = useLocalSearchParams<{ productId?: string }>();
   const [status, setStatus] = useState<StatusFilter>('in_stock');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -59,12 +62,13 @@ export default function InventoryScreen() {
   const lookups = useRef(new Map<string, Promise<Unit | null>>());
 
   const inventory = useInfiniteQuery({
-    queryKey: qk.inventory(branchId, status, debounced),
+    queryKey: qk.inventory(branchId, status, debounced, productId),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (status) params.set('status', status);
       if (debounced) params.set('search', debounced);
+      if (productId) params.set('productId', String(productId));
       if (pageParam) params.set('cursor', pageParam);
       return api.get<InventoryPage>(`/inventory?${params.toString()}`);
     },

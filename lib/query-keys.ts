@@ -12,8 +12,8 @@ export const qk = {
    * `search` is part of the key so changing it starts a fresh pagination run —
    * a cursor issued under one query is meaningless under another.
    */
-  inventory: (branchId: string | null, status?: string, search?: string) =>
-    ['inventory', branchId, status ?? '', search ?? ''] as const,
+  inventory: (branchId: string | null, status?: string, search?: string, productId?: string) =>
+    ['inventory', branchId, status ?? '', search ?? '', productId ?? ''] as const,
   sales: (branchId: string | null) => ['sales', branchId] as const,
   sale: (id: string) => ['sale', id] as const,
   transfers: (branchId: string | null) => ['transfers', branchId] as const,

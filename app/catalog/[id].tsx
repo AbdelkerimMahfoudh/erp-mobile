@@ -177,7 +177,7 @@ export default function ProductDetailScreen() {
           <Button
             title={t('catalog.detail.viewInventory')}
             variant="secondary"
-            onPress={() => router.push(`/(tabs)/inventory?q=${encodeURIComponent(p.label)}` as never)}
+            onPress={() => router.push(`/(tabs)/inventory?productId=${p.id}` as never)}
             style={styles.control}
           />
         ) : null}

@@ -1,142 +1,124 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Field, Button } from '../../components/ui';
-import { api, ApiError } from '../../lib/api-client';
-import { qk } from '../../lib/query-keys';
-import { colors, trackingLabel } from '../../lib/theme';
-import type { Category, TrackingType, AttributeDef, Product } from '../../types/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button, ErrorState, Screen } from '../../components/ui';
+import {
+  ProductForm,
+  emptyProductForm,
+  toProductPayload,
+  type ProductFormValues,
+} from '../../components/catalog/ProductForm';
+import { ApiError, api } from '../../lib/api-client';
+import { useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
+import { toast } from '../../lib/toast';
+import { dialog } from '../../lib/dialog';
+import type { ProductDetail, ProductPage } from '../../types/api';
 
-const TRACKING: TrackingType[] = ['imei', 'serial', 'quantity'];
-
+/**
+ * Create a product (G1) — the shared form, nothing duplicated.
+ *
+ * `POST /products` has no idempotency key, but the database guarantees a unique
+ * (company, brand, model, variant) and a unique (company, barcode). So a request
+ * that times out and is retried cannot silently create a second product: the
+ * retry comes back 409. Rather than showing a bare failure, this screen resolves
+ * the existing product and offers to open it — see `resolveExisting`.
+ */
 export default function NewProductScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
-  const qc = useQueryClient();
-  const { data: categories } = useQuery({ queryKey: qk.categories, queryFn: () => api.get<Category[]>('/categories') });
+  const queryClient = useQueryClient();
+  const canManage = usePermission('catalog.manage');
+  const canSetPrice = usePermission('price.edit');
 
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [variant, setVariant] = useState('');
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [trackingType, setTrackingType] = useState<TrackingType>('imei');
-  const [barcode, setBarcode] = useState('');
-  const [cost, setCost] = useState('');
-  const [price, setPrice] = useState('');
-  const [specs, setSpecs] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
+  const [existingId, setExistingId] = useState<string | null>(null);
 
-  const category = categories?.find((c) => c.id === categoryId);
-  const schema: AttributeDef[] = (category?.attributeSchema as AttributeDef[]) ?? [];
-
-  const pickCategory = (c: Category) => {
-    setCategoryId(c.id);
-    setTrackingType(c.defaultTrackingType);
-    setSpecs({});
+  /** Find the product a 409 was actually about, so we can offer to open it. */
+  const resolveExisting = async (values: ProductFormValues): Promise<string | null> => {
+    const term = values.barcode.trim() || [values.brand, values.model, values.variant].filter(Boolean).join(' ');
+    try {
+      const page = await api.get<ProductPage>(`/products?active=all&q=${encodeURIComponent(term)}`);
+      const exact = page.rows.find(
+        (r) =>
+          (values.barcode.trim() && r.barcode === values.barcode.trim().toUpperCase()) ||
+          (r.brand.toLowerCase() === values.brand.trim().toLowerCase() &&
+            r.model.toLowerCase() === values.model.trim().toLowerCase() &&
+            (r.variant ?? '').toLowerCase() === values.variant.trim().toLowerCase()),
+      );
+      return exact?.id ?? page.rows[0]?.id ?? null;
+    } catch {
+      return null;
+    }
   };
 
   const create = useMutation({
-    mutationFn: () => {
-      const specifications: Record<string, unknown> = {};
-      for (const def of schema) {
-        const v = specs[def.key];
-        if (v == null || v === '') continue;
-        specifications[def.key] = def.type === 'number' || def.type === 'measurement' ? Number(v) : v;
+    mutationFn: (values: ProductFormValues) =>
+      api.post<ProductDetail>('/products', toProductPayload(values, { includePrice: canSetPrice })),
+    onSuccess: (product) => {
+      // The new product must appear in every selector immediately.
+      void queryClient.invalidateQueries({ queryKey: ['products'] });
+      void queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success(t('catalog.form.created'));
+      router.replace(`/catalog/${product.id}` as never);
+    },
+    onError: async (error, values) => {
+      if (error instanceof ApiError && error.status === 409) {
+        const barcodeClash = /barcode/i.test(error.message);
+        setErrors(
+          barcodeClash
+            ? { barcode: t('catalog.conflict.barcode') }
+            : { variant: t('catalog.conflict.variant') },
+        );
+        // A 409 after a dropped connection usually means the FIRST attempt
+        // landed. Say so, and offer the product instead of a blind retry.
+        const id = await resolveExisting(values);
+        if (id) {
+          setExistingId(id);
+          await dialog.alert({
+            title: t('catalog.conflict.maybeCreated.title'),
+            message: t('catalog.conflict.maybeCreated.body'),
+          });
+        }
+        return;
       }
-      return api.post<Product>('/products', {
-        brand: brand.trim(),
-        model: model.trim(),
-        variant: variant.trim() || undefined,
-        categoryId: categoryId ?? undefined,
-        trackingType,
-        barcode: barcode.trim() || undefined,
-        defaultCost: cost ? Number(cost) : undefined,
-        defaultPrice: price ? Number(price) : undefined,
-        specifications: Object.keys(specifications).length ? specifications : undefined,
-      });
+      toast.error(error instanceof ApiError ? error.message : t('state.error.body'));
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['products'] });
-      router.back();
-    },
-    onError: (e) => setError(e instanceof ApiError ? e.message : 'Could not create product'),
   });
 
-  const valid = brand.trim() && model.trim();
+  if (!canManage) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('catalog.form.newTitle') }} />
+        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
+      </Screen>
+    );
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack.Screen options={{ headerShown: true, title: 'New product' }} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 16 }} keyboardShouldPersistTaps="handled">
-        <Field label="Brand *" value={brand} onChangeText={setBrand} placeholder="Apple" />
-        <Field label="Model *" value={model} onChangeText={setModel} placeholder="iPhone 15" />
-        <Field label="Variant" value={variant} onChangeText={setVariant} placeholder="128GB Black (optional)" />
-
-        <View className="gap-2">
-          <Text className="text-sm font-medium text-slate-700">Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              {categories?.map((c) => (
-                <Pressable key={c.id} onPress={() => pickCategory(c)} className={`rounded-full px-4 py-2 ${categoryId === c.id ? 'bg-brand-600' : 'bg-slate-100'}`}>
-                  <Text className={`text-sm font-semibold ${categoryId === c.id ? 'text-white' : 'text-slate-600'}`}>{c.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        <View className="gap-2">
-          <Text className="text-sm font-medium text-slate-700">Tracking type</Text>
-          <View className="flex-row gap-2">
-            {TRACKING.map((t) => (
-              <Pressable key={t} onPress={() => setTrackingType(t)} className={`flex-1 items-center rounded-xl py-3 ${trackingType === t ? 'bg-brand-600' : 'bg-slate-100'}`}>
-                <Text className={`text-sm font-semibold ${trackingType === t ? 'text-white' : 'text-slate-600'}`}>{trackingLabel[t]}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {trackingType === 'quantity' ? (
-          <Field label="Barcode" value={barcode} onChangeText={setBarcode} placeholder="Scan or type barcode" autoCapitalize="none" />
-        ) : null}
-
-        <View className="flex-row gap-3">
-          <View className="flex-1"><Field label="Cost" value={cost} onChangeText={(t) => setCost(t.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" placeholder="0.00" /></View>
-          <View className="flex-1"><Field label="Price" value={price} onChangeText={(t) => setPrice(t.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" placeholder="0.00" /></View>
-        </View>
-
-        {schema.length > 0 ? (
-          <View className="gap-3">
-            <Text className="text-xs font-semibold uppercase text-slate-400">{category?.name} specs</Text>
-            {schema.map((def) =>
-              def.type === 'enum' ? (
-                <View key={def.key} className="gap-2">
-                  <Text className="text-sm font-medium text-slate-700">{def.label}{def.required ? ' *' : ''}</Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {(def.options ?? []).map((opt) => (
-                      <Pressable key={opt} onPress={() => setSpecs((s) => ({ ...s, [def.key]: opt }))} className={`rounded-full px-3 py-2 ${specs[def.key] === opt ? 'bg-brand-600' : 'bg-slate-100'}`}>
-                        <Text className={`text-sm ${specs[def.key] === opt ? 'text-white' : 'text-slate-600'}`}>{opt}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              ) : (
-                <Field
-                  key={def.key}
-                  label={`${def.label}${def.unit ? ` (${def.unit})` : ''}${def.required ? ' *' : ''}`}
-                  value={specs[def.key] ?? ''}
-                  onChangeText={(t) => setSpecs((s) => ({ ...s, [def.key]: t }))}
-                  keyboardType={def.type === 'number' || def.type === 'measurement' ? 'decimal-pad' : 'default'}
-                />
-              ),
-            )}
-          </View>
-        ) : null}
-
-        {error ? <Text className="text-sm text-red-600">{error}</Text> : null}
-        <Button title="Create product" onPress={() => { setError(null); create.mutate(); }} loading={create.isPending} disabled={!valid} />
-      </ScrollView>
-    </SafeAreaView>
+    <>
+      <Stack.Screen options={{ headerShown: true, title: t('catalog.form.newTitle') }} />
+      <ProductForm
+        mode="create"
+        initial={emptyProductForm}
+        submitting={create.isPending}
+        errors={errors}
+        onSubmit={(values) => {
+          setErrors({});
+          setExistingId(null);
+          create.mutate(values);
+        }}
+        onKnownBarcode={(productId) => router.push(`/catalog/${productId}` as never)}
+        footerExtra={
+          existingId ? (
+            <Button
+              title={t('catalog.conflict.openExisting')}
+              variant="secondary"
+              onPress={() => router.replace(`/catalog/${existingId}` as never)}
+            />
+          ) : null
+        }
+      />
+    </>
   );
 }
