@@ -183,6 +183,15 @@ export default function UnitPricingScreen() {
                   ? t('pricing.unit.hasOverride')
                   : t('pricing.unit.noOverride')}
               </Text>
+              {/*
+                A phone that has left the shelf cannot be priced. Say so here
+                rather than letting the user find out by being refused.
+              */}
+              {!current.canPrice ? (
+                <Text tone="warning" style={styles.howTo}>
+                  {t('pricing.unit.notPriceable', { status: current.status })}
+                </Text>
+              ) : null}
             </Card>
 
             <PriceSummary pricing={current} branchName={branchName ?? ''} />
@@ -191,7 +200,9 @@ export default function UnitPricingScreen() {
 
         <Section>
           <View style={styles.actions}>
-            <Button title={t('pricing.action.setUnit')} onPress={() => setEditing(true)} />
+            {current.canPrice ? (
+              <Button title={t('pricing.action.setUnit')} onPress={() => setEditing(true)} />
+            ) : null}
             {current.canRemove ? (
               <Button
                 title={t('pricing.action.remove')}

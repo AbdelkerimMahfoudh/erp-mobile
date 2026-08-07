@@ -658,4 +658,5 @@ export const ar: Catalogue = {
   'pricing.history.scope.stock_item': 'سعر مخزون الفرع',
   'pricing.history.reason': 'السبب: {reason}',
   'pricing.history.more': 'عرض المزيد',
+  'pricing.unit.notPriceable': 'هذا الهاتف {status} وليس معروضاً للبيع، لذلك لا يمكن تسعيره.',
 };

@@ -7,7 +7,14 @@ import { dialog } from '../../lib/dialog';
 import { useTranslation } from '../../lib/i18n';
 import { money } from '../../lib/theme';
 import { canSave, parsePrice } from '../../lib/price-input';
-import { isStaleEdit, sourceLabel, staleEditMessage, useSavePrice, type PriceScope } from '../../lib/pricing';
+import {
+  fetchEffectivePrice,
+  isStaleEdit,
+  sourceLabel,
+  staleEditMessage,
+  useSavePrice,
+  type PriceScope,
+} from '../../lib/pricing';
 import type { EffectivePrice } from '../../types/api';
 
 /**
@@ -100,9 +107,22 @@ export function PriceEditor({
        * resubmitting would overwrite the decision someone else just made.
        */
       if (isStaleEdit(error)) {
+        /**
+         * Ask the server what the price actually is now. `current` is the
+         * snapshot this editor opened with, and it is precisely the thing that
+         * just turned out to be stale — quoting it back would tell the user the
+         * wrong "current" price in the very message warning them about staleness.
+         */
+        let latest = current.price;
+        try {
+          latest = (await fetchEffectivePrice(scope)).price;
+        } catch {
+          // Offline or refused: fall back to explaining without a stale claim.
+          latest = null;
+        }
         await dialog.alert({
           title: t('pricing.conflict.title'),
-          message: staleEditMessage(parsed.value, current.price),
+          message: staleEditMessage(parsed.value, latest),
           confirmLabel: t('pricing.conflict.reload'),
         });
         setInput('');

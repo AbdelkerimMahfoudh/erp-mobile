@@ -673,4 +673,5 @@ export const en = {
   'pricing.history.scope.stock_item': 'Branch stock price',
   'pricing.history.reason': 'Reason: {reason}',
   'pricing.history.more': 'Show more',
+  'pricing.unit.notPriceable': 'This phone is {status} — it is not on the shelf, so it cannot be priced.',
 } as const;

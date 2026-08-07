@@ -100,6 +100,19 @@ function endpointFor(scope: PriceScope): string {
   }
 }
 
+/**
+ * Re-read the server's current answer for a target.
+ *
+ * Used after a 409: the editor is holding a snapshot that is by definition out
+ * of date, so telling the user "it is now X" from that snapshot would state a
+ * price that is not the one they are being warned about.
+ */
+export function fetchEffectivePrice(scope: PriceScope): Promise<EffectivePrice> {
+  return scope.kind === 'unit'
+    ? api.get<EffectivePrice>(`/pricing/units/${encodeURIComponent(scope.identifier)}`)
+    : api.get<EffectivePrice>(`/pricing/products/${scope.productId}`);
+}
+
 /** A 409 always means: someone else got there first. Never retry it silently. */
 export function isStaleEdit(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409;

@@ -404,9 +404,16 @@ export interface EffectivePrice {
   staleOverrideIgnored: boolean;
 }
 
-/** Exact-unit pricing also identifies which unit answered. */
+/** Exact-unit pricing also identifies which unit answered, and whether it may be priced. */
 export interface UnitEffectivePrice extends EffectivePrice {
   unitId: string;
+  /** Backend unit status: in_stock, sold, returned, faulty, in_transit, … */
+  status: string;
+  /**
+   * False for a phone that is not on the shelf here. The UI hides the edit
+   * action rather than offering one the server will refuse.
+   */
+  canPrice: boolean;
 }
 
 /**
