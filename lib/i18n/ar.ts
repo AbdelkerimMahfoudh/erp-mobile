@@ -659,4 +659,11 @@ export const ar: Catalogue = {
   'pricing.history.reason': 'السبب: {reason}',
   'pricing.history.more': 'عرض المزيد',
   'pricing.unit.notPriceable': 'هذا الهاتف {status} وليس معروضاً للبيع، لذلك لا يمكن تسعيره.',
+  'notifications.title': 'الإشعارات',
+  'notifications.empty': 'لا يوجد جديد',
+  'notifications.emptyBody': 'ستظهر هنا تغييرات الأسعار وعمليات النقل.',
+  'notifications.unread': 'جديد',
+  'notifications.type.price.changed': 'تغيّر السعر',
+  'notifications.type.transfer.incoming': 'تحويل وارد',
+  'notifications.type.transfer.received': 'تم استلام التحويل',
 };

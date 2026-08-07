@@ -674,4 +674,11 @@ export const en = {
   'pricing.history.reason': 'Reason: {reason}',
   'pricing.history.more': 'Show more',
   'pricing.unit.notPriceable': 'This phone is {status} — it is not on the shelf, so it cannot be priced.',
+  'notifications.title': 'Notifications',
+  'notifications.empty': 'Nothing new',
+  'notifications.emptyBody': 'Price changes and transfers will show up here.',
+  'notifications.unread': 'New',
+  'notifications.type.price.changed': 'Price changed',
+  'notifications.type.transfer.incoming': 'Incoming transfer',
+  'notifications.type.transfer.received': 'Transfer received',
 } as const;

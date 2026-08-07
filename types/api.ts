@@ -468,3 +468,30 @@ export interface PriceHistoryPage {
   rows: PriceHistoryRow[];
   nextCursor: string | null;
 }
+
+// ─────────────────────────── Notifications (CP4.5) ───────────────────────────
+
+/**
+ * One in-app notification exactly as the server stored it.
+ *
+ * The app never recomposes the wording: a `price.changed` message must say what
+ * the Owner was told when it happened, and by CP3's design it carries no cost
+ * and no margin.
+ */
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  /** In-app route the server chose. The app follows it; it does not invent one. */
+  actionLink: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+/** Keyset-paginated and bounded by the server (default 25, hard max 50). */
+export interface NotificationPage {
+  rows: AppNotification[];
+  nextCursor: string | null;
+  unreadCount: number;
+}
