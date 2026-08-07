@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, FlatList, RefreshControl, ActivityInd
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Search, Plus, Tag } from 'lucide-react-native';
+import { Search, Plus, Tag, FolderTree } from 'lucide-react-native';
 import { Badge, EmptyState } from '../../components/ui';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
@@ -93,6 +93,16 @@ export default function CatalogScreen() {
               </Text>
             </Pressable>
           ))}
+          {/* Categories management — managers only, same gate as create/edit. */}
+          {canManage ? (
+            <Pressable
+              onPress={() => router.push('/catalog/categories' as never)}
+              className="flex-row items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1"
+            >
+              <FolderTree size={14} color={colors.brand} />
+              <Text className="text-sm text-slate-600">{t('categories.title')}</Text>
+            </Pressable>
+          ) : null}
           {/* Archived products are a manager concern; employees never need the toggle. */}
           {canManage ? (
             <Pressable
