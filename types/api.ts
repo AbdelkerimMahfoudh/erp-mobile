@@ -215,7 +215,18 @@ export interface InventoryStockRow {
   kind: 'stock';
   id: string;
   productId: string;
+  /**
+   * PHYSICAL stock owned at this branch (H1.1).
+   *
+   * Deliberately NOT reduced by reservations — the goods are still the
+   * company's and still count in inventory valuation. Never label this
+   * "available".
+   */
   quantity: number;
+  /** Promised to an open transfer, so not sellable. */
+  reservedQuantity: number;
+  /** What can actually be sold: `quantity - reservedQuantity`. */
+  availableQuantity: number;
   /** Absent without `cost.view`. */
   cost?: number;
   price: number;

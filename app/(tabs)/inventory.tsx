@@ -255,7 +255,19 @@ export default function InventoryScreen() {
                       subtitle={variantSummary(row.product) || undefined}
                       identifier={row.product?.barcode ?? undefined}
                       value={formatQuantity(row.quantity)}
-                      valueCaption={t('inventory.inStock')}
+                      /**
+                       * The headline number stays PHYSICAL stock — what the
+                       * branch owns. When some of it is promised to a transfer,
+                       * the caption says how much can actually be sold rather
+                       * than quietly showing a smaller total (H1.1).
+                       */
+                      valueCaption={
+                        row.reservedQuantity > 0
+                          ? t('inventory.availableOf', {
+                              available: formatQuantity(row.availableQuantity),
+                            })
+                          : t('inventory.inStock')
+                      }
                       // No product-detail screen yet, so nothing to navigate to.
                       chevron={false}
                     />

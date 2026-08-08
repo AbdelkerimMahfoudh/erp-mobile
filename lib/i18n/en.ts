@@ -681,4 +681,5 @@ export const en = {
   'notifications.type.price.changed': 'Price changed',
   'notifications.type.transfer.incoming': 'Incoming transfer',
   'notifications.type.transfer.received': 'Transfer received',
+  'inventory.availableOf': '{available} free to sell',
 } as const;

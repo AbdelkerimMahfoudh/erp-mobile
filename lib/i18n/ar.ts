@@ -666,4 +666,5 @@ export const ar: Catalogue = {
   'notifications.type.price.changed': 'تغيّر السعر',
   'notifications.type.transfer.incoming': 'تحويل وارد',
   'notifications.type.transfer.received': 'تم استلام التحويل',
+  'inventory.availableOf': '{available} متاح للبيع',
 };
