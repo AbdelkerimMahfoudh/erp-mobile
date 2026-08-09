@@ -223,7 +223,9 @@ export const ar: Catalogue = {
   'status.unit.transferred_out': 'تم تحويله',
 
   // ── Transfer status ───────────────────────────────────────────────────────
-  'status.transfer.ready_to_ship': 'جاهز للإرسال',
+  'status.transfer.pending_approval': 'بانتظار الموافقة',
+  'status.transfer.approved': 'تمت الموافقة',
+  'status.transfer.rejected': 'مرفوض',
   'status.transfer.in_transit': 'قيد النقل',
   'status.transfer.received': 'تم الاستلام',
   'status.transfer.cancelled': 'ملغى',

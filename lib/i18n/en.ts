@@ -221,7 +221,9 @@ export const en = {
   'status.unit.transferred_out': 'Transferred out',
 
   // ── Transfer status ───────────────────────────────────────────────────────
-  'status.transfer.ready_to_ship': 'Ready to ship',
+  'status.transfer.pending_approval': 'Waiting for approval',
+  'status.transfer.approved': 'Approved',
+  'status.transfer.rejected': 'Refused',
   'status.transfer.in_transit': 'In transit',
   'status.transfer.received': 'Received',
   'status.transfer.cancelled': 'Cancelled',

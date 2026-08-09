@@ -27,11 +27,20 @@ export const unitStatus = {
   transferred_out: { tone: 'neutral', labelKey: 'status.unit.transferred_out' },
 } as const satisfies Record<string, StatusMeta>;
 
-/** `TransferStatus` — a stock movement between branches. */
+/**
+ * `TransferStatus` — a stock movement between branches.
+ *
+ * H1.2 replaced `ready_to_ship` with the approval lifecycle: a request now
+ * waits for someone to agree before it can be sent. `pending_approval` is
+ * warning-toned because it is somebody's outstanding work, not a healthy
+ * resting state.
+ */
 export const transferStatus = {
-  ready_to_ship: { tone: 'warning', labelKey: 'status.transfer.ready_to_ship' },
+  pending_approval: { tone: 'warning', labelKey: 'status.transfer.pending_approval' },
+  approved: { tone: 'info', labelKey: 'status.transfer.approved' },
   in_transit: { tone: 'info', labelKey: 'status.transfer.in_transit' },
   received: { tone: 'success', labelKey: 'status.transfer.received' },
+  rejected: { tone: 'danger', labelKey: 'status.transfer.rejected' },
   cancelled: { tone: 'neutral', labelKey: 'status.transfer.cancelled' },
 } as const satisfies Record<string, StatusMeta>;
 
