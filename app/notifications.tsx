@@ -9,7 +9,7 @@ import { formatSmartDateTime } from '../lib/format';
 import { haptics } from '../lib/haptics';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
-import type { AppNotification, NotificationPage } from '../types/api';
+import type { AppNotification, NotificationPage, TransferEvent } from '../types/api';
 
 /**
  * In-app notifications.
@@ -78,22 +78,62 @@ export default function NotificationsScreen() {
   );
 }
 
+/** Transfer types whose wording the app can compose itself, in either language. */
+const TRANSFER_EVENTS = new Set<TransferEvent>([
+  'requested',
+  'created_approved',
+  'approved',
+  'rejected',
+  'shipped',
+  'received',
+  'cancelled',
+]);
+
+/**
+ * Say it in the reader's language, when the server gave us the fields.
+ *
+ * `title`/`body` are English text written at the moment it happened. For
+ * transfers the server also stores the FIELDS, so the sentence can be rebuilt
+ * in Arabic — and, importantly, older rows that have no payload still render,
+ * because the stored text remains the fallback.
+ */
+function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t']) {
+  const p = row.payload;
+  if (!p || !row.type.startsWith('transfer.') || !TRANSFER_EVENTS.has(p.event)) {
+    return { title: row.title, body: row.body };
+  }
+  const values = {
+    ref: p.transferNo,
+    actor: p.actor,
+    from: p.fromBranch,
+    to: p.toBranch,
+    count: p.units === 1 ? t('transfers.items.one') : t('transfers.items', { count: p.units }),
+  };
+  const body = t(`notifications.transfer.${p.event}.body` as never, values);
+  return {
+    title: t(`notifications.transfer.${p.event}.title` as never, values),
+    // A refusal or cancellation carries why, and that is the part worth reading.
+    body: p.reason ? `${body} ${p.reason}` : body,
+  };
+}
+
 function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
   const { t } = useTranslation();
+  const { title, body } = localised(row, t);
 
   /**
    * Known types get shop language; anything else falls back to the server's own
    * title rather than showing a raw key. A new backend notification type must
    * never render as `notification.some.type` on a shop counter.
    */
+  const typeKey = `notifications.type.${row.type}`;
   const typeLabel =
-    row.type === 'price.changed'
-      ? t('notifications.type.price.changed')
-      : row.type === 'transfer.incoming'
-        ? t('notifications.type.transfer.incoming')
-        : row.type === 'transfer.received'
-          ? t('notifications.type.transfer.received')
-          : null;
+    row.type === 'price.changed' ||
+    row.type === 'transfer.incoming' ||
+    row.type === 'transfer.received' ||
+    (row.payload && TRANSFER_EVENTS.has(row.payload.event))
+      ? t(typeKey as never)
+      : null;
 
   return (
     <Pressable onPress={onPress} accessibilityRole="button">
@@ -110,11 +150,11 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
       </View>
 
       <Text variant="bodyStrong" style={styles.title}>
-        {row.title}
+        {title}
       </Text>
-      {row.body ? (
+      {body ? (
         <Text variant="caption" tone="secondary" style={styles.body}>
-          {row.body}
+          {body}
         </Text>
       ) : null}
       </Card>

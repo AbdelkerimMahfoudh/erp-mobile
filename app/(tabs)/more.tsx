@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell } from 'lucide-react-native';
+import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
+import { useTransferCounts } from '../../lib/transfers';
 import { colors } from '../../lib/theme';
 
 export default function MoreScreen() {
@@ -42,6 +43,11 @@ export default function MoreScreen() {
               inside are gated on `catalog.manage`, and the server enforces that
               regardless of what this menu shows. */}
           <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
+          {/* Transfers (H1.3). Gated on `transfer.view` — NOT on `unit.transfer`,
+              which H1.2 retired and revoked from every store role. */}
+          <Can perm="transfer.view">
+            <TransfersRow />
+          </Can>
           {/* Owner-only team management. The screen refuses non-Owners on its
               own too, for the deep-link case where this menu never rendered. */}
           <Can perm="user.manage">
@@ -81,6 +87,36 @@ export default function MoreScreen() {
         </Pressable>
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Transfers, with how much work is waiting.
+ *
+ * The counts come from one bounded server-side query. Draining the list to
+ * tally it would make this screen slower every month the shop stays open — and
+ * the numbers are the reason to tap, so they have to be cheap.
+ */
+function TransfersRow() {
+  const router = useRouter();
+  const counts = useTransferCounts(true);
+  const c = counts.data;
+
+  const waiting = c
+    ? [
+        c.pendingApproval > 0 ? `${c.pendingApproval} waiting` : null,
+        c.approved > 0 ? `${c.approved} to send` : null,
+        c.inTransit > 0 ? `${c.inTransit} on the way` : null,
+      ].filter(Boolean).join(' · ')
+    : undefined;
+
+  return (
+    <MenuRow
+      icon={<ArrowLeftRight size={20} color={colors.brand} />}
+      label="Transfers"
+      value={waiting || undefined}
+      onPress={() => router.push('/transfers' as Href)}
+    />
   );
 }
 

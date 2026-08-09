@@ -496,6 +496,12 @@ export interface AppNotification {
   body: string | null;
   /** In-app route the server chose. The app follows it; it does not invent one. */
   actionLink: string | null;
+  /**
+   * The fields behind the message, when the server stored them (H1.3). The app
+   * composes the sentence from these in the reader's language; `title`/`body`
+   * remain the fallback for any type this build does not recognise.
+   */
+  payload: TransferNotificationPayload | null;
   isRead: boolean;
   createdAt: string;
 }
@@ -505,4 +511,148 @@ export interface NotificationPage {
   rows: AppNotification[];
   nextCursor: string | null;
   unreadCount: number;
+}
+
+/**
+ * The fields a transfer notification carries so the app can say the same thing
+ * in Arabic (H1.3). `title`/`body` remain the fallback for any type this build
+ * does not recognise. Deliberately no cost, price or margin.
+ */
+export interface TransferNotificationPayload {
+  event: TransferEvent;
+  transferNo: string;
+  fromBranch: string;
+  toBranch: string;
+  units: number;
+  actor: string;
+  reason: string | null;
+}
+
+// ──────────────────────────── Transfers (H1.3) ────────────────────────────
+
+export type TransferStatus =
+  | 'pending_approval'
+  | 'approved'
+  | 'in_transit'
+  | 'received'
+  | 'rejected'
+  | 'cancelled';
+
+export type TransferEvent =
+  | 'requested'
+  | 'created_approved'
+  | 'approved'
+  | 'rejected'
+  | 'shipped'
+  | 'received'
+  | 'cancelled';
+
+export interface TransferBranchRef {
+  id: string;
+  name: string;
+}
+
+/** Which way the stock moves, as seen from the branch the user is standing in. */
+export type TransferDirection = 'outgoing' | 'incoming';
+
+export interface TransferListRow {
+  id: string;
+  transferNo: string | null;
+  status: TransferStatus;
+  direction: TransferDirection;
+  from: TransferBranchRef;
+  to: TransferBranchRef;
+  itemCount: number;
+  requestedBy: string | null;
+  requestedAt: string;
+  approvedAt: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  decidedAt: string | null;
+  decisionReason: string | null;
+  autoApproved: boolean;
+}
+
+export interface TransferPage {
+  rows: TransferListRow[];
+  nextCursor: string | null;
+}
+
+/** How much transfer work is waiting at this branch — the navigation badge. */
+export interface TransferCounts {
+  pendingApproval: number;
+  approved: number;
+  inTransit: number;
+}
+
+/**
+ * Why an action is unavailable. The distinction matters: a missing permission
+ * is a different sentence from standing in the wrong branch, and only one of
+ * them has a button.
+ */
+export type TransferActionReason = 'status' | 'permission' | 'branch' | 'ownership' | null;
+
+export interface TransferAction {
+  allowed: boolean;
+  reason: TransferActionReason;
+  /** The branch this action must be performed from — what "Switch to…" needs. */
+  branchId: string;
+  branchName: string;
+}
+
+export type TransferActionName = 'approve' | 'reject' | 'ship' | 'receive' | 'cancel';
+
+export interface TransferDetail {
+  id: string;
+  transferNo: string | null;
+  status: TransferStatus;
+  /** Send this back with every action, so a stale decision is refused. */
+  version: number;
+  direction: TransferDirection;
+  from: TransferBranchRef;
+  to: TransferBranchRef;
+  autoApproved: boolean;
+  decisionReason: string | null;
+  people: {
+    requestedBy: string | null;
+    approvedBy: string | null;
+    decidedBy: string | null;
+    sentBy: string | null;
+    receivedBy: string | null;
+  };
+  timestamps: {
+    requestedAt: string;
+    approvedAt: string | null;
+    sentAt: string | null;
+    receivedAt: string | null;
+    decidedAt: string | null;
+  };
+  items: {
+    id: string;
+    identifier: string | null;
+    product: string | null;
+    unitStatus: string | null;
+  }[];
+  actions: Record<TransferActionName, TransferAction>;
+}
+
+export interface CreateTransferBody {
+  clientUuid: string;
+  toBranchId: string;
+  identifiers: string[];
+}
+
+export interface CreateTransferResult {
+  id: string;
+  transferNo: string | null;
+  status: TransferStatus;
+  autoApproved: boolean;
+  version: number;
+  units: number;
+}
+
+/** Every lifecycle action carries the version the caller last saw. */
+export interface TransferDecisionBody {
+  expectedVersion: number;
+  reason?: string;
 }

@@ -19,9 +19,13 @@ import { toErrorMessage } from './errors';
  */
 
 /**
- * The 19-permission catalogue, mirroring `prisma/seed-data/permissions.ts`.
+ * The permission catalogue, mirroring `prisma/seed-data/permissions.ts`.
  * Kept as a literal union so a typo is a compile error rather than a
  * permanently-false check that silently hides a feature forever.
+ *
+ * `unit.transfer` is kept ONLY so an older session's permission set still maps
+ * to a known key. H1.2 revoked it from every store role and it guards no route
+ * — see the `transfer.*` keys below. Never gate anything on it.
  */
 export const PERMISSIONS = [
   'sale.create',
@@ -31,6 +35,19 @@ export const PERMISSIONS = [
   'discount.override',
   'unit.add',
   'unit.transfer',
+  /**
+   * Transfers (H1.2). Six keys replaced the blanket `unit.transfer`, which
+   * guarded request, ship, receive and cancel alike while all three roles held
+   * it. `cancel_own` is the ROUTE key everyone who may cancel holds;
+   * `cancel` is the BREADTH key for cancelling somebody else's.
+   */
+  'transfer.view',
+  'transfer.request',
+  'transfer.approve',
+  'transfer.ship',
+  'transfer.receive',
+  'transfer.cancel',
+  'transfer.cancel_own',
   'import.run',
   'purchase.manage',
   'supplier.manage',

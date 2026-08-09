@@ -10,11 +10,21 @@ export class ApiError extends Error {
   status: number;
   /** Machine-readable code when the server sends one, e.g. `device_unrecognized`. */
   code?: string;
-  constructor(message: string, status: number, code?: string) {
+  /**
+   * The parsed error payload, when there was one.
+   *
+   * Some refusals are structured rather than a sentence: a transfer create
+   * answers `{ problems: [{ identifier, reason }] }`, which is the difference
+   * between "some units cannot be transferred" and knowing which phone to go
+   * and look at. It used to be parsed and thrown away.
+   */
+  body?: unknown;
+  constructor(message: string, status: number, code?: string, body?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.body = body;
   }
 }
 
@@ -101,6 +111,7 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
       Array.isArray(message) ? message.join(', ') : message,
       res.status,
       typeof payload?.code === 'string' ? payload.code : undefined,
+      payload,
     );
   }
 

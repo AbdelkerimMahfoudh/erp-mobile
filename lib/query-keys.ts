@@ -16,7 +16,17 @@ export const qk = {
     ['inventory', branchId, status ?? '', search ?? '', productId ?? ''] as const,
   sales: (branchId: string | null) => ['sales', branchId] as const,
   sale: (id: string) => ['sale', id] as const,
-  transfers: (branchId: string | null) => ['transfers', branchId] as const,
+  /**
+   * Transfers are per branch: the list is scoped to the branch's two ends, so
+   * the branch belongs in the key or switching would show the previous one's
+   * work. `filters` joins the status and search terms for the same reason a
+   * catalog cursor does — a cursor issued under one query means nothing under
+   * another.
+   */
+  transfers: (branchId: string | null, filters?: string) =>
+    ['transfers', branchId, filters ?? ''] as const,
+  transfer: (id: string) => ['transfer', id] as const,
+  transferCounts: (branchId: string | null) => ['transfer-counts', branchId] as const,
   home: (branchId: string | null) => ['home', branchId] as const,
   dashboard: (branchId: string | null) => ['dashboard', branchId] as const,
   analyticsProducts: (branchId: string | null) => ['analytics-products', branchId] as const,
