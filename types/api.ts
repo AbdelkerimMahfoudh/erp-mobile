@@ -229,7 +229,14 @@ export interface InventoryStockRow {
   availableQuantity: number;
   /** Absent without `cost.view`. */
   cost?: number;
-  price: number;
+  /**
+   * `null` means UNPRICED, not free (H1.4).
+   *
+   * Stock a transfer delivered into a branch that has never priced this product
+   * arrives without one, because a selling price is a decision made with
+   * authority in one branch and must not travel with the goods.
+   */
+  price: number | null;
   product: InventoryProduct | null;
 }
 
@@ -562,7 +569,12 @@ export interface TransferListRow {
   direction: TransferDirection;
   from: TransferBranchRef;
   to: TransferBranchRef;
+  /** Rows on the transfer. NOT how many things — see `totalQuantity`. */
   itemCount: number;
+  unitCount: number;
+  quantityLineCount: number;
+  /** Everything being moved, counted as things: 2 phones + 10 cables = 12. */
+  totalQuantity: number;
   requestedBy: string | null;
   requestedAt: string;
   approvedAt: string | null;
@@ -627,19 +639,59 @@ export interface TransferDetail {
     receivedAt: string | null;
     decidedAt: string | null;
   };
-  items: {
-    id: string;
-    identifier: string | null;
-    product: string | null;
-    unitStatus: string | null;
-  }[];
+  /** Individual devices carried. */
+  unitCount: number;
+  /** How many distinct accessories, NOT how many of them. */
+  quantityLineCount: number;
+  /** Everything being moved, counted as things: 2 phones + 10 cables = 12. */
+  totalQuantity: number;
+  items: TransferDetailLine[];
   actions: Record<TransferActionName, TransferAction>;
 }
+
+/**
+ * One line of a transfer, discriminated by `kind`.
+ *
+ * The server states which kind it is rather than leaving the app to infer it
+ * from which fields are null — a client guessing from absent fields is a client
+ * that will eventually guess wrong.
+ */
+export type TransferDetailLine =
+  | {
+      kind: 'unit';
+      id: string;
+      identifier: string | null;
+      product: string | null;
+      variant: string | null;
+      quantity: 1;
+      unitStatus: string | null;
+    }
+  | {
+      kind: 'stock';
+      id: string;
+      productId: string | null;
+      product: string | null;
+      variant: string | null;
+      barcode: string | null;
+      /** How many were requested. */
+      quantity: number;
+      /** Source stock as the server sees it now — null once shipped. */
+      physicalQuantity: number | null;
+      reservedQuantity: number | null;
+      availableQuantity: number | null;
+      identifier: null;
+      unitStatus: null;
+    };
+
+export type CreateTransferLine =
+  | { kind: 'unit'; identifier: string }
+  | { kind: 'stock'; productId: string; quantity: number };
 
 export interface CreateTransferBody {
   clientUuid: string;
   toBranchId: string;
-  identifiers: string[];
+  /** Mixed serialized and quantity lines (H1.4). */
+  lines: CreateTransferLine[];
 }
 
 export interface CreateTransferResult {
@@ -648,7 +700,10 @@ export interface CreateTransferResult {
   status: TransferStatus;
   autoApproved: boolean;
   version: number;
+  /** Individual devices. */
   units: number;
+  quantityLines: number;
+  totalQuantity: number;
 }
 
 /** Every lifecycle action carries the version the caller last saw. */

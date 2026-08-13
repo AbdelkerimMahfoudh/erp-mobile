@@ -23,6 +23,7 @@ import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
 import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { transferSummary } from '../../lib/transfer-summary';
 import { toast } from '../../lib/toast';
 import { isStaleTransfer, useTransfer, useTransferAction } from '../../lib/transfers';
 import type { TransferAction, TransferActionName, TransferDetail } from '../../types/api';
@@ -156,8 +157,9 @@ function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: 
         // the server refuses rather than overwriting somebody's decision.
         expectedVersion: transfer.version,
         reason,
-        // Receiving confirms what physically arrived. Serialized-only in H1.3,
-        // so that is every listed item; partial receipt is future work.
+        // Receiving confirms which DEVICES physically arrived. A quantity line
+        // has no per-item number to scan, so it carries none - the carton is
+        // confirmed by receiving the transfer. Partial receipt is future work.
         identifiers:
           name === 'receive'
             ? transfer.items.map((i) => i.identifier).filter((v): v is string => Boolean(v))
@@ -241,7 +243,7 @@ function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: 
 
       <Actions transfer={transfer} busy={busy} onRun={run} />
 
-      <Section title={t('transfers.detail.items')}>
+      <Section title={t('transfers.detail.items')} subtitle={transferSummary(transfer, t)}>
         <Card>
           {transfer.items.map((item, index) => (
             <View key={item.id}>
@@ -250,6 +252,18 @@ function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: 
                 <View style={styles.itemBody}>
                   <Text variant="bodyStrong">{item.product ?? '—'}</Text>
                   {item.identifier ? <Identifier>{item.identifier}</Identifier> : null}
+                  {item.kind === 'stock' ? (
+                    <Text variant="caption" tone="secondary">
+                      {item.availableQuantity === null
+                        ? t('transfers.detail.qtySent', { count: item.quantity })
+                        : t('transfers.detail.qtyOf', {
+                            count: item.quantity,
+                            physical: item.physicalQuantity ?? 0,
+                            reserved: item.reservedQuantity ?? 0,
+                            available: item.availableQuantity,
+                          })}
+                    </Text>
+                  ) : null}
                 </View>
                 {item.unitStatus ? (
                   <StatusChip domain="unit" value={item.unitStatus} size="sm" />

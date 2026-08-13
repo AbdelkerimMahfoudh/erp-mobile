@@ -21,6 +21,7 @@ import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { transferSummary } from '../../lib/transfer-summary';
 import { usePermission } from '../../lib/permissions';
 import { useTransfers } from '../../lib/transfers';
 import type { TransferListRow, TransferStatus } from '../../types/api';
@@ -228,9 +229,9 @@ function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
 
       <View style={styles.rowFoot}>
         <Text variant="caption" tone="secondary">
-          {row.itemCount === 1
-            ? t('transfers.items.one')
-            : t('transfers.items', { count: row.itemCount })}
+          {/* '10 chargers' is one row and ten things. The row says both when
+              they differ, and never calls a carton one item. */}
+          {transferSummary(row, t)}
         </Text>
         {row.requestedBy ? (
           <Text variant="caption" tone="tertiary" numberOfLines={1}>

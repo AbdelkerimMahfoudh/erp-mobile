@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { ScanLine, Trash2 } from 'lucide-react-native';
+import { Stack, useRouter } from 'expo-router';
+import { PackageSearch, ScanLine, Trash2 } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
@@ -9,8 +9,10 @@ import {
   EmptyState,
   Identifier,
   Screen,
+  SearchInput,
   Section,
   SegmentedControl,
+  Stepper,
   Text,
   TextField,
 } from '../../components/ui';
@@ -21,32 +23,44 @@ import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
 import { haptics } from '../../lib/haptics';
-import { useTranslation } from '../../lib/i18n';
+import { useTranslation, type TranslationKey, type TranslationValues } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
 import {
-  addToDraft,
+  addStockToDraft,
+  addUnitToDraft,
   canSubmitDraft,
+  countDraft,
+  draftToBody,
   hasUnsavedDraft,
-  removeFromDraft,
+  isStockLine,
+  isUnitLine,
+  removeStockFromDraft,
+  removeUnitFromDraft,
+  setLineQuantity,
   submitIntent,
-  type DraftItem,
+  type DraftLine,
+  type StockCandidate,
 } from '../../lib/transfer-draft';
 import { transferProblems, useCreateTransfer } from '../../lib/transfers';
-import type { UserBranch } from '../../types/api';
+import type { InventoryPage, InventoryStockRow, UserBranch } from '../../types/api';
 
 /**
  * Request a transfer — scan first, type as a fallback.
  *
- * Serialized units only in H1.3. A scanned accessory is REFUSED with an
- * explanation rather than silently ignored: the user is standing in front of
- * the stock, and a scan that appears to do nothing is the worst possible answer.
+ * Phones and accessories in one draft (H1.4). They behave differently on
+ * purpose: a phone is one object named by its IMEI, so scanning it twice is a
+ * mistake worth reporting; an accessory is a count, so scanning the same box
+ * twice means two of them and the line simply grows.
  *
  * The request id is minted once when the draft begins and reused for every
  * retry. That is the whole reason a timeout here is safe: the server recognises
  * the replay and returns the original transfer instead of moving stock twice.
+ *
+ * No cost, margin or selling price appears anywhere on this screen. Moving
+ * stock between your own branches is not a pricing decision.
  */
 export default function NewTransferScreen() {
   const { t } = useTranslation();
@@ -59,16 +73,13 @@ export default function NewTransferScreen() {
   const create = useCreateTransfer();
   const canApproveHere = usePermission('transfer.approve');
 
-  const [items, setItems] = useState<DraftItem[]>([]);
+  const [lines, setLines] = useState<DraftLine[]>([]);
   const [toBranchId, setToBranchId] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
   const [scanning, setScanning] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [search, setSearch] = useState('');
 
-  /**
-   * One id per ATTEMPT, held in a ref so a re-render cannot mint a new one.
-   * A fresh id per submit would defeat idempotency completely.
-   */
   const requestId = useRef<string>(uuidv4());
 
   /** Every other branch in the company — a transfer to yourself is a 400. */
@@ -77,22 +88,30 @@ export default function NewTransferScreen() {
     [branches.data, branchId],
   );
 
-  const intent = submitIntent(canApproveHere);
-  const canSubmit = canSubmitDraft({ items, toBranchId, fromBranchId: branchId });
-  const dirty = hasUnsavedDraft(items, submitted);
-
   /**
-   * Back must not silently discard several minutes of walking around a shop
-   * with a phone. Confirm, then leave.
+   * Accessories at THIS branch, searched on the server.
+   *
+   * The inventory contract already returns physical, reserved and available per
+   * stock row, so the picker asks the same question the till does rather than
+   * inventing a second answer.
    */
-  useFocusEffect(
-    useCallback(() => {
-      if (!dirty) return;
-      // expo-router pops on hardware/gesture back; the guard lives on the
-      // explicit control so the prompt is reliable on both platforms.
-      return () => undefined;
-    }, [dirty]),
+  const accessories = useQuery({
+    queryKey: [...qk.inventory(branchId), 'transfer-pick', search],
+    enabled: search.trim().length > 1,
+    queryFn: () =>
+      api.get<InventoryPage>(`/inventory?search=${encodeURIComponent(search.trim())}&limit=20`),
+  });
+
+  const stockRows = useMemo(
+    () => ((accessories.data?.rows ?? []) as (InventoryStockRow | { kind: 'unit' })[])
+      .filter((r): r is InventoryStockRow => r.kind === 'stock'),
+    [accessories.data],
   );
+
+  const counts = countDraft(lines);
+  const intent = submitIntent(canApproveHere);
+  const canSubmit = canSubmitDraft({ lines, toBranchId, fromBranchId: branchId });
+  const dirty = hasUnsavedDraft(lines, submitted);
 
   const leave = async () => {
     if (!dirty) {
@@ -101,10 +120,7 @@ export default function NewTransferScreen() {
     }
     const ok = await dialog.confirm({
       title: t('transfers.new.discard.title'),
-      message: t('transfers.new.discard.body', {
-        count:
-          items.length === 1 ? t('transfers.items.one') : t('transfers.items', { count: items.length }),
-      }),
+      message: t('transfers.new.discard.body', { count: summaryText(counts, t) }),
       confirmLabel: t('transfers.new.discard.confirm'),
       cancelLabel: t('transfers.new.keep'),
       tone: 'danger',
@@ -112,23 +128,95 @@ export default function NewTransferScreen() {
     if (ok) router.back();
   };
 
-  const add = (identifier: string, opts: { product?: string | null; trackingType?: string | null } = {}) => {
-    const result = addToDraft(items, identifier, opts);
+  const addUnit = (identifier: string, product?: string | null) => {
+    const result = addUnitToDraft(lines, identifier, { product });
     if (result.ok) {
       void haptics.success();
-      setItems(result.items);
+      setLines(result.lines);
       setTyped('');
       return;
     }
     void haptics.error();
     if (result.reason === 'duplicate') toast.error(t('transfers.new.duplicate'));
-    else if (result.reason === 'blank') toast.error(t('transfers.new.blank'));
-    else if (result.reason === 'quantity_product') {
-      // Say what is coming, rather than dropping the scan on the floor.
-      void dialog.alert({
-        title: t('transfers.new.quantityNotYet'),
-        message: t('transfers.new.quantityNotYetBody'),
-      });
+    else toast.error(t('transfers.new.blank'));
+  };
+
+  const addStock = (candidate: StockCandidate, amount = 1) => {
+    const result = addStockToDraft(lines, candidate, amount);
+    if (result.ok) {
+      void haptics.success();
+      setLines(result.lines);
+      // Say what happened. A count that changed somewhere further down the
+      // screen, with no acknowledgement, reads as a scan that did nothing.
+      toast.success(
+        result.merged
+          ? t('transfers.new.merged', { product: candidate.product })
+          : t('transfers.new.added', { product: candidate.product }),
+      );
+      return;
+    }
+    void haptics.error();
+    if (result.reason === 'none_available') {
+      toast.error(t('transfers.new.noneAvailable', { product: candidate.product }));
+    } else {
+      toast.error(
+        t('transfers.new.overAvailable', {
+          product: candidate.product,
+          available: candidate.availableQuantity,
+        }),
+      );
+    }
+  };
+
+  const toCandidate = (row: InventoryStockRow): StockCandidate => ({
+    productId: row.productId,
+    product: productLabel(row),
+    variant: row.product?.variant ?? null,
+    barcode: row.product?.barcode ?? null,
+    physicalQuantity: row.quantity,
+    reservedQuantity: row.reservedQuantity,
+    availableQuantity: row.availableQuantity,
+  });
+
+  /**
+   * A scan resolves to either a phone or an accessory.
+   *
+   * An accessory barcode is looked up at this branch so the exact variant and
+   * its availability are known before it joins the draft. If the code matches
+   * more than one row, the picker is shown rather than a guess being made.
+   */
+  const onScan = async (code: string, suggestion: { trackingType?: string | null; brand?: string; model?: string; variant?: string | null } | null) => {
+    if (!code) return;
+    if (suggestion?.trackingType && suggestion.trackingType !== 'quantity') {
+      addUnit(code, [suggestion.brand, suggestion.model, suggestion.variant].filter(Boolean).join(' '));
+      return;
+    }
+    try {
+      const page = await api.get<InventoryPage>(
+        `/inventory?search=${encodeURIComponent(code)}&limit=5`,
+      );
+      const matches = (page.rows as (InventoryStockRow | { kind: 'unit' })[]).filter(
+        (r): r is InventoryStockRow => r.kind === 'stock',
+      );
+      if (matches.length === 1) {
+        addStock(toCandidate(matches[0]));
+        return;
+      }
+      if (matches.length > 1) {
+        // Ambiguous: show the list rather than pick one. Guessing which variant
+        // somebody scanned is how the wrong thing gets sent.
+        setSearch(code);
+        void dialog.alert({
+          title: t('transfers.new.ambiguous'),
+          message: t('transfers.new.ambiguousBody'),
+        });
+        return;
+      }
+      // No accessory row: treat it as a serialized identifier and let the
+      // server give the final answer.
+      addUnit(code, null);
+    } catch {
+      addUnit(code, null);
     }
   };
 
@@ -138,23 +226,22 @@ export default function NewTransferScreen() {
       const result = await create.mutateAsync({
         clientUuid: requestId.current,
         toBranchId: toBranchId!,
-        identifiers: items.map((i) => i.identifier),
+        lines: draftToBody(lines),
       });
       setSubmitted(true);
       toast.success(t('transfers.new.created', { ref: result.transferNo ?? '' }));
-      // Replace, not push: Back from the detail must not return to a draft that
-      // has already been sent.
       router.replace(`/transfers/${result.id}` as never);
     } catch (error) {
       /**
-       * Per-identifier refusals are shown as themselves. "Some units cannot be
-       * transferred" is not actionable; "356938035643809 is sold" is.
+       * Per-item refusals are shown as themselves. "Some items cannot be sent"
+       * is not actionable; "356938035643809 is sold" and "only 4 cables left"
+       * are.
        */
       const problems = transferProblems(error);
       if (problems.length > 0) {
         await dialog.alert({
           title: t('transfers.new.problems'),
-          message: problems.map((p) => `${p.identifier} — ${p.reason}`).join('\n'),
+          message: problems.map((p) => `${p.label} — ${p.reason}`).join('\n'),
         });
         return;
       }
@@ -218,20 +305,56 @@ export default function NewTransferScreen() {
             autoCorrect={false}
             placeholder="356938035643809"
             returnKeyType="done"
-            onSubmitEditing={() => add(typed)}
+            onSubmitEditing={() => addUnit(typed)}
           />
           <Button
             title={t('action.add')}
             variant="secondary"
             disabled={typed.trim().length === 0}
-            onPress={() => add(typed)}
+            onPress={() => addUnit(typed)}
             style={styles.gapTop}
           />
         </Card>
       </Section>
 
-      <Section title={t('transfers.new.items')}>
-        {items.length === 0 ? (
+      <Section title={t('transfers.new.findAccessory')} subtitle={t('transfers.new.findAccessoryHint')}>
+        <Card>
+          <SearchInput value={search} onChangeText={setSearch} placeholder={t('transfers.new.searchPlaceholder')} />
+          {search.trim().length > 1 && stockRows.length === 0 && !accessories.isLoading ? (
+            <Text variant="caption" tone="tertiary" style={styles.gapTop}>
+              {t('transfers.new.noAccessories')}
+            </Text>
+          ) : null}
+          <View style={styles.results}>
+            {stockRows.map((row) => (
+              <View key={row.id} style={styles.result}>
+                <View style={styles.itemBody}>
+                  <Text variant="bodyStrong">{productLabel(row)}</Text>
+                  {/* All three numbers, named. "Available" alone hides why. */}
+                  <Text variant="caption" tone="secondary">
+                    {t('transfers.new.stockLine', {
+                      physical: row.quantity,
+                      reserved: row.reservedQuantity,
+                      available: row.availableQuantity,
+                    })}
+                  </Text>
+                </View>
+                <Button
+                  title={t('action.add')}
+                  variant="secondary"
+                  size="sm"
+                  icon={PackageSearch}
+                  disabled={row.availableQuantity <= 0}
+                  onPress={() => addStock(toCandidate(row))}
+                />
+              </View>
+            ))}
+          </View>
+        </Card>
+      </Section>
+
+      <Section title={t('transfers.new.items')} subtitle={lines.length > 0 ? summaryText(counts, t) : undefined}>
+        {lines.length === 0 ? (
           <EmptyState
             size="inline"
             title={t('transfers.new.noItems')}
@@ -239,7 +362,7 @@ export default function NewTransferScreen() {
           />
         ) : (
           <View style={styles.items}>
-            {items.map((item) => (
+            {lines.filter(isUnitLine).map((item) => (
               <Card key={item.identifier}>
                 <View style={styles.item}>
                   <View style={styles.itemBody}>
@@ -252,7 +375,46 @@ export default function NewTransferScreen() {
                     icon={Trash2}
                     variant="tertiary"
                     size="sm"
-                    onPress={() => setItems(removeFromDraft(items, item.identifier))}
+                    onPress={() => setLines(removeUnitFromDraft(lines, item.identifier))}
+                  />
+                </View>
+              </Card>
+            ))}
+
+            {lines.filter(isStockLine).map((line) => (
+              <Card key={line.productId}>
+                <View style={styles.itemBody}>
+                  <Text variant="bodyStrong">{line.product}</Text>
+                  <Text variant="caption" tone="secondary">
+                    {t('transfers.new.stockLine', {
+                      physical: line.physicalQuantity,
+                      reserved: line.reservedQuantity,
+                      available: line.availableQuantity,
+                    })}
+                  </Text>
+                </View>
+                <View style={[styles.item, styles.gapTop]}>
+                  <Stepper
+                    value={line.quantity}
+                    min={1}
+                    max={line.availableQuantity}
+                    accessibilityLabel={t('transfers.new.quantity')}
+                    onChange={(next) => setLines(setLineQuantity(lines, line.productId, next))}
+                  />
+                  {/* Typing beats tapping plus forty times. */}
+                  <TextField
+                    value={String(line.quantity)}
+                    onChangeText={(v) =>
+                      setLines(setLineQuantity(lines, line.productId, Number(v.replace(/[^0-9]/g, '')) || 0))
+                    }
+                    keyboardType="number-pad"
+                  />
+                  <Button
+                    title={t('action.remove')}
+                    icon={Trash2}
+                    variant="tertiary"
+                    size="sm"
+                    onPress={() => setLines(removeStockFromDraft(lines, line.productId))}
                   />
                 </View>
               </Card>
@@ -293,24 +455,30 @@ export default function NewTransferScreen() {
         onClose={() => setScanning(false)}
         hint={t('transfers.new.howTo')}
         onResult={(result) => {
-          const code = result.code ?? '';
-          if (code) {
-            add(code, {
-              // What the scanner thinks it is, so the user confirms the exact
-              // product before sending. The server has the final say.
-              product: result.suggestion
-                ? [result.suggestion.brand, result.suggestion.model, result.suggestion.variant]
-                    .filter(Boolean)
-                    .join(' ')
-                : null,
-              trackingType: result.suggestion?.trackingType ?? null,
-            });
-          }
           setScanning(false);
+          void onScan(result.code ?? '', result.suggestion ?? null);
         }}
       />
     </Screen>
   );
+}
+
+/** "2 phones · 10 accessories", in the shop's language and grammar. */
+export function summaryText(
+  counts: { unitCount: number; totalQuantity: number; quantityLineCount: number },
+  t: (key: TranslationKey, vars?: TranslationValues) => string,
+): string {
+  const accessories = counts.totalQuantity - counts.unitCount;
+  const parts: string[] = [];
+  if (counts.unitCount > 0) parts.push(t('transfers.summary.units' as never, { count: counts.unitCount }));
+  if (accessories > 0) parts.push(t('transfers.summary.accessories' as never, { count: accessories }));
+  return parts.join(' · ');
+}
+
+function productLabel(row: InventoryStockRow): string {
+  const p = row.product;
+  if (!p) return '—';
+  return [p.brand, p.model, p.variant].filter(Boolean).join(' ');
 }
 
 const styles = StyleSheet.create({
@@ -318,4 +486,6 @@ const styles = StyleSheet.create({
   items: { gap: space.sm },
   item: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   itemBody: { flex: 1, gap: space.xs },
+  results: { gap: space.sm, marginTop: space.sm },
+  result: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

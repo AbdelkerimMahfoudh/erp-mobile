@@ -197,18 +197,48 @@ export function useCreateTransfer() {
   });
 }
 
+interface RawProblem {
+  identifier?: string;
+  productId?: string;
+  product?: string | null;
+  reason?: string;
+  requested?: number;
+  physicalQuantity?: number;
+  reservedQuantity?: number;
+  availableQuantity?: number;
+}
+
 /**
- * The problems a create can come back with, per identifier.
+ * The refusals a create can come back with, one per thing.
  *
- * The server answers `{ message, problems: [{ identifier, reason }] }` for
- * ineligible stock. Showing the list is the difference between "some units
- * cannot be transferred" and knowing which phone to go and look at.
+ * The server answers `{ message, problems: [...] }`, keyed by an identifier for
+ * a phone and by a product for an accessory. Showing the list is the difference
+ * between "some items cannot be sent" and knowing which phone to go and look at
+ * — or that there are only four cables left.
+ *
+ * *(Until H1.4 the global error filter dropped `problems` entirely, so this
+ * always returned an empty list and the user only ever saw the generic
+ * sentence. Fixed in the backend, and pinned by a test there.)*
  */
-export function transferProblems(error: unknown): { identifier: string; reason: string }[] {
+export function transferProblems(error: unknown): { label: string; reason: string }[] {
   if (!(error instanceof ApiError)) return [];
-  const body = error.body as { problems?: { identifier?: string; reason?: string }[] } | undefined;
+  const body = error.body as { problems?: RawProblem[] } | undefined;
   if (!Array.isArray(body?.problems)) return [];
+
   return body.problems
-    .filter((p): p is { identifier: string; reason: string } => Boolean(p.identifier && p.reason))
-    .map((p) => ({ identifier: p.identifier, reason: p.reason }));
+    .map((p) => {
+      const label = p.identifier ?? p.product ?? p.productId ?? '';
+      if (!label) return null;
+      // An availability refusal explains itself with numbers; anything else
+      // carries the server's own short reason.
+      const reason =
+        p.availableQuantity !== undefined && p.requested !== undefined
+          ? t('transfers.problem.shortBy', {
+              requested: p.requested,
+              available: p.availableQuantity,
+            })
+          : (p.reason ?? '');
+      return reason ? { label, reason } : null;
+    })
+    .filter((p): p is { label: string; reason: string } => p !== null);
 }
