@@ -145,6 +145,35 @@ export const en = {
   'receipt.lineTotal': 'Total',
   'receipt.thanks': 'Thank you',
 
+// ── Returns policy (I1) ───────────────────────────────────────────────────
+  // The shop's promise, said in words rather than in hours-since-epoch. The
+  // server decides the deadline and whether a return is still open; these
+  // strings only report it.
+  'returns.window.none': 'no returns',
+  'returns.window.oneHour': '1 hour',
+  'returns.window.hours': '{count} hours',
+  'returns.window.oneDay': '1 day',
+  'returns.window.days': '{count} days',
+  'returns.receipt.none': 'This sale is final — no returns.',
+  'returns.receipt.until': 'Returnable within {window} — until {deadline}.',
+  'returns.status.open': 'Returnable',
+  'returns.status.until': 'until {deadline}',
+  'returns.status.expired': 'Return period ended',
+  'returns.status.closedOn': 'ended {deadline}',
+  'returns.status.none': 'No returns',
+  'returns.status.returned': 'Already returned',
+  'returns.status.reversed': 'Sale reversed',
+  'returns.status.accessoriesOnly': 'Accessories — not returnable yet',
+  'returns.policy.title': 'Return policy',
+  'returns.policy.shopDefault': 'Shop policy',
+  'returns.policy.change': 'Change for this sale',
+  'returns.policy.readOnly': 'Only a manager can change this',
+  'returns.policy.reason': 'Why is this sale different?',
+  'returns.policy.reasonRequired': 'Say why before continuing',
+  'returns.policy.deadlinePreview': 'Customer can return until {deadline}',
+  'returns.policy.noReturnsPreview': 'Sold as seen — no returns',
+  'returns.policy.changedBy': 'Changed by {name}',
+
   // ── Inventory ─────────────────────────────────────────────────────────────
   'inventory.title': 'Inventory',
   'inventory.scan.placeholder': 'Scan or type an IMEI or serial',

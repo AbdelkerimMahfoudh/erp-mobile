@@ -19,6 +19,7 @@ import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import type { ReceiptData } from '../../lib/receipt';
+import type { ReturnPolicySnapshot } from '../../lib/return-policy';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
@@ -47,6 +48,14 @@ interface SaleResponse {
   margin?: number;
   balanceDue: number;
   payStatus: string;
+  /**
+   * The server's own timestamp for the sale, and the policy it snapshotted
+   * from it. Both come from the server deliberately: the receipt used to date
+   * itself from the phone's clock, and the deadline a customer is promised must
+   * not be measured from a different machine than the sale it belongs to.
+   */
+  soldAt: string;
+  returnPolicy: ReturnPolicySnapshot;
 }
 
 /** A scan that needs the employee to decide something before it joins the sale. */
@@ -277,7 +286,7 @@ export default function SellScreen() {
   const finalize = (sale: SaleResponse, payments: PaymentEntry[]) => {
     const receipt: ReceiptData = {
       invoiceNo: sale.invoiceNo,
-      soldAt: new Date(),
+      soldAt: new Date(sale.soldAt),
       branchName: branchName ?? '',
       cashierName: user?.name ?? '',
       lines: lines.map((line) => ({
@@ -293,6 +302,7 @@ export default function SellScreen() {
         method: t(`payment.${p.method}` as never),
         amount: p.amount,
       })),
+      returnPolicy: sale.returnPolicy,
     };
 
     setDone({ sale, receipt });

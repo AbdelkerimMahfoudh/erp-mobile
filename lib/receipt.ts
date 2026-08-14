@@ -3,6 +3,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { formatDateTime, formatMoney } from './format';
 import { isRtlLanguage, getLanguage, t } from './i18n';
+import { receiptPolicyLine, type ReturnPolicySnapshot } from './return-policy';
 
 /**
  * Receipt generation.
@@ -33,6 +34,14 @@ export interface ReceiptData {
   discount: number;
   total: number;
   payments: { method: string; amount: number }[];
+  /**
+   * The policy THIS sale was sold under, as the server snapshotted it.
+   *
+   * Not the shop's current setting: the receipt in the customer's hand has to
+   * say what they were actually promised, and a receipt reprinted after the
+   * Owner changes the policy must still say the same thing.
+   */
+  returnPolicy: ReturnPolicySnapshot;
 }
 
 /** Escape anything that lands in the HTML — product names are user data. */
@@ -97,6 +106,7 @@ function buildHtml(data: ReceiptData): string {
   .strong { font-weight: 600; }
   .row { display: flex; justify-content: space-between; padding: 2px 0; }
   .total { font-size: 16px; font-weight: 700; }
+  .policy { font-size: 11px; font-weight: 600; padding: 2px 0; }
 </style>
 </head>
 <body>
@@ -127,6 +137,8 @@ function buildHtml(data: ReceiptData): string {
   <div class="row total"><span>${esc(t('sell.total'))}</span><span>${esc(formatMoney(data.total))}</span></div>
   <hr />
   ${payments}
+  <hr />
+  <div class="center policy">${esc(receiptPolicyLine(data.returnPolicy, t, formatDateTime))}</div>
   <hr />
   <div class="center muted">${esc(t('receipt.servedBy'))}: ${esc(data.cashierName)}</div>
   <div class="center muted">${esc(t('receipt.thanks'))}</div>
