@@ -12,6 +12,7 @@ import { MoneyField } from '../ui/Field';
 import { IconButton } from '../ui/IconButton';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { Text } from '../ui/Text';
+import { ReturnPolicyControl } from './ReturnPolicyControl';
 import type { PaymentEntry } from './types';
 
 /**
@@ -40,6 +41,18 @@ export interface PaymentSheetProps {
   onDiscountChange: (discount: number) => void;
   onComplete: (payments: PaymentEntry[]) => void;
   submitting?: boolean;
+  /**
+   * The return policy, shown where the sale is actually finished. Stating it at
+   * the moment of payment is what makes it get said out loud to the customer.
+   */
+  returnPolicy: {
+    companyDefaultHours: number;
+    windowHours: number;
+    onWindowChange: (hours: number) => void;
+    reason: string;
+    onReasonChange: (reason: string) => void;
+    canOverride: boolean;
+  };
 }
 
 export function PaymentSheet({
@@ -50,6 +63,7 @@ export function PaymentSheet({
   onDiscountChange,
   onComplete,
   submitting = false,
+  returnPolicy,
 }: PaymentSheetProps) {
   const { t } = useTranslation();
   const [method, setMethod] = useState<Method>('cash');
@@ -72,6 +86,9 @@ export function PaymentSheet({
   const paid = isSplitting ? splitTotal : total;
   const remaining = Math.round((total - paid) * 100) / 100;
   const settled = Math.abs(remaining) < 0.005;
+
+  const policyChanged = returnPolicy.windowHours !== returnPolicy.companyDefaultHours;
+  const policyNeedsReason = policyChanged && returnPolicy.reason.trim().length === 0;
 
   const complete = () => {
     if (isSplitting) {
@@ -106,12 +123,16 @@ export function PaymentSheet({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={!settled}
+            disabled={!settled || policyNeedsReason}
             onPress={complete}
           />
           {!settled ? (
             <Text variant="caption" tone="tertiary" align="center">
               {t('sell.payment.exactOnly')}
+            </Text>
+          ) : policyNeedsReason ? (
+            <Text variant="caption" tone="tertiary" align="center">
+              {t('returns.policy.reasonRequired')}
             </Text>
           ) : null}
         </>
@@ -131,6 +152,8 @@ export function PaymentSheet({
             </Text>
           ) : null}
         </View>
+
+        <ReturnPolicyControl {...returnPolicy} />
 
         <MoneyField
           label={t('sell.discount')}

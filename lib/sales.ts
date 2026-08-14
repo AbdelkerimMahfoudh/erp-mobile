@@ -63,3 +63,19 @@ export function useSale(id: string | undefined) {
     queryFn: () => api.get<SaleDetail>(`/sales/${id}`),
   });
 }
+
+/**
+ * The shop's default return window, as the server reports it.
+ *
+ * `GET /settings` narrows itself to what the caller may see, and the window is
+ * in the employee view — the person at the till has to be able to state the
+ * policy. Defaults to "no returns" while it loads, so a slow network can never
+ * make the screen offer a promise the shop has not made.
+ */
+export function useCompanyReturnWindow(): number {
+  const query = useQuery({
+    queryKey: qk.settings,
+    queryFn: () => api.get<{ returnWindowHours: number }>('/settings'),
+  });
+  return query.data?.returnWindowHours ?? 0;
+}

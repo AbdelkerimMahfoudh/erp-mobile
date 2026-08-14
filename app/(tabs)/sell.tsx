@@ -20,6 +20,8 @@ import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import type { ReceiptData } from '../../lib/receipt';
 import type { ReturnPolicySnapshot } from '../../lib/return-policy';
+import { usePermission } from '../../lib/permissions';
+import { useCompanyReturnWindow } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
@@ -78,6 +80,17 @@ export default function SellScreen() {
   const [pending, setPending] = useState<PendingScan | null>(null);
   const [pendingPrice, setPendingPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
+
+  /**
+   * The return policy for THIS sale. It starts as the shop's, and only a
+   * manager or owner can move it — the server refuses anything else, so the
+   * screen just does not offer it.
+   */
+  const companyDefaultHours = useCompanyReturnWindow();
+  const canOverrideReturnPolicy = usePermission('return.policy.override');
+  const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
+  const [returnPolicyReason, setReturnPolicyReason] = useState('');
+  const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);
 
@@ -309,6 +322,9 @@ export default function SellScreen() {
     setPaymentOpen(false);
     setLines([]);
     setDiscount(0);
+    // A policy chosen for one customer must never carry into the next.
+    setReturnWindowHours(null);
+    setReturnPolicyReason('');
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
   };
@@ -325,6 +341,12 @@ export default function SellScreen() {
         payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
         ...(discount > 0 ? { saleDiscount: discount } : {}),
         ...(overrideReason ? { overrideReason } : {}),
+        // Omitted for an ordinary sale: re-stating the default is not an
+        // override, and sending a value the shop may have changed since this
+        // screen loaded would look like one.
+        ...(effectiveWindowHours !== companyDefaultHours
+          ? { returnWindowHours: effectiveWindowHours, returnPolicyReason: returnPolicyReason.trim() }
+          : {}),
       });
       finalize(sale, payments);
     } catch (e) {
@@ -506,6 +528,14 @@ export default function SellScreen() {
         onDiscountChange={setDiscount}
         onComplete={onComplete}
         submitting={submitting}
+        returnPolicy={{
+          companyDefaultHours,
+          windowHours: effectiveWindowHours,
+          onWindowChange: setReturnWindowHours,
+          reason: returnPolicyReason,
+          onReasonChange: setReturnPolicyReason,
+          canOverride: canOverrideReturnPolicy,
+        }}
       />
     </>
   );
