@@ -14,7 +14,12 @@ export const qk = {
    */
   inventory: (branchId: string | null, status?: string, search?: string, productId?: string) =>
     ['inventory', branchId, status ?? '', search ?? '', productId ?? ''] as const,
-  sales: (branchId: string | null) => ['sales', branchId] as const,
+  /**
+   * Sale history is per branch, and `filters` joins search, status, method and
+   * date range for the same reason the transfer key does: a cursor issued under
+   * one query means nothing under another.
+   */
+  sales: (branchId: string | null, filters?: string) => ['sales', branchId, filters ?? ''] as const,
   sale: (id: string) => ['sale', id] as const,
   /**
    * Transfers are per branch: the list is scoped to the branch's two ends, so

@@ -29,7 +29,20 @@ import { toErrorMessage } from './errors';
  */
 export const PERMISSIONS = [
   'sale.create',
+  /**
+   * Reading sale history (I1). Separate from `report.view`: seeing what the
+   * branch sold is ordinary counter work, and profit dashboards are not.
+   */
+  'sale.view',
+  /**
+   * `sale.return` is kept ONLY so an older session's permission set still maps
+   * to a known key. The legacy return endpoint it guarded is disabled (I1) and
+   * answers 410; the reviewed ReturnRequest lifecycle is I2. Never gate
+   * anything on it.
+   */
   'sale.return',
+  /** Changing the return policy AT SALE TIME. Manager and Owner only (I1). */
+  'return.policy.override',
   'cost.view',
   'discount.apply',
   'discount.override',

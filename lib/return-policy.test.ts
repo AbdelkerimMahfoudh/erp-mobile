@@ -80,7 +80,7 @@ it('never prints a deadline the server did not send', () => {
 console.log('the history status');
 it('is open, with the deadline, inside the window', () => {
   const s = policyStatus(view(), t, formatDateTime);
-  assert.equal(s.tone, 'positive');
+  assert.equal(s.tone, 'success');
   assert.equal(s.label, 'returns.status.open');
   assert.match(s.detail!, /2026-08-16/);
 });

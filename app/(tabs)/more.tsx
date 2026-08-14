@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight } from 'lucide-react-native';
+import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -35,13 +35,20 @@ export default function MoreScreen() {
 
       {/* Each row is gated by the permission its destination actually requires,
           so nothing here leads to a 403. The heading hides with its contents. */}
-      <Can anyOf={['unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
+      <Can anyOf={['sale.view', 'unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">Manage</Text>
         <View className="mt-2 gap-3">
           {/* Browsing the catalog is open to every store role — Sell and Receive
               both depend on finding products. The create/edit/archive controls
               inside are gated on `catalog.manage`, and the server enforces that
               regardless of what this menu shows. */}
+          {/* Sale history (I1). Gated on `sale.view`, which every store role
+              holds — seeing what the branch sold is ordinary counter work, and
+              is deliberately NOT `report.view`. Cost and profit inside are
+              gated separately by the server. */}
+          <Can perm="sale.view">
+            <MenuRow icon={<ReceiptText size={20} color={colors.brand} />} label="Sales" onPress={() => router.push('/sales' as Href)} />
+          </Can>
           <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
           {/* Transfers (H1.3). Gated on `transfer.view` — NOT on `unit.transfer`,
               which H1.2 retired and revoked from every store role. */}

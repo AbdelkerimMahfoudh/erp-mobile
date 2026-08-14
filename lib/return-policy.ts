@@ -74,7 +74,7 @@ export function receiptPolicyLine(
 }
 
 export interface PolicyStatus {
-  tone: 'positive' | 'neutral' | 'warning';
+  tone: 'success' | 'neutral' | 'warning';
   label: string;
   detail: string | null;
 }
@@ -91,7 +91,7 @@ export function policyStatus(
   switch (policy.reason) {
     case 'within_window':
       return {
-        tone: 'positive',
+        tone: 'success',
         label: t('returns.status.open'),
         detail: policy.deadlineAt
           ? t('returns.status.until', { deadline: formatDateTime(new Date(policy.deadlineAt)) })

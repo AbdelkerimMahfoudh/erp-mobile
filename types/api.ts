@@ -1,3 +1,5 @@
+import type { ReturnEligibilityReason } from '../lib/return-policy';
+
 // Shapes returned by the NestJS backend (/api/v1). Money fields may be absent
 // for callers without `cost.view` (server strips them).
 
@@ -561,6 +563,106 @@ export interface TransferBranchRef {
 
 /** Which way the stock moves, as seen from the branch the user is standing in. */
 export type TransferDirection = 'outgoing' | 'incoming';
+
+// ───────────────────────────── Sales history (I1) ─────────────────────────────
+
+export type { ReturnEligibilityReason };
+
+export type SalePayStatus = 'paid' | 'partial' | 'credit';
+export type PaymentMethod = 'cash' | 'card' | 'mobile' | 'bank' | 'other';
+
+/**
+ * The return policy the SALE was sold under, plus what the server says about it
+ * right now. Never recomputed on the device: the shop's promise is not a thing
+ * a phone's clock gets to decide.
+ */
+export interface SaleReturnPolicy {
+  windowHours: number;
+  deadlineAt: string | null;
+  eligible: boolean;
+  reason: ReturnEligibilityReason;
+  remainingMs: number | null;
+  requiresOwnerException: boolean;
+  overriddenBy?: string | null;
+  overrideReason?: string | null;
+}
+
+export interface SaleListRow {
+  id: string;
+  invoiceNo: string;
+  soldAt: string;
+  total: number;
+  /** Both absent without `cost.view` — stripped by the server, not hidden here. */
+  totalCost?: number;
+  margin?: number;
+  amountPaid: number;
+  balanceDue: number;
+  payStatus: SalePayStatus;
+  isReversed: boolean;
+  /** Rows on the sale. NOT how many things — see `itemCount`. */
+  lineCount: number;
+  /** Everything sold, counted as things: 1 phone + 10 cables = 11. */
+  itemCount: number;
+  serializedCount: number;
+  soldBy: string | null;
+  customer: string | null;
+  paymentMethods: PaymentMethod[];
+  returnPolicy: SaleReturnPolicy;
+}
+
+export interface SalePage {
+  rows: SaleListRow[];
+  nextCursor: string | null;
+}
+
+export interface SaleLine {
+  id: string;
+  unitId: string | null;
+  imei: string | null;
+  imeiSecondary: string | null;
+  serialNo: string | null;
+  product: string | null;
+  barcode: string | null;
+  trackingType: string | null;
+  quantity: number;
+  price: number;
+  discount: number;
+  taxAmount: number;
+  /** Absent without `cost.view`. */
+  cost?: number;
+  voided: boolean;
+}
+
+export interface SalePaymentRecord {
+  id: string;
+  method: PaymentMethod;
+  amount: number;
+  paidAt: string;
+}
+
+export interface SaleDetail {
+  id: string;
+  invoiceNo: string;
+  soldAt: string;
+  branch: TransferBranchRef;
+  soldBy: string | null;
+  customer: { id: string; name: string | null; phone: string | null } | null;
+  subtotal: number;
+  discount: number;
+  taxTotal: number;
+  total: number;
+  /** Absent without `cost.view`. */
+  totalCost?: number;
+  margin?: number;
+  amountPaid: number;
+  balanceDue: number;
+  payStatus: SalePayStatus;
+  dueDate: string | null;
+  isReversed: boolean;
+  lines: SaleLine[];
+  payments: SalePaymentRecord[];
+  returnPolicy: SaleReturnPolicy;
+}
 
 export interface TransferListRow {
   id: string;
