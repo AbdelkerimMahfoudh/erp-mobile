@@ -53,6 +53,9 @@ export const qk = {
   refundReceipt: (branchId: string | null, id: string) =>
     ['refund-receipt', branchId, id] as const,
   /** Outstanding liability and settled refunds, per branch and window. */
+  corrections: (branchId: string | null, status: string) =>
+    ['corrections', branchId, status] as const,
+  correction: (id: string) => ['correction', id] as const,
   refundSummary: (branchId: string | null, range?: string) =>
     ['refund-summary', branchId, range ?? ''] as const,
   transferCounts: (branchId: string | null) => ['transfer-counts', branchId] as const,

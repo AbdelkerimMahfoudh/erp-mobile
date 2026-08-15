@@ -76,6 +76,57 @@ export const ar: Catalogue = {
   'closing.yesterday': 'أمس',
   'closing.monthToDate': 'هذا الشهر حتى الآن',
 
+  // ── تصحيح دفعة مؤكَّدة ────────────────────────────────────────────────────
+  'correction.request.action': 'تصحيح هذه الدفعة',
+  'correction.request.title': 'تصحيح دفعة مؤكَّدة',
+  'correction.request.body':
+    'تم تأكيد هذه الدفعة، لذلك لا يمكن تعديلها. طلب التصحيح يسجّل الخطأ ويعيد المبلغ بعد موافقة المالك.',
+  'correction.request.notice': 'الطلب لا يغيّر شيئًا بعد. لا يتحرك أي مبلغ حتى يوافق المالك.',
+  'correction.request.submit': 'إرسال الطلب',
+  'correction.request.done': 'تم الإرسال. سيراجعه المالك.',
+  'correction.request.failed': 'تعذّر إرسال الطلب',
+  'correction.amount': 'المبلغ المدفوع',
+  'correction.reason': 'ما الذي حدث',
+  'correction.reason.hint': 'مطلوب. اشرح ما حدث ليبقى مفهومًا بعد أشهر.',
+  'correction.reference': 'المرجع',
+  'correction.reference.hint': 'اختياري — رقم إيصال أو رسالة تدعم ذلك.',
+  'correction.requestedBy': 'طلبه',
+  'correction.requestedAt': 'تاريخ الطلب',
+  'correction.approvedBy': 'وافق عليه',
+  'correction.status.requested': 'طلب تصحيح',
+  'correction.status.approved': 'تم التصحيح',
+  'correction.requested.body': 'بانتظار المالك. الدفعة ما زالت قائمة ولم يتحرك أي مبلغ.',
+  'correction.approved.body': 'أُعيد المبلغ بتاريخ {date}. الدفعة الأصلية وإيصالها لم يتغيّرا.',
+  'correction.approved.next': 'المبلغ مستحق مرة أخرى. سجّل دفعة بديلة عند سداده.',
+  'correction.approve.action': 'الموافقة على التصحيح',
+  'correction.approve.confirm.title': 'إعادة هذا المبلغ؟',
+  'correction.approve.confirm.irreversible':
+    'سيُعاد المبلغ على يوم اليوم، ويصبح الدين مستحقًا مرة أخرى. لا يمكن التراجع.',
+  'correction.approve.done': 'تم التصحيح. المبلغ مستحق مرة أخرى.',
+  'correction.approve.failed': 'تعذّرت الموافقة',
+  'correction.approve.ownerOnly': 'المالك وحده يمكنه الموافقة على التصحيح.',
+  'correction.reject.action': 'رفض',
+  'correction.reject.done': 'تم الرفض. الدفعة قائمة.',
+  'correction.reject.failed': 'تعذّر الرفض',
+  'correction.conflict.stale.title': 'تغيّر هذا أثناء اطّلاعك',
+  'correction.conflict.stale.body': 'تصرّف شخص آخر بشأنه. افتحه مرة أخرى لمعرفة وضعه.',
+  'correction.conflict.already_decided.title': 'تم البتّ فيه',
+  'correction.conflict.already_decided.body': 'وافق عليه مالك آخر أو رفضه بالفعل.',
+  'correction.conflict.already_corrected.title': 'صُحّح بالفعل',
+  'correction.conflict.already_corrected.body':
+    'صُحّحت هذه الدفعة مرة واحدة. سجّل دفعة بديلة بدلًا من ذلك.',
+  'correction.conflict.request_pending.title': 'طُلب بالفعل',
+  'correction.conflict.request_pending.body':
+    'طلب أحدهم تصحيح هذه الدفعة بالفعل. الطلب بانتظار المالك.',
+  'correction.conflict.day_locked.title': 'اليوم مُغلق',
+  'correction.conflict.day_locked.body':
+    'يُسجَّل التصحيح على اليوم المفتوح الحالي. أعد المحاولة عند فتح اليوم التالي — لا يُعاد فتح يوم مُغلق أبدًا.',
+  'correction.conflict.not_confirmed.title': 'لم تُؤكَّد بعد',
+  'correction.conflict.not_confirmed.body':
+    'هذه الدفعة ما زالت بانتظار التأكيد، لذا يمكن تعديلها مباشرة.',
+  'correction.conflict.other.title': 'تعذّر تنفيذ ذلك',
+  'correction.conflict.other.body': 'تغيّر شيء بخصوص هذه الدفعة. افتحها مرة أخرى.',
+
   // ── قائمة المزيد ──────────────────────────────────────────────────────────
   'more.manage': 'الإدارة',
   'more.account': 'الحساب',

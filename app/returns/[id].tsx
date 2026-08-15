@@ -416,7 +416,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         {/* One of three, never two: owed, claimed, or vouched for. */}
         {awaitingReport ? <RefundDueSection detail={detail} /> : null}
         {pending && payout ? <RefundPendingSection payout={payout} /> : null}
-        {confirmed && payout ? <RefundConfirmedSection payout={payout} /> : null}
+        {confirmed && payout ? <RefundConfirmedSection payout={payout} onChanged={refetch} /> : null}
 
         {/*
           The workflow, not the event log.

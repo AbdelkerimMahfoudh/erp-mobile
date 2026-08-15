@@ -889,7 +889,23 @@ export interface ReturnTimelineEntry {
  */
 export type RefundMethod = 'cash' | 'account';
 
+/** A correction raised against a confirmed payment (Milestone B). */
+export interface PaymentCorrectionRef {
+  id: string;
+  status: FinancialCorrectionStatus;
+  reason: string;
+  supportingReference?: string | null;
+  requestedBy: string | null;
+  requestedAt: string;
+  decidedBy: string | null;
+  /** The day the money went back. Null until approved. */
+  correctionDate: string | null;
+  version: number;
+}
+
 export interface ReturnPayout {
+  /** The payout's own id — the correction's target. */
+  id: string;
   /** `reported_pending_confirmation` is a CLAIM. Only `confirmed` is the record. */
   status: 'reported_pending_confirmation' | 'confirmed';
   /** The payout version — NOT the return version. Send it with correct/confirm. */
@@ -910,6 +926,8 @@ export interface ReturnPayout {
   reportedAt: string;
   confirmedBy: string | null;
   confirmedAt: string | null;
+  /** Any correction raised against this payout. Null means none. */
+  correction: PaymentCorrectionRef | null;
 }
 
 /** What the customer receipt says. Available only once confirmed. */
@@ -1057,6 +1075,8 @@ export interface SupplierSettlement {
   confirmationDate: string | null;
   allocations: { purchaseId: string; amount: number }[];
   supplier?: { id: string; name: string };
+  /** Any correction raised against this settlement. Null means none. */
+  correction: PaymentCorrectionRef | null;
 }
 
 /** The financial half of a supplier. `null` when the caller may not see it. */
@@ -1093,4 +1113,43 @@ export interface SupplierPayable {
   }[];
   /** A SUGGESTION the screen shows before anything is sent. */
   suggested: { purchaseId: string; amount: number }[];
+}
+
+/**
+ * Correcting a payment that was already confirmed (Milestone B).
+ *
+ * The correction never rewrites the payment it corrects. It sits beside it, and
+ * the liability comes back because the server excludes a corrected payment from
+ * every derivation of "what is owed".
+ *
+ * `requested` moves no money. Only `approved` does — and only an Owner can
+ * cause it.
+ */
+export type FinancialCorrectionKind = 'refund_payout' | 'supplier_settlement';
+export type FinancialCorrectionStatus = 'requested' | 'approved' | 'rejected';
+
+export interface FinancialCorrection {
+  id: string;
+  targetKind: FinancialCorrectionKind;
+  targetId: string | null;
+  status: FinancialCorrectionStatus;
+  reason: string;
+  supportingReference: string | null;
+  /** Copied from the target — never entered by hand. */
+  amount: number;
+  method: RefundMethod;
+  accountLabel: string | null;
+  requestedBy: string | null;
+  requestedAt: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  /** The business day the compensating movement posts to. Null until approved. */
+  correctionDate: string | null;
+  /** Send with approve/reject. A stale one is a 409. */
+  version: number;
+}
+
+export interface CorrectionPage {
+  rows: FinancialCorrection[];
+  nextCursor: string | null;
 }

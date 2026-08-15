@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { space } from '../../lib/design/tokens';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { CorrectionSection } from '../corrections';
 import { Card, Section } from '../ui/Surface';
 import { Chip } from '../ui/Chip';
 import { Text } from '../ui/Text';
@@ -97,7 +98,13 @@ export function RefundPendingSection({ payout }: { payout: ReturnPayout }) {
 }
 
 /** Confirmed. The only state allowed a success tone. */
-export function RefundConfirmedSection({ payout }: { payout: ReturnPayout }) {
+export function RefundConfirmedSection({
+  payout,
+  onChanged,
+}: {
+  payout: ReturnPayout;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <Section title={t('refund.section')}>
@@ -118,6 +125,19 @@ export function RefundConfirmedSection({ payout }: { payout: ReturnPayout }) {
           {t('refund.phoneHeld')}
         </Text>
       </Card>
+
+      {/*
+        Correcting it (Milestone B). A confirmed payout cannot be edited, so
+        this is the only remedy for one that was wrong — and it appears only
+        for a role allowed to ask.
+      */}
+      <CorrectionSection
+        targetKind="refund_payout"
+        targetId={payout.id}
+        amount={payout.reportedAmount}
+        correction={payout.correction}
+        onChanged={onChanged}
+      />
     </Section>
   );
 }

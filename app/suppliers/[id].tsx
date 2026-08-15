@@ -14,6 +14,7 @@ import {
   Text,
 } from '../../components/ui';
 import { SupplierPaymentSheet } from '../../components/suppliers/SupplierPaymentSheet';
+import { CorrectionSection } from '../../components/corrections';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
@@ -283,7 +284,31 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
                   {confirmed.map((s) => (
                     <View key={s.id} style={styles.settlement}>
                       <SettlementLines s={s} />
-                      <Chip tone="success" label={t('suppliers.confirmed.status')} dot />
+                      {/*
+                        Success only while it stands. A corrected payment is
+                        neutral: the money went out and then came back, so
+                        calling it settled would be false.
+                      */}
+                      <Chip
+                        tone={s.correction?.status === 'approved' ? 'neutral' : 'success'}
+                        label={t(
+                          s.correction?.status === 'approved'
+                            ? 'correction.status.approved'
+                            : 'suppliers.confirmed.status',
+                        )}
+                        dot
+                      />
+                      {/*
+                        Correcting it (Milestone B). A confirmed settlement
+                        cannot be edited, so this is the only remedy.
+                      */}
+                      <CorrectionSection
+                        targetKind="supplier_settlement"
+                        targetId={s.id}
+                        amount={s.amount}
+                        correction={s.correction}
+                        onChanged={refetch}
+                      />
                     </View>
                   ))}
                 </Card>

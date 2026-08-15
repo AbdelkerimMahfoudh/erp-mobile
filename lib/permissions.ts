@@ -92,6 +92,13 @@ export const PERMISSIONS = [
    */
   'supplier.payment.report',
   'supplier.payment.confirm',
+  /**
+   * Milestone B — correcting a CONFIRMED payment. Two keys: a Manager may ask,
+   * only an Owner may approve. An Employee holds neither, because the person
+   * who reported a payment must not open the process that unwinds it.
+   */
+  'financial.correction.request',
+  'financial.correction.approve',
   'expense.manage',
   'closing.perform',
   'report.view',

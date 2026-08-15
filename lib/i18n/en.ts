@@ -74,6 +74,59 @@ export const en = {
   'closing.yesterday': 'Yesterday',
   'closing.monthToDate': 'This month so far',
 
+  // ── Correcting a confirmed payment (Milestone B) ──────────────────────────
+  // Worded throughout so "asked for" can never be mistaken for "done".
+  'correction.request.action': 'Correct this payment',
+  'correction.request.title': 'Correct a confirmed payment',
+  'correction.request.body':
+    'This payment was already confirmed, so it cannot be edited. Asking for a correction records the mistake and puts the money back once an owner agrees.',
+  'correction.request.notice': 'Asking changes nothing yet. No money moves until an owner approves.',
+  'correction.request.submit': 'Send the request',
+  'correction.request.done': 'Sent. An owner will review it.',
+  'correction.request.failed': 'Could not send that request',
+  'correction.amount': 'Amount paid',
+  'correction.reason': 'What went wrong',
+  'correction.reason.hint': 'Required. Say what happened, so this still makes sense months from now.',
+  'correction.reference': 'Reference',
+  'correction.reference.hint': 'Optional — a receipt number, or a message that supports this.',
+  'correction.requestedBy': 'Asked by',
+  'correction.requestedAt': 'Asked on',
+  'correction.approvedBy': 'Approved by',
+  'correction.status.requested': 'Correction requested',
+  'correction.status.approved': 'Corrected',
+  'correction.requested.body': 'Waiting for an owner. The payment still stands and no money has moved.',
+  'correction.approved.body':
+    'The money was put back on {date}. The original payment and its receipt are unchanged.',
+  'correction.approved.next': 'The amount is owed again. Record a replacement payment when it is paid.',
+  'correction.approve.action': 'Approve the correction',
+  'correction.approve.confirm.title': 'Put this money back?',
+  'correction.approve.confirm.irreversible':
+    'This puts the amount back on today, and the debt becomes owed again. It cannot be undone.',
+  'correction.approve.done': 'Corrected. The amount is owed again.',
+  'correction.approve.failed': 'Could not approve that',
+  'correction.approve.ownerOnly': 'Only an owner can approve a correction.',
+  'correction.reject.action': 'Reject',
+  'correction.reject.done': 'Rejected. The payment stands.',
+  'correction.reject.failed': 'Could not reject that',
+  'correction.conflict.stale.title': 'This changed while you were looking',
+  'correction.conflict.stale.body': 'Someone else acted on it. Open it again to see where it stands.',
+  'correction.conflict.already_decided.title': 'Already decided',
+  'correction.conflict.already_decided.body': 'Another owner has already approved or rejected this one.',
+  'correction.conflict.already_corrected.title': 'Already corrected',
+  'correction.conflict.already_corrected.body':
+    'This payment has been corrected once. Record a replacement payment instead.',
+  'correction.conflict.request_pending.title': 'Already asked for',
+  'correction.conflict.request_pending.body':
+    'Somebody has already asked for this payment to be corrected. It is waiting for an owner.',
+  'correction.conflict.day_locked.title': 'Today is closed',
+  'correction.conflict.day_locked.body':
+    'A correction goes onto the current open day. Try again once the next day opens — the closed day is never reopened.',
+  'correction.conflict.not_confirmed.title': 'Not confirmed yet',
+  'correction.conflict.not_confirmed.body':
+    'This payment is still waiting for confirmation, so it can be changed directly instead.',
+  'correction.conflict.other.title': 'Could not do that',
+  'correction.conflict.other.body': 'Something about this payment changed. Open it again.',
+
   // ── More menu ─────────────────────────────────────────────────────────────
   'more.manage': 'Manage',
   'more.account': 'Account',
