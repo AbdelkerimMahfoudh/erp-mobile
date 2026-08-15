@@ -75,8 +75,15 @@ export const colors = {
     subtle: neutral[200],
     /** Input outlines and card edges that need to be seen. */
     default: neutral[300],
-    /** Focus rings and selected outlines. */
+    /** Selected outlines and emphasised edges. */
     strong: neutral[400],
+    /**
+     * Keyboard/assistive focus ring. The accent, not a neutral: a focus ring
+     * has to be findable at a glance on a busy screen, and it is the one place
+     * where colour genuinely is the signal — so it is also drawn thicker than a
+     * hairline rather than relying on hue alone.
+     */
+    focus: brand[500],
     /** Border on the inverse surface. */
     inverse: 'rgba(255, 255, 255, 0.16)',
   },

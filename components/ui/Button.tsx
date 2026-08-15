@@ -90,7 +90,9 @@ const VARIANTS: Record<ButtonVariant, VariantStyle> = {
   },
   danger: {
     background: colors.intent.danger.solid,
-    pressedBackground: '#A32C23',
+    // The darker end of the danger ramp, so pressing reads as depressing the
+    // button rather than as a different button.
+    pressedBackground: colors.intent.danger.fg,
     foreground: colors.intent.danger.onSolid,
   },
 };

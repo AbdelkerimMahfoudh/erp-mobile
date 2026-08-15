@@ -42,9 +42,42 @@ export const type = {
   label: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
   mono: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+
+  /**
+   * Money. Three weights for three jobs: the one focal figure on a screen, a
+   * supporting figure in a row, and a metadata figure beside a label.
+   *
+   * All three are `tabular-nums`, which is the whole reason they exist as
+   * separate variants. Proportional digits make a column of prices ragged, so
+   * comparing two totals means reading them instead of glancing. Money is the
+   * one thing in this app people compare vertically, every day.
+   *
+   * Latin digits are used in Arabic too — see `MoneyValue` for why.
+   */
+  moneyDisplay: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  money: { fontSize: 17, lineHeight: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  moneySmall: { fontSize: 15, lineHeight: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
 } as const;
 
 export type TypeVariant = keyof typeof type;
+
+/**
+ * Icon sizing. Icons pair with text, so these track the type scale rather than
+ * forming their own: `sm` sits with `caption`/`label`, `md` with `body`, `lg`
+ * with `heading`, `xl` for an empty state's illustration.
+ */
+export const icon = {
+  sm: 16,
+  md: 20,
+  lg: 24,
+  xl: 32,
+} as const;
+
 
 /**
  * Minimum interactive size. The app is used one-handed, at a counter, in a
@@ -55,6 +88,21 @@ export const touch = {
   comfortable: 56,
   large: 64,
 } as const;
+
+/**
+ * Density. A counter needs to see more rows at once; a form needs room to tap.
+ * `comfortable` is the default — `compact` is opt-in for long lists.
+ *
+ * Note what does NOT change: the minimum row height. Density adjusts breathing
+ * room, never the tappable area, so a dense list is still usable one-handed
+ * with a case on the phone.
+ */
+export const density = {
+  comfortable: { rowMinHeight: touch.min, rowPaddingY: space.md, gap: space.md },
+  compact: { rowMinHeight: touch.min, rowPaddingY: space.sm, gap: space.sm },
+} as const;
+
+export type Density = keyof typeof density;
 
 /** Motion. Short and unfussy; this is business software, not a toy. */
 export const duration = {
@@ -71,6 +119,18 @@ export const duration = {
  */
 export const elevation = {
   none: {},
+  /**
+   * The faintest possible lift — a selected segment sitting proud of its track.
+   * Not for cards: if something needs to look separate from the page, it wants
+   * a border, not a shadow.
+   */
+  xs: {
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
   sm: {
     shadowColor: '#0B1220',
     shadowOpacity: 0.06,
@@ -96,5 +156,17 @@ export const elevation = {
 
 /** Opacity applied to a pressable while held. */
 export const pressedOpacity = 0.72;
-/** Opacity applied to anything disabled. */
-export const disabledOpacity = 0.4;
+
+/**
+ * Opacity applied to anything disabled.
+ *
+ * Raised from 0.4, which was not survivable when it compounded. A control that
+ * dimmed its container to 0.4 *and* drew its label in `text.disabled` produced
+ * roughly 1.3:1 against the card — text that is not merely low-contrast but
+ * effectively absent. A disabled control still has to be readable: the user
+ * needs to know what they cannot do, and why.
+ *
+ * The rule that goes with this number: **dim the container or use the disabled
+ * text colour, never both.**
+ */
+export const disabledOpacity = 0.55;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors } from '../../lib/design/colors';
-import { disabledOpacity, radius, space, touch } from '../../lib/design/tokens';
+import { disabledOpacity, elevation, radius, space, touch } from '../../lib/design/tokens';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 
@@ -74,7 +74,14 @@ export function SegmentedControl<T extends string>({
               align="center"
               numberOfLines={1}
               style={{
-                color: off
+                /**
+                 * `option.disabled`, not `off`. When the whole control is
+                 * disabled the track is already dimmed, and adding the disabled
+                 * text colour on top compounded to roughly 1.3:1 — the label
+                 * disappeared rather than reading as unavailable.
+                 * One signal at a time; see `disabledOpacity`.
+                 */
+                color: option.disabled
                   ? colors.text.disabled
                   : selected
                     ? colors.text.primary
@@ -108,11 +115,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  selected: {
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
-  },
+  selected: elevation.xs,
 });
