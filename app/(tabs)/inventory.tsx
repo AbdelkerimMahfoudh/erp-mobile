@@ -9,6 +9,7 @@ import {
   ErrorState,
   FilterChip,
   ListRow,
+  MoneyValue,
   Screen,
   SearchInput,
   SkeletonList,
@@ -226,6 +227,19 @@ export default function InventoryScreen() {
                       subtitle={variantSummary(row.product) || undefined}
                       identifier={row.identifier}
                       accessory={<StatusChip domain="unit" value={row.status} size="sm" />}
+                      /**
+                       * Cost, and only when the server actually sent it — it is
+                       * stripped without `cost.view`. Rendered only when
+                       * present, so a role that may not see cost gets a row
+                       * with no cost on it rather than a dash or a zero, either
+                       * of which would read as "this phone cost nothing".
+                       */
+                      value={
+                        row.cost !== undefined ? (
+                          <MoneyValue value={row.cost} size="small" tone="muted" />
+                        ) : undefined
+                      }
+                      valueCaption={row.cost !== undefined ? t('inventory.cost') : undefined}
                       onPress={() =>
                         router.push({
                           pathname: '/unit/[identifier]',

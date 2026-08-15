@@ -398,6 +398,7 @@ export const en = {
   'inventory.filter.all': 'All',
   'inventory.units': 'Tracked items',
   'inventory.accessories': 'Accessories',
+  'inventory.cost': 'cost',
   'inventory.inStock': 'in stock',
   'inventory.empty.title': 'No stock here yet',
   'inventory.empty.body': 'Receive a delivery and it will show up here.',

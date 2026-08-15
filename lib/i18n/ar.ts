@@ -389,6 +389,7 @@ export const ar: Catalogue = {
   'inventory.filter.all': 'الكل',
   'inventory.units': 'قطع مُتتبَّعة',
   'inventory.accessories': 'إكسسوارات',
+  'inventory.cost': 'التكلفة',
   'inventory.inStock': 'متوفر',
   'inventory.empty.title': 'لا يوجد مخزون بعد',
   'inventory.empty.body': 'استلم شحنة وستظهر هنا.',
