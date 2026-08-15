@@ -11,14 +11,16 @@
  */
 import assert from 'node:assert/strict';
 import {
-  addToDraft,
+  addStockToDraft,
+  addUnitToDraft,
   canSubmitDraft,
   hasUnsavedDraft,
   isFinishedStatus,
-  removeFromDraft,
+  removeUnitFromDraft,
   shouldMintNewRequestId,
   submitIntent,
-  type DraftItem,
+  type DraftLine,
+  type StockCandidate,
 } from './transfer-draft.ts';
 
 let passed = 0;
@@ -28,52 +30,102 @@ const it = (name: string, fn: () => void) => {
   console.log(`  ok - ${name}`);
 };
 
-const empty: DraftItem[] = [];
+const empty: DraftLine[] = [];
+
+/** An accessory as the server described it, with room to send three. */
+const cable = (over: Partial<StockCandidate> = {}): StockCandidate => ({
+  productId: 'p1',
+  product: 'USB-C cable',
+  variant: '1m',
+  barcode: '6001234567890',
+  physicalQuantity: 5,
+  reservedQuantity: 2,
+  availableQuantity: 3,
+  ...over,
+});
 
 it('adds a scanned identifier with what it is', () => {
-  const r = addToDraft(empty, '356938035643809', { product: 'Samsung Galaxy A14' });
+  const r = addUnitToDraft(empty, '356938035643809', { product: 'Samsung Galaxy A14' });
   assert.equal(r.ok, true);
   assert.equal(r.reason, null);
-  assert.deepEqual(r.items, [{ identifier: '356938035643809', product: 'Samsung Galaxy A14' }]);
+  assert.deepEqual(r.lines, [
+    { kind: 'unit', identifier: '356938035643809', product: 'Samsung Galaxy A14' },
+  ]);
 });
 
 it('trims what was typed, so a stray space is not a different phone', () => {
-  const r = addToDraft(empty, '  356938035643809 ');
-  assert.equal(r.items[0].identifier, '356938035643809');
+  const r = addUnitToDraft(empty, '  356938035643809 ');
+  assert.equal((r.lines[0] as { identifier: string }).identifier, '356938035643809');
 });
 
 it('REPORTS a duplicate rather than silently collapsing it', () => {
-  const once = addToDraft(empty, '356938035643809').items;
-  const twice = addToDraft(once, '356938035643809');
+  const once = addUnitToDraft(empty, '356938035643809').lines;
+  const twice = addUnitToDraft(once, '356938035643809');
   assert.equal(twice.ok, false);
   assert.equal(twice.reason, 'duplicate');
   // The draft is unchanged — scanning twice must not look like adding two.
-  assert.equal(twice.items.length, 1);
+  assert.equal(twice.lines.length, 1);
 });
 
 it('refuses a blank identifier', () => {
-  assert.equal(addToDraft(empty, '   ').reason, 'blank');
+  assert.equal(addUnitToDraft(empty, '   ').reason, 'blank');
 });
 
-it('refuses a quantity product with its own reason, never silently', () => {
-  const r = addToDraft(empty, 'ACC-001', { trackingType: 'quantity' });
+/**
+ * H1.4 replaced the old "quantity products are refused" rule. A quantity
+ * product is no longer an error — it is a different KIND of line, because
+ * scanning the same box of cables twice means two of them. So the assertion
+ * that used to prove the refusal now proves the merge.
+ */
+it('MERGES a quantity product instead of refusing it, because two scans mean two', () => {
+  const once = addStockToDraft(empty, cable(), 1);
+  assert.equal(once.ok, true);
+  assert.equal(once.lines.length, 1);
+
+  const twice = addStockToDraft(once.lines, cable(), 1);
+  assert.equal(twice.ok, true);
+  assert.equal(twice.merged, true);
+  // One line, counting two — not two lines the server would reject.
+  assert.equal(twice.lines.length, 1);
+  assert.equal((twice.lines[0] as { quantity: number }).quantity, 2);
+});
+
+it('will not promise more of an accessory than the server said was free', () => {
+  const r = addStockToDraft(empty, cable(), 4);
   assert.equal(r.ok, false);
-  assert.equal(r.reason, 'quantity_product');
-  assert.equal(r.items.length, 0);
+  assert.equal(r.reason, 'over_available');
+  assert.equal(r.lines.length, 0);
 });
 
-it('removes exactly one item', () => {
-  const two = addToDraft(addToDraft(empty, 'A').items, 'B').items;
-  assert.deepEqual(removeFromDraft(two, 'A').map((i) => i.identifier), ['B']);
+it('refuses an accessory with nothing free, separately from having none at all', () => {
+  const r = addStockToDraft(empty, cable({ availableQuantity: 0 }), 1);
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'none_available');
 });
 
-it('needs items and a DIFFERENT destination branch', () => {
-  const items = addToDraft(empty, 'A').items;
-  assert.equal(canSubmitDraft({ items, toBranchId: 'b2', fromBranchId: 'b1' }), true);
-  assert.equal(canSubmitDraft({ items: [], toBranchId: 'b2', fromBranchId: 'b1' }), false);
-  assert.equal(canSubmitDraft({ items, toBranchId: null, fromBranchId: 'b1' }), false);
+it('removes exactly one serialized line', () => {
+  const two = addUnitToDraft(addUnitToDraft(empty, 'A').lines, 'B').lines;
+  assert.deepEqual(
+    removeUnitFromDraft(two, 'A').map((l) => (l as { identifier: string }).identifier),
+    ['B'],
+  );
+});
+
+it('needs lines and a DIFFERENT destination branch', () => {
+  const lines = addUnitToDraft(empty, 'A').lines;
+  assert.equal(canSubmitDraft({ lines, toBranchId: 'b2', fromBranchId: 'b1' }), true);
+  assert.equal(canSubmitDraft({ lines: [], toBranchId: 'b2', fromBranchId: 'b1' }), false);
+  assert.equal(canSubmitDraft({ lines, toBranchId: null, fromBranchId: 'b1' }), false);
   // Same branch: the server answers 400, so never make the user wait for it.
-  assert.equal(canSubmitDraft({ items, toBranchId: 'b1', fromBranchId: 'b1' }), false);
+  assert.equal(canSubmitDraft({ lines, toBranchId: 'b1', fromBranchId: 'b1' }), false);
+});
+
+it('will not submit an accessory line that exceeds what is free', () => {
+  const lines = addStockToDraft(empty, cable(), 3).lines;
+  assert.equal(canSubmitDraft({ lines, toBranchId: 'b2', fromBranchId: 'b1' }), true);
+  // Mutated past the ceiling by any route: submit stays shut.
+  const over = [{ ...(lines[0] as object), quantity: 9 }] as DraftLine[];
+  assert.equal(canSubmitDraft({ lines: over, toBranchId: 'b2', fromBranchId: 'b1' }), false);
 });
 
 it('keeps ONE request id across retries, which is what makes a retry safe', () => {
@@ -86,9 +138,9 @@ it('keeps ONE request id across retries, which is what makes a retry safe', () =
 });
 
 it('warns about leaving only while there is unsent work', () => {
-  const items = addToDraft(empty, 'A').items;
-  assert.equal(hasUnsavedDraft(items, false), true);
-  assert.equal(hasUnsavedDraft(items, true), false);
+  const lines = addUnitToDraft(empty, 'A').lines;
+  assert.equal(hasUnsavedDraft(lines, false), true);
+  assert.equal(hasUnsavedDraft(lines, true), false);
   assert.equal(hasUnsavedDraft([], false), false);
 });
 
