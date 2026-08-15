@@ -43,7 +43,15 @@ export interface StatTrend {
 export interface StatTileProps {
   label: string;
   /** Pre-formatted — the tile never formats money itself. */
-  value: string;
+  /**
+   * A node is accepted so a money tile can use `MoneyValue` and keep its
+   * tabular figures — otherwise every tile would re-format money itself, which
+   * is exactly what `MoneyValue` exists to stop. Pass `valueLabel` alongside a
+   * node so the tile can still announce itself.
+   */
+  value: string | React.ReactElement;
+  /** Screen-reader text for `value` when it is a node rather than a string. */
+  valueLabel?: string;
   /** The line that gives the number meaning. */
   caption?: string;
   trend?: StatTrend;
@@ -60,6 +68,7 @@ export interface StatTileProps {
 export function StatTile({
   label,
   value,
+  valueLabel,
   caption,
   trend,
   tone = 'neutral',
@@ -88,15 +97,21 @@ export function StatTile({
           </Text>
         </View>
       ) : (
-        <Text
-          variant={size === 'lg' ? 'display' : 'title'}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-          style={{ color: VALUE_COLOR[tone] }}
-        >
-          {value}
-        </Text>
+        typeof value === 'string' ? (
+          <Text
+            variant={size === 'lg' ? 'display' : 'title'}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+            style={{ color: VALUE_COLOR[tone] }}
+          >
+            {value}
+          </Text>
+        ) : (
+          // A node brings its own typography — a MoneyValue must keep its
+          // tabular figures rather than inheriting the tile's title style.
+          value
+        )
       )}
 
       {trend && !loading && !restricted ? <Trend trend={trend} /> : null}
@@ -113,7 +128,9 @@ export function StatTile({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${restricted ? t('money.hidden') : value}`}
+      accessibilityLabel={`${label}: ${
+        restricted ? t('money.hidden') : typeof value === 'string' ? value : (valueLabel ?? '')
+      }`}
       onPress={onPress}
       {...pressHandlers}
       style={styles.pressable}

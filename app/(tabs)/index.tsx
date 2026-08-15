@@ -1,32 +1,87 @@
 import React from 'react';
-import { View, Text, RefreshControl, ScrollView, Pressable } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ScanLine, PackagePlus, TriangleAlert, Activity } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Card, StatTile, H2, Muted, Row } from '../../components/ui';
+import {
+  ArrowLeftRight,
+  Boxes,
+  ClipboardCheck,
+  PackagePlus,
+  ReceiptText,
+  ScanLine,
+  Truck,
+  Undo2,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react-native';
+import {
+  Button,
+  Card,
+  ListRow,
+  MoneyValue,
+  Screen,
+  Section,
+  SkeletonStat,
+  StatTile,
+  Text,
+} from '../../components/ui';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { useBranch } from '../../lib/branch';
 import { usePermission } from '../../lib/permissions';
-import { colors, money, num } from '../../lib/theme';
-import type { DashboardHome, HealthScore } from '../../types/api';
+import { useTranslation } from '../../lib/i18n';
+import { colors } from '../../lib/design/colors';
+import { space } from '../../lib/design/tokens';
+import { formatMoney, formatQuantity } from '../../lib/format';
+import type {
+  DashboardHome,
+  HealthScore,
+  RefundSummary,
+  ReturnPage,
+  TransferCounts,
+} from '../../types/api';
 
-const statusTone: Record<string, string> = { green: 'text-emerald-600', amber: 'text-amber-600', red: 'text-red-600' };
+/**
+ * The role landing screen.
+ *
+ * Rebuilt for the UX pilot (`docs/29`). What changed, and why:
+ *
+ * **Everyone gets one now.** This screen used to require `report.view` and
+ * redirect anyone without it to Sell or Inventory, which meant two of the three
+ * roles had no landing screen at all — only whichever tab happened to open
+ * first. Instead of gating the whole screen, each *section* is gated: an
+ * employee sees their work, an owner also sees the money.
+ *
+ * **Pending work comes first.** Approvals, reviews and confirmations used to be
+ * invisible until someone went looking for them, feature by feature. A manager
+ * opening the app now sees what is waiting on them before anything else,
+ * because that is the reason they opened it.
+ *
+ * **No fake zeroes.** Every count here comes from a real endpoint. Supplier
+ * payments awaiting confirmation have no aggregate endpoint yet, so there is a
+ * way in but no number — an honest link beats an invented figure.
+ */
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { branchId, branchName } = useBranch();
+
   const canViewReports = usePermission('report.view');
   const canSell = usePermission('sale.create');
-
+  const canReceive = usePermission('purchase.manage');
+  const canViewTransfers = usePermission('transfer.view');
+  const canViewReturns = usePermission('return.view');
+  const canViewSales = usePermission('sale.view');
   /**
-   * Home is the default route, but `/home` and `/health-score` both require
-   * `report.view` — which sales and warehouse employees do not have. Without
-   * this, the two least technical roles would open the app onto a 403.
-   *
-   * Each role lands on the screen its job actually starts from.
+   * There is no `supplier.view`. Anyone who can manage suppliers or report a
+   * payment against one needs the way in — gating this on `supplier.manage`
+   * alone would hide payables from the employee who reports the payment.
    */
+  const canManageSuppliers = usePermission('supplier.manage');
+  const canReportSupplierPayment = usePermission('supplier.payment.report');
+  const canViewSuppliers = canManageSuppliers || canReportSupplierPayment;
+
   const home = useQuery({
     queryKey: qk.home(branchId),
     queryFn: () => api.get<DashboardHome>('/home'),
@@ -37,93 +92,321 @@ export default function HomeScreen() {
     queryFn: () => api.get<HealthScore>('/health-score'),
     enabled: canViewReports,
   });
+  const transfers = useQuery({
+    queryKey: qk.transferCounts(branchId),
+    queryFn: () => api.get<TransferCounts>('/transfers/counts'),
+    enabled: canViewTransfers,
+  });
+  const refunds = useQuery({
+    queryKey: qk.refundSummary(branchId, 'home'),
+    queryFn: () => api.get<RefundSummary>('/returns/refunds/summary'),
+    enabled: canViewReturns,
+  });
+  /**
+   * Returns waiting on a decision. The list endpoint is a cursor page with no
+   * total, so this counts what one page holds and says "N+" when there is
+   * another — an approximate number that admits it is approximate, rather than
+   * a precise-looking one that is wrong.
+   */
+  const pendingReturns = useQuery({
+    queryKey: qk.returns(branchId, 'home-pending'),
+    queryFn: () =>
+      api.get<ReturnPage>('/returns?status=pending_investigation,under_review'),
+    enabled: canViewReturns,
+  });
 
-  if (!canViewReports) {
-    return <Redirect href={canSell ? '/(tabs)/sell' : '/(tabs)/inventory'} />;
-  }
+  const refreshing =
+    home.isFetching ||
+    health.isFetching ||
+    transfers.isFetching ||
+    refunds.isFetching ||
+    pendingReturns.isFetching;
 
-  const refreshing = home.isFetching || health.isFetching;
   const onRefresh = () => {
-    home.refetch();
-    health.refetch();
+    void home.refetch();
+    void health.refetch();
+    void transfers.refetch();
+    void refunds.refetch();
+    void pendingReturns.refetch();
   };
 
+  const pendingTransferCount = transfers.data?.pendingApproval ?? 0;
+  const awaitingRefundCount = refunds.data?.awaitingConfirmation.count ?? 0;
+  const returnRows = pendingReturns.data?.rows.length ?? 0;
+  const returnsMore = Boolean(pendingReturns.data?.nextCursor);
+
+  const hasPendingWork =
+    pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
-      >
-        <Text className="text-sm text-slate-500">{branchName}</Text>
-        <Text className="text-2xl font-bold text-slate-900">Today</Text>
+    <Screen scroll onRefresh={onRefresh} refreshing={refreshing} gap="xl">
+      <View>
+        <Text variant="label" tone="secondary">
+          {branchName ?? t('home.branch.unknown')}
+        </Text>
+        <Text variant="title">{t('home.title')}</Text>
+      </View>
 
-        <Row className="mt-4">
-          <StatTile label="Revenue" value={money(home.data?.today.revenue)} tone="accent" />
-          <StatTile label="Profit" value={money(home.data?.today.grossProfit)} tone="success" />
-        </Row>
-        <Row className="mt-3">
-          <StatTile label="Sales" value={num(home.data?.today.salesCount)} />
-          <StatTile label="Items sold" value={num(home.data?.today.qtySold)} />
-        </Row>
+      {/* ── What is waiting on you ─────────────────────────────────────────
+          First, deliberately. This is why a manager opens the app. */}
+      {hasPendingWork ? (
+        <Section title={t('home.pending.title')}>
+          {pendingTransferCount > 0 ? (
+            <PendingRow
+              icon={Truck}
+              label={t('home.pending.transfers')}
+              count={String(pendingTransferCount)}
+              onPress={() => router.push('/transfers' as Href)}
+            />
+          ) : null}
+          {returnRows > 0 ? (
+            <PendingRow
+              icon={Undo2}
+              label={t('home.pending.returns')}
+              count={returnsMore ? `${returnRows}+` : String(returnRows)}
+              onPress={() => router.push('/returns' as Href)}
+            />
+          ) : null}
+          {awaitingRefundCount > 0 ? (
+            <PendingRow
+              icon={Wallet}
+              label={t('home.pending.refunds')}
+              count={String(awaitingRefundCount)}
+              onPress={() => router.push('/returns' as Href)}
+            />
+          ) : null}
+        </Section>
+      ) : null}
 
-        <View className="mt-6">
-          <H2>Quick actions</H2>
-          <Row className="mt-3">
-            <QuickAction icon={<ScanLine color="#fff" size={22} />} label="Sell" onPress={() => router.push('/(tabs)/sell')} />
-            <QuickAction icon={<PackagePlus color="#fff" size={22} />} label="Receive" onPress={() => router.push('/receive')} />
-          </Row>
+      {/* ── Start work ─────────────────────────────────────────────────────
+          The employee's whole screen is really this. Big, thumb-reachable,
+          and the first thing they can act on. */}
+      <Section title={t('home.actions.title')}>
+        <View style={styles.actions}>
+          {canSell ? (
+            <Button
+              title={t('tab.sell')}
+              icon={ScanLine}
+              size="lg"
+              fullWidth
+              onPress={() => router.push('/(tabs)/sell')}
+            />
+          ) : null}
+          <View style={styles.actionRow}>
+            {canReceive ? (
+              <View style={styles.actionHalf}>
+                <Button
+                  title={t('home.actions.receive')}
+                  icon={PackagePlus}
+                  variant="secondary"
+                  size="lg"
+                  fullWidth
+                  onPress={() => router.push('/receive' as Href)}
+                />
+              </View>
+            ) : null}
+            <View style={styles.actionHalf}>
+              <Button
+                title={t('tab.inventory')}
+                icon={Boxes}
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onPress={() => router.push('/(tabs)/inventory')}
+              />
+            </View>
+          </View>
         </View>
+      </Section>
 
-        <View className="mt-6 gap-3">
-          <H2>Overview</H2>
-          <Card>
-            <Row className="justify-between">
-              <Row>
-                <Activity size={18} color={colors.brand} />
-                <Text className="font-medium text-slate-700">Store health</Text>
-              </Row>
-              <Text className={`text-lg font-bold ${statusTone[health.data?.status ?? 'amber']}`}>
-                {health.data ? `${health.data.score} · ${health.data.status.toUpperCase()}` : '—'}
+      {/* ── Today ──────────────────────────────────────────────────────────
+          Money only for those allowed to see it. Absent, not zeroed. */}
+      {canViewReports ? (
+        <Section title={t('home.today.title')}>
+          {home.isPending ? (
+            <View style={styles.statRow}>
+              <SkeletonStat />
+              <SkeletonStat />
+            </View>
+          ) : home.isError ? (
+            <Card>
+              <Text variant="bodyStrong">{t('home.today.unavailable.title')}</Text>
+              <Text variant="body" tone="secondary">
+                {t('home.today.unavailable.body')}
               </Text>
-            </Row>
-          </Card>
-
-          <Row>
-            <MetricCard label="Inventory value" value={money(home.data?.inventory.inventoryValue)} />
-            <MetricCard label="Expected profit" value={money(home.data?.inventory.expectedProfit)} />
-          </Row>
-
-          <Pressable onPress={() => router.push('/(tabs)/inventory')}>
-            <Card className="flex-row items-center justify-between">
-              <Row>
-                <TriangleAlert size={18} color={colors.amber} />
-                <Text className="font-medium text-slate-700">Low stock</Text>
-              </Row>
-              <Text className="text-lg font-bold text-amber-600">{num(home.data?.lowStockCount)}</Text>
+              <Button
+                title={t('action.retry')}
+                variant="secondary"
+                size="sm"
+                onPress={() => void home.refetch()}
+                style={styles.retry}
+              />
             </Card>
-          </Pressable>
-        </View>
+          ) : (
+            <>
+              <Card>
+                <Text variant="label" tone="secondary">
+                  {t('home.today.revenue')}
+                </Text>
+                <MoneyValue value={home.data?.today.revenue} size="display" />
+                <View style={styles.inlineStats}>
+                  <Text variant="caption" tone="tertiary">
+                    {t('home.today.sales', { count: formatQuantity(home.data?.today.salesCount) })}
+                  </Text>
+                  <Text variant="caption" tone="tertiary">
+                    {t('home.today.items', { count: formatQuantity(home.data?.today.qtySold) })}
+                  </Text>
+                </View>
+              </Card>
 
-        <Muted className="mt-6 text-center text-xs">Month profit: {money(home.data?.month.grossProfit)}</Muted>
-      </ScrollView>
-    </SafeAreaView>
+              <View style={styles.statRow}>
+                {/*
+                  `restricted` when the field is absent: the server strips
+                  profit for a role without `cost.view`, and a tile that said
+                  "0" there would misreport the shop's takings.
+                */}
+                <StatTile
+                  label={t('home.today.profit')}
+                  restricted={home.data?.today.grossProfit == null}
+                  value={<MoneyValue value={home.data?.today.grossProfit} showCurrency={false} />}
+                  valueLabel={formatMoney(home.data?.today.grossProfit)}
+                />
+                <StatTile
+                  label={t('home.month.profit')}
+                  restricted={home.data?.month.grossProfit == null}
+                  value={<MoneyValue value={home.data?.month.grossProfit} showCurrency={false} />}
+                  valueLabel={formatMoney(home.data?.month.grossProfit)}
+                />
+              </View>
+            </>
+          )}
+
+          {health.data ? <HealthRow status={health.data.status} score={health.data.score} /> : null}
+        </Section>
+      ) : null}
+
+      {/* ── Stock ──────────────────────────────────────────────────────────*/}
+      {canViewReports && home.data ? (
+        <Section title={t('home.stock.title')}>
+          <ListRow
+            leading={Boxes}
+            title={t('home.stock.value')}
+            accessory={<MoneyValue value={home.data.inventory.inventoryValue} size="small" />}
+          />
+          <ListRow
+            leading={PackagePlus}
+            title={t('home.stock.low')}
+            subtitle={t('home.stock.low.hint')}
+            value={formatQuantity(home.data.lowStockCount)}
+            valueTone="warning"
+            onPress={() => router.push('/(tabs)/inventory')}
+          />
+        </Section>
+      ) : null}
+
+      {/* ── Everything else, one tap away ──────────────────────────────────
+          Suppliers is here because until this pilot the whole payables
+          workflow shipped with no way to reach it. */}
+      <Section title={t('home.more.title')}>
+        {canViewSales ? (
+          <ListRow
+            leading={ReceiptText}
+            title={t('nav.sales')}
+            onPress={() => router.push('/sales' as Href)}
+          />
+        ) : null}
+        {canViewReturns ? (
+          <ListRow
+            leading={Undo2}
+            title={t('nav.returns')}
+            onPress={() => router.push('/returns' as Href)}
+          />
+        ) : null}
+        {canViewSuppliers ? (
+          <ListRow
+            leading={Wallet}
+            title={t('nav.suppliers')}
+            subtitle={t('nav.suppliers.hint')}
+            onPress={() => router.push('/suppliers' as Href)}
+          />
+        ) : null}
+        {canViewTransfers ? (
+          <ListRow
+            leading={ArrowLeftRight}
+            title={t('nav.transfers')}
+            onPress={() => router.push('/transfers' as Href)}
+          />
+        ) : null}
+        {canViewReports ? (
+          <ListRow
+            leading={ClipboardCheck}
+            title={t('nav.closing')}
+            onPress={() => router.push('/closing')}
+          />
+        ) : null}
+      </Section>
+    </Screen>
   );
 }
 
-function QuickAction({ icon, label, onPress }: { icon: React.ReactNode; label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} className="flex-1 items-center gap-2 rounded-2xl bg-brand-600 py-5 active:opacity-80">
-      {icon}
-      <Text className="font-semibold text-white">{label}</Text>
-    </Pressable>
-  );
+/**
+ * A piece of outstanding work. Warning-toned because it is somebody's unfinished
+ * business, not a healthy resting state — the same reasoning the status registry
+ * uses for `pending_approval`.
+ */
+function PendingRow({
+  icon,
+  label,
+  count,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  count: string;
+  onPress: () => void;
+}) {
+  return <ListRow leading={icon} title={label} value={count} valueTone="warning" onPress={onPress} />;
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+/**
+ * Store health, in words.
+ *
+ * It used to render `92 · GREEN` — a bare number beside the name of a colour,
+ * untranslated, telling a shopkeeper nothing about what to do. The condition is
+ * now stated in language, and the score follows as supporting detail rather
+ * than leading.
+ */
+function HealthRow({ status, score }: { status: HealthScore['status']; score: number }) {
+  const { t } = useTranslation();
+  const tone =
+    status === 'green' ? colors.intent.success : status === 'amber' ? colors.intent.warning : colors.intent.danger;
+  const label =
+    status === 'green'
+      ? t('home.health.good')
+      : status === 'amber'
+        ? t('home.health.watch')
+        : t('home.health.attention');
+
   return (
-    <Card className="flex-1">
-      <Text className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</Text>
-      <Text className="mt-1 text-lg font-bold text-slate-900">{value}</Text>
+    <Card style={{ backgroundColor: tone.bg, borderColor: tone.border }}>
+      <Text variant="label" tone="secondary">
+        {t('home.health.title')}
+      </Text>
+      <Text variant="heading" style={{ color: tone.fg }}>
+        {label}
+      </Text>
+      <Text variant="caption" tone="secondary">
+        {t('home.health.score', { score: String(score) })}
+      </Text>
     </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  actions: { gap: space.md },
+  actionRow: { flexDirection: 'row', gap: space.md },
+  actionHalf: { flex: 1 },
+  statRow: { flexDirection: 'row', gap: space.md },
+  inlineStats: { flexDirection: 'row', gap: space.base, marginTop: space.xs },
+  retry: { alignSelf: 'flex-start', marginTop: space.sm },
+});

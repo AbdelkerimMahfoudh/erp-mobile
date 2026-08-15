@@ -31,7 +31,12 @@ export interface ListRowProps {
   value?: string;
   /** Small caption under the value. */
   valueCaption?: string;
-  valueTone?: 'primary' | 'success' | 'danger' | 'secondary';
+  /**
+   * `warning` is for a count of outstanding work — approvals waiting, refunds
+   * unconfirmed. Deliberately not `danger`: nothing has gone wrong, somebody
+   * simply has not done it yet.
+   */
+  valueTone?: 'primary' | 'success' | 'warning' | 'danger' | 'secondary';
   /** Status chip or badge, rendered before the value. */
   accessory?: React.ReactNode;
   onPress?: () => void;

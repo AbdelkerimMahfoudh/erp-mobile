@@ -24,7 +24,6 @@ export default function TabsLayout() {
   const status = usePermissionStatus();
   const error = usePermissionStore((s) => s.error);
   const { branchId } = useBranch();
-  const canViewReports = usePermission('report.view');
   const canSell = usePermission('sale.create');
 
   // Permissions failed to resolve. Without an escape here the app is a
@@ -65,12 +64,19 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
-      {/* Dashboard, health score and analytics all require `report.view`. */}
+      {/*
+        Home is for everyone now.
+
+        It used to be hidden without `report.view`, because the screen was
+        nothing but financial reporting and would have 403'd. The screen is now
+        gated section by section — an employee sees their work and their
+        pending items, an owner also sees the money — so there is no longer a
+        reason to take the landing screen away from two of the three roles.
+      */}
       <Tabs.Screen
         name="index"
         options={{
           title: t('tab.home'),
-          href: canViewReports ? undefined : null,
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
