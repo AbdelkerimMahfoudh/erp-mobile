@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Undo2 } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Undo2 } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -89,8 +89,11 @@ export default function MoreScreen() {
             told about price changes, a branch about incoming transfers. */}
         <MenuRow icon={<Bell size={20} color={colors.brand} />} label="Notifications" onPress={() => router.push('/notifications' as Href)} />
         <MenuRow icon={<Smartphone size={20} color={colors.brand} />} label="Devices" onPress={() => router.push('/devices' as Href)} />
+        {/* One row, not two. "Branch" and "Switch branch" were adjacent rows
+            calling the same handler, which only made people wonder what the
+            difference was. The current branch is the label's value; tapping it
+            changes it. */}
         <MenuRow icon={<Store size={20} color={colors.brand} />} label="Branch" value={branchName ?? undefined} onPress={changeBranch} />
-        <MenuRow icon={<Repeat size={20} color={colors.brand} />} label="Switch branch" onPress={changeBranch} />
         <Pressable onPress={signOut}>
           <Card className="flex-row items-center justify-between">
             <Row>
