@@ -56,6 +56,14 @@ export const PERMISSIONS = [
   'return.approve',
   'return.reject',
   'return.exception',
+  /**
+   * Paying the refund (I3). Two keys, because handing money over and vouching
+   * that it happened are different authorities: an Employee at the counter
+   * makes the payout and reports it, and a Manager or Owner confirms it.
+   * Holding `refund.report` never implies `refund.confirm`.
+   */
+  'refund.report',
+  'refund.confirm',
   'cost.view',
   'discount.apply',
   'discount.override',

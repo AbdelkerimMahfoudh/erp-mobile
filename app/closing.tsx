@@ -9,6 +9,7 @@ import { api, ApiError } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
 import { useBranch } from '../lib/branch';
 import { colors, money } from '../lib/theme';
+import { RefundReconciliation } from '../components/returns/RefundReconciliation';
 
 interface Expense { id: string; category: string; amount?: number; spentOn: string }
 interface ClosingResult {
@@ -100,6 +101,13 @@ export default function ClosingScreen() {
               <><View className="my-1 h-px bg-slate-200" /><DigestRow label="Total" value={money(expenseTotal)} bold /></>
             ) : null}
           </Card>
+        {/*
+          Refund money, kept beside the till figures because that is where
+          somebody asks "why is the drawer short". Expected cash already
+          subtracts confirmed cash refunds, so this card explains the
+          number rather than adjusting it again.
+        */}
+        <RefundReconciliation />
           <View className="flex-row items-end gap-2">
             <View className="flex-1"><Field label="Category" value={cat} onChangeText={setCat} placeholder="Rent, utilities…" /></View>
             <View className="w-28"><Field label="Amount" value={amt} onChangeText={(t) => setAmt(t.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" placeholder="0.00" /></View>

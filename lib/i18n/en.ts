@@ -1030,4 +1030,95 @@ export const en = {
   'transfers.detail.qtyOf': 'Sending {count} · {physical} here, {reserved} promised, {available} free',
   'transfers.detail.qtySent': 'Sending {count}',
   'transfers.problem.shortBy': 'asked for {requested}, only {available} free',
+
+  // ── I3: refund payout — reporting, confirming, receipt ───────────────────
+  // Wording rule: a REPORTED payout is never green and never worded as settled.
+  // Only a confirmed one may be. The phone stays held either way.
+  'refund.section': 'Refund',
+  'refund.due.status': 'Refund due',
+  'refund.due.explain': 'Refund due — payment has not yet been confirmed.',
+  'refund.due.net': 'Net refund due',
+  'refund.phoneHeld': 'The phone stays with the shop and is not for sale.',
+  'refund.amountLabel': 'Amount to hand over',
+  'refund.amountLocked': 'Fixed by the approved return. It cannot be part-paid.',
+  'refund.method': 'Paid by',
+  'refund.method.cash': 'Cash',
+  'refund.method.account': 'Account',
+  'refund.account': 'Which account',
+  'refund.noAccounts': 'No active account is set up. Add one in Settings, or pay in cash.',
+  'refund.keepingAccount': 'Keeping {account} unless you choose another.',
+  'refund.reference': 'Transaction reference',
+  'refund.reference.placeholder': 'Optional — the number on the transfer',
+  'refund.note': 'Note',
+  'refund.note.placeholder': 'Optional',
+  'refund.reportedAmount': 'Reported as handed over',
+  'refund.confirmedAmount': 'Amount returned',
+  'refund.reportedBy': 'Reported by',
+  'refund.reportedAt': 'Reported at',
+  'refund.confirmedBy': 'Confirmed by',
+  'refund.confirmedAt': 'Confirmed at',
+
+  'refund.report.action': 'Report refund handed to customer',
+  'refund.report.title': 'Report the refund',
+  'refund.report.submit': 'Report it',
+  'refund.report.stillNeedsApproval':
+    'This records that you handed the money over. A manager or owner still has to confirm it.',
+  'refund.report.confirm.title': 'Report {amount} handed over?',
+  'refund.report.confirm.body':
+    'This says the customer has received {amount}. It is not confirmed yet — a manager or owner has to agree before it counts as paid.',
+  'refund.report.confirm.action': 'Yes, report it',
+  'refund.report.done': 'Reported. Waiting for confirmation.',
+  'refund.report.failed': 'Could not report the refund. Nothing was recorded.',
+
+  'refund.pending.status': 'Waiting for confirmation',
+  'refund.pending.explain':
+    'Waiting for Manager or Owner confirmation. No money has been recorded as leaving the till yet.',
+
+  'refund.correct.action': 'Review / correct',
+  'refund.correct.title': 'Correct how it was paid',
+  'refund.correct.submit': 'Save correction',
+  'refund.correct.hint': 'The amount cannot change. Only how it was paid.',
+  'refund.correct.done': 'Corrected.',
+  'refund.correct.failed': 'Could not save the correction.',
+
+  'refund.confirm.action': 'Confirm refund paid',
+  'refund.confirm.title': 'Confirm this refund?',
+  'refund.confirm.irreversible':
+    'This records that the customer received the refund. It cannot be treated as pending afterwards.',
+  'refund.confirm.done': 'Refund confirmed.',
+  'refund.confirm.failed': 'Could not confirm the refund. Nothing changed.',
+  'refund.confirmed.status': 'Refund confirmed',
+
+  'refund.conflict.stale.title': 'Someone else acted first',
+  'refund.conflict.stale.body':
+    'This refund changed while the screen was open. It has been refreshed — check it and try again.',
+  'refund.conflict.already_confirmed.title': 'Already confirmed',
+  'refund.conflict.already_confirmed.body':
+    'Somebody has already confirmed this refund. Nothing was recorded twice.',
+  'refund.conflict.day_locked.title': 'That day is closed',
+  'refund.conflict.day_locked.body':
+    'The books for that day are closed, so the payment cannot be recorded against it. Ask the owner.',
+  'refund.conflict.not_confirmed.title': 'Not confirmed yet',
+  'refund.conflict.not_confirmed.body': 'A receipt is available once the refund has been confirmed.',
+  'refund.conflict.other.title': 'Could not be done',
+  'refund.conflict.other.body': 'The refund is not in a state where that is possible. It has been refreshed.',
+
+  'refund.receipt.action': 'Share refund receipt',
+  'refund.receipt.title': 'Refund Receipt',
+  'refund.receipt.reference': 'Refund reference',
+  'refund.receipt.originalInvoice': 'Original invoice',
+  'refund.receipt.adjustmentTotal': 'Deductions',
+  'refund.receipt.netReturned': 'Returned to customer',
+  'refund.receipt.status': 'Status',
+  'refund.receipt.unavailable': 'Sharing is not available on this device.',
+  'refund.receipt.failed': 'Could not create the receipt. The refund is still confirmed.',
+
+  'refund.recon.section': 'Refunds',
+  'refund.recon.outstanding': 'Still owed to customers',
+  'refund.recon.outstandingHint': '{count} approved and not yet paid',
+  'refund.recon.awaiting': 'Reported, not confirmed',
+  'refund.recon.awaitingHint': '{count} waiting on a manager — not counted as cash',
+  'refund.recon.confirmedHeading': 'Paid out today',
+  'refund.recon.timingNote':
+    'Profit was reversed on the approval date. Cash moves on the confirmation date. They are counted separately, never twice.',
 } as const;

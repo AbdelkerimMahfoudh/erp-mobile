@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import {
@@ -23,15 +23,27 @@ import { usePermission } from '../../lib/permissions';
 import { describeWindow } from '../../lib/return-policy';
 import {
   handleConflict,
+  refundConflictKind,
   useApproveReturn,
+  useConfirmRefund,
+  useCorrectRefund,
   useReceiveCustody,
   useRejectReturn,
+  useReportRefund,
   useReturn,
 } from '../../lib/returns';
+import { canShareRefundReceipt, shareRefundReceipt } from '../../lib/refund-receipt';
+import { uuidv4 } from '../../lib/utils';
 import { toast } from '../../lib/toast';
 import { InvestigationSheet } from '../../components/returns/InvestigationSheet';
+import { RefundPayoutSheet } from '../../components/returns/RefundPayoutSheet';
+import {
+  RefundConfirmedSection,
+  RefundDueSection,
+  RefundPendingSection,
+} from '../../components/returns/RefundSections';
 import { CustodySheet } from '../../components/returns/CustodySheet';
-import type { ReturnDetail } from '../../types/api';
+import type { RefundMethod, ReturnDetail } from '../../types/api';
 
 /**
  * One return, in full.
@@ -77,12 +89,147 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
   const canReject = usePermission('return.reject');
   const canException = usePermission('return.exception');
 
+  const canReportRefund = usePermission('refund.report');
+  const canConfirmRefund = usePermission('refund.confirm');
+
+  const report = useReportRefund(detail.id);
+  const correct = useCorrectRefund(detail.id);
+  const confirm = useConfirmRefund(detail.id);
+
+  const [payoutSheet, setPayoutSheet] = useState<null | 'report' | 'correct'>(null);
+  const [sharing, setSharing] = useState(false);
+
+  /**
+   * One request id per logical report, held in a ref so a re-render cannot
+   * mint a new one. A fresh id per attempt would defeat idempotency: a
+   * timeout followed by a retry would record a second payout.
+   */
+  const reportRequestId = useRef<string>(uuidv4());
+
   const [custodyOpen, setCustodyOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
   const approve = useApproveReturn(detail.id);
   const reject = useRejectReturn(detail.id);
   const custody = useReceiveCustody(detail.id);
+
+  const payout = detail.payout;
+  const awaitingReport = detail.status === 'approved_refund_due' && !payout;
+  const pending = payout?.status === 'reported_pending_confirmation';
+  const confirmed = payout?.status === 'confirmed';
+
+  /** Turn a refund conflict into the sentence that actually explains it. */
+  const explainRefundConflict = async (e: unknown): Promise<boolean> => {
+    const kind = refundConflictKind(e);
+    if (!kind) return false;
+    refetch();
+    await dialog.alert({
+      title: t(`refund.conflict.${kind}.title` as never),
+      message: t(`refund.conflict.${kind}.body` as never),
+    });
+    return true;
+  };
+
+  const onReport = async (input: {
+    method: RefundMethod;
+    receivingAccountId?: string;
+    transactionReference?: string;
+    note?: string;
+  }) => {
+    // Said before anything is sent: a report is a claim, not a settlement.
+    const ok = await dialog.confirm({
+      title: t('refund.report.confirm.title'),
+      message: t('refund.report.confirm.body', {
+        amount: formatMoney(detail.money.netRefundDue),
+      }),
+      confirmLabel: t('refund.report.confirm.action'),
+      cancelLabel: t('action.cancel'),
+    });
+    if (!ok) return;
+    try {
+      await report.mutateAsync({
+        reportedAmount: detail.money.netRefundDue,
+        clientUuid: reportRequestId.current,
+        ...input,
+      });
+      setPayoutSheet(null);
+      toast.success(t('refund.report.done'));
+      // The id is deliberately NOT regenerated: the next attempt is a retry
+      // of this one and must resolve to the same payout.
+    } catch (e) {
+      if (await explainRefundConflict(e)) return;
+      toast.error(t('refund.report.failed'));
+    }
+  };
+
+  const onCorrect = async (input: {
+    method: RefundMethod;
+    receivingAccountId?: string;
+    transactionReference?: string;
+    note?: string;
+  }) => {
+    if (!payout) return;
+    try {
+      await correct.mutateAsync({ expectedVersion: payout.version, ...input });
+      setPayoutSheet(null);
+      toast.success(t('refund.correct.done'));
+    } catch (e) {
+      if (await explainRefundConflict(e)) return;
+      toast.error(t('refund.correct.failed'));
+    }
+  };
+
+  const onConfirm = async () => {
+    if (!payout) return;
+    /**
+     * High friction on purpose. This is the moment the shop states that the
+     * customer has their money; there is no pending state to fall back to
+     * afterwards, so everything being vouched for is on screen first.
+     */
+    const ok = await dialog.confirm({
+      title: t('refund.confirm.title'),
+      message: [
+        t('refund.confirm.irreversible'),
+        '',
+        `${t('returns.detail.sale')}: ${detail.sale.invoiceNo}`,
+        `${t('returns.detail.phone')}: ${detail.phone.product}`,
+        `${t('refund.confirmedAmount')}: ${formatMoney(payout.reportedAmount)}`,
+        `${t('refund.method')}: ${
+          payout.method === 'cash'
+            ? t('refund.method.cash')
+            : payout.accountLabel ?? t('refund.method.account')
+        }`,
+        `${t('refund.reportedBy')}: ${payout.reportedBy ?? '\u2014'}`,
+        `${t('refund.reportedAt')}: ${formatDateTime(new Date(payout.reportedAt))}`,
+      ].join('\n'),
+      confirmLabel: t('refund.confirm.action'),
+      cancelLabel: t('action.cancel'),
+    });
+    if (!ok) return;
+    try {
+      // Nothing is marked confirmed locally first. The server decides.
+      await confirm.mutateAsync({ expectedVersion: payout.version });
+      toast.success(t('refund.confirm.done'));
+    } catch (e) {
+      if (await explainRefundConflict(e)) return;
+      toast.error(t('refund.confirm.failed'));
+    }
+  };
+
+  const onShareReceipt = async () => {
+    setSharing(true);
+    try {
+      // Generated ONLY from the immutable confirmed-refund API, never from
+      // whatever this screen happens to be holding.
+      const shared = await shareRefundReceipt(detail.id);
+      if (!shared) toast.error(t('refund.receipt.unavailable'));
+    } catch {
+      // A failed share changes nothing about the confirmed record.
+      toast.error(t('refund.receipt.failed'));
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const decided = detail.status === 'approved_refund_due' || detail.status === 'rejected';
   const approved = detail.status === 'approved_refund_due';
@@ -264,6 +411,11 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
           </Card>
         </Section>
 
+        {/* One of three, never two: owed, claimed, or vouched for. */}
+        {awaitingReport ? <RefundDueSection detail={detail} /> : null}
+        {pending && payout ? <RefundPendingSection payout={payout} /> : null}
+        {confirmed && payout ? <RefundConfirmedSection payout={payout} /> : null}
+
         <Section title={t('returns.detail.timeline')}>
           <Card>
             {detail.timeline.map((entry, i) => (
@@ -308,6 +460,59 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         </View>
       ) : null}
 
+      {/*
+        Refund actions. Permission AND lifecycle, both required: an Employee
+        never sees correct or confirm, and nobody sees report before the
+        return is approved or after somebody already reported one.
+      */}
+      {awaitingReport && canReportRefund ? (
+        <View style={styles.actions}>
+          <Button
+            title={t('refund.report.action')}
+            onPress={() => setPayoutSheet('report')}
+            loading={report.isPending}
+          />
+        </View>
+      ) : null}
+
+      {pending && canConfirmRefund ? (
+        <View style={styles.actions}>
+          <Button
+            title={t('refund.correct.action')}
+            variant="secondary"
+            onPress={() => setPayoutSheet('correct')}
+            loading={correct.isPending}
+          />
+          <Button
+            title={t('refund.confirm.action')}
+            onPress={() => void onConfirm()}
+            loading={confirm.isPending}
+          />
+        </View>
+      ) : null}
+
+      {/* Sharing needs a native share sheet; on web the button stays hidden
+          rather than offering something that cannot work. */}
+      {confirmed && canShareRefundReceipt() ? (
+        <View style={styles.actions}>
+          <Button
+            title={t('refund.receipt.action')}
+            variant="secondary"
+            onPress={() => void onShareReceipt()}
+            loading={sharing}
+          />
+        </View>
+      ) : null}
+
+      <RefundPayoutSheet
+        open={payoutSheet !== null}
+        onClose={() => setPayoutSheet(null)}
+        mode={payoutSheet ?? 'report'}
+        netAmountDue={detail.money.netRefundDue}
+        payout={payout}
+        submitting={report.isPending || correct.isPending}
+        onSubmit={payoutSheet === 'correct' ? onCorrect : onReport}
+      />
       <CustodySheet
         open={custodyOpen}
         onClose={() => setCustodyOpen(false)}

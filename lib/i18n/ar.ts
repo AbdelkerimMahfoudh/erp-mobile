@@ -1004,4 +1004,92 @@ export const ar: Catalogue = {
   'transfers.detail.qtyOf': 'إرسال {count} · {physical} هنا، {reserved} محجوزة، {available} متاحة',
   'transfers.detail.qtySent': 'إرسال {count}',
   'transfers.problem.shortBy': 'طُلب {requested}، والمتاح {available} فقط',
+
+  // ── I3: صرف المبالغ المستردة ─────────────────────────────────────────────
+  'refund.section': 'الاسترداد',
+  'refund.due.status': 'مبلغ مستحق للعميل',
+  'refund.due.explain': 'مبلغ مستحق — لم يتم تأكيد الدفع بعد.',
+  'refund.due.net': 'صافي المبلغ المستحق',
+  'refund.phoneHeld': 'الهاتف يبقى لدى المتجر وغير معروض للبيع.',
+  'refund.amountLabel': 'المبلغ الواجب تسليمه',
+  'refund.amountLocked': 'محدّد بحسب الإرجاع المعتمد. لا يمكن دفعه جزئيًا.',
+  'refund.method': 'طريقة الدفع',
+  'refund.method.cash': 'نقدًا',
+  'refund.method.account': 'حساب',
+  'refund.account': 'أي حساب',
+  'refund.noAccounts': 'لا يوجد حساب مفعّل. أضف حسابًا من الإعدادات، أو ادفع نقدًا.',
+  'refund.keepingAccount': 'سيبقى {account} ما لم تختر غيره.',
+  'refund.reference': 'مرجع العملية',
+  'refund.reference.placeholder': 'اختياري — رقم التحويل',
+  'refund.note': 'ملاحظة',
+  'refund.note.placeholder': 'اختياري',
+  'refund.reportedAmount': 'أُبلغ عن تسليمه',
+  'refund.confirmedAmount': 'المبلغ المُعاد',
+  'refund.reportedBy': 'أبلغ عنه',
+  'refund.reportedAt': 'وقت الإبلاغ',
+  'refund.confirmedBy': 'أكّده',
+  'refund.confirmedAt': 'وقت التأكيد',
+
+  'refund.report.action': 'الإبلاغ عن تسليم المبلغ للعميل',
+  'refund.report.title': 'الإبلاغ عن الاسترداد',
+  'refund.report.submit': 'إبلاغ',
+  'refund.report.stillNeedsApproval':
+    'هذا يسجّل أنك سلّمت المبلغ. لا يزال على المدير أو المالك تأكيده.',
+  'refund.report.confirm.title': 'الإبلاغ عن تسليم {amount}؟',
+  'refund.report.confirm.body':
+    'هذا يفيد بأن العميل استلم {amount}. لم يُؤكَّد بعد — يجب أن يوافق المدير أو المالك قبل اعتباره مدفوعًا.',
+  'refund.report.confirm.action': 'نعم، أبلغ',
+  'refund.report.done': 'تم الإبلاغ. في انتظار التأكيد.',
+  'refund.report.failed': 'تعذّر الإبلاغ عن الاسترداد. لم يُسجَّل شيء.',
+
+  'refund.pending.status': 'في انتظار التأكيد',
+  'refund.pending.explain':
+    'في انتظار تأكيد المدير أو المالك. لم يُسجَّل خروج أي مبلغ من الصندوق بعد.',
+
+  'refund.correct.action': 'مراجعة / تصحيح',
+  'refund.correct.title': 'تصحيح طريقة الدفع',
+  'refund.correct.submit': 'حفظ التصحيح',
+  'refund.correct.hint': 'لا يمكن تغيير المبلغ. فقط طريقة الدفع.',
+  'refund.correct.done': 'تم التصحيح.',
+  'refund.correct.failed': 'تعذّر حفظ التصحيح.',
+
+  'refund.confirm.action': 'تأكيد دفع الاسترداد',
+  'refund.confirm.title': 'تأكيد هذا الاسترداد؟',
+  'refund.confirm.irreversible':
+    'هذا يسجّل أن العميل استلم المبلغ. لا يمكن اعتباره معلّقًا بعد ذلك.',
+  'refund.confirm.done': 'تم تأكيد الاسترداد.',
+  'refund.confirm.failed': 'تعذّر تأكيد الاسترداد. لم يتغيّر شيء.',
+  'refund.confirmed.status': 'تم تأكيد الاسترداد',
+
+  'refund.conflict.stale.title': 'سبقك شخص آخر',
+  'refund.conflict.stale.body':
+    'تغيّر هذا الاسترداد أثناء فتح الشاشة. تم تحديثه — راجعه ثم حاول مجددًا.',
+  'refund.conflict.already_confirmed.title': 'مؤكَّد بالفعل',
+  'refund.conflict.already_confirmed.body': 'سبق أن أكّد أحدهم هذا الاسترداد. لم يُسجَّل مرتين.',
+  'refund.conflict.day_locked.title': 'ذلك اليوم مُقفل',
+  'refund.conflict.day_locked.body':
+    'حسابات ذلك اليوم مُقفلة، فلا يمكن تسجيل الدفع عليه. راجع المالك.',
+  'refund.conflict.not_confirmed.title': 'لم يُؤكَّد بعد',
+  'refund.conflict.not_confirmed.body': 'يتوفّر الإيصال بعد تأكيد الاسترداد.',
+  'refund.conflict.other.title': 'تعذّر التنفيذ',
+  'refund.conflict.other.body': 'حالة الاسترداد لا تسمح بذلك. تم تحديثها.',
+
+  'refund.receipt.action': 'مشاركة إيصال الاسترداد',
+  'refund.receipt.title': 'إيصال استرداد',
+  'refund.receipt.reference': 'مرجع الاسترداد',
+  'refund.receipt.originalInvoice': 'الفاتورة الأصلية',
+  'refund.receipt.adjustmentTotal': 'الخصومات',
+  'refund.receipt.netReturned': 'المُعاد إلى العميل',
+  'refund.receipt.status': 'الحالة',
+  'refund.receipt.unavailable': 'المشاركة غير متاحة على هذا الجهاز.',
+  'refund.receipt.failed': 'تعذّر إنشاء الإيصال. الاسترداد لا يزال مؤكَّدًا.',
+
+  'refund.recon.section': 'المبالغ المستردة',
+  'refund.recon.outstanding': 'ما زال مستحقًا للعملاء',
+  'refund.recon.outstandingHint': '{count} معتمدة ولم تُدفع بعد',
+  'refund.recon.awaiting': 'أُبلغ عنها ولم تُؤكَّد',
+  'refund.recon.awaitingHint': '{count} في انتظار المدير — لا تُحتسب نقدًا',
+  'refund.recon.confirmedHeading': 'المدفوع اليوم',
+  'refund.recon.timingNote':
+    'عُكس الربح بتاريخ الاعتماد، ويخرج النقد بتاريخ التأكيد. يُحتسبان منفصلين، ولا يُحتسبان مرتين.',
 };

@@ -40,6 +40,16 @@ export const qk = {
   returns: (branchId: string | null, filters?: string) =>
     ['returns', branchId, filters ?? ''] as const,
   return: (id: string) => ['return', id] as const,
+  /**
+   * The refund receipt is keyed by branch AND return: it is only readable
+   * from the branch holding the return, so a branch switch must not serve
+   * another branch cached document.
+   */
+  refundReceipt: (branchId: string | null, id: string) =>
+    ['refund-receipt', branchId, id] as const,
+  /** Outstanding liability and settled refunds, per branch and window. */
+  refundSummary: (branchId: string | null, range?: string) =>
+    ['refund-summary', branchId, range ?? ''] as const,
   transferCounts: (branchId: string | null) => ['transfer-counts', branchId] as const,
   home: (branchId: string | null) => ['home', branchId] as const,
   dashboard: (branchId: string | null) => ['dashboard', branchId] as const,

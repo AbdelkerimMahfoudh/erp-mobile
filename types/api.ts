@@ -879,6 +879,86 @@ export interface ReturnTimelineEntry {
   by: string | null;
 }
 
+
+/**
+ * The refund payout on a return (I3).
+ *
+ * `null` on `ReturnDetail` means **nobody has reported a payout yet**, which is
+ * a different thing from reported-and-unconfirmed. The screen must not blur the
+ * two: one owes the customer money, the other is waiting on a signature.
+ */
+export type RefundMethod = 'cash' | 'account';
+
+export interface ReturnPayout {
+  /** `reported_pending_confirmation` is a CLAIM. Only `confirmed` is the record. */
+  status: 'reported_pending_confirmation' | 'confirmed';
+  /** The payout version — NOT the return version. Send it with correct/confirm. */
+  version: number;
+  /** The immutable amount owed. There is no partial payout. */
+  netAmountDue: number;
+  reportedAmount: number;
+  method: RefundMethod;
+  /**
+   * The account label as it read WHEN the payout was reported, frozen at
+   * confirmation. A later rename must not retitle a movement that already
+   * happened, so this is never re-resolved from the account.
+   */
+  accountLabel: string | null;
+  transactionReference: string | null;
+  note: string | null;
+  reportedBy: string | null;
+  reportedAt: string;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+}
+
+/** What the customer receipt says. Available only once confirmed. */
+export interface RefundReceipt {
+  store: { name: string; branch: string; phone: string | null };
+  reference: string;
+  originalInvoiceNo: string;
+  confirmedAt: string;
+  product: string;
+  identifier: string | null;
+  grossRefund: number;
+  adjustments: { label: string; quantity: number; amount: number }[];
+  netAmountReturned: number;
+  method: RefundMethod;
+  accountLabel: string | null;
+  transactionReference: string | null;
+  status: 'confirmed';
+  reportedBy: string | null;
+  confirmedBy: string | null;
+}
+
+/**
+ * Refund money, with the three timings kept apart.
+ *
+ * `approved` is the approval-date profit effect; `confirmed` is the
+ * confirmation-date cash movement. Collapsing them is how a refund gets counted
+ * twice, so the screen shows them separately too.
+ */
+export interface RefundSummary {
+  approved: {
+    count: number;
+    grossRefund: number;
+    adjustments: number;
+    /** Absent without `cost.view` — the gating interceptor strips it. */
+    cogsCredited?: number;
+    profitEffect: number;
+  };
+  /** Approved and not yet confirmed, all time. Derived, never stored. */
+  outstandingLiability: { count: number; amount: number };
+  /** Reported and waiting on a manager or owner. NOT a cash movement. */
+  awaitingConfirmation: { count: number; amount: number };
+  confirmed: {
+    count: number;
+    total: number;
+    cash: number;
+    byAccount: { label: string; amount: number; count: number }[];
+  };
+}
+
 export interface ReturnDetail {
   id: string;
   status: ReturnStatus;
@@ -919,4 +999,6 @@ export interface ReturnDetail {
   timeline: ReturnTimelineEntry[];
   requestedBy: string | null;
   requestedAt: string;
+  /** `null` until somebody reports a payout. See `ReturnPayout`. */
+  payout: ReturnPayout | null;
 }
