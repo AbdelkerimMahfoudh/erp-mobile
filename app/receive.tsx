@@ -20,7 +20,7 @@ import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
-import type { ProductSuggestion, ScanResult, Supplier } from '../types/api';
+import type { ProductSuggestion, ScanResult, SupplierDetail, SupplierPage, SupplierRow } from '../types/api';
 
 /**
  * Receive — the bulk workflow.
@@ -53,7 +53,9 @@ export default function ReceiveScreen() {
   const qc = useQueryClient();
   const { branchId } = useBranch();
 
-  const [supplier, setSupplier] = useState<Supplier | null>(null);
+  // The picker now yields a SupplierRow (the paged list shape), which carries
+  // everything receiving needs: id, name and phone.
+  const [supplier, setSupplier] = useState<SupplierRow | null>(null);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [staged, setStaged] = useState<StagedItem[]>([]);
   const [pending, setPending] = useState<PendingScan | null>(null);
@@ -76,16 +78,26 @@ export default function ReceiveScreen() {
    */
   const clientUuid = useRef(uuidv4());
 
+  /**
+   * ACTIVE suppliers only (J1).
+   *
+   * Receiving must not offer a supplier the shop has stopped buying from, while
+   * every past delivery keeps showing the one it was actually bought from. The
+   * list is also paged now, so this reads `rows` rather than the bare array it
+   * used to return - a change TypeScript could not catch, because `api.get<T>`
+   * is an assertion rather than a check.
+   */
   const suppliers = useQuery({
-    queryKey: qk.suppliers,
-    queryFn: () => api.get<Supplier[]>('/suppliers'),
+    queryKey: [...qk.suppliers, 'active'],
+    queryFn: () => api.get<SupplierPage>('/suppliers?status=active&limit=50'),
   });
 
   const createSupplier = useMutation({
-    mutationFn: (name: string) => api.post<Supplier>('/suppliers', { name }),
+    // POST /suppliers returns the full detail; the picker only needs the row.
+    mutationFn: (name: string) => api.post<SupplierDetail>('/suppliers', { name }),
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: qk.suppliers });
-      setSupplier(created);
+      setSupplier({ id: created.id, name: created.name, phone: created.phone, isActive: created.isActive });
       setSupplierOpen(false);
       toast.success(created.name);
     },
@@ -366,7 +378,7 @@ export default function ReceiveScreen() {
         open={supplierOpen}
         onClose={() => setSupplierOpen(false)}
         title={t('receive.supplier.title')}
-        items={suppliers.data ?? []}
+        items={suppliers.data?.rows ?? []}
         keyExtractor={(s) => s.id}
         labelExtractor={(s) => s.name}
         descriptionExtractor={(s) => s.phone ?? undefined}

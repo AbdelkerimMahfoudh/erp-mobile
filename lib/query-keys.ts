@@ -7,6 +7,11 @@ export const qk = {
   product: (id: string) => ['product', id] as const,
   categories: ['categories'] as const,
   suppliers: ['suppliers'] as const,
+  /** One supplier and its ledger. Keyed by id so a payment refreshes it alone. */
+  supplier: (id: string) => ['supplier', id] as const,
+  /** Open purchases and the suggested split — changes the moment one is paid. */
+  supplierPayable: (id: string, amount?: number) => ['supplier-payable', id, amount ?? 0] as const,
+  supplierPayment: (id: string) => ['supplier-payment', id] as const,
   /**
    * Serialized units and quantity stock together, discriminated by `kind`.
    * `search` is part of the key so changing it starts a fresh pagination run —

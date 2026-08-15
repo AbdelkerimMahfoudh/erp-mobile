@@ -85,6 +85,13 @@ export const PERMISSIONS = [
   'import.run',
   'purchase.manage',
   'supplier.manage',
+  /**
+   * Paying a supplier (J1). Two keys for the same reason refunds have two:
+   * handing money over and vouching that it happened are different
+   * authorities. An Employee reports; a Manager or Owner confirms.
+   */
+  'supplier.payment.report',
+  'supplier.payment.confirm',
   'expense.manage',
   'closing.perform',
   'report.view',

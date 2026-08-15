@@ -1002,3 +1002,95 @@ export interface ReturnDetail {
   /** `null` until somebody reports a payout. See `ReturnPayout`. */
   payout: ReturnPayout | null;
 }
+
+// ── Suppliers and payables (J1) ──────────────────────────────────────────────
+
+/**
+ * One supplier in a list.
+ *
+ * `outstanding` is ABSENT — not zero — for anyone without permission to see
+ * what the shop owes. Receiving needs the name; it does not need the debt.
+ */
+export interface SupplierRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  isActive: boolean;
+  outstanding?: number;
+}
+
+export interface SupplierPage {
+  rows: SupplierRow[];
+  nextCursor: string | null;
+}
+
+/** One purchase and how much of it is still owed. Derived, never stored. */
+export interface SupplierLedgerPurchase {
+  purchaseId: string;
+  referenceNo: string | null;
+  date: string;
+  dueDate: string | null;
+  branch: { id: string; name: string };
+  total: number;
+  paid: number;
+  outstanding: number;
+  status: 'unpaid' | 'partial' | 'paid';
+}
+
+export interface SupplierSettlement {
+  id: string;
+  /** `reported` is a CLAIM. Only `confirmed` moved money. */
+  status: 'reported' | 'confirmed';
+  /** The SETTLEMENT version — send it with correct and confirm. */
+  version: number;
+  amount: number;
+  method: 'cash' | 'account';
+  /** Frozen when reported. A later rename never rewrites it. */
+  accountLabel: string | null;
+  transactionReference: string | null;
+  note: string | null;
+  branch: string | null;
+  reportedBy: string | null;
+  reportedAt: string;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+  confirmationDate: string | null;
+  allocations: { purchaseId: string; amount: number }[];
+  supplier?: { id: string; name: string };
+}
+
+/** The financial half of a supplier. `null` when the caller may not see it. */
+export interface SupplierLedger {
+  totalPurchased: number;
+  totalConfirmedPaid: number;
+  /** Still owed. Derived from immutable rows, all time. */
+  outstanding: number;
+  /** Reported and waiting on a manager. NOT a cash movement. */
+  awaitingConfirmation: number;
+  purchases: SupplierLedgerPurchase[];
+  settlements: SupplierSettlement[];
+}
+
+export interface SupplierDetail {
+  id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
+  isActive: boolean;
+  ledger: SupplierLedger | null;
+}
+
+/** Open purchases, with the server's suggested oldest-first split. */
+export interface SupplierPayable {
+  supplier: { id: string; name: string; isActive: boolean };
+  outstanding: number;
+  purchases: {
+    purchaseId: string;
+    total: number;
+    paid: number;
+    outstanding: number;
+    date: string;
+  }[];
+  /** A SUGGESTION the screen shows before anything is sent. */
+  suggested: { purchaseId: string; amount: number }[];
+}
