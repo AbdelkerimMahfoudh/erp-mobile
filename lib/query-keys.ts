@@ -31,6 +31,15 @@ export const qk = {
   transfers: (branchId: string | null, filters?: string) =>
     ['transfers', branchId, filters ?? ''] as const,
   transfer: (id: string) => ['transfer', id] as const,
+  /**
+   * Returns are per branch, and `filters` joins status, responsibility,
+   * eligibility, requester, date range and search — every server-side
+   * parameter. A cursor issued under one query means nothing under another, so
+   * changing any of them must start a fresh run rather than continue the old.
+   */
+  returns: (branchId: string | null, filters?: string) =>
+    ['returns', branchId, filters ?? ''] as const,
+  return: (id: string) => ['return', id] as const,
   transferCounts: (branchId: string | null) => ['transfer-counts', branchId] as const,
   home: (branchId: string | null) => ['home', branchId] as const,
   dashboard: (branchId: string | null) => ['dashboard', branchId] as const,

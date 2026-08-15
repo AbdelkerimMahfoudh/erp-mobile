@@ -1,7 +1,8 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  Button,
   Card,
   Chip,
   EmptyState,
@@ -16,6 +17,7 @@ import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
 import { describeWindow, policyStatus } from '../../lib/return-policy';
 import { useSale } from '../../lib/sales';
 import type { SaleDetail, SaleLine } from '../../types/api';
@@ -182,7 +184,15 @@ function Body({ sale }: { sale: SaleDetail }) {
 
 function Line({ line }: { line: SaleLine }) {
   const { t } = useTranslation();
+  const router = useRouter();
+  const canRequestReturn = usePermission('return.request');
   const identifier = line.imei ?? line.serialNo ?? line.barcode;
+  /**
+   * Only a serialized line can be returned in I2. An accessory line has no unit
+   * to present, and inventing an independent quantity return here would be
+   * exactly the behaviour `docs/27` §16.4 says cannot be inferred.
+   */
+  const returnable = Boolean(line.unitId) && !line.voided;
 
   return (
     <View>
@@ -204,6 +214,25 @@ function Line({ line }: { line: SaleLine }) {
         {line.voided ? (
           <Chip label={t('sales.detail.voidedLine')} tone="neutral" size="sm" />
         ) : null}
+      </View>
+      {canRequestReturn && returnable ? (
+        <Button
+          title={t('sales.detail.requestReturn')}
+          variant="tertiary"
+          size="sm"
+          onPress={() =>
+            router.push({
+              pathname: '/returns/new',
+              params: {
+                saleItemId: line.id,
+                identifier: identifier ?? '',
+                product: line.product ?? '',
+              },
+            } as never)
+          }
+        />
+      ) : null}
+      <View style={styles.hiddenAnchor}>
       </View>
     </View>
   );
@@ -235,6 +264,7 @@ const styles = StyleSheet.create({
   lineSpaced: { marginTop: space.sm },
   lineHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   lineName: { flexShrink: 1 },
+  hiddenAnchor: { height: 0 },
   lineMeta: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
   amountRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.xs },
 });

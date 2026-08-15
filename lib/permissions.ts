@@ -43,6 +43,19 @@ export const PERMISSIONS = [
   'sale.return',
   /** Changing the return policy AT SALE TIME. Manager and Owner only (I1). */
   'return.policy.override',
+  /**
+   * The reviewed return workflow (I2). Six narrow keys, because raising a
+   * complaint, investigating it and deciding it are three different
+   * authorities. `return.exception` is the Owner's alone: it covers approving
+   * outside the policy the customer was promised, and approving against
+   * customer-caused damage.
+   */
+  'return.view',
+  'return.request',
+  'return.review',
+  'return.approve',
+  'return.reject',
+  'return.exception',
   'cost.view',
   'discount.apply',
   'discount.override',

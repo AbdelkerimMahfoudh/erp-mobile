@@ -813,3 +813,110 @@ export interface TransferDecisionBody {
   expectedVersion: number;
   reason?: string;
 }
+
+// ───────────────────────────── Returns (I2) ─────────────────────────────────
+// Shapes match the SERIALIZED HTTP responses of `ReturnsService`, not the
+// Prisma models: binary ids arrive as UUID strings and Decimals as numbers.
+
+export type ReturnStatus =
+  | 'pending_investigation'
+  | 'under_review'
+  | 'approved_refund_due'
+  | 'rejected';
+
+export type ReturnCustody = 'customer_holds' | 'store_holds' | 'handed_back' | 'retained_hold';
+
+export type ReturnResponsibility =
+  | 'pending_investigation'
+  | 'store_or_product_fault'
+  | 'customer_damage'
+  | 'other';
+
+export type ReturnAdjustmentKind =
+  | 'screen_protector'
+  | 'accessory_retained'
+  | 'restocking_fee'
+  | 'other';
+
+export interface ReturnListRow {
+  id: string;
+  status: ReturnStatus;
+  custody: ReturnCustody;
+  responsibility: ReturnResponsibility;
+  invoiceNo: string;
+  product: string;
+  identifier: string | null;
+  requestedBy: string | null;
+  requestedAt: string;
+  /** The eligibility reason snapshotted when the request was raised. */
+  policyReason: ReturnEligibilityReason;
+  requiresException: boolean;
+  /** PROVISIONAL until approval writes the immutable reversal. */
+  provisionalGrossRefund: number;
+  provisionalAdjustmentTotal: number;
+  provisionalNetRefundDue: number;
+}
+
+export interface ReturnPage {
+  rows: ReturnListRow[];
+  nextCursor: string | null;
+}
+
+export interface ReturnAdjustmentRow {
+  id: string;
+  kind: ReturnAdjustmentKind;
+  label: string;
+  quantity: number;
+  unitAmount: number;
+  totalAmount: number;
+  addedBy: string | null;
+  addedAt: string;
+}
+
+export interface ReturnTimelineEntry {
+  at: string;
+  event: string;
+  by: string | null;
+}
+
+export interface ReturnDetail {
+  id: string;
+  status: ReturnStatus;
+  /** Send with every write. A stale value is a 409 `refresh_required`. */
+  version: number;
+  custody: ReturnCustody;
+  custodyReceivedAt: string | null;
+  custodyReturnedAt: string | null;
+  responsibility: ReturnResponsibility;
+  responsibilityNotes: string | null;
+  requestReason: string;
+  conditionNotes: string | null;
+  sale: { id: string; invoiceNo: string; soldAt: string };
+  phone: {
+    unitId: string;
+    imei: string | null;
+    serialNo: string | null;
+    product: string;
+    /** So a screen can say "held, not sellable" from the same fact inventory uses. */
+    unitStatus: string;
+  };
+  policy: {
+    windowHours: number;
+    deadlineAt: string | null;
+    reason: ReturnEligibilityReason;
+    requiresException: boolean;
+  };
+  money: {
+    /** True until approval. The screen must never call these figures final. */
+    provisional: boolean;
+    grossRefund: number;
+    adjustmentTotal: number;
+    netRefundDue: number;
+    /** Absent without `cost.view` — show "Hidden", never 0. */
+    cost?: number;
+  };
+  adjustments: ReturnAdjustmentRow[];
+  timeline: ReturnTimelineEntry[];
+  requestedBy: string | null;
+  requestedAt: string;
+}

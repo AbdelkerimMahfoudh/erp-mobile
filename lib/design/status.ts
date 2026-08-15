@@ -89,6 +89,36 @@ export const userStatus = {
   pending_contact: { tone: 'warning', labelKey: 'status.user.pending_contact' },
 } as const satisfies Record<string, StatusMeta>;
 
+/**
+ * `ReturnStatus` — a reviewed return (I2).
+ *
+ * `approved_refund_due` is deliberately `info`, not `success`. Nothing good has
+ * finished happening: the shop now OWES money it has not paid, and colouring it
+ * green would read as "settled" to the person glancing at a list.
+ */
+export const returnStatus = {
+  pending_investigation: { tone: 'warning', labelKey: 'status.return.pending_investigation' },
+  under_review: { tone: 'info', labelKey: 'status.return.under_review' },
+  approved_refund_due: { tone: 'info', labelKey: 'status.return.approved_refund_due' },
+  rejected: { tone: 'neutral', labelKey: 'status.return.rejected' },
+} as const satisfies Record<string, StatusMeta>;
+
+/** Where the phone physically is. */
+export const returnCustody = {
+  customer_holds: { tone: 'warning', labelKey: 'status.custody.customer_holds' },
+  store_holds: { tone: 'info', labelKey: 'status.custody.store_holds' },
+  handed_back: { tone: 'neutral', labelKey: 'status.custody.handed_back' },
+  retained_hold: { tone: 'danger', labelKey: 'status.custody.retained_hold' },
+} as const satisfies Record<string, StatusMeta>;
+
+/** Who the investigation found responsible. */
+export const returnResponsibility = {
+  pending_investigation: { tone: 'neutral', labelKey: 'status.responsibility.pending_investigation' },
+  store_or_product_fault: { tone: 'info', labelKey: 'status.responsibility.store_or_product_fault' },
+  customer_damage: { tone: 'warning', labelKey: 'status.responsibility.customer_damage' },
+  other: { tone: 'neutral', labelKey: 'status.responsibility.other' },
+} as const satisfies Record<string, StatusMeta>;
+
 export const statusRegistry = {
   unit: unitStatus,
   transfer: transferStatus,
@@ -97,6 +127,9 @@ export const statusRegistry = {
   tracking: trackingType,
   payment: paymentMethod,
   user: userStatus,
+  return: returnStatus,
+  custody: returnCustody,
+  responsibility: returnResponsibility,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistry;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText } from 'lucide-react-native';
+import { Repeat, LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Undo2 } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -35,7 +35,7 @@ export default function MoreScreen() {
 
       {/* Each row is gated by the permission its destination actually requires,
           so nothing here leads to a 403. The heading hides with its contents. */}
-      <Can anyOf={['sale.view', 'unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
+      <Can anyOf={['sale.view', 'return.view', 'unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">Manage</Text>
         <View className="mt-2 gap-3">
           {/* Browsing the catalog is open to every store role — Sell and Receive
@@ -48,6 +48,13 @@ export default function MoreScreen() {
               gated separately by the server. */}
           <Can perm="sale.view">
             <MenuRow icon={<ReceiptText size={20} color={colors.brand} />} label="Sales" onPress={() => router.push('/sales' as Href)} />
+          </Can>
+          {/* Returns (I2). Gated on `return.view`, which every store role holds —
+              seeing what came back is ordinary counter work. The ACTIONS inside
+              are gated separately, so a reachable route never implies an
+              available decision. */}
+          <Can perm="return.view">
+            <MenuRow icon={<Undo2 size={20} color={colors.brand} />} label="Returns" onPress={() => router.push('/returns' as Href)} />
           </Can>
           <MenuRow icon={<Tag size={20} color={colors.brand} />} label="Catalog" onPress={() => router.push('/catalog' as Href)} />
           {/* Transfers (H1.3). Gated on `transfer.view` — NOT on `unit.transfer`,
