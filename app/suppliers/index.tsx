@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  MoneyValue,
   Screen,
   SearchInput,
   SegmentedControl,
@@ -15,7 +16,6 @@ import {
   Text,
 } from '../../components/ui';
 import { space } from '../../lib/design/tokens';
-import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { useSuppliers } from '../../lib/suppliers';
@@ -111,10 +111,20 @@ function SupplierCard({ row, onPress }: { row: SupplierRow; onPress: () => void 
       title={row.name}
       subtitle={row.phone ?? undefined}
       leading={Truck}
-      // Absent means the caller may not see it, never zero.
-      value={row.outstanding !== undefined ? formatMoney(row.outstanding) : undefined}
-      // ListRow has no warning tone; danger is the one that reads as "owed".
-      valueTone={row.outstanding !== undefined && row.outstanding > 0 ? 'danger' : 'primary'}
+      /**
+       * Absent means the caller may not see it, never zero — `MoneyValue`
+       * renders that as an em dash. Tabular, so a column of balances down the
+       * list can be compared at a glance instead of read one row at a time.
+       */
+      value={
+        row.outstanding !== undefined ? (
+          <MoneyValue
+            value={row.outstanding}
+            size="small"
+            tone={row.outstanding > 0 ? 'negative' : 'muted'}
+          />
+        ) : undefined
+      }
       // Status in a word as well as a tone.
       accessory={!row.isActive ? <Chip tone="neutral" label={t('suppliers.inactive')} dot /> : undefined}
       onPress={onPress}

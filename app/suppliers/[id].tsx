@@ -232,7 +232,12 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
                         </Text>
                       </View>
                       <View style={styles.right}>
-                        <Text variant="bodyStrong">{formatMoney(p.outstanding)}</Text>
+                        {/* Still owed on this delivery — a column, so tabular. */}
+                        <MoneyValue
+                          value={p.outstanding}
+                          size="small"
+                          tone={p.outstanding > 0 ? 'negative' : 'muted'}
+                        />
                         <Chip
                           tone={p.status === 'paid' ? 'success' : p.status === 'partial' ? 'warning' : 'danger'}
                           label={t(`status.purchase.${p.status}` as never)}
@@ -328,7 +333,12 @@ function SettlementLines({ s }: { s: SupplierSettlement }) {
   const { t } = useTranslation();
   return (
     <View style={styles.body}>
-      <Text variant="bodyStrong">{formatMoney(s.amount)}</Text>
+      {/*
+        Money that LEFT the shop. Neutral-toned deliberately: a payment is not
+        a loss, and colouring it red beside the outstanding balance would make
+        paying a supplier look like something going wrong.
+      */}
+      <MoneyValue value={s.amount} />
       <Text variant="caption" tone="secondary">
         {s.method === 'cash' ? t('refund.method.cash') : s.accountLabel ?? t('refund.method.account')}
         {s.transactionReference ? ` · ${s.transactionReference}` : ''}

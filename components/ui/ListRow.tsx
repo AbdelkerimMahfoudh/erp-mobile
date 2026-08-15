@@ -27,8 +27,13 @@ export interface ListRowProps {
   identifier?: string;
   /** Icon shown in a tinted square, or any custom leading node (a thumbnail). */
   leading?: IconComponent | React.ReactElement;
-  /** Right-aligned headline value — usually money or a count. */
-  value?: string;
+  /**
+   * Right-aligned headline value — usually money or a count.
+   *
+   * A node is accepted so money can come from `MoneyValue` and keep its tabular
+   * figures; `valueTone` then has no effect, since the node carries its own.
+   */
+  value?: string | React.ReactElement;
   /** Small caption under the value. */
   valueCaption?: string;
   /**
@@ -104,9 +109,15 @@ export function ListRow({
 
       {value ? (
         <View style={styles.valueBlock}>
-          <Text variant="bodyStrong" tone={valueTone} align="end" numberOfLines={1}>
-            {value}
-          </Text>
+          {typeof value === 'string' ? (
+            <Text variant="bodyStrong" tone={valueTone} align="end" numberOfLines={1}>
+              {value}
+            </Text>
+          ) : (
+            // A node brings its own type — a MoneyValue keeps its tabular
+            // figures so a column of balances lines up down the list.
+            value
+          )}
           {valueCaption ? (
             <Text variant="caption" tone="tertiary" align="end" numberOfLines={1}>
               {valueCaption}
