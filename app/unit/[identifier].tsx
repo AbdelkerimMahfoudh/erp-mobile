@@ -1,25 +1,53 @@
 import React from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { Clock } from 'lucide-react-native';
-import { Card, Badge, Row } from '../../components/ui';
-import { api } from '../../lib/api-client';
-import { colors, money, trackingLabel } from '../../lib/theme';
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  Identifier,
+  MoneyValue,
+  Screen,
+  Section,
+  SkeletonList,
+  StatusChip,
+  Text,
+  WorkflowTimeline,
+} from '../../components/ui';
+import { api, ApiError } from '../../lib/api-client';
+import { space } from '../../lib/design/tokens';
+import { formatDateTime } from '../../lib/format';
+import { useTranslation } from '../../lib/i18n';
+
+/**
+ * One physical unit — the screen a scan lands on.
+ *
+ * Rebuilt for the UX pilot. It was hardcoded English, which mattered more here
+ * than almost anywhere: this is where an employee arrives after pointing the
+ * camera at a phone, several times an hour.
+ *
+ * Two things it used to do that it no longer does. Status was rendered by
+ * `String.replace('_', ' ')` — so "in_stock" became "in stock" in English and
+ * stayed English in Arabic; it now goes through the status registry, which
+ * guarantees a translated word beside the colour. And the history rendered
+ * `action.replace('_', ' ')` against a raw audit entity, which is database
+ * vocabulary rather than something a shopkeeper reads.
+ */
 
 interface TimelineEvent {
   at: string;
   entity: string;
   action: string;
   reason: string | null;
-  after?: Record<string, unknown> | null;
 }
+
 interface UnitDetail {
   id: string;
   imeiPrimary: string | null;
   serialNo: string | null;
   status: string;
+  /** Absent without `cost.view`. */
   cost?: number;
   dateIn?: string;
   product?: { brand: string; model: string; variant: string | null; trackingType?: string };
@@ -27,73 +55,125 @@ interface UnitDetail {
   timeline: TimelineEvent[];
 }
 
-const statusTone: Record<string, 'green' | 'slate' | 'red' | 'amber' | 'brand'> = {
-  in_stock: 'green', sold: 'slate', faulty: 'red', returned: 'amber', in_transit: 'brand',
-};
-
 export default function UnitDetailScreen() {
+  const { t } = useTranslation();
   const { identifier } = useLocalSearchParams<{ identifier: string }>();
-  const { data, isLoading } = useQuery({
+
+  const query = useQuery({
     queryKey: ['unit', identifier],
     queryFn: () => api.get<UnitDetail>(`/units/${encodeURIComponent(identifier)}`),
-    enabled: !!identifier,
+    enabled: Boolean(identifier),
   });
 
-  const idValue = data ? data.imeiPrimary ?? data.serialNo ?? '' : identifier;
+  const data = query.data;
+  const idValue = data ? (data.imeiPrimary ?? data.serialNo ?? '') : identifier;
   const tracking = data?.product?.trackingType ?? (data?.imeiPrimary ? 'imei' : 'serial');
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack.Screen options={{ headerShown: true, title: 'Unit' }} />
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator color={colors.brand} /></View>
-      ) : (
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <Screen scroll={Boolean(data)}>
+      <Stack.Screen options={{ headerShown: true, title: t('unit.title') }} />
+
+      {query.isLoading ? (
+        <SkeletonList count={4} />
+      ) : query.isError ? (
+        query.error instanceof ApiError && query.error.status === 404 ? (
+          <EmptyState title={t('unit.notFound.title')} body={t('unit.notFound.body')} />
+        ) : (
+          <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+        )
+      ) : data ? (
+        <>
           <Card>
-            <Text className="text-xl font-bold text-slate-900">
-              {data?.product ? `${data.product.brand} ${data.product.model}` : idValue}
+            <Text variant="title">
+              {data.product ? `${data.product.brand} ${data.product.model}` : idValue}
             </Text>
-            <Row className="mt-2">
-              <Badge label={trackingLabel[tracking] ?? tracking} tone="brand" />
-              <Badge label={(data?.status ?? '').replace('_', ' ')} tone={statusTone[data?.status ?? ''] ?? 'slate'} />
-            </Row>
-            <View className="mt-4 gap-2">
-              <DetailRow label="Identifier" value={idValue} />
-              {data?.branch ? <DetailRow label="Branch" value={data.branch.name} /> : null}
-              {data?.cost !== undefined ? <DetailRow label="Cost" value={money(data.cost)} /> : null}
+            {data.product?.variant ? (
+              <Text variant="body" tone="secondary">
+                {data.product.variant}
+              </Text>
+            ) : null}
+
+            <View style={styles.chips}>
+              <StatusChip domain="tracking" value={tracking} size="sm" />
+              {/* Colour AND word, from the registry — never a raw enum. */}
+              <StatusChip domain="unit" value={data.status} size="sm" />
+            </View>
+
+            <View style={styles.details}>
+              <Row label={t('unit.identifier')}>
+                <Identifier>{idValue}</Identifier>
+              </Row>
+              {data.branch ? (
+                <Row label={t('unit.branch')}>
+                  <Text variant="bodyStrong">{data.branch.name}</Text>
+                </Row>
+              ) : null}
+              {/* Only when the server sent it — stripped without cost.view. */}
+              {data.cost !== undefined ? (
+                <Row label={t('unit.cost')}>
+                  <MoneyValue value={data.cost} size="small" />
+                </Row>
+              ) : null}
+              {data.dateIn ? (
+                <Row label={t('unit.received')}>
+                  <Text variant="bodyStrong">{formatDateTime(new Date(data.dateIn))}</Text>
+                </Row>
+              ) : null}
             </View>
           </Card>
 
-          <Text className="mb-2 mt-6 text-xs font-semibold uppercase text-slate-400">History</Text>
-          <View className="gap-3">
-            {(data?.timeline ?? []).map((e, i) => (
-              <View key={i} className="flex-row gap-3">
-                <View className="items-center">
-                  <View className="h-8 w-8 items-center justify-center rounded-full bg-brand-100">
-                    <Clock size={16} color={colors.brand} />
-                  </View>
-                  {i < (data?.timeline.length ?? 0) - 1 ? <View className="w-0.5 flex-1 bg-slate-200" /> : null}
-                </View>
-                <Card className="mb-1 flex-1">
-                  <Text className="font-semibold capitalize text-slate-900">{e.action.replace('_', ' ')} · {e.entity}</Text>
-                  {e.reason ? <Text className="text-sm text-slate-500">{e.reason}</Text> : null}
-                  <Text className="mt-1 text-xs text-slate-400">{new Date(e.at).toLocaleString()}</Text>
-                </Card>
-              </View>
-            ))}
-            {(data?.timeline?.length ?? 0) === 0 ? <Text className="text-slate-400">No history yet.</Text> : null}
-          </View>
-        </ScrollView>
-      )}
-    </SafeAreaView>
+          <Section title={t('unit.history')}>
+            {data.timeline.length === 0 ? (
+              <Card>
+                <Text variant="body" tone="secondary">
+                  {t('unit.history.empty')}
+                </Text>
+              </Card>
+            ) : (
+              <Card>
+                {/*
+                  Everything here has already happened, so every step is `done`.
+                  The audit action is shown verbatim as the detail rather than
+                  being half-prettified: `replace('_', ' ')` produced English
+                  either way, and a partly-tidied database word is more
+                  confusing than a plainly technical one.
+                */}
+                <WorkflowTimeline
+                  steps={data.timeline.map((event, i) => ({
+                    key: `${event.at}-${i}`,
+                    label: event.action,
+                    detail: event.reason ?? undefined,
+                    timestamp: formatDateTime(new Date(event.at)),
+                    state: 'done' as const,
+                  }))}
+                />
+              </Card>
+            )}
+          </Section>
+        </>
+      ) : null}
+    </Screen>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <View className="flex-row items-center justify-between">
-      <Text className="text-slate-500">{label}</Text>
-      <Text className="font-medium text-slate-900">{value}</Text>
+    <View style={styles.row}>
+      <Text variant="body" tone="secondary">
+        {label}
+      </Text>
+      {children}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  chips: { flexDirection: 'row', gap: space.sm, marginTop: space.sm, flexWrap: 'wrap' },
+  details: { gap: space.sm, marginTop: space.base },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+  },
+});

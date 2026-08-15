@@ -8,6 +8,7 @@ import { Card, Badge, H2 } from '../components/ui';
 import { api } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
 import { useBranch } from '../lib/branch';
+import { useTranslation } from '../lib/i18n';
 import { colors, money, num, trackingLabel } from '../lib/theme';
 
 interface ProductRow { productId: string; label: string | null; trackingType: string | null; qtySold: number; revenue: number; grossProfit?: number; sold30d: number; lastSoldAt: string | null; }
@@ -21,43 +22,50 @@ interface Dashboard {
 }
 
 export default function AnalyticsScreen() {
+  const { t } = useTranslation();
   const { branchId } = useBranch();
   const { data, isFetching, refetch } = useQuery({ queryKey: qk.dashboard(branchId), queryFn: () => api.get<Dashboard>('/dashboard') });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack.Screen options={{ headerShown: true, title: 'Analytics' }} />
+      <Stack.Screen options={{ headerShown: true, title: t('nav.analytics') }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 20 }} refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.brand} />}>
-        <Section icon={<TrendingUp size={18} color={colors.emerald} />} title="Most profitable">
+        <Section icon={<TrendingUp size={18} color={colors.emerald} />} title={t('analytics.mostProfitable')}>
           {data?.mostProfitable.map((p) => <ProductLine key={p.productId} p={p} metric={money(p.grossProfit)} tone="green" />)}
         </Section>
-        <Section icon={<Package size={18} color={colors.brand} />} title="Best selling">
-          {data?.bestSelling.map((p) => <ProductLine key={p.productId} p={p} metric={`${num(p.qtySold)} sold`} />)}
+        <Section icon={<Package size={18} color={colors.brand} />} title={t('analytics.bestSelling')}>
+          {data?.bestSelling.map((p) => <ProductLine key={p.productId} p={p} metric={t('analytics.sold', { n: num(p.qtySold) })} />)}
         </Section>
-        <Section icon={<TrendingDown size={18} color={colors.red} />} title="Worst performing">
+        <Section icon={<TrendingDown size={18} color={colors.red} />} title={t('analytics.worstPerforming')}>
           {data?.worstPerforming.map((p) => <ProductLine key={p.productId} p={p} metric={money(p.grossProfit)} tone={((p.grossProfit ?? 0) < 0) ? 'red' : 'slate'} />)}
         </Section>
-        <Section icon={<Package size={18} color={colors.amber} />} title="Dead stock">
-          {(data?.deadStock ?? []).length === 0 ? <Muted>None 🎉</Muted> : data?.deadStock.map((d) => (
+        <Section icon={<Package size={18} color={colors.amber} />} title={t('analytics.deadStock')}>
+          {(data?.deadStock ?? []).length === 0 ? <Muted>{t('analytics.deadStock.none')}</Muted> : data?.deadStock.map((d) => (
             <View key={d.productId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 text-slate-800">{d.label}</Text>
-              <Text className="text-slate-500">{num(d.inStock)} in stock · {money(d.inventoryValue)}</Text>
+              <Text className="text-slate-500">{t('analytics.inStock', { n: num(d.inStock) })} · {money(d.inventoryValue)}</Text>
             </View>
           ))}
         </Section>
-        <Section icon={<GitBranch size={18} color={colors.brand} />} title="Branch comparison">
+        <Section icon={<GitBranch size={18} color={colors.brand} />} title={t('analytics.branches')}>
           {data?.branchComparison.map((b) => (
             <View key={b.branchId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 font-medium text-slate-800">{b.name}</Text>
-              <Text className="text-slate-500">Rev {money(b.revenue)} · Net {money(b.netProfit)}</Text>
+              {/* Spelled out rather than "Rev"/"Net" — abbreviations do not
+                  translate, and this screen is read by owners, not analysts. */}
+              <Text className="text-slate-500">
+                {t('analytics.revenue')} {money(b.revenue)} · {t('analytics.net')} {money(b.netProfit)}
+              </Text>
             </View>
           ))}
         </Section>
-        <Section icon={<Users size={18} color={colors.brand} />} title="Employee performance">
+        <Section icon={<Users size={18} color={colors.brand} />} title={t('analytics.employees')}>
           {data?.employeePerformance.map((e) => (
             <View key={e.userId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 font-medium text-slate-800">{e.name}</Text>
-              <Text className="text-slate-500">{num(e.salesCount)} sales · {money(e.revenue)}</Text>
+              <Text className="text-slate-500">
+                {t('analytics.sales', { n: num(e.salesCount) })} · {money(e.revenue)}
+              </Text>
             </View>
           ))}
         </Section>
