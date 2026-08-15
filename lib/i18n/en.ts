@@ -127,6 +127,22 @@ export const en = {
   'correction.conflict.other.title': 'Could not do that',
   'correction.conflict.other.body': 'Something about this payment changed. Open it again.',
 
+  // ── Reading an IMEI off a phone screen (Milestone C) ──────────────────────
+  'scanner.mode.imei': 'Read IMEI from screen',
+  'scanner.mode.barcode': 'Scan a barcode instead',
+  'scanner.imei.hint': 'Dial *#06# on the phone, then point the camera at its screen',
+  'scanner.imei.capture': 'Read the screen',
+  'scanner.imei.reading': 'Reading…',
+  'scanner.imei.nothingFound': 'No IMEI found. Hold steadier, or type it in.',
+  'scanner.imei.failed': 'Could not read that. Try again, or type it in.',
+  'scanner.imei.unavailable': 'Reading from a screen is not available on this device. Type it in.',
+  // Every reinterpreted character is shown, so a human agrees to the reading
+  // rather than being told about it.
+  'scanner.imei.substituted': 'Read as: {list}',
+  'scanner.imei.single': 'One IMEI — a single-SIM phone',
+  'scanner.imei.dualSim': 'Two IMEIs — one dual-SIM phone, not two phones',
+  'scanner.imei.use': 'Use this',
+
   // ── More menu ─────────────────────────────────────────────────────────────
   'more.manage': 'Manage',
   'more.account': 'Account',

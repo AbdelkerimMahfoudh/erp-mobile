@@ -127,6 +127,20 @@ export const ar: Catalogue = {
   'correction.conflict.other.title': 'تعذّر تنفيذ ذلك',
   'correction.conflict.other.body': 'تغيّر شيء بخصوص هذه الدفعة. افتحها مرة أخرى.',
 
+  // ── قراءة رقم IMEI من شاشة الهاتف ─────────────────────────────────────────
+  'scanner.mode.imei': 'قراءة IMEI من الشاشة',
+  'scanner.mode.barcode': 'مسح باركود بدلًا من ذلك',
+  'scanner.imei.hint': 'اطلب ‎*#06#‎ على الهاتف، ثم وجّه الكاميرا نحو شاشته',
+  'scanner.imei.capture': 'اقرأ الشاشة',
+  'scanner.imei.reading': 'جارٍ القراءة…',
+  'scanner.imei.nothingFound': 'لم يُعثر على IMEI. ثبّت الكاميرا أو أدخله يدويًا.',
+  'scanner.imei.failed': 'تعذّرت القراءة. حاول مجددًا أو أدخله يدويًا.',
+  'scanner.imei.unavailable': 'القراءة من الشاشة غير متاحة على هذا الجهاز. أدخله يدويًا.',
+  'scanner.imei.substituted': 'قُرئ كـ: {list}',
+  'scanner.imei.single': 'رقم IMEI واحد — هاتف بشريحة واحدة',
+  'scanner.imei.dualSim': 'رقمان — هاتف واحد بشريحتين، وليس هاتفين',
+  'scanner.imei.use': 'استخدم هذا',
+
   // ── قائمة المزيد ──────────────────────────────────────────────────────────
   'more.manage': 'الإدارة',
   'more.account': 'الحساب',

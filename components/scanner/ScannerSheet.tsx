@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { File as FsFile } from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Keyboard, Flashlight, FlashlightOff, X } from 'lucide-react-native';
+import { Barcode, Keyboard, Flashlight, FlashlightOff, ScanText, X } from 'lucide-react-native';
 import { colors } from '../../lib/design/colors';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
@@ -12,6 +13,8 @@ import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
+import { readImeisFromImage, isOcrAvailable } from '../../lib/ocr';
+import type { ImeiCandidate } from '../../lib/imei';
 import type { ScanResult } from '../../types/api';
 
 /**
@@ -75,6 +78,62 @@ export function ScannerSheet({
   // Guards against the camera firing again while the result is being handled.
   const handling = useRef(false);
 
+  /**
+   * Which of the three intake modes is active (Milestone C).
+   *
+   * `barcode` reads a printed code. `imei` photographs the phone's own `*#06#`
+   * screen and reads the digits off it, which is the only route for a used
+   * phone with no box and no label. Typing is the third, and it is reachable
+   * from both — see `manual`.
+   */
+  const [scanMode, setScanMode] = useState<'barcode' | 'imei'>('barcode');
+  const cameraRef = useRef<CameraView | null>(null);
+  const [reading, setReading] = useState<ImeiCandidate[]>([]);
+  const [capturing, setCapturing] = useState(false);
+  const [ocrNote, setOcrNote] = useState<string | null>(null);
+
+  /**
+   * Photograph the screen and read it, on the device.
+   *
+   * The image is deleted immediately after recognition, in a `finally` so it
+   * goes even when recognition throws. Nothing is uploaded — see `lib/ocr.ts`.
+   */
+  const captureImei = useCallback(async () => {
+    if (capturing || !cameraRef.current) return;
+    setCapturing(true);
+    setOcrNote(null);
+    let uri: string | null = null;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.6, skipProcessing: true });
+      uri = photo?.uri ?? null;
+      if (!uri) return;
+      const out = await readImeisFromImage(uri, reading);
+      if (out.unavailable) {
+        // Honest, and immediately actionable: typing is right there.
+        setOcrNote(t('scanner.imei.unavailable'));
+        return;
+      }
+      setReading(out.candidates);
+      if (out.candidates.length === 0) setOcrNote(t('scanner.imei.nothingFound'));
+    } catch {
+      setOcrNote(t('scanner.imei.failed'));
+    } finally {
+      /**
+       * The photograph never outlives the read. In a `finally`, so it goes even
+       * when recognition throws — an IMEI photo left in the cache is exactly
+       * the kind of thing that should not accumulate on a shop's phone.
+       */
+      if (uri) {
+        try {
+          new FsFile(uri).delete();
+        } catch {
+          // Already gone, or never written. Nothing to recover from.
+        }
+      }
+      setCapturing(false);
+    }
+  }, [capturing, reading, t]);
+
   const handleResult = useCallback(
     (result: ScanResult) => {
       onResult(result);
@@ -95,6 +154,9 @@ export function ScannerSheet({
       setManual(false);
       setTyped('');
       handling.current = false;
+      setScanMode('barcode');
+      setReading([]);
+      setOcrNote(null);
       reset();
     }
   }, [open, reset]);
@@ -130,11 +192,19 @@ export function ScannerSheet({
       <View style={styles.root}>
         {canUseCamera && cameraSupported && !manual ? (
           <CameraView
+            ref={cameraRef}
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torch}
-            barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
-            onBarcodeScanned={onBarcodeScanned}
+            /**
+             * Barcode detection is switched OFF while reading a phone screen.
+             * A `*#06#` display often carries a QR alongside the digits, and a
+             * stray barcode hit would close the sheet mid-read.
+             */
+            barcodeScannerSettings={
+              scanMode === 'barcode' ? { barcodeTypes: [...BARCODE_TYPES] } : undefined
+            }
+            onBarcodeScanned={scanMode === 'barcode' ? onBarcodeScanned : undefined}
           />
         ) : null}
 
@@ -225,7 +295,10 @@ export function ScannerSheet({
                   </View>
                 ) : (
                   <Text variant="label" tone="inverse" align="center">
-                    {hint ?? (mode === 'continuous' ? t('scanner.hint.continuous') : t('scanner.hint'))}
+                    {scanMode === 'imei'
+                      ? t('scanner.imei.hint')
+                      : (hint ??
+                        (mode === 'continuous' ? t('scanner.hint.continuous') : t('scanner.hint')))}
                   </Text>
                 )}
               </View>
@@ -244,6 +317,83 @@ export function ScannerSheet({
                   {t('scanner.scanned', { count: scannedCount })}
                 </Text>
               ) : null}
+
+              {/*
+                What was read, before anything enters inventory. Every character
+                the recogniser reinterpreted is listed, so a human agrees to the
+                reading rather than being told about it.
+              */}
+              {scanMode === 'imei' && reading.length > 0 ? (
+                <View style={styles.readingBox}>
+                  {reading.map((c) => (
+                    <View key={c.imei} style={styles.readingRow}>
+                      <Text variant="bodyStrong" tone="inverse">
+                        {c.label ? `${c.label.toUpperCase()}: ` : ''}
+                        {c.imei}
+                      </Text>
+                      {c.substitutions.length > 0 ? (
+                        <Text variant="caption" tone="inverse">
+                          {t('scanner.imei.substituted', { list: c.substitutions.join(' ') })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                  <Text variant="caption" tone="inverse">
+                    {reading.length > 1 ? t('scanner.imei.dualSim') : t('scanner.imei.single')}
+                  </Text>
+                  <Button
+                    title={t('scanner.imei.use')}
+                    fullWidth
+                    onPress={() => {
+                      // The primary identifier goes down the SAME `/scan`
+                      // pipeline as a barcode, so recognition learns from an
+                      // OCR read exactly as it does from a scan.
+                      const first = reading[0];
+                      setReading([]);
+                      void scan(first.imei);
+                    }}
+                  />
+                </View>
+              ) : null}
+
+              {ocrNote ? (
+                <Text variant="label" tone="inverse" align="center">
+                  {ocrNote}
+                </Text>
+              ) : null}
+
+              {scanMode === 'imei' ? (
+                <Button
+                  title={capturing ? t('scanner.imei.reading') : t('scanner.imei.capture')}
+                  icon={ScanText}
+                  fullWidth
+                  loading={capturing}
+                  onPress={() => void captureImei()}
+                />
+              ) : null}
+
+              {/*
+                The mode switch. Offered only where OCR can actually run — a
+                button that always fails is worse than one that is absent, and
+                typing is available either way.
+              */}
+              {isOcrAvailable() ? (
+                <Button
+                  title={
+                    scanMode === 'imei' ? t('scanner.mode.barcode') : t('scanner.mode.imei')
+                  }
+                  variant="secondary"
+                  icon={scanMode === 'imei' ? Barcode : ScanText}
+                  fullWidth
+                  onPress={() => {
+                    setScanMode((m) => (m === 'imei' ? 'barcode' : 'imei'));
+                    setReading([]);
+                    setOcrNote(null);
+                  }}
+                />
+              ) : null}
+
+              {/* Always present, in every mode. Typing is never taken away. */}
               <Button
                 title={t('action.typeInstead')}
                 variant="secondary"
@@ -382,6 +532,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  readingBox: { gap: space.xs, paddingBottom: space.sm },
+  readingRow: { gap: 2 },
   errorBox: {
     marginHorizontal: space.xl,
     paddingHorizontal: space.base,
