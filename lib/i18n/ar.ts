@@ -157,6 +157,14 @@ export const ar: Catalogue = {
 
   // ── Below cost ────────────────────────────────────────────────────────────
   'sell.belowCost.title': 'البيع بأقل من التكلفة؟',
+  // ── مراحل الإرجاع ─────────────────────────────────────────────────────────
+  'returns.stage.requested': 'تم طلب الإرجاع',
+  'returns.stage.custody': 'الهاتف عاد إلى المتجر',
+  'returns.stage.investigation': 'قيد الفحص',
+  'returns.stage.decision': 'تم اتخاذ القرار',
+  'returns.stage.due': 'مبلغ مستحق — المتجر مدين بهذا',
+  'returns.stage.reported': 'أُبلغ عن الدفع — لم يُؤكَّد بعد',
+  'returns.stage.confirmed': 'تم تأكيد الاسترداد — خرج المبلغ',
   'sell.belowCost.body': 'هذه العملية أقل بـ {amount} من تكلفة البضاعة.',
   'sell.belowCost.inline': 'أقل من التكلفة بـ {amount} — يحتاج إلى موافقة',
   'sell.offline.body': 'لا يوجد اتصال. انتظر عودته قبل استلام الدفع.',

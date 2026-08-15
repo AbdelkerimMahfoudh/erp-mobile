@@ -13,11 +13,13 @@ import {
   SkeletonList,
   StatusChip,
   Text,
+  WorkflowTimeline,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { formatDateTime, formatMoney } from '../../lib/format';
+import { returnStages } from '../../lib/return-timeline';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { describeWindow } from '../../lib/return-policy';
@@ -416,17 +418,36 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         {pending && payout ? <RefundPendingSection payout={payout} /> : null}
         {confirmed && payout ? <RefundConfirmedSection payout={payout} /> : null}
 
+        {/*
+          The workflow, not the event log.
+
+          The server's `detail.timeline` is an append-only record of what has
+          happened — faithful, but it cannot show a stage that has NOT happened,
+          so everything still to come was invisible and every row looked
+          identical. `returnStages` maps the lifecycle instead, and each stage
+          differs in shape before it differs in colour.
+
+          The rule this protects: due, reported and confirmed are three
+          different amounts of certainty about the same money, and only
+          confirmed is ever allowed to read as settled.
+        */}
         <Section title={t('returns.detail.timeline')}>
           <Card>
-            {detail.timeline.map((entry, i) => (
-              <View key={`${entry.event}-${i}`} style={i > 0 ? styles.timelineRow : undefined}>
-                <Text variant="body">{t(`status.return.${entry.event}` as never, {}) || entry.event}</Text>
-                <Text variant="caption" tone="tertiary">
-                  {formatDateTime(new Date(entry.at))}
-                  {entry.by ? ` · ${entry.by}` : ''}
-                </Text>
-              </View>
-            ))}
+            <WorkflowTimeline
+              steps={returnStages(detail).map((stage) => {
+                const event = detail.timeline.find((e) => e.event === stage.key);
+                const at = stage.at ?? event?.at ?? null;
+                const by = stage.by ?? event?.by ?? null;
+                return {
+                  key: stage.key,
+                  label: t(`returns.stage.${stage.key}` as never),
+                  detail: by ?? undefined,
+                  // Only stamp a time on something that actually happened.
+                  timestamp: at ? formatDateTime(new Date(at)) : undefined,
+                  state: stage.state,
+                };
+              })}
+            />
           </Card>
         </Section>
       </ScrollView>

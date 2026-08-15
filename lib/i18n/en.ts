@@ -158,6 +158,16 @@ export const en = {
 
   // ── Below cost ────────────────────────────────────────────────────────────
   'sell.belowCost.title': 'Sell below cost?',
+  // ── Return workflow stages ────────────────────────────────────────────────
+  // Worded so the three money stages cannot be mistaken for one another:
+  // "owes" / "says they paid" / "money has left".
+  'returns.stage.requested': 'Return requested',
+  'returns.stage.custody': 'Phone back in the shop',
+  'returns.stage.investigation': 'Being investigated',
+  'returns.stage.decision': 'Decision made',
+  'returns.stage.due': 'Refund due — the shop owes this',
+  'returns.stage.reported': 'Payout reported — not yet confirmed',
+  'returns.stage.confirmed': 'Refund confirmed — the money has left',
   'sell.belowCost.body': 'This sale is {amount} below what the stock cost.',
   // Shown in the cart, before Charge — a cashier who finds out at checkout has
   // already quoted the customer a price.
