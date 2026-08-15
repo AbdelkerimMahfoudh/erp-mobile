@@ -159,6 +159,10 @@ export const en = {
   // ── Below cost ────────────────────────────────────────────────────────────
   'sell.belowCost.title': 'Sell below cost?',
   'sell.belowCost.body': 'This sale is {amount} below what the stock cost.',
+  // Shown in the cart, before Charge — a cashier who finds out at checkout has
+  // already quoted the customer a price.
+  'sell.belowCost.inline': '{amount} below cost — this will need approval',
+  'sell.offline.body': 'No connection. Wait until it returns before taking payment.',
   'sell.belowCost.confirm': 'Sell anyway',
   'sell.belowCost.reason': 'Why?',
   'sell.belowCost.reasonPlaceholder': 'Damaged box, agreed with the owner…',

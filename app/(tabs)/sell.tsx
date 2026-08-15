@@ -2,7 +2,15 @@ import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScanLine, Trash2 } from 'lucide-react-native';
-import { Button, EmptyState, MoneyField, Screen, Text } from '../../components/ui';
+import {
+  Button,
+  EmptyState,
+  InlineNotice,
+  MoneyField,
+  MoneyValue,
+  Screen,
+  Text,
+} from '../../components/ui';
 import { ProductConfirmationCard } from '../../components/product';
 import { ScanTarget } from '../../components/scanner';
 import { BottomSheet } from '../../components/overlay';
@@ -12,6 +20,7 @@ import { SaleSuccess } from '../../components/sell/SaleSuccess';
 import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../components/sell/types';
 import { api, ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
+import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
@@ -108,6 +117,14 @@ export default function SellScreen() {
   const subtotal = cartSubtotal(lines);
   const total = Math.max(0, subtotal - discount);
   const totalCost = cartCost(lines);
+  /**
+   * Only knowable when every line's cost came back — the server strips cost
+   * without `cost.view`, and `cartCost` returns undefined rather than guessing.
+   * A cashier who cannot see cost simply gets no warning here; the server still
+   * refuses the sale without an override.
+   */
+  const belowCost = totalCost !== undefined && total < totalCost;
+  const offline = !useConnectivity((s) => s.online);
 
   // ── Scanning ──────────────────────────────────────────────────────────────
 
@@ -455,16 +472,40 @@ export default function SellScreen() {
         footer={
           lines.length > 0 ? (
             <>
+              {/*
+                Said here, where the money is, rather than only in the dialog
+                after Charge is pressed. Preventing the mistake beats recording
+                it — and a cashier who learns at checkout that the sale needs a
+                manager has already promised the customer a price.
+              */}
+              {belowCost ? (
+                <InlineNotice tone="warning" style={styles.notice}>
+                  {t('sell.belowCost.inline', { amount: formatMoney(totalCost - total) })}
+                </InlineNotice>
+              ) : null}
+              {offline ? (
+                <InlineNotice tone="danger" style={styles.notice}>
+                  {t('sell.offline.body')}
+                </InlineNotice>
+              ) : null}
               <View style={styles.totals}>
                 <Text variant="body" tone="secondary">
                   {t('sell.cart.count', { count: lines.length })}
                 </Text>
-                <Text variant="title">{formatMoney(total)}</Text>
+                <MoneyValue value={total} size="display" />
               </View>
               <Button
                 title={t('sell.charge', { amount: formatMoney(total) })}
                 size="lg"
                 fullWidth
+                /**
+                 * Shut while there is no connection. A sale taken now would
+                 * fail at the server and the customer would already have paid;
+                 * refusing up front is the honest answer, and the banner above
+                 * says why rather than leaving a dead button unexplained.
+                 */
+                disabled={offline || submitting}
+                loading={submitting}
                 onPress={() => setPaymentOpen(true)}
               />
             </>
@@ -553,6 +594,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingBottom: space['3xl'],
   },
+  notice: { marginBottom: space.sm },
   totals: {
     flexDirection: 'row',
     alignItems: 'center',

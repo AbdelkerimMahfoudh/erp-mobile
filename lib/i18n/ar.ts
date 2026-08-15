@@ -158,6 +158,8 @@ export const ar: Catalogue = {
   // ── Below cost ────────────────────────────────────────────────────────────
   'sell.belowCost.title': 'البيع بأقل من التكلفة؟',
   'sell.belowCost.body': 'هذه العملية أقل بـ {amount} من تكلفة البضاعة.',
+  'sell.belowCost.inline': 'أقل من التكلفة بـ {amount} — يحتاج إلى موافقة',
+  'sell.offline.body': 'لا يوجد اتصال. انتظر عودته قبل استلام الدفع.',
   'sell.belowCost.confirm': 'بيع على أي حال',
   'sell.belowCost.reason': 'لماذا؟',
   'sell.belowCost.reasonPlaceholder': 'علبة تالفة، بموافقة المالك…',
