@@ -9,6 +9,7 @@ import {
   ErrorState,
   Screen,
   Section,
+  MoneyValue,
   SkeletonList,
   Text,
 } from '../../components/ui';
@@ -196,12 +197,12 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
           <>
             <Section title={t('suppliers.detail.money')}>
               <Card>
-                <Row label={t('suppliers.detail.purchased')} value={formatMoney(ledger.totalPurchased)} />
-                <Row label={t('suppliers.detail.paid')} value={formatMoney(ledger.totalConfirmedPaid)} />
+                <Row label={t('suppliers.detail.purchased')} amount={ledger.totalPurchased} />
+                <Row label={t('suppliers.detail.paid')} amount={ledger.totalConfirmedPaid} />
                 {/* Owed is a warning, never a success. */}
                 <Row
                   label={t('suppliers.detail.outstanding')}
-                  value={formatMoney(ledger.outstanding)}
+                  amount={ledger.outstanding}
                   strong
                   tone={ledger.outstanding > 0 ? 'warning' : 'secondary'}
                 />
@@ -344,14 +345,25 @@ function SettlementLines({ s }: { s: SupplierSettlement }) {
   );
 }
 
+/**
+ * A labelled figure in the ledger.
+ *
+ * Takes the number, not a formatted string: purchased, paid and outstanding sit
+ * in a vertical column, and a column of money is the one place tabular figures
+ * genuinely earn their keep — an owner checking what they owe compares these
+ * three at a glance rather than reading each one.
+ *
+ * `amount` may be undefined, which means the server withheld it from this role
+ * rather than that it is zero. `MoneyValue` renders that as an em dash.
+ */
 function Row({
   label,
-  value,
+  amount,
   strong,
   tone,
 }: {
   label: string;
-  value: string;
+  amount?: number;
   strong?: boolean;
   tone?: 'warning' | 'secondary';
 }) {
@@ -360,9 +372,11 @@ function Row({
       <Text variant={strong ? 'bodyStrong' : 'body'} tone="secondary">
         {label}
       </Text>
-      <Text variant={strong ? 'bodyStrong' : 'body'} tone={tone}>
-        {value}
-      </Text>
+      <MoneyValue
+        value={amount}
+        size={strong ? 'default' : 'small'}
+        tone={tone === 'warning' ? 'negative' : tone === 'secondary' ? 'muted' : 'default'}
+      />
     </View>
   );
 }
