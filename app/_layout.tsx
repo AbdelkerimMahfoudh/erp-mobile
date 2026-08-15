@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
+import { OfflineBanner } from '../components/ui';
 import { useI18n } from '../lib/i18n';
 import { colors } from '../lib/design/colors';
 
@@ -34,6 +35,13 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <StatusBar style="dark" />
+          {/*
+            Mounted once, above every screen. It renders nothing while the
+            server is reachable, so it costs no layout in the normal case — and
+            when it does appear it pushes content down rather than covering it,
+            because a banner that hides what it warns about is worse than none.
+          */}
+          <OfflineBanner />
           <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="select-branch" />

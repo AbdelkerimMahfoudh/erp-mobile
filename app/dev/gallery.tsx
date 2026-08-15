@@ -20,8 +20,11 @@ import {
   ErrorState,
   FilterChip,
   Identifier,
+  InlineNotice,
   ListRow,
   MoneyField,
+  MoneyValue,
+  PermissionNotice,
   Screen,
   SearchInput,
   Section,
@@ -35,6 +38,7 @@ import {
   Stepper,
   Text,
   TextField,
+  WorkflowTimeline,
 } from '../../components/ui';
 import { BottomSheet, SelectSheet } from '../../components/overlay';
 import { ProductConfirmationCard } from '../../components/product';
@@ -451,6 +455,93 @@ export default function GalleryScreen() {
           <ListRow leading={Boxes} title="Selected" subtitle="Shown while picking" selected onPress={() => {}} />
           <ListRow leading={Boxes} title="Disabled" subtitle="Cannot be chosen" disabled onPress={() => {}} />
         </View>
+      </Section>
+
+      {/* ── Money ────────────────────────────────────────────────────────── */}
+      <Section title="Money" subtitle="Tabular figures, so a column can be compared at a glance">
+        <Card>
+          <MoneyValue value={1250000} size="display" />
+          <Divider style={styles.divider} />
+          {/* The point of tabular-nums: these three must line up exactly. */}
+          <MoneyValue value={9.5} />
+          <MoneyValue value={11111.11} />
+          <MoneyValue value={888888.88} />
+          <Divider style={styles.divider} />
+          <View style={styles.row}>
+            <MoneyValue value={4500} tone="positive" signed size="small" />
+            <MoneyValue value={-4500} tone="auto" signed size="small" />
+            <MoneyValue value={0} tone="auto" size="small" />
+          </View>
+          <Divider style={styles.divider} />
+          {/* Withheld cost, NOT zero — the two must never look alike. */}
+          <MoneyValue value={null} />
+          <Text variant="caption" tone="tertiary">
+            Hidden because this role has no cost.view
+          </Text>
+        </Card>
+      </Section>
+
+      {/* ── Inline notices ───────────────────────────────────────────────── */}
+      <Section title="Inline notices" subtitle="Attached to the thing they are about">
+        <InlineNotice tone="warning" title="Below cost">
+          This price is under what the shop paid. Sell anyway?
+        </InlineNotice>
+        <InlineNotice tone="danger">This IMEI has already been sold.</InlineNotice>
+        <InlineNotice tone="success">Refund confirmed. The money has left the till.</InlineNotice>
+        <InlineNotice tone="info">Reported, waiting for a manager to confirm.</InlineNotice>
+        <PermissionNotice message="Only an owner or manager can confirm a refund." />
+        {/* Long Arabic, to prove wrapping rather than truncation. */}
+        <InlineNotice tone="warning" title="تحذير">
+          هذا السعر أقل من التكلفة التي دفعها المتجر لهذا الهاتف، هل تريد المتابعة على أي حال؟
+        </InlineNotice>
+      </Section>
+
+      {/* ── Workflow ─────────────────────────────────────────────────────── */}
+      <Section
+        title="Workflow timeline"
+        subtitle="Due, reported and confirmed differ in SHAPE before colour"
+      >
+        <Card>
+          <WorkflowTimeline
+            steps={[
+              {
+                key: 'requested',
+                label: 'Return requested',
+                detail: 'Fatimatou · screen fault',
+                timestamp: 'Mon 14:02',
+                state: 'done',
+              },
+              {
+                key: 'approved',
+                label: 'Approved — refund due',
+                detail: 'The shop owes 45,000 MRU',
+                timestamp: 'Mon 16:20',
+                state: 'done',
+              },
+              {
+                key: 'reported',
+                label: 'Payout reported',
+                detail: 'Waiting for an owner or manager to confirm',
+                state: 'current',
+              },
+              { key: 'confirmed', label: 'Confirmed — money paid', state: 'pending' },
+            ]}
+          />
+        </Card>
+        <Card>
+          <WorkflowTimeline
+            steps={[
+              { key: 'r', label: 'Return requested', timestamp: 'Tue 09:10', state: 'done' },
+              {
+                key: 'x',
+                label: 'Rejected after investigation',
+                detail: 'Customer damage — outside the policy',
+                timestamp: 'Tue 11:45',
+                state: 'rejected',
+              },
+            ]}
+          />
+        </Card>
       </Section>
 
       {/* ── Loading ──────────────────────────────────────────────────────── */}

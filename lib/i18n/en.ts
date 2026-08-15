@@ -40,6 +40,11 @@ export const en = {
   'state.empty.title': 'Nothing here yet',
   'state.error.title': 'Something went wrong',
   'state.error.body': 'We could not load this. Check your connection and try again.',
+  // Persistent while the server is unreachable. Says the consequence, not the
+  // diagnosis: staff do not need to know which layer failed, they need to know
+  // that what they do now will not be recorded.
+  'state.offline.banner': 'No connection — nothing you confirm will be saved',
+  'permission.notice.title': 'You cannot do this',
   'state.error.offline.title': 'No connection',
   'state.error.offline.body': 'You appear to be offline. This will work again once you reconnect.',
   'state.error.permission.title': 'Not available to you',

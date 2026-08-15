@@ -1,6 +1,7 @@
 import { API_V1_URL, TOKEN_KEYS } from '../constants/config';
 import { getItem, setItem, deleteItem } from './storage';
 import { getActiveBranchId } from './branch';
+import { useConnectivity } from './connectivity';
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type Body = unknown;
@@ -97,7 +98,24 @@ async function parse<T>(res: Response): Promise<T> {
 
 async function request<T>(method: Method, path: string, body?: Body): Promise<T> {
   const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
-  let res = await send(method, path, body, token);
+
+  let res: Response;
+  try {
+    res = await send(method, path, body, token);
+  } catch (error) {
+    /**
+     * `fetch` only rejects when the server could not be reached at all — a 500
+     * still resolves. That makes this the one honest place to learn the shop's
+     * internet is down, rather than guessing from a radio flag.
+     *
+     * The error is rethrown untouched: this observes, it does not swallow.
+     */
+    useConnectivity.getState().markUnreachable();
+    throw error;
+  }
+
+  // A response arrived, so the server is reachable — even a 4xx proves that.
+  useConnectivity.getState().markReachable();
 
   if (res.status === 401 && token) {
     const fresh = await refreshAccessToken();

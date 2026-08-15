@@ -44,6 +44,8 @@ export const ar: Catalogue = {
   'state.empty.title': 'لا يوجد شيء بعد',
   'state.error.title': 'حدث خطأ ما',
   'state.error.body': 'تعذّر تحميل هذا. تحقّق من اتصالك وحاول مرة أخرى.',
+  'state.offline.banner': 'لا يوجد اتصال — لن يُحفظ أي شيء تؤكّده الآن',
+  'permission.notice.title': 'لا يمكنك القيام بهذا',
   'state.error.offline.title': 'لا يوجد اتصال',
   'state.error.offline.body': 'يبدو أنك غير متصل. سيعمل هذا مجدّدًا عند عودة الاتصال.',
   'state.error.permission.title': 'غير متاح لك',
