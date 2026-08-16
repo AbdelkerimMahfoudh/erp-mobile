@@ -68,6 +68,15 @@ export const qk = {
   expenses: (branchId: string | null, filters?: string) =>
     ['expenses', branchId, filters ?? ''] as const,
   expense: (id: string) => ['expense', id] as const,
+  /**
+   * The progressive closing (Milestone E). Branch-and-day scoped, because two
+   * branches counting on the same evening are two entirely separate drawers.
+   */
+  openClosing: (branchId: string | null, date: string) => ['open-closing', branchId, date] as const,
+  discrepancies: (branchId: string | null) => ['discrepancies', branchId] as const,
+  discrepancy: (id: string) => ['discrepancy', id] as const,
+  /** The signed-in person's own ledger — theirs, not a branch's. */
+  myDebt: () => ['my-debt'] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,

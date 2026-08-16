@@ -109,7 +109,20 @@ export const PERMISSIONS = [
   'expense.submit',
   'expense.review',
   'expense.manage',
+  /**
+   * Milestone E. `count` and `perform` are separate on purpose: whoever holds
+   * the drawer records what is in it, and signing the day off stays with
+   * whoever is accountable for it. Before the split, one permission did both,
+   * so an Employee could not report a count at all.
+   */
+  'closing.count',
   'closing.perform',
+  /**
+   * Owner-only, and deliberately not part of `closing.perform` — a Manager
+   * holds that. Deciding that a named person owes the business money is not an
+   * operational act.
+   */
+  'debt.manage',
   'report.view',
   'branch.manage',
   'user.manage',

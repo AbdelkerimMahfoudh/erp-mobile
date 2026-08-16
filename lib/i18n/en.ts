@@ -74,6 +74,68 @@ export const en = {
   'closing.yesterday': 'Yesterday',
   'closing.monthToDate': 'This month so far',
 
+  // Counting the day, one channel at a time (Milestone E). Worded so that
+  // counting never sounds like closing — they are two different acts, often by
+  // two different people.
+  'closing.channels': 'What was counted',
+  'closing.channel.cash': 'Cash drawer',
+  'closing.channel.unattributed': 'Money with no account recorded',
+  'closing.channel.unattributed.why':
+    'These payments never named an account, so there is no balance to check them against. Shown so nothing is hidden.',
+  'closing.channel.counted': 'Counted',
+  'closing.channel.outstanding': 'Not counted yet',
+  'closing.channel.skipped': 'Skipped',
+  'closing.channel.notCounted': 'Never counted',
+  'closing.channel.reportOnly': 'Shown only',
+  'closing.countedBalance': 'Balance shown by the account',
+  'closing.count.action': 'Save this count',
+  'closing.count.failed': 'Could not save that count',
+  'closing.count.noPermission': 'You can see the day, but entering counts is not part of your job.',
+  'closing.progress.done': 'Everything has been counted. The day is ready to be closed.',
+  'closing.progress.remaining': '{count} still to count',
+  'closing.skip.action': 'Cannot check now',
+  'closing.skip.reason': 'Why it cannot be checked',
+  'closing.skip.reasonPlaceholder': 'The agent is closed until tomorrow…',
+  'closing.skip.confirm': 'Record that',
+  'closing.skip.recorded': 'Skipped — {reason}',
+  'closing.signOff.incomplete': 'Some channels have not been counted. Closing now records them as never checked.',
+  'closing.signOff.notYours': 'Your counts are saved. Someone with authority to close the day will finish it.',
+  'closing.locked.body': 'This day is signed off. The figures no longer change.',
+
+  // ── A difference that has to be answered for (Milestone E) ────────────────
+  // Never worded as an accusation: the system saw a difference, it did not
+  // decide who caused one.
+  'discrepancy.title': 'Differences to settle',
+  'discrepancy.one.title': 'The difference',
+  'discrepancy.empty.title': 'Everything balanced',
+  'discrepancy.empty.body': 'No day is waiting on a decision.',
+  'discrepancy.kind.shortage': 'Money missing',
+  'discrepancy.kind.surplus': 'Extra money',
+  'discrepancy.status.pending': 'Waiting on you',
+  'discrepancy.what': 'What happened',
+  'discrepancy.on': 'On {date}',
+  'discrepancy.decide': 'What do you want to do',
+  'discrepancy.decided': 'What was decided',
+  'discrepancy.resolution.employee_debt': 'Someone owes it',
+  'discrepancy.resolution.store_absorbed': 'The shop covers it',
+  'discrepancy.resolution.error_corrected': 'A record was wrong',
+  'discrepancy.resolution.forgiven': 'Waived',
+  'discrepancy.surplus.why': 'Extra money cannot be charged to anyone. It is usually a sale entered wrongly.',
+  'discrepancy.who': 'Who is responsible',
+  'discrepancy.reason': 'What happened, in your own words',
+  'discrepancy.reasonPlaceholder': 'Counted short at the handover…',
+  'discrepancy.reason.why': 'This is what somebody reads back in six months. Say enough for it to make sense then.',
+  'discrepancy.submit': 'Record this decision',
+  'discrepancy.failed': 'Could not record that decision',
+  'discrepancy.ownerOnly': 'Only the owner can decide what a difference means.',
+
+  // ── What somebody owes ────────────────────────────────────────────────────
+  'debt.ledger': 'The record',
+  'debt.kind.charge': 'Charged',
+  'debt.kind.repayment': 'Paid back',
+  'debt.kind.deduction': 'Taken from pay',
+  'debt.kind.forgiveness': 'Written off',
+
   // ── Correcting a confirmed payment (Milestone B) ──────────────────────────
   // Worded throughout so "asked for" can never be mistaken for "done".
   'correction.request.action': 'Correct this payment',
