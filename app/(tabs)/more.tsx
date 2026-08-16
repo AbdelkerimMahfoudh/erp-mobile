@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Truck, Undo2 } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -82,6 +82,12 @@ export default function MoreScreen() {
           </Can>
           <Can perm="report.view">
             <MenuRow icon={<BarChart3 size={20} color={colors.brand} />} label={t('nav.analytics')} onPress={() => router.push('/analytics')} />
+          </Can>
+          {/* Expenses (Milestone D). Gated on submit, which all three store
+              roles hold — the person who spent the money reports it, and the
+              list scopes them to their own. */}
+          <Can perm="expense.submit">
+            <MenuRow icon={<Wallet size={20} color={colors.brand} />} label={t('nav.expenses')} onPress={() => router.push('/expenses' as Href)} />
           </Can>
           <Can perm="closing.perform">
             <MenuRow icon={<ClipboardCheck size={20} color={colors.brand} />} label={t('nav.closing')} onPress={() => router.push('/closing')} />

@@ -1153,3 +1153,50 @@ export interface CorrectionPage {
   rows: FinancialCorrection[];
   nextCursor: string | null;
 }
+
+/**
+ * An expense (Milestone D).
+ *
+ * `reported` moves no money and reaches no report. Only `confirmed` does — and
+ * only an Owner can cause it.
+ *
+ * Two accounting classes, and the difference is not cosmetic: a `variable`
+ * expense belongs to the day it was CONFIRMED; a `fixed` one to its DUE date,
+ * and is never spread across every day.
+ */
+export type ExpenseStatus = 'reported' | 'confirmed' | 'rejected';
+export type ExpenseClass = 'variable' | 'fixed';
+
+export interface Expense {
+  id: string;
+  category: string;
+  amount: number;
+  status: ExpenseStatus;
+  expenseClass: ExpenseClass;
+  /** Salaries stay separately reportable from other fixed costs. */
+  isSalary: boolean;
+  /** The date a FIXED expense is recognised on. Null for variable. */
+  dueDate: string | null;
+  /** Only `cash` touches the drawer. */
+  method: 'cash' | 'account';
+  /** Frozen when reported; a later rename never rewrites it. */
+  accountLabel: string | null;
+  reference: string | null;
+  note: string | null;
+  /** True when the Owner knowingly confirmed without stating a reason. */
+  reasonOmitted: boolean;
+  rejectedReason: string | null;
+  spentOn: string;
+  reportedBy: string | null;
+  reportedAt: string | null;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+  /** The business day the money is counted against. Null until confirmed. */
+  confirmationDate: string | null;
+  /** Send with confirm/reject. A stale one is a 409. */
+  version: number;
+}
+
+export interface ExpensePage {
+  rows: Expense[];
+}

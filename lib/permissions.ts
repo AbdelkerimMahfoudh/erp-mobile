@@ -99,6 +99,15 @@ export const PERMISSIONS = [
    */
   'financial.correction.request',
   'financial.correction.approve',
+  /**
+   * Milestone D — the split the seed used to say the model could not express.
+   * `submit` goes to all three store roles: the person who spent the money
+   * reports it, and sees only their own. `review` is the Owner's alone —
+   * confirming is when the money counts as gone. `manage` (categories,
+   * templates, settings) is unchanged and still Owner-only.
+   */
+  'expense.submit',
+  'expense.review',
   'expense.manage',
   'closing.perform',
   'report.view',

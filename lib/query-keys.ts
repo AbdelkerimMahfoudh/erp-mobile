@@ -65,7 +65,9 @@ export const qk = {
   analyticsCategories: (branchId: string | null) => ['analytics-categories', branchId] as const,
   inventoryValue: (branchId: string | null) => ['inventory-value', branchId] as const,
   health: (branchId: string | null) => ['health', branchId] as const,
-  expenses: (branchId: string | null, date?: string) => ['expenses', branchId, date ?? ''] as const,
+  expenses: (branchId: string | null, filters?: string) =>
+    ['expenses', branchId, filters ?? ''] as const,
+  expense: (id: string) => ['expense', id] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,
