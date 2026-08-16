@@ -142,6 +142,13 @@ export const en = {
   'scanner.imei.single': 'One IMEI — a single-SIM phone',
   'scanner.imei.dualSim': 'Two IMEIs — one dual-SIM phone, not two phones',
   'scanner.imei.use': 'Use this',
+  // Where a suggestion came from. A suggestion the user cannot trace is one
+  // they cannot judge — and a proposal must never read like a decision.
+  'scanner.tac.confirmed': 'Your shop has confirmed this model: {product}',
+  'scanner.tac.proposed': 'Somebody suggested a model for this — a manager still needs to confirm it',
+  'scanner.tac.generic': 'Looks like {product}. Choose the exact product yourself.',
+  'scanner.tac.unknown': 'Unknown TAC — choose the product yourself',
+  'scanner.tac.conflict': 'The two IMEIs point at different products. A manager needs to look at this.',
 
   // ── More menu ─────────────────────────────────────────────────────────────
   'more.manage': 'Manage',

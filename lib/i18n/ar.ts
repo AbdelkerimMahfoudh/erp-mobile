@@ -140,6 +140,11 @@ export const ar: Catalogue = {
   'scanner.imei.single': 'رقم IMEI واحد — هاتف بشريحة واحدة',
   'scanner.imei.dualSim': 'رقمان — هاتف واحد بشريحتين، وليس هاتفين',
   'scanner.imei.use': 'استخدم هذا',
+  'scanner.tac.confirmed': 'متجرك أكّد هذا الطراز: {product}',
+  'scanner.tac.proposed': 'اقترح أحدهم طرازًا لهذا — ما زال يحتاج تأكيد المدير',
+  'scanner.tac.generic': 'يبدو أنه {product}. اختر المنتج الدقيق بنفسك.',
+  'scanner.tac.unknown': 'رمز TAC غير معروف — اختر المنتج بنفسك',
+  'scanner.tac.conflict': 'الرقمان يشيران إلى منتجين مختلفين. يحتاج الأمر إلى مراجعة مدير.',
 
   // ── قائمة المزيد ──────────────────────────────────────────────────────────
   'more.manage': 'الإدارة',

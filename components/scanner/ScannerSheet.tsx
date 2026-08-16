@@ -15,6 +15,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
 import { readImeisFromImage, isOcrAvailable } from '../../lib/ocr';
 import type { ImeiCandidate } from '../../lib/imei';
+import { reconcileTacs, useTacResolution } from '../../lib/tac';
 import type { ScanResult } from '../../types/api';
 
 /**
@@ -91,6 +92,18 @@ export function ScannerSheet({
   const [reading, setReading] = useState<ImeiCandidate[]>([]);
   const [capturing, setCapturing] = useState(false);
   const [ocrNote, setOcrNote] = useState<string | null>(null);
+
+  /**
+   * The TAC behind each IMEI read, resolved through the company overlay. Both
+   * are resolved for a dual-SIM phone, because they must be reconciled before
+   * anything is offered — see `reconcileTacs`.
+   */
+  const primaryTac = useTacResolution(reading[0]?.imei);
+  const secondaryTac = useTacResolution(reading[1]?.imei);
+  const { resolution: tacResolution, conflict: tacConflict } = reconcileTacs(
+    primaryTac.data,
+    secondaryTac.data,
+  );
 
   /**
    * Photograph the screen and read it, on the device.
@@ -341,8 +354,44 @@ export function ScannerSheet({
                   <Text variant="caption" tone="inverse">
                     {reading.length > 1 ? t('scanner.imei.dualSim') : t('scanner.imei.single')}
                   </Text>
+
+                  {/*
+                    What the shop knows about this model, and WHERE that came
+                    from. Shown before anything is submitted, because a
+                    suggestion the user cannot trace is a suggestion they cannot
+                    judge — and a proposal must never look like a decision.
+                  */}
+                  <Text variant="caption" tone="inverse">
+                    {tacConflict
+                      ? t('scanner.tac.conflict')
+                      : tacResolution?.source === 'company_confirmed'
+                        ? t('scanner.tac.confirmed', {
+                            product:
+                              tacResolution.product
+                                ? [tacResolution.product.brand, tacResolution.product.model]
+                                    .filter(Boolean)
+                                    .join(' ')
+                                : '',
+                          })
+                        : tacResolution?.source === 'company_proposed'
+                          ? t('scanner.tac.proposed')
+                          : tacResolution?.source === 'global_catalog'
+                            ? t('scanner.tac.generic', {
+                                product: [tacResolution.brand, tacResolution.model]
+                                  .filter(Boolean)
+                                  .join(' '),
+                              })
+                            : t('scanner.tac.unknown')}
+                  </Text>
+
                   <Button
                     title={t('scanner.imei.use')}
+                    /**
+                     * Blocked on a dual-SIM conflict. Two TACs naming different
+                     * products is a question for a human, not something to
+                     * resolve by picking one.
+                     */
+                    disabled={tacConflict}
                     fullWidth
                     onPress={() => {
                       // The primary identifier goes down the SAME `/scan`
