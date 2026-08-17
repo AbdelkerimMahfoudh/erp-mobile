@@ -77,6 +77,9 @@ export const qk = {
   discrepancy: (id: string) => ['discrepancy', id] as const,
   /** The signed-in person's own ledger — theirs, not a branch's. */
   myDebt: () => ['my-debt'] as const,
+  /** Goals (Milestone F). Branch-scoped: two branches aim at different things. */
+  goals: (branchId: string | null, includeArchived: boolean) =>
+    ['goals', branchId, includeArchived] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,

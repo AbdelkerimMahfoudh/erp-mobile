@@ -123,6 +123,12 @@ export const PERMISSIONS = [
    * operational act.
    */
   'debt.manage',
+  /**
+   * Milestone F. SETTING a target is Owner and Manager; READING one is not
+   * gated at all — an employee with a personal target must see it, and
+   * 'report.view' would hand them the shop's profit reporting with it.
+   */
+  'goal.manage',
   'report.view',
   'branch.manage',
   'user.manage',
