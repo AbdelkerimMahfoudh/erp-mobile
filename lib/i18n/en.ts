@@ -417,6 +417,7 @@ export const en = {
   'nav.suppliers.hint': 'What the shop owes',
   'nav.transfers': 'Transfers',
   'nav.expenses': 'Money spent',
+  'nav.goals': 'Targets',
   'nav.closing': 'Daily closing',
   'state.offline.banner': 'No connection — nothing you confirm will be saved',
   'permission.notice.title': 'You cannot do this',

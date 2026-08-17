@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -89,9 +89,18 @@ export default function MoreScreen() {
           <Can perm="expense.submit">
             <MenuRow icon={<Wallet size={20} color={colors.brand} />} label={t('nav.expenses')} onPress={() => router.push('/expenses' as Href)} />
           </Can>
-          <Can perm="closing.perform">
+          {/* Gated on `closing.count`, not `closing.perform` (Milestone E).
+              The Employee holding the drawer is the one who has to reach this
+              screen; signing the day off is a separate act the screen itself
+              gates. Leaving it on `closing.perform` would have hidden the
+              screen from exactly the people the milestone existed to enable. */}
+          <Can perm="closing.count">
             <MenuRow icon={<ClipboardCheck size={20} color={colors.brand} />} label={t('nav.closing')} onPress={() => router.push('/closing')} />
           </Can>
+          {/* Goals (Milestone F). Deliberately ungated: an employee with a
+              personal target must be able to see it, and the list scopes
+              somebody without `goal.manage` to their own. */}
+          <MenuRow icon={<Target size={20} color={colors.brand} />} label={t('nav.goals')} onPress={() => router.push('/goals' as Href)} />
           {/* Owner-only. The screen refuses non-Owners on its own too, for the
               deep-link case where this menu was never rendered. */}
           <Can perm="settings.manage">

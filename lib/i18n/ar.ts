@@ -405,6 +405,7 @@ export const ar: Catalogue = {
   'nav.suppliers.hint': 'ما يدين به المتجر',
   'nav.transfers': 'التحويلات',
   'nav.expenses': 'المصروفات',
+  'nav.goals': 'الأهداف',
   'nav.closing': 'الإغلاق اليومي',
   'state.offline.banner': 'لا يوجد اتصال — لن يُحفظ أي شيء تؤكّده الآن',
   'permission.notice.title': 'لا يمكنك القيام بهذا',
