@@ -83,6 +83,17 @@ export const qk = {
   /** Stock imports (Milestone G). Branch-scoped: stock lands in one branch. */
   imports: (branchId: string | null) => ['imports', branchId] as const,
   import: (id: string) => ['import', id] as const,
+  /**
+   * Inter-store consignment (Milestone H). Store search is NOT branch-scoped —
+   * discovery is a company-level act — while consignments are, because stock
+   * leaves a particular branch.
+   */
+  storeSearch: (q: string) => ['store-search', q] as const,
+  connections: () => ['connections'] as const,
+  counterparties: () => ['counterparties'] as const,
+  consignments: (branchId: string | null, group: string) =>
+    ['consignments', branchId, group] as const,
+  consignment: (id: string) => ['consignment', id] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, FileSpreadsheet, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, FileSpreadsheet, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -41,7 +41,7 @@ export default function MoreScreen() {
 
       {/* Each row is gated by the permission its destination actually requires,
           so nothing here leads to a 403. The heading hides with its contents. */}
-      <Can anyOf={['sale.view', 'return.view', 'unit.add', 'report.view', 'closing.count', 'closing.perform', 'import.run', 'settings.manage', 'user.manage']}>
+      <Can anyOf={['sale.view', 'return.view', 'unit.add', 'report.view', 'closing.count', 'closing.perform', 'import.run', 'consignment.view', 'connection.manage', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">{t('more.manage')}</Text>
         <View className="mt-2 gap-3">
           {/* Browsing the catalog is open to every store role — Sell and Receive
@@ -101,6 +101,16 @@ export default function MoreScreen() {
               personal target must be able to see it, and the list scopes
               somebody without `goal.manage` to their own. */}
           <MenuRow icon={<Target size={20} color={colors.brand} />} label={t('nav.goals')} onPress={() => router.push('/goals' as Href)} />
+          {/* Inter-store consignment (Milestone H). Two entries, because finding
+              a partner and running the stock are different jobs held by
+              different people: discovery is Owner-only company trust, while
+              seeing consignments is operational. */}
+          <Can perm="connection.manage">
+            <MenuRow icon={<Building2 size={20} color={colors.brand} />} label={t('nav.stores')} onPress={() => router.push('/stores' as Href)} />
+          </Can>
+          <Can perm="consignment.view">
+            <MenuRow icon={<Handshake size={20} color={colors.brand} />} label={t('nav.consignments')} onPress={() => router.push('/consignments' as Href)} />
+          </Can>
           {/* Bringing a stock list in (Milestone G). Gated on the permission
               that, until this milestone, guarded nothing at all. */}
           <Can perm="import.run">

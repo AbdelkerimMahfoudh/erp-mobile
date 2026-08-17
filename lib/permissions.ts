@@ -129,6 +129,22 @@ export const PERMISSIONS = [
    * 'report.view' would hand them the shop's profit reporting with it.
    */
   'goal.manage',
+  /**
+   * Milestone H — inter-store consignment. Narrow keys, because consignment
+   * mixes physical acts (hand a phone over) with company-level authority
+   * (choose who to trade with, write off a debt).
+   */
+  'connection.manage',
+  'consignment.view',
+  'consignment.request',
+  'consignment.review',
+  'consignment.custody.send',
+  'consignment.custody.receive',
+  'consignment.sell',
+  'consignment.payment.report',
+  'consignment.payment.confirm',
+  'consignment.return.confirm',
+  'consignment.forgive',
   'report.view',
   'branch.manage',
   'user.manage',
