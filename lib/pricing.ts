@@ -7,8 +7,6 @@ import { t, type TranslationKey } from './i18n';
 import { qk } from './query-keys';
 import { money } from './theme';
 import { toast } from './toast';
-export { parsePrice, canSave, type ParsedPrice } from './price-input';
-import { parsePrice } from './price-input';
 import type {
   EffectivePrice,
   PriceHistoryPage,
@@ -17,6 +15,8 @@ import type {
   SetPriceBody,
   UnitEffectivePrice,
 } from '../types/api';
+
+export { parsePrice, canSave, type ParsedPrice } from './price-input';
 
 /**
  * The mobile side of pricing.

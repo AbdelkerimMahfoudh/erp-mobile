@@ -94,6 +94,14 @@ export const qk = {
   consignments: (branchId: string | null, group: string) =>
     ['consignments', branchId, group] as const,
   consignment: (id: string) => ['consignment', id] as const,
+  /**
+   * Money loans (Milestone I). Branch-scoped like consignments — a loan is
+   * recorded by the branch that made it — while the closing reminders are a
+   * company-level nudge and are not.
+   */
+  loans: (branchId: string | null, group: string) => ['loans', branchId, group] as const,
+  loan: (id: string) => ['loan', id] as const,
+  loanReminders: () => ['loan-reminders'] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,

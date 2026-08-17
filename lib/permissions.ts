@@ -145,6 +145,17 @@ export const PERMISSIONS = [
   'consignment.payment.confirm',
   'consignment.return.confirm',
   'consignment.forgive',
+  /**
+   * Milestone I — money loans. Separate keys from consignment: lending money is
+   * a different decision from lending stock, and a shop may well want an
+   * employee who can record a consignment but not the owner's private debts.
+   * No role below Owner is granted `loan.forgive`.
+   */
+  'loan.view',
+  'loan.manage',
+  'loan.payment.report',
+  'loan.payment.confirm',
+  'loan.forgive',
   'report.view',
   'branch.manage',
   'user.manage',

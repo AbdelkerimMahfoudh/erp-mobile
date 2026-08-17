@@ -22,6 +22,7 @@ import { useConnectivity } from '../lib/connectivity';
 import { space } from '../lib/design/tokens';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
+import { useClosingReminders } from '../lib/loans';
 import {
   useOpenClosing,
   useRecordCount,
@@ -124,6 +125,8 @@ export default function ClosingScreen() {
           />
         ))}
 
+        <LoanReminders />
+
         {canSignOff ? (
           <View style={styles.signOff}>
             {!day.complete ? (
@@ -173,6 +176,70 @@ export default function ClosingScreen() {
 }
 
 /** One channel: what it should hold, and the count for it. */
+/**
+ * Loans waiting for somebody, shown while the day is being closed (Milestone I).
+ *
+ * A nudge, and nothing more. It changes no figure the closing computes: a debt
+ * is not cash in the drawer, and money lent is neither revenue nor an expense.
+ * The screen says so out loud rather than leaving somebody to wonder whether
+ * they should have counted it — and it renders nothing at all when there is
+ * nothing to chase, so a clear day stays clear.
+ */
+function LoanReminders() {
+  const { t } = useTranslation();
+  const canSee = usePermission('loan.view');
+  const router = useRouter();
+  const reminders = useClosingReminders();
+
+  const r = reminders.data;
+  if (!canSee || !r) return null;
+
+  const nothing =
+    r.proposalsNeedingAnswer === 0 &&
+    r.paymentsAwaitingConfirmation === 0 &&
+    r.balancesOutstanding === 0;
+  if (nothing) return null;
+
+  return (
+    <Section title={t('closing.loans.title')}>
+      <Card style={styles.loanCard}>
+        {r.proposalsNeedingAnswer > 0 ? (
+          <Text variant="body">
+            {t('closing.loans.answer', { count: String(r.proposalsNeedingAnswer) })}
+          </Text>
+        ) : null}
+        {r.paymentsAwaitingConfirmation > 0 ? (
+          <Text variant="body">
+            {t('closing.loans.confirm', { count: String(r.paymentsAwaitingConfirmation) })}
+          </Text>
+        ) : null}
+        {r.balancesOutstanding > 0 ? (
+          <Text variant="body">
+            {t('closing.loans.outstanding', {
+              count: String(r.balancesOutstanding),
+              amount: String(r.totalOutstanding),
+            })}
+          </Text>
+        ) : null}
+        {/*
+          Read from the payload rather than asserted here, so this line cannot
+          keep claiming something the server has stopped meaning.
+        */}
+        {!r.affectsExpectedCash ? (
+          <Text variant="caption" tone="secondary">
+            {t('closing.loans.hint')}
+          </Text>
+        ) : null}
+        <Button
+          title={t('nav.loans')}
+          variant="ghost"
+          onPress={() => router.push('/loans' as never)}
+        />
+      </Card>
+    </Section>
+  );
+}
+
 function ChannelCard({
   channel,
   disabled,
@@ -376,6 +443,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.xs },
   form: { gap: space.sm },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
+  loanCard: { gap: 8 },
   divider: { marginVertical: space.xs },
   hint: { marginTop: space.xs },
   doneHead: { alignItems: 'center', gap: space.sm, paddingVertical: space.lg },
