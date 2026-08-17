@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, FileSpreadsheet, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -41,7 +41,7 @@ export default function MoreScreen() {
 
       {/* Each row is gated by the permission its destination actually requires,
           so nothing here leads to a 403. The heading hides with its contents. */}
-      <Can anyOf={['sale.view', 'return.view', 'unit.add', 'report.view', 'closing.perform', 'settings.manage', 'user.manage']}>
+      <Can anyOf={['sale.view', 'return.view', 'unit.add', 'report.view', 'closing.count', 'closing.perform', 'import.run', 'settings.manage', 'user.manage']}>
         <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">{t('more.manage')}</Text>
         <View className="mt-2 gap-3">
           {/* Browsing the catalog is open to every store role — Sell and Receive
@@ -101,6 +101,11 @@ export default function MoreScreen() {
               personal target must be able to see it, and the list scopes
               somebody without `goal.manage` to their own. */}
           <MenuRow icon={<Target size={20} color={colors.brand} />} label={t('nav.goals')} onPress={() => router.push('/goals' as Href)} />
+          {/* Bringing a stock list in (Milestone G). Gated on the permission
+              that, until this milestone, guarded nothing at all. */}
+          <Can perm="import.run">
+            <MenuRow icon={<FileSpreadsheet size={20} color={colors.brand} />} label={t('nav.imports')} onPress={() => router.push('/imports' as Href)} />
+          </Can>
           {/* Owner-only. The screen refuses non-Owners on its own too, for the
               deep-link case where this menu was never rendered. */}
           <Can perm="settings.manage">

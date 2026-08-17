@@ -80,6 +80,9 @@ export const qk = {
   /** Goals (Milestone F). Branch-scoped: two branches aim at different things. */
   goals: (branchId: string | null, includeArchived: boolean) =>
     ['goals', branchId, includeArchived] as const,
+  /** Stock imports (Milestone G). Branch-scoped: stock lands in one branch. */
+  imports: (branchId: string | null) => ['imports', branchId] as const,
+  import: (id: string) => ['import', id] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,
