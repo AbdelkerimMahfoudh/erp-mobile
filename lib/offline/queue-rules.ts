@@ -58,6 +58,7 @@ export type ErrorKind =
   | 'timeout_uncertain'
   | 'session_expired'
   | 'permission_denied'
+  | 'entitlement_blocked'
   | 'validation'
   | 'conflict'
   | 'server_error';

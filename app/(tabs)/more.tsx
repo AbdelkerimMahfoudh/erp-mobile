@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, CloudOff, FileSpreadsheet, HandCoins, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, BadgeCheck, CloudOff, FileSpreadsheet, HandCoins, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -121,6 +121,10 @@ export default function MoreScreen() {
               ungated: anybody who can create work offline must be able to see
               whether it reached the server. */}
           <MenuRow icon={<CloudOff size={20} color={colors.brand} />} label={t('nav.sync')} onPress={() => router.push('/sync' as Href)} />
+          {/* Subscription (Milestone K). Ungated: every role needs to know
+              whether the shop can still write, and a warning only the Owner
+              sees is one the person at the counter discovers by being refused. */}
+          <MenuRow icon={<BadgeCheck size={20} color={colors.brand} />} label={t('nav.subscription')} onPress={() => router.push('/subscription' as Href)} />
           {/* Bringing a stock list in (Milestone G). Gated on the permission
               that, until this milestone, guarded nothing at all. */}
           <Can perm="import.run">

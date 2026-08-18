@@ -46,6 +46,23 @@ it('a refused permission is not a network problem', () => {
   assert.equal(isTransient('permission_denied'), false);
 });
 
+it('a lapsed subscription is its own kind, and never loops', () => {
+  /*
+    Milestone K. Both this and a role refusal stop, so neither can retry
+    forever — but telling somebody they lack permission when the shop simply
+    has not renewed sends them to the wrong person entirely.
+  */
+  const e = classifyError({ status: 403, code: 'ENTITLEMENT_WRITE_BLOCKED', message: 'Subscription ended' });
+  assert.equal(e.kind, 'entitlement_blocked');
+  assert.equal(isTransient('entitlement_blocked'), false);
+  assert.equal(needsHuman('entitlement_blocked'), true);
+  assert.equal(nextStateAfterError(e), 'needs_attention');
+});
+
+it('an ordinary role refusal is still permission_denied', () => {
+  assert.equal(classifyError({ status: 403, message: 'Not allowed' }).kind, 'permission_denied');
+});
+
 it('a conflict is a question for a person', () => {
   assert.equal(classifyError(status(409)).kind, 'conflict');
   assert.equal(needsHuman('conflict'), true);

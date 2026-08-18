@@ -45,7 +45,18 @@ export function classifyError(error: unknown, online = true): ClassifiedError {
   if (typeof e.status === 'number') {
     const status = e.status;
     if (status === 401) return { kind: 'session_expired', message, status };
-    if (status === 403) return { kind: 'permission_denied', message, status };
+    if (status === 403) {
+      /*
+        A lapsed subscription is its own thing, not a role problem (Milestone K).
+        Both stop, so neither can loop — but telling somebody they lack
+        permission when the shop simply has not renewed sends them to the wrong
+        person. The code is matched, never the English.
+      */
+      if (e.code === 'ENTITLEMENT_WRITE_BLOCKED') {
+        return { kind: 'entitlement_blocked', message, status };
+      }
+      return { kind: 'permission_denied', message, status };
+    }
     if (status === 409) return { kind: 'conflict', message, status };
     // 404 and 410 mean the thing this refers to is gone. Retrying cannot bring
     // it back, and the shop needs to know which record vanished.
@@ -74,5 +85,11 @@ export function classifyError(error: unknown, online = true): ClassifiedError {
  * outcome, kept here so the two never disagree.
  */
 export function needsHuman(kind: ErrorKind): boolean {
-  return kind === 'validation' || kind === 'permission_denied' || kind === 'conflict' || kind === 'session_expired';
+  return (
+    kind === 'validation' ||
+    kind === 'permission_denied' ||
+    kind === 'entitlement_blocked' ||
+    kind === 'conflict' ||
+    kind === 'session_expired'
+  );
 }

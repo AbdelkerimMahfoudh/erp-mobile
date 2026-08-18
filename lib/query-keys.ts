@@ -102,6 +102,8 @@ export const qk = {
   loans: (branchId: string | null, group: string) => ['loans', branchId, group] as const,
   loan: (id: string) => ['loan', id] as const,
   loanReminders: () => ['loan-reminders'] as const,
+  /** Company-level, not branch-level: a subscription covers the whole shop. */
+  entitlement: () => ['entitlement'] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,
