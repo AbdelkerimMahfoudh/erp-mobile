@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, FileSpreadsheet, HandCoins, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, CloudOff, FileSpreadsheet, HandCoins, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
@@ -117,6 +117,10 @@ export default function MoreScreen() {
           <Can perm="loan.view">
             <MenuRow icon={<HandCoins size={20} color={colors.brand} />} label={t('nav.loans')} onPress={() => router.push('/loans' as Href)} />
           </Can>
+          {/* What this phone is still holding (Milestone J). Deliberately
+              ungated: anybody who can create work offline must be able to see
+              whether it reached the server. */}
+          <MenuRow icon={<CloudOff size={20} color={colors.brand} />} label={t('nav.sync')} onPress={() => router.push('/sync' as Href)} />
           {/* Bringing a stock list in (Milestone G). Gated on the permission
               that, until this milestone, guarded nothing at all. */}
           <Can perm="import.run">

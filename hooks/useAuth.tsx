@@ -6,6 +6,7 @@ import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore } from '../lib/permissions';
+import { useSyncEngine } from '../lib/offline/use-sync';
 import {
   clearLegacyCredential,
   deviceMeta,
@@ -163,6 +164,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => sub.remove();
   }, [user, branchId]);
+
+  /**
+   * The offline queue follows the session (Milestone J).
+   *
+   * Placed here because the queue's identity IS the session: one file per
+   * user, company and branch, so a shared counter phone never shows one
+   * employee another's unsent work, and nothing can replay under a company it
+   * was not created in.
+   */
+  useSyncEngine({
+    companyId: user?.companyId ?? null,
+    branchId: branch.branchId ?? null,
+    userId: user?.id ?? null,
+  });
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
 
