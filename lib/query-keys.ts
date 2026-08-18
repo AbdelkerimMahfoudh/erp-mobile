@@ -104,6 +104,9 @@ export const qk = {
   loanReminders: () => ['loan-reminders'] as const,
   /** Company-level, not branch-level: a subscription covers the whole shop. */
   entitlement: () => ['entitlement'] as const,
+  /** The consolidated period summary (L). Branch-scoped, like every read. */
+  analyticsSummary: (branchId: string | null, from: string, to: string) =>
+    ['analytics-summary', branchId, from, to] as const,
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,

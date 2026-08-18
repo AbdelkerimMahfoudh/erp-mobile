@@ -81,6 +81,9 @@ export default function MoreScreen() {
             <MenuRow icon={<Users size={20} color={colors.brand} />} label={t('nav.team')} onPress={() => router.push('/team' as Href)} />
           </Can>
           <Can perm="report.view">
+            {/* Where the money is (Milestone L). Leads with profit, then cash,
+                then what is owed — the order a shopkeeper actually asks. */}
+            <MenuRow icon={<BarChart3 size={20} color={colors.brand} />} label={t('nav.money')} onPress={() => router.push('/money' as Href)} />
             <MenuRow icon={<BarChart3 size={20} color={colors.brand} />} label={t('nav.analytics')} onPress={() => router.push('/analytics')} />
           </Can>
           {/* Expenses (Milestone D). Gated on submit, which all three store
