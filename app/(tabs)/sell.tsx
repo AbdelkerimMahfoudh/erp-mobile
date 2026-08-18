@@ -30,6 +30,7 @@ import { qk } from '../../lib/query-keys';
 import type { ReceiptData } from '../../lib/receipt';
 import type { ReturnPolicySnapshot } from '../../lib/return-policy';
 import { usePermission } from '../../lib/permissions';
+import { useDraft } from '../../lib/offline/use-draft';
 import { useCompanyReturnWindow } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
@@ -85,6 +86,17 @@ export default function SellScreen() {
   const { branchId, branchName } = useBranch();
 
   const [lines, setLines] = useState<CartLine[]>([]);
+
+  /**
+   * The cart survives an app kill (Milestone J).
+   *
+   * Android evicts backgrounded apps on the cheap handsets this product is
+   * for, and losing two minutes of scanning to that is exactly the kind of
+   * thing that sends somebody back to the notebook. What is preserved is the
+   * CART only — it is not a sale, nothing is reserved by it, and Charge stays
+   * shut until the server can answer.
+   */
+  const cartDraft = useDraft<CartLine[]>('sell.cart', lines, setLines);
   const [discount, setDiscount] = useState(0);
   const [pending, setPending] = useState<PendingScan | null>(null);
   const [pendingPrice, setPendingPrice] = useState('');
@@ -309,6 +321,7 @@ export default function SellScreen() {
     if (!ok) return;
     setLines([]);
     setDiscount(0);
+    cartDraft.clear();
   };
 
   // ── Checkout ──────────────────────────────────────────────────────────────
@@ -339,6 +352,8 @@ export default function SellScreen() {
     setPaymentOpen(false);
     setLines([]);
     setDiscount(0);
+    // The sale reached the server, so the draft has done its job.
+    cartDraft.clear();
     // A policy chosen for one customer must never carry into the next.
     setReturnWindowHours(null);
     setReturnPolicyReason('');
