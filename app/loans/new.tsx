@@ -20,6 +20,8 @@ import { useTranslation } from '../../lib/i18n';
 import { useCreateLoan, type LoanDirection } from '../../lib/loans';
 import type { Counterparty } from '../../lib/consignment';
 import { uuidv4 } from '../../lib/utils';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 
 /**
  * Writing down a debt (Milestone I).
@@ -43,6 +45,19 @@ export default function NewLoanScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The proposal survives an app kill (J.1).
+   *
+   * Direction, amount and note. The counterparty is kept as an id and
+   * re-resolved from the list, so a party that has since been blocked or
+   * deactivated cannot be silently proposed to.
+   */
+  const draft = useDraft('loan.proposal', { direction, amount, note, partyId: party?.id ?? null }, (v) => {
+    setDirection(v.direction ?? 'they_owe_us');
+    setAmount(v.amount ?? '');
+    setNote(v.note ?? '');
+  });
+
   /*
     One key for this attempt. If the phone loses signal mid-request and the
     shopkeeper presses again, the server recognises the retry instead of
@@ -65,7 +80,10 @@ export default function NewLoanScreen() {
         clientUuid,
       },
       {
-        onSuccess: (loan) => router.replace(`/loans/${loan.id}` as never),
+        onSuccess: (loan) => {
+          draft.clear();
+          router.replace(`/loans/${loan.id}` as never);
+        },
         onError: (e) => setError(e instanceof ApiError ? e.message : t('loans.new.failed')),
       },
     );
@@ -75,6 +93,7 @@ export default function NewLoanScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('loans.new') }} />
       <ScrollView contentContainerStyle={styles.list}>
+        <DraftNotice draft={draft} onDiscard={() => { setAmount(''); setNote(''); }} />
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
         <Section title={t('loans.new.who')}>

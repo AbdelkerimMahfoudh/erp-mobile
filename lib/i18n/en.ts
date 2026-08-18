@@ -556,6 +556,7 @@ export const en = {
   'consignment.new.amount': 'Amount for all of them',
   'consignment.new.defects': 'Any faults they should know about',
   'consignment.new.hint': 'This proposes the deal. Nothing leaves your stock until they accept.',
+  'consignment.new.stale': 'These are no longer in stock and were taken off the list: {identifiers}. Check them, then propose again.',
   'consignment.new.send': 'Propose it',
 
   // Money loans (Milestone I). The wording carries the rules: a reported
@@ -677,6 +678,12 @@ export const en = {
   'sync.reason.server_error': 'The server had a problem.',
   'sync.tryAgain': 'Try again',
   'sync.cancel': 'Cancel it',
+  // Restored drafts (Milestone J.1). Never says the work was sent.
+  'draft.restored': 'Restored what you had here from {when}.',
+  'draft.restored.hint': 'Only what you typed came back. Prices, balances and stock are read fresh from the server.',
+  'draft.keep': 'Keep it',
+  'draft.discard': 'Start fresh',
+  'draft.notSaved': 'This could not be saved on the phone, so it will be lost if the app closes.',
   'nav.sync': 'Waiting to send',
   // Wording for work that has not reached the server. None of it may say sent,
   // reserved, paid, approved, confirmed or completed.

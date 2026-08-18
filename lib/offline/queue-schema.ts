@@ -60,7 +60,7 @@ const CREDENTIAL_KEYS = [
 export function containsCredential(payload: unknown, depth = 0): boolean {
   if (depth > 6 || payload === null || typeof payload !== 'object') return false;
   for (const [key, value] of Object.entries(payload as Record<string, unknown>)) {
-    if (CREDENTIAL_KEYS.includes(key.toLowerCase().replace(/[^a-z]/g, ''))) return true;
+    if (CREDENTIAL_KEYS.includes(key.toLowerCase().replace(/[^a-z0-9]/g, ''))) return true;
     if (containsCredential(value, depth + 1)) return true;
   }
   return false;

@@ -17,6 +17,8 @@ import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
 import { formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
+import { useDraft } from '../lib/offline/use-draft';
+import { DraftNotice } from '../components/DraftNotice';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
@@ -58,6 +60,22 @@ export default function ReceiveScreen() {
   const [supplier, setSupplier] = useState<SupplierRow | null>(null);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [staged, setStaged] = useState<StagedItem[]>([]);
+
+  /**
+   * A receiving session survives an app kill (J.1).
+   *
+   * Scanning twenty phones into a delivery is minutes of work, and losing it
+   * to Android's memory manager is exactly what sends somebody back to the
+   * notebook. The staged list and the chosen supplier are kept.
+   *
+   * Nothing the server owns is: the pending in-flight scan is transient, and
+   * `done` is a completed purchase — restoring that would tell a shop it had
+   * received stock it never did.
+   */
+  const draft = useDraft('receive.preparation', { staged, supplier }, (v) => {
+    setStaged(v.staged ?? []);
+    setSupplier(v.supplier ?? null);
+  });
   const [pending, setPending] = useState<PendingScan | null>(null);
   /**
    * The summary is built from what was staged, not from the API response.
@@ -228,6 +246,7 @@ export default function ReceiveScreen() {
     onSuccess: (res) => {
       setDone({ response: res, units: unitTotal });
       setStaged([]);
+      draft.clear();
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
     },
@@ -364,6 +383,7 @@ export default function ReceiveScreen() {
           />
         ) : (
           <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+            <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setSupplier(null); }} />
             <Text variant="label" tone="tertiary">
               {t('receive.session')}
             </Text>

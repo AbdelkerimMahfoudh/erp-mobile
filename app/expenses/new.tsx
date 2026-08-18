@@ -18,6 +18,8 @@ import { api } from '../../lib/api-client';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
 import { expenseConflictKind, useReportExpense } from '../../lib/expenses';
@@ -49,6 +51,28 @@ export default function NewExpenseScreen() {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
+
+  /**
+   * The expense form survives an app kill (J.1).
+   *
+   * Every field here was typed by a person and none of it is a server
+   * figure, so all of it can be restored honestly. The receiving account is
+   * kept as an id and re-resolved, never as a stored label that could go
+   * stale.
+   */
+  const draft = useDraft('expense.form', {
+    category, amount, expenseClass, isSalary, dueDate, method, accountId, reference, note,
+  }, (v) => {
+    setCategory(v.category ?? '');
+    setAmount(v.amount ?? '');
+    setExpenseClass(v.expenseClass ?? 'variable');
+    setIsSalary(Boolean(v.isSalary));
+    setDueDate(v.dueDate ?? '');
+    setMethod(v.method ?? 'cash');
+    setAccountId(v.accountId ?? null);
+    setReference(v.reference ?? '');
+    setNote(v.note ?? '');
+  });
 
   /**
    * One request id per logical report, held in a ref so a re-render cannot mint
@@ -88,6 +112,7 @@ export default function NewExpenseScreen() {
         clientUuid: requestId.current,
       });
       toast.success(t('expenses.report.done'));
+      draft.clear();
       router.back();
       // The id is deliberately NOT regenerated: the next attempt is a retry of
       // this one and must resolve to the same expense.
@@ -106,6 +131,7 @@ export default function NewExpenseScreen() {
 
   return (
     <Screen scroll gap="lg">
+      <DraftNotice draft={draft} onDiscard={() => { setCategory(''); setAmount(''); setNote(''); setReference(''); }} />
       <Stack.Screen options={{ headerShown: true, title: t('expenses.report.title') }} />
 
       <Section title={t('expenses.report.what')}>

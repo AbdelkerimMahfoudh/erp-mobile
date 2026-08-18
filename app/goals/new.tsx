@@ -17,6 +17,8 @@ import { ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 import { useAssignableTeam } from '../../lib/closing';
 import { thisMonth, useCreateGoal, type GoalMetric, type GoalScope } from '../../lib/goals';
 
@@ -43,6 +45,15 @@ export default function NewGoalScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  /** The target being drafted survives an app kill (J.1). */
+  const draft = useDraft('goal.form', { scope, metric, personId, amount, note }, (v) => {
+    setScope(v.scope ?? 'branch');
+    setMetric(v.metric ?? 'gross_profit');
+    setPersonId(v.personId ?? null);
+    setAmount(v.amount ?? '');
+    setNote(v.note ?? '');
+  });
+
   const isMoney = metric === 'gross_profit' || metric === 'revenue';
   const canSubmit =
     amount.trim() !== '' && Number(amount) > 0 && (scope !== 'user' || personId !== null);
@@ -51,6 +62,7 @@ export default function NewGoalScreen() {
     <Screen gap="base">
       <Stack.Screen options={{ headerShown: true, title: t('goals.set.title') }} />
 
+      <DraftNotice draft={draft} onDiscard={() => { setAmount(''); setNote(''); }} />
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
       <Section title={t('goals.set.who')}>
@@ -151,7 +163,10 @@ export default function NewGoalScreen() {
               note: note.trim() || undefined,
             },
             {
-              onSuccess: () => router.back(),
+              onSuccess: () => {
+                draft.clear();
+                router.back();
+              },
               onError: (e) => setError(e instanceof ApiError ? e.message : t('goals.set.failed')),
             },
           );

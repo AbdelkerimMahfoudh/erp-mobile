@@ -20,6 +20,8 @@ import { api, ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { uuidv4 } from '../../lib/utils';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 import { useCreateConsignment, type Counterparty } from '../../lib/consignment';
 import type { Unit } from '../../types/api';
 
@@ -53,6 +55,20 @@ export default function NewConsignmentScreen() {
   const [defectNote, setDefectNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  /**
+   * The proposal survives an app kill (J.1).
+   *
+   * Only what was typed and chosen. Each picked phone was verified as
+   * in-stock when it was scanned, and that verification is NOT restored —
+   * `revalidate` below re-asks the server before anything is proposed,
+   * because a phone can be sold by another branch while this app is closed.
+   */
+  const draft = useDraft('consignment.proposal', { picked, amount, defectNote, partyId: party?.id ?? null }, (v) => {
+    setPicked(v.picked ?? []);
+    setAmount(v.amount ?? '');
+    setDefectNote(v.defectNote ?? '');
+  });
 
   const clientUuid = useMemo(() => uuidv4(), []);
 
@@ -93,8 +109,44 @@ export default function NewConsignmentScreen() {
   const value = Number(amount);
   const ready = Boolean(party) && picked.length > 0 && Number.isFinite(value) && value > 0;
 
-  const submit = () => {
+  /**
+   * Re-ask the server about every phone before proposing (J.1).
+   *
+   * Each one was checked as in-stock when it was scanned, but a restored draft
+   * may be hours old and another branch may have sold the phone in between.
+   * Proposing on the strength of a stale check would reserve stock that is
+   * already gone, and the other shop would be told about a phone nobody has.
+   *
+   * A phone that has moved is REMOVED from the list and named, rather than the
+   * draft being thrown away: the rest of the work is still good.
+   */
+  const revalidate = async (): Promise<boolean> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const stale: string[] = [];
+      for (const p of picked) {
+        try {
+          const unit = await api.get<Unit>(`/units/${encodeURIComponent(p.identifier)}`);
+          if (unit.status !== 'in_stock') stale.push(p.identifier);
+        } catch {
+          stale.push(p.identifier);
+        }
+      }
+      if (stale.length > 0) {
+        setPicked((all) => all.filter((p) => !stale.includes(p.identifier)));
+        setError(t('consignment.new.stale', { identifiers: stale.join(', ') }));
+        return false;
+      }
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submit = async () => {
     if (!party) return;
+    if (!(await revalidate())) return;
     setError(null);
     create.mutate(
       {
@@ -105,7 +157,11 @@ export default function NewConsignmentScreen() {
         clientUuid,
       },
       {
-        onSuccess: (c) => router.replace(`/consignments/${c.id}` as never),
+        onSuccess: (c) => {
+          // The server accepted it, so the draft has done its job.
+          draft.clear();
+          router.replace(`/consignments/${c.id}` as never);
+        },
         onError: (e) => setError(e instanceof ApiError ? e.message : t('consignment.failed')),
       },
     );
@@ -115,6 +171,7 @@ export default function NewConsignmentScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('consignment.new') }} />
       <ScrollView contentContainerStyle={styles.list}>
+        <DraftNotice draft={draft} onDiscard={() => { setPicked([]); setAmount(''); setDefectNote(''); }} />
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
         <Section title={t('consignment.new.who')}>
@@ -183,7 +240,7 @@ export default function NewConsignmentScreen() {
             title={t('consignment.new.send')}
             fullWidth
             disabled={!ready || create.isPending}
-            onPress={submit}
+            onPress={() => void submit()}
           />
         </View>
       </ScrollView>

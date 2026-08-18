@@ -18,6 +18,8 @@ import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 import { usePermission } from '../../lib/permissions';
 import { useCreateReturn } from '../../lib/returns';
 import { useSales } from '../../lib/sales';
@@ -48,6 +50,24 @@ export default function NewReturnScreen() {
   const [reason, setReason] = useState('');
   const [conditionNotes, setConditionNotes] = useState('');
   const [custody, setCustody] = useState<'customer_holds' | 'store_holds'>('customer_holds');
+
+  /**
+   * What the customer said survives an app kill (J.1).
+   *
+   * The identifier, the reason, the condition notes and who is holding the
+   * phone — all of it typed at the counter with somebody waiting.
+   *
+   * The SALE this return is against is not restored. It is looked up again,
+   * because a sale can be corrected or refunded between the draft being
+   * written and read, and showing the old one would let somebody open a
+   * return against a state of the world that no longer exists.
+   */
+  const draft = useDraft('return.preparation', { identifier, reason, conditionNotes, custody }, (v) => {
+    setIdentifier(v.identifier ?? '');
+    setReason(v.reason ?? '');
+    setConditionNotes(v.conditionNotes ?? '');
+    setCustody(v.custody ?? 'customer_holds');
+  });
 
   /**
    * ONE key per logical request, reused across every retry. A flaky connection
@@ -88,6 +108,7 @@ export default function NewReturnScreen() {
         custody,
         clientUuid: clientUuid.current,
       });
+      draft.clear();
       router.replace(`/returns/${detail.id}` as never);
     } catch (e) {
       /**
@@ -119,6 +140,7 @@ export default function NewReturnScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('returns.new.title') }} />
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <DraftNotice draft={draft} onDiscard={() => { setIdentifier(''); setReason(''); setConditionNotes(''); }} />
         {/* Entry by phone, when the customer arrives without a receipt. */}
         {!params.saleItemId ? (
           <Card>
