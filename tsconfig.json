@@ -2,6 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // Node runs the pure test suites directly (`node lib/x.test.ts`) and its ESM
+    // resolver requires the extension. Metro and babel resolve it too, so the
+    // one convention works in both places rather than one per file kind.
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./*"]
     }
