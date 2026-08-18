@@ -2,6 +2,7 @@ import { API_V1_URL, TOKEN_KEYS } from '../constants/config';
 import { getItem, setItem, deleteItem } from './storage';
 import { getActiveBranchId } from './branch';
 import { useConnectivity } from './connectivity';
+import { REQUEST_TIMEOUT_MS, RequestTimeout } from './offline/classify.ts';
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type Body = unknown;
@@ -78,11 +79,31 @@ async function send(method: Method, path: string, body: Body, token: string | nu
   const branchId = getActiveBranchId();
   if (branchId) headers['X-Branch-Id'] = branchId;
 
-  return fetch(`${API_V1_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  /**
+   * A bound on how long anything may hang (Milestone J).
+   *
+   * `fetch` has no default timeout, so before this a request on a dying
+   * connection could wait indefinitely — and "the server did not answer" was
+   * not a state the app could distinguish from "the server said no". The queue
+   * needs that distinction: a timeout is retried with the same client UUID
+   * because the request may already have been processed.
+   */
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_V1_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    // An abort is ours, and means the outcome is unknown rather than failed.
+    if (controller.signal.aborted) throw new RequestTimeout();
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function parse<T>(res: Response): Promise<T> {
@@ -108,9 +129,13 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
      * still resolves. That makes this the one honest place to learn the shop's
      * internet is down, rather than guessing from a radio flag.
      *
+     * A TIMEOUT is excluded deliberately: the request reached the server and
+     * only the answer was lost, so marking the shop offline would be wrong and
+     * would hide a server that is merely slow.
+     *
      * The error is rethrown untouched: this observes, it does not swallow.
      */
-    useConnectivity.getState().markUnreachable();
+    if (!(error instanceof RequestTimeout)) useConnectivity.getState().markUnreachable();
     throw error;
   }
 
