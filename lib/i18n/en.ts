@@ -256,7 +256,7 @@ export const en = {
 
   // ── Expenses (Milestone D) ────────────────────────────────────────────────
   // Worded so "reported" can never be mistaken for "spent".
-  'expenses.title': 'Money spent',
+  'expenses.title': 'Expenses',
   'expenses.detail.title': 'Expense',
   'expenses.category': 'What for',
   'expenses.category.hint': 'Electricity, lunch, transport — the shop’s own words.',
@@ -411,16 +411,16 @@ export const en = {
   'home.health.watch': 'A few things need watching',
   'home.health.attention': 'Something needs your attention',
   'home.health.score': 'Score {score} out of 100',
-  'nav.sales': 'Sales',
+  'nav.sales': 'Sales history',
   'nav.returns': 'Returns',
   'nav.suppliers': 'Suppliers',
   'nav.suppliers.hint': 'What the shop owes',
   'nav.transfers': 'Transfers',
-  'nav.expenses': 'Money spent',
+  'nav.expenses': 'Expenses',
   'nav.goals': 'Targets',
   // ── Bringing a stock list in (Milestone G) ────────────────────────────────
   // Worded so that picking a file can never be mistaken for importing one.
-  'imports.title': 'Bring in a stock list',
+  'imports.title': 'Import stock',
   'imports.start': 'From a spreadsheet',
   'imports.intro': 'Choose your stock file and we will show you exactly what would be added. Nothing is added until you say so.',
   'imports.columns': 'It needs a column for the IMEI, serial number or barcode, one for the product name, and one for the cost.',
@@ -452,11 +452,11 @@ export const en = {
   'imports.row.valid': 'Ready',
   'imports.row.warning': 'Check',
   'imports.row.error': 'Cannot add',
-  'nav.imports': 'Bring in stock',
+  'nav.imports': 'Import stock',
   // ── Other stores, and consignment (Milestone H) ───────────────────────────
   // Worded so that "confirmed" never means merely agreed, and a payment
   // reference is never presented as proof.
-  'stores.title': 'Other stores',
+  'stores.title': 'Partner stores',
   'stores.tab.connections': 'Connected',
   'stores.tab.find': 'Find a store',
   'stores.search.placeholder': 'Store ID, phone, or name',
@@ -484,7 +484,7 @@ export const en = {
   'stores.block': 'Block',
   'stores.unblock': 'Unblock',
 
-  'consignment.title': 'Stock with other stores',
+  'consignment.title': 'Consignments',
   'consignment.one': 'Consignment',
   'consignment.new': 'Send stock',
   'consignment.tab.pending': 'Waiting',
@@ -562,7 +562,7 @@ export const en = {
   // Money loans (Milestone I). The wording carries the rules: a reported
   // payment is a claim until the person owed it says otherwise, and a reference
   // is a note somebody typed, never proof that anything was checked.
-  'loans.title': 'Money owed',
+  'loans.title': 'Loans',
   'loans.one': 'Debt',
   'loans.new': 'Record a debt',
   'loans.tab.pending': 'Waiting',
@@ -645,7 +645,7 @@ export const en = {
   'closing.loans.hint': 'None of this changes the cash you should have or today’s profit.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
-  'sync.title': 'Waiting to send',
+  'sync.title': 'Sync center',
   'sync.connected': 'Connected. Anything waiting will go now.',
   'sync.disconnected': 'No connection. Your work is saved on this phone.',
   'sync.corrupted': 'Some saved work on this phone could not be read. It has been set aside rather than deleted — tell whoever set up the app.',
@@ -709,8 +709,8 @@ export const en = {
   'entitlement.blocked.title': 'Subscription ended',
   'entitlement.blocked.body': 'This could not be saved. Your subscription has ended, so the app cannot record anything new — everything you already have is still here.',
   // Where the money is (Milestone L). Profit and cash are never mixed.
-  'money.title': 'Where the money is',
-  'nav.money': 'Where the money is',
+  'money.title': 'Cash & accounts',
+  'nav.money': 'Cash & accounts',
   'money.period.today': 'Today',
   'money.period.week': '7 days',
   'money.period.month': '30 days',
@@ -754,7 +754,7 @@ export const en = {
   'money.offline': 'No connection. These figures are whatever this phone last received.',
   'money.noPermission.title': 'Not your figures to see',
   'money.noPermission.body': 'Ask the owner if you need access to the shop\u2019s money.',
-  'nav.sync': 'Waiting to send',
+  'nav.sync': 'Sync center',
   // Wording for work that has not reached the server. None of it may say sent,
   // reserved, paid, approved, confirmed or completed.
   'offline.savedHere': 'Saved on this phone',
@@ -764,9 +764,9 @@ export const en = {
   'offline.report.queued': 'Waiting to report to the server. This does not mean it was confirmed.',
   'offline.proposal.notSent': 'Saved here only. The other store has not been told.',
   'offline.import.notActivated': 'Saved here only. Nothing has been added to stock.',
-  'nav.loans': 'Money owed',
-  'nav.stores': 'Other stores',
-  'nav.consignments': 'Stock with other stores',
+  'nav.loans': 'Loans',
+  'nav.stores': 'Partner stores',
+  'nav.consignments': 'Consignments',
   'nav.closing': 'Daily closing',
   'state.offline.banner': 'No connection — nothing you confirm will be saved',
   'permission.notice.title': 'You cannot do this',
@@ -1959,4 +1959,29 @@ export const en = {
   'suppliers.conflict.duplicate.body': 'A supplier with that name already exists.',
   'suppliers.conflict.other.title': 'Could not be done',
   'suppliers.conflict.other.body': 'That is not possible right now. The screen has been refreshed.',
+
+  // ── N: navigation hubs ────────────────────────────────────────────────────
+  // Six containers, not features. Each subtitle says what lives inside in the
+  // shopkeeper's words, so nobody has to open one to find out.
+  'hub.sales.title': 'Sales & returns',
+  'hub.sales.desc': 'Sales records, receipts and customer returns.',
+  'hub.stock.title': 'Stock & purchasing',
+  'hub.stock.desc': 'Products, suppliers and stock movement.',
+  'hub.money.title': 'Money',
+  'hub.money.desc': 'Balances, expenses, closing and loans.',
+  'hub.network.title': 'Store network',
+  'hub.network.desc': 'Partner stores and stock held between shops.',
+  'hub.performance.title': 'Performance',
+  'hub.performance.desc': 'Results, trends and business goals.',
+  'hub.business.title': 'Team & business',
+  'hub.business.desc': 'People, subscription and store configuration.',
+  'hub.account.title': 'Account & security',
+  'hub.account.desc': 'Your devices, sync and app preferences.',
+  'more.branch.switch': 'Switch branch',
+  'more.notifications.a11y': 'Notifications',
+  // Never says sent, and never says confirmed.
+  'more.sync.waiting': '{count} waiting to send',
+  'more.sync.attention': '{count} need your attention',
+  'more.sync.notConfirmed': 'Waiting to send is not the same as sent or confirmed.',
+
 } as const;

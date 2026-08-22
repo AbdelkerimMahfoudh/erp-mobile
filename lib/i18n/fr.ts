@@ -283,7 +283,7 @@ export const fr: Catalogue = {
 
   // ── Expenses (Milestone D) ────────────────────────────────────────────────
   // Worded so "reported" can never be mistaken for "spent".
-  'expenses.title': 'Argent dépensé',
+  'expenses.title': 'Dépenses',
   'expenses.detail.title': 'Dépense',
   'expenses.category': 'Pour quoi',
   'expenses.category.hint': 'Électricité, déjeuner, transport — les mots de la boutique.',
@@ -446,16 +446,16 @@ export const fr: Catalogue = {
   'home.health.watch': 'Quelques points à surveiller',
   'home.health.attention': 'Quelque chose demande votre attention',
   'home.health.score': 'Note de {score} sur 100',
-  'nav.sales': 'Ventes',
+  'nav.sales': 'Historique des ventes',
   'nav.returns': 'Retours',
   'nav.suppliers': 'Fournisseurs',
   'nav.suppliers.hint': 'Ce que la boutique doit',
   'nav.transfers': 'Transferts',
-  'nav.expenses': 'Argent dépensé',
+  'nav.expenses': 'Dépenses',
   'nav.goals': 'Objectifs',
   // ── Bringing a stock list in (Milestone G) ────────────────────────────────
   // Worded so that picking a file can never be mistaken for importing one.
-  'imports.title': 'Importer une liste de stock',
+  'imports.title': 'Importer du stock',
   'imports.start': 'Depuis un tableur',
   'imports.intro':
     'Choisissez votre fichier de stock et nous vous montrerons exactement ce qui serait ajouté. Rien n’est ajouté avant votre accord.',
@@ -495,7 +495,7 @@ export const fr: Catalogue = {
   // ── Other stores, and consignment (Milestone H) ───────────────────────────
   // Worded so that "confirmed" never means merely agreed, and a payment
   // reference is never presented as proof.
-  'stores.title': 'Autres boutiques',
+  'stores.title': 'Boutiques partenaires',
   'stores.tab.connections': 'Connectées',
   'stores.tab.find': 'Trouver une boutique',
   'stores.search.placeholder': 'Identifiant, téléphone ou nom',
@@ -527,7 +527,7 @@ export const fr: Catalogue = {
   'stores.block': 'Bloquer',
   'stores.unblock': 'Débloquer',
 
-  'consignment.title': 'Stock chez d’autres boutiques',
+  'consignment.title': 'Dépôts-ventes',
   'consignment.one': 'Dépôt-vente',
   'consignment.new': 'Confier du stock',
   'consignment.tab.pending': 'En attente',
@@ -613,7 +613,7 @@ export const fr: Catalogue = {
   // Money loans (Milestone I). The wording carries the rules: a reported
   // payment is a claim until the person owed it says otherwise, and a reference
   // is a note somebody typed, never proof that anything was checked.
-  'loans.title': 'Argent dû',
+  'loans.title': 'Dettes',
   'loans.one': 'Dette',
   'loans.new': 'Enregistrer une dette',
   'loans.tab.pending': 'En attente',
@@ -710,7 +710,7 @@ export const fr: Catalogue = {
     'Rien de tout cela ne change les espèces que vous devriez avoir ni le bénéfice du jour.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
-  'sync.title': 'En attente d’envoi',
+  'sync.title': 'Centre de synchronisation',
   'sync.connected': 'Connecté. Ce qui attend va partir maintenant.',
   'sync.disconnected': 'Pas de connexion. Votre travail est enregistré sur ce téléphone.',
   'sync.corrupted':
@@ -791,8 +791,8 @@ export const fr: Catalogue = {
   'entitlement.blocked.body':
     'Ceci n’a pas pu être enregistré. Votre abonnement a pris fin : l’app ne peut plus rien enregistrer de nouveau — tout ce que vous avez déjà est toujours là.',
   // Where the money is (Milestone L). Profit and cash are never mixed.
-  'money.title': 'Où est l’argent',
-  'nav.money': 'Où est l’argent',
+  'money.title': 'Espèces et comptes',
+  'nav.money': 'Espèces et comptes',
   'money.period.today': 'Aujourd’hui',
   'money.period.week': '7 jours',
   'money.period.month': '30 jours',
@@ -842,7 +842,7 @@ export const fr: Catalogue = {
   'money.noPermission.title': 'Ces chiffres ne vous sont pas accessibles',
   'money.noPermission.body':
     'Demandez au propriétaire si vous avez besoin d’accéder à l’argent de la boutique.',
-  'nav.sync': 'En attente d’envoi',
+  'nav.sync': 'Centre de synchronisation',
   // Wording for work that has not reached the server. None of it may say sent,
   // reserved, paid, approved, confirmed or completed.
   'offline.savedHere': 'Enregistré sur ce téléphone',
@@ -857,9 +857,9 @@ export const fr: Catalogue = {
     'Enregistré ici seulement. L’autre boutique n’a pas été prévenue.',
   'offline.import.notActivated':
     'Enregistré ici seulement. Rien n’a été ajouté au stock.',
-  'nav.loans': 'Argent dû',
-  'nav.stores': 'Autres boutiques',
-  'nav.consignments': 'Stock chez d’autres boutiques',
+  'nav.loans': 'Dettes',
+  'nav.stores': 'Boutiques partenaires',
+  'nav.consignments': 'Dépôts-ventes',
   'nav.closing': 'Clôture du jour',
   'state.offline.banner': 'Pas de connexion — rien de ce que vous validez ne sera enregistré',
   'permission.notice.title': 'Vous ne pouvez pas faire ceci',
@@ -2191,4 +2191,26 @@ export const fr: Catalogue = {
   'suppliers.conflict.other.title': 'Impossible',
   'suppliers.conflict.other.body':
     'Ce n’est pas possible pour l’instant. L’écran a été actualisé.',
+
+  // ── N: navigation hubs ────────────────────────────────────────────────────
+  'hub.sales.title': 'Ventes et retours',
+  'hub.sales.desc': 'Historique des ventes, reçus et retours clients.',
+  'hub.stock.title': 'Stock et achats',
+  'hub.stock.desc': 'Produits, fournisseurs et mouvements de stock.',
+  'hub.money.title': 'Argent',
+  'hub.money.desc': 'Soldes, dépenses, clôture et dettes.',
+  'hub.network.title': 'Réseau de boutiques',
+  'hub.network.desc': 'Boutiques partenaires et stock confié entre boutiques.',
+  'hub.performance.title': 'Performance',
+  'hub.performance.desc': 'Résultats, tendances et objectifs.',
+  'hub.business.title': 'Équipe et entreprise',
+  'hub.business.desc': 'Personnel, abonnement et configuration de la boutique.',
+  'hub.account.title': 'Compte et sécurité',
+  'hub.account.desc': 'Vos appareils, la synchronisation et vos préférences.',
+  'more.branch.switch': 'Changer de site',
+  'more.notifications.a11y': 'Notifications',
+  'more.sync.waiting': '{count} en attente d’envoi',
+  'more.sync.attention': '{count} demandent votre attention',
+  'more.sync.notConfirmed': 'En attente d’envoi ne veut dire ni envoyé ni confirmé.',
+
 };

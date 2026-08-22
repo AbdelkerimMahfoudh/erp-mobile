@@ -399,7 +399,7 @@ export const ar: Catalogue = {
   'home.health.watch': 'بعض الأمور تحتاج إلى متابعة',
   'home.health.attention': 'هناك ما يستدعي انتباهك',
   'home.health.score': 'النتيجة {score} من 100',
-  'nav.sales': 'المبيعات',
+  'nav.sales': 'سجل المبيعات',
   'nav.returns': 'الإرجاعات',
   'nav.suppliers': 'الموردون',
   'nav.suppliers.hint': 'ما يدين به المتجر',
@@ -408,7 +408,7 @@ export const ar: Catalogue = {
   'nav.goals': 'الأهداف',
   // ── إدخال قائمة المخزون ───────────────────────────────────────────────────
   // الصياغة تمنع الخلط بين اختيار الملف وإدخاله فعليًا.
-  'imports.title': 'إدخال قائمة مخزون',
+  'imports.title': 'إدخال مخزون',
   'imports.start': 'من ملف إكسل',
   'imports.intro': 'اختر ملف المخزون وسنعرض لك بالضبط ما سيُضاف. لا يُضاف شيء حتى توافق.',
   'imports.columns': 'يحتاج إلى عمود للايمي أو الرقم التسلسلي أو الباركود، وعمود لاسم المنتج، وعمود للتكلفة.',
@@ -444,7 +444,7 @@ export const ar: Catalogue = {
   // ── المتاجر الأخرى والأمانات ──────────────────────────────────────────────
   // الصياغة تمنع أن يعني «مؤكَّد» مجرد الموافقة، ولا تُقدَّم مرجعية الدفع
   // على أنها إثبات.
-  'stores.title': 'متاجر أخرى',
+  'stores.title': 'المتاجر الشريكة',
   'stores.tab.connections': 'المرتبطة',
   'stores.tab.find': 'ابحث عن متجر',
   'stores.search.placeholder': 'رقم المتجر أو الهاتف أو الاسم',
@@ -472,7 +472,7 @@ export const ar: Catalogue = {
   'stores.block': 'حظر',
   'stores.unblock': 'رفع الحظر',
 
-  'consignment.title': 'بضاعة لدى متاجر أخرى',
+  'consignment.title': 'بضاعة الأمانة',
   'consignment.one': 'أمانة',
   'consignment.new': 'إرسال بضاعة',
   'consignment.tab.pending': 'بالانتظار',
@@ -549,7 +549,7 @@ export const ar: Catalogue = {
 
   // قروض المال (المرحلة I). الصياغة تحمل القاعدة: الدفعة المُبلَّغ عنها مجرّد
   // ادّعاء حتى يؤكّدها صاحب الحقّ، والمرجع ملاحظة كتبها أحدهم لا إثبات تحقّق.
-  'loans.title': 'أموال مستحقّة',
+  'loans.title': 'الديون',
   'loans.one': 'دَين',
   'loans.new': 'تسجيل دَين',
   'loans.tab.pending': 'في الانتظار',
@@ -632,7 +632,7 @@ export const ar: Catalogue = {
   'closing.loans.hint': 'لا شيء من هذا يغيّر النقد المتوقّع أو ربح اليوم.',
 
   // مركز المزامنة (المرحلة J). لا شيء هنا يدّعي أنّ الخادم وافق.
-  'sync.title': 'بانتظار الإرسال',
+  'sync.title': 'مركز المزامنة',
   'sync.connected': 'متّصل. سيُرسل كل ما ينتظر الآن.',
   'sync.disconnected': 'لا يوجد اتصال. عملك محفوظ على هذا الهاتف.',
   'sync.corrupted': 'تعذّرت قراءة بعض العمل المحفوظ على هذا الهاتف. وُضِع جانبًا ولم يُحذف — أبلغ من أعدّ التطبيق.',
@@ -696,8 +696,8 @@ export const ar: Catalogue = {
   'entitlement.blocked.title': 'انتهى الاشتراك',
   'entitlement.blocked.body': 'تعذّر حفظ هذا. انتهى اشتراكك فلا يمكن للتطبيق تسجيل أي جديد — وكل ما لديك بالفعل ما زال موجودًا.',
   // أين المال (المرحلة L). لا يُخلط الربح بالنقد أبدًا.
-  'money.title': 'أين المال',
-  'nav.money': 'أين المال',
+  'money.title': 'النقد والحسابات',
+  'nav.money': 'النقد والحسابات',
   'money.period.today': 'اليوم',
   'money.period.week': '7 أيام',
   'money.period.month': '30 يومًا',
@@ -741,7 +741,7 @@ export const ar: Catalogue = {
   'money.offline': 'لا يوجد اتصال. هذه الأرقام هي آخر ما استلمه هذا الهاتف.',
   'money.noPermission.title': 'ليست أرقامك',
   'money.noPermission.body': 'اطلب من المالك إن كنت تحتاج الوصول إلى مالية المتجر.',
-  'nav.sync': 'بانتظار الإرسال',
+  'nav.sync': 'مركز المزامنة',
   // صياغة العمل الذي لم يصل إلى الخادم. لا شيء منها يقول أُرسل أو حُجز أو
   // دُفع أو ووفق عليه أو اكتمل.
   'offline.savedHere': 'محفوظ على هذا الهاتف',
@@ -751,9 +751,9 @@ export const ar: Catalogue = {
   'offline.report.queued': 'بانتظار الإبلاغ إلى الخادم. هذا لا يعني أنّه تأكّد.',
   'offline.proposal.notSent': 'محفوظ هنا فقط. لم يُبلَّغ المتجر الآخر.',
   'offline.import.notActivated': 'محفوظ هنا فقط. لم يُضَف شيء إلى المخزون.',
-  'nav.loans': 'أموال مستحقّة',
-  'nav.stores': 'متاجر أخرى',
-  'nav.consignments': 'بضاعة لدى متاجر أخرى',
+  'nav.loans': 'الديون',
+  'nav.stores': 'المتاجر الشريكة',
+  'nav.consignments': 'بضاعة الأمانة',
   'nav.closing': 'الإغلاق اليومي',
   'state.offline.banner': 'لا يوجد اتصال — لن يُحفظ أي شيء تؤكّده الآن',
   'permission.notice.title': 'لا يمكنك القيام بهذا',
@@ -1907,4 +1907,26 @@ export const ar: Catalogue = {
   'suppliers.conflict.duplicate.body': 'يوجد مورد بهذا الاسم بالفعل.',
   'suppliers.conflict.other.title': 'تعذّر التنفيذ',
   'suppliers.conflict.other.body': 'هذا غير ممكن الآن. تم تحديث الشاشة.',
+
+  // ── N: navigation hubs ────────────────────────────────────────────────────
+  'hub.sales.title': 'المبيعات والمرتجعات',
+  'hub.sales.desc': 'سجل المبيعات والإيصالات ومرتجعات الزبائن.',
+  'hub.stock.title': 'المخزون والشراء',
+  'hub.stock.desc': 'المنتجات والموردون وحركة المخزون.',
+  'hub.money.title': 'المال',
+  'hub.money.desc': 'الأرصدة والمصروفات والإقفال والديون.',
+  'hub.network.title': 'شبكة المتاجر',
+  'hub.network.desc': 'المتاجر الشريكة والبضاعة الموجودة بينها.',
+  'hub.performance.title': 'الأداء',
+  'hub.performance.desc': 'النتائج والاتجاهات وأهداف العمل.',
+  'hub.business.title': 'الفريق والمتجر',
+  'hub.business.desc': 'الموظفون والاشتراك وإعدادات المتجر.',
+  'hub.account.title': 'الحساب والأمان',
+  'hub.account.desc': 'أجهزتك والمزامنة وتفضيلات التطبيق.',
+  'more.branch.switch': 'تغيير الفرع',
+  'more.notifications.a11y': 'الإشعارات',
+  'more.sync.waiting': '{count} بانتظار الإرسال',
+  'more.sync.attention': '{count} تحتاج إلى انتباهك',
+  'more.sync.notConfirmed': 'الانتظار للإرسال لا يعني أنه أُرسل أو أنه تأكّد.',
+
 };
