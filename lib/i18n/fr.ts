@@ -1,0 +1,2194 @@
+import type { Catalogue } from './keys';
+
+/**
+ * French catalogue.
+ *
+ * ⚠️ Needs a native-speaker review pass before the app is used in the shop.
+ * The vocabulary is standard retail and accounting French and the placeholders
+ * are exact, but tone and Mauritanian phrasing are best confirmed by someone
+ * who serves customers in French daily. The keys are final; only the strings
+ * should change.
+ *
+ * Voice follows the English source (see docs/05): plain words over jargon,
+ * short sentences, and a number never appears without something saying what it
+ * means. "Money taken" is deliberately not "revenue" — so it is "Argent
+ * encaissé" wherever a shop assistant reads it, not "chiffre d'affaires".
+ *
+ * Typed as `Catalogue`, so this file cannot drift from the English key set —
+ * a missing or renamed key fails the build.
+ */
+export const fr: Catalogue = {
+  // ── Common actions ────────────────────────────────────────────────────────
+  'action.confirm': 'Confirmer',
+  'action.cancel': 'Annuler',
+  'action.done': 'Terminé',
+  'action.save': 'Enregistrer',
+  'action.add': 'Ajouter',
+  'action.remove': 'Retirer',
+  'action.edit': 'Modifier',
+  'action.retry': 'Réessayer',
+  'action.signOut': 'Se déconnecter',
+
+  // ── Branch selection ──────────────────────────────────────────────────────
+  'branch.select.title': 'Choisissez un site',
+  'branch.select.signedInAs': 'Connecté en tant que {name}',
+  'branch.select.none.title': 'Aucun site pour le moment',
+  'branch.select.none.body':
+    'Demandez à un propriétaire de vous ajouter à un site, puis reconnectez-vous.',
+  'branch.type.store': 'Boutique',
+  'branch.type.warehouse': 'Entrepôt',
+
+  // ── One physical unit (the screen a scan lands on) ────────────────────────
+  'unit.title': 'Article',
+  'unit.identifier': 'Identifiant',
+  'unit.branch': 'Site',
+  'unit.cost': "Prix d'achat",
+  'unit.received': 'Reçu',
+  'unit.history': 'Historique',
+  'unit.history.empty': "Rien ne s'est encore passé sur cet article.",
+  'unit.notFound.title': 'Introuvable ici',
+  'unit.notFound.body': 'Aucun article avec ce code sur ce site.',
+
+  // ── Daily closing ─────────────────────────────────────────────────────────
+  'closing.title': 'Clôture du jour',
+  'closing.expensesToday': "Argent dépensé aujourd'hui",
+  'closing.expenses.none': "Rien dépensé aujourd'hui",
+  'closing.expense.category': 'Pour quoi',
+  'closing.expense.categoryPlaceholder': 'Loyer, électricité…',
+  'closing.expense.amount': 'Montant',
+  'closing.expense.failed': "Impossible d'enregistrer cela",
+  'closing.total': 'Total',
+  'closing.closeDay': 'Clôturer la journée',
+  'closing.countedLabel': 'Espèces comptées en caisse',
+  'closing.countedHint': 'Comptez la caisse avant de saisir ce montant.',
+  'closing.closeAction': 'Clôturer la journée',
+  'closing.failed': 'Impossible de clôturer la journée',
+  'closing.offline': 'Pas de connexion. La journée ne peut pas être clôturée avant son retour.',
+  'closing.done.title': 'Journée clôturée',
+  'closing.done.headline': '{date} est clôturée',
+  'closing.digest': 'La journée',
+  'closing.revenue': 'Argent encaissé',
+  'closing.cogs': 'Coût de ce qui a été vendu',
+  'closing.grossProfit': 'Bénéfice brut',
+  'closing.expenses': 'Argent dépensé',
+  'closing.netProfit': 'Bénéfice de la journée',
+  'closing.till': 'La caisse',
+  'closing.expected': 'Attendu',
+  'closing.counted': 'Compté',
+  'closing.difference': 'Écart',
+  // Named plainly: "variance" is accounting vocabulary, and this screen is used
+  // by whoever is standing at the counter.
+  'closing.short': "Il manque de l'argent en caisse. Revoyez la journée avant d'enquêter.",
+  'closing.over': "Il y a plus d'argent en caisse que prévu.",
+  'closing.comparison': 'À titre de comparaison',
+  'closing.yesterday': 'Hier',
+  'closing.monthToDate': 'Ce mois-ci jusqu’ici',
+
+  // Counting the day, one channel at a time (Milestone E). Worded so that
+  // counting never sounds like closing — they are two different acts, often by
+  // two different people.
+  'closing.channels': 'Ce qui a été compté',
+  'closing.channel.cash': 'Caisse en espèces',
+  'closing.channel.unattributed': 'Argent sans compte enregistré',
+  'closing.channel.unattributed.why':
+    "Ces paiements n'ont jamais nommé de compte : il n'y a donc aucun solde pour les vérifier. Affichés pour que rien ne soit caché.",
+  'closing.channel.counted': 'Compté',
+  'closing.channel.outstanding': 'Pas encore compté',
+  'closing.channel.skipped': 'Ignoré',
+  'closing.channel.notCounted': 'Jamais compté',
+  'closing.channel.reportOnly': 'Affiché seulement',
+  'closing.countedBalance': 'Solde affiché par le compte',
+  'closing.count.action': 'Enregistrer ce comptage',
+  'closing.count.failed': "Impossible d'enregistrer ce comptage",
+  'closing.count.noPermission':
+    'Vous pouvez consulter la journée, mais saisir les comptages ne fait pas partie de votre rôle.',
+  'closing.progress.done': 'Tout a été compté. La journée est prête à être clôturée.',
+  'closing.progress.remaining': 'Encore {count} à compter',
+  'closing.skip.action': 'Impossible de vérifier maintenant',
+  'closing.skip.reason': 'Pourquoi cela ne peut pas être vérifié',
+  'closing.skip.reasonPlaceholder': "L'agence est fermée jusqu'à demain…",
+  'closing.skip.confirm': 'Enregistrer cela',
+  'closing.skip.recorded': 'Ignoré — {reason}',
+  'closing.signOff.incomplete':
+    "Certains canaux n'ont pas été comptés. Clôturer maintenant les enregistre comme jamais vérifiés.",
+  'closing.signOff.notYours':
+    'Vos comptages sont enregistrés. Quelqu’un ayant le droit de clôturer terminera la journée.',
+  'closing.locked.body': 'Cette journée est validée. Les chiffres ne changent plus.',
+
+  // ── A difference that has to be answered for (Milestone E) ────────────────
+  // Never worded as an accusation: the system saw a difference, it did not
+  // decide who caused one.
+  'discrepancy.title': 'Écarts à régler',
+  'discrepancy.one.title': "L'écart",
+  'discrepancy.empty.title': 'Tout est équilibré',
+  'discrepancy.empty.body': 'Aucune journée n’attend de décision.',
+  'discrepancy.kind.shortage': 'Argent manquant',
+  'discrepancy.kind.surplus': 'Argent en trop',
+  'discrepancy.status.pending': 'En attente de votre décision',
+  'discrepancy.what': "Ce qui s'est passé",
+  'discrepancy.on': 'Le {date}',
+  'discrepancy.decide': 'Que voulez-vous faire',
+  'discrepancy.decided': 'Ce qui a été décidé',
+  'discrepancy.resolution.employee_debt': "Quelqu'un le doit",
+  'discrepancy.resolution.store_absorbed': 'La boutique le prend en charge',
+  'discrepancy.resolution.error_corrected': 'Un enregistrement était faux',
+  'discrepancy.resolution.forgiven': 'Abandonné',
+  'discrepancy.surplus.why':
+    "L'argent en trop ne peut être imputé à personne. C'est généralement une vente mal saisie.",
+  'discrepancy.who': 'Qui est responsable',
+  'discrepancy.reason': "Ce qui s'est passé, dans vos mots",
+  'discrepancy.reasonPlaceholder': 'Caisse trouvée courte à la relève…',
+  'discrepancy.reason.why':
+    'C’est ce que quelqu’un relira dans six mois. Écrivez-en assez pour que ce soit encore clair.',
+  'discrepancy.submit': 'Enregistrer cette décision',
+  'discrepancy.failed': "Impossible d'enregistrer cette décision",
+  'discrepancy.ownerOnly': 'Seul le propriétaire peut décider du sens d’un écart.',
+
+  // ── What somebody owes ────────────────────────────────────────────────────
+  'debt.ledger': 'Le relevé',
+  'debt.kind.charge': 'Imputé',
+  'debt.kind.repayment': 'Remboursé',
+  'debt.kind.deduction': 'Retenu sur salaire',
+  'debt.kind.forgiveness': 'Annulé',
+
+  // ── Goals (Milestone F) ───────────────────────────────────────────────────
+  // The state is always a word before it is a number: "62%" does not tell
+  // anybody whether that is good on the 20th of the month.
+  'goals.title': 'Objectifs',
+  'goals.filter.active': 'En cours',
+  'goals.filter.all': 'Y compris terminés',
+  'goals.empty.title': 'Aucun objectif fixé',
+  'goals.empty.body': 'Personne n’a encore fixé d’objectif pour cette boutique.',
+  'goals.empty.body.manager': 'Fixez-en un et toute l’équipe verra où en est le mois.',
+  'goals.set.action': 'Fixer un objectif',
+  'goals.set.title': 'Fixer un objectif',
+  'goals.set.who': 'Pour qui',
+  'goals.set.what': 'Quoi viser',
+  'goals.set.howMuch': 'Combien',
+  'goals.set.period': 'Du {from} au {to}',
+  'goals.set.note': 'Note',
+  'goals.set.notePlaceholder': 'Ce que l’équipe doit savoir',
+  'goals.set.failed': 'Impossible de fixer cet objectif',
+  'goals.scope.company': 'Toute l’entreprise',
+  'goals.scope.branch': 'Cette boutique',
+  'goals.scope.user': 'Une personne',
+  'goals.metric.gross_profit': 'Bénéfice conservé',
+  'goals.metric.revenue': 'Argent encaissé',
+  'goals.metric.sales_count': 'Nombre de ventes',
+  'goals.metric.units_sold': 'Articles vendus',
+  'goals.metric.gross_profit.help':
+    'Ce qui reste après le coût des marchandises. Le loyer et les factures n’entrent pas en compte.',
+  'goals.metric.revenue.help': 'Tout ce qui est encaissé, avant les coûts.',
+  'goals.metric.sales_count.help':
+    'Combien de ventes. Trois téléphones sur un même ticket comptent pour une.',
+  'goals.metric.units_sold.help': 'Combien d’articles ont quitté le rayon.',
+  'goals.achieved': 'Jusqu’ici',
+  'goals.target': 'Objectif',
+  'goals.state.not_started': 'Pas commencé',
+  'goals.state.on_track': 'En bonne voie',
+  'goals.state.behind': 'En retard',
+  'goals.state.met': 'Atteint',
+  'goals.state.missed': 'Non atteint',
+  'goals.hint.met': 'Objectif atteint — {percent} % de la cible.',
+  'goals.hint.missed': 'La période s’est terminée à {percent} %.',
+  'goals.hint.notStarted': 'Démarre bientôt, sur {days} jours.',
+  'goals.hint.running': '{needed} par jour sur les {days} jours restants.',
+  'goals.archived.reason': 'Clos : {reason}',
+
+  // ── Correcting a confirmed payment (Milestone B) ──────────────────────────
+  // Worded throughout so "asked for" can never be mistaken for "done".
+  'correction.request.action': 'Corriger ce paiement',
+  'correction.request.title': 'Corriger un paiement confirmé',
+  'correction.request.body':
+    'Ce paiement a déjà été confirmé : il ne peut donc plus être modifié. Demander une correction enregistre l’erreur et remet l’argent en place une fois qu’un propriétaire l’accepte.',
+  'correction.request.notice':
+    'Demander ne change rien pour l’instant. Aucun argent ne bouge tant qu’un propriétaire n’a pas approuvé.',
+  'correction.request.submit': 'Envoyer la demande',
+  'correction.request.done': 'Envoyée. Un propriétaire l’examinera.',
+  'correction.request.failed': 'Impossible d’envoyer cette demande',
+  'correction.amount': 'Montant payé',
+  'correction.reason': 'Ce qui a mal tourné',
+  'correction.reason.hint':
+    'Obligatoire. Dites ce qui s’est passé, pour que ce soit encore clair dans plusieurs mois.',
+  'correction.reference': 'Référence',
+  'correction.reference.hint': 'Facultatif — un numéro de reçu ou un message à l’appui.',
+  'correction.requestedBy': 'Demandé par',
+  'correction.requestedAt': 'Demandé le',
+  'correction.approvedBy': 'Approuvé par',
+  'correction.status.requested': 'Correction demandée',
+  'correction.status.approved': 'Corrigé',
+  'correction.requested.body':
+    'En attente d’un propriétaire. Le paiement reste valable et aucun argent n’a bougé.',
+  'correction.approved.body':
+    'L’argent a été remis en place le {date}. Le paiement d’origine et son reçu sont inchangés.',
+  'correction.approved.next':
+    'Le montant est de nouveau dû. Enregistrez un paiement de remplacement une fois réglé.',
+  'correction.approve.action': 'Approuver la correction',
+  'correction.approve.confirm.title': 'Remettre cet argent en place ?',
+  'correction.approve.confirm.irreversible':
+    'Cela remet le montant sur la journée d’aujourd’hui et la dette redevient due. C’est irréversible.',
+  'correction.approve.done': 'Corrigé. Le montant est de nouveau dû.',
+  'correction.approve.failed': 'Impossible d’approuver cela',
+  'correction.approve.ownerOnly': 'Seul un propriétaire peut approuver une correction.',
+  'correction.reject.action': 'Rejeter',
+  'correction.reject.done': 'Rejeté. Le paiement reste valable.',
+  'correction.reject.failed': 'Impossible de rejeter cela',
+  'correction.conflict.stale.title': 'Ceci a changé pendant que vous regardiez',
+  'correction.conflict.stale.body':
+    'Quelqu’un d’autre est intervenu. Rouvrez pour voir où cela en est.',
+  'correction.conflict.already_decided.title': 'Déjà tranché',
+  'correction.conflict.already_decided.body':
+    'Un autre propriétaire a déjà approuvé ou rejeté celui-ci.',
+  'correction.conflict.already_corrected.title': 'Déjà corrigé',
+  'correction.conflict.already_corrected.body':
+    'Ce paiement a déjà été corrigé une fois. Enregistrez plutôt un paiement de remplacement.',
+  'correction.conflict.request_pending.title': 'Déjà demandé',
+  'correction.conflict.request_pending.body':
+    'Quelqu’un a déjà demandé la correction de ce paiement. Elle attend un propriétaire.',
+  'correction.conflict.day_locked.title': 'La journée est clôturée',
+  'correction.conflict.day_locked.body':
+    'Une correction se place sur la journée ouverte en cours. Réessayez à l’ouverture de la suivante — une journée clôturée n’est jamais rouverte.',
+  'correction.conflict.not_confirmed.title': 'Pas encore confirmé',
+  'correction.conflict.not_confirmed.body':
+    'Ce paiement attend encore d’être confirmé : il peut donc être modifié directement.',
+  'correction.conflict.other.title': 'Impossible de faire cela',
+  'correction.conflict.other.body': 'Quelque chose a changé sur ce paiement. Rouvrez-le.',
+
+  // ── Reading an IMEI off a phone screen (Milestone C) ──────────────────────
+  'scanner.mode.imei': 'Lire l’IMEI à l’écran',
+  'scanner.mode.barcode': 'Scanner un code-barres à la place',
+  'scanner.imei.hint':
+    'Composez *#06# sur le téléphone, puis pointez la caméra vers son écran',
+  'scanner.imei.capture': 'Lire l’écran',
+  'scanner.imei.reading': 'Lecture…',
+  'scanner.imei.nothingFound': 'Aucun IMEI trouvé. Tenez plus stable, ou saisissez-le.',
+  'scanner.imei.failed': 'Lecture impossible. Réessayez, ou saisissez-le.',
+  'scanner.imei.unavailable':
+    'La lecture à l’écran n’est pas disponible sur cet appareil. Saisissez-le.',
+  // Every reinterpreted character is shown, so a human agrees to the reading
+  // rather than being told about it.
+  'scanner.imei.substituted': 'Lu comme : {list}',
+  'scanner.imei.single': 'Un IMEI — un téléphone à une SIM',
+  'scanner.imei.dualSim': 'Deux IMEI — un seul téléphone double SIM, pas deux téléphones',
+  'scanner.imei.use': 'Utiliser ceci',
+  // Where a suggestion came from. A suggestion the user cannot trace is one
+  // they cannot judge — and a proposal must never read like a decision.
+  'scanner.tac.confirmed': 'Votre boutique a confirmé ce modèle : {product}',
+  'scanner.tac.proposed':
+    'Quelqu’un a proposé un modèle — un responsable doit encore le confirmer',
+  'scanner.tac.generic': 'Ressemble à {product}. Choisissez vous-même le produit exact.',
+  'scanner.tac.unknown': 'TAC inconnu — choisissez vous-même le produit',
+  'scanner.tac.conflict':
+    'Les deux IMEI désignent des produits différents. Un responsable doit examiner cela.',
+
+  // ── Expenses (Milestone D) ────────────────────────────────────────────────
+  // Worded so "reported" can never be mistaken for "spent".
+  'expenses.title': 'Argent dépensé',
+  'expenses.detail.title': 'Dépense',
+  'expenses.category': 'Pour quoi',
+  'expenses.category.hint': 'Électricité, déjeuner, transport — les mots de la boutique.',
+  'expenses.amount': 'Montant',
+  'expenses.method': 'Payé par',
+  'expenses.reference': 'Référence',
+  'expenses.note': 'Pourquoi',
+  'expenses.note.hint':
+    'Facultatif, mais sans cela un propriétaire devra confirmer à l’aveugle.',
+  'expenses.note.none': 'Non renseigné',
+  'expenses.dueDate': 'Échéance',
+  'expenses.dueDate.hint': 'AAAA-MM-JJ. Le mois auquel cela se rattache.',
+  'expenses.salary': 'C’est un salaire',
+  'expenses.salary.hint': 'Les salaires sont présentés à part des autres charges fixes.',
+  'expenses.class.label': 'Type de charge',
+  'expenses.class.variable': 'Au jour le jour',
+  'expenses.class.fixed': 'Fixe',
+  'expenses.class.variable.hint': 'Comptée le jour où un propriétaire la confirme.',
+  'expenses.class.fixed.hint': 'Comptée à son échéance — jamais étalée sur tous les jours.',
+  'expenses.status.reported': 'En attente du propriétaire',
+  'expenses.status.confirmed': 'Confirmée',
+  'expenses.status.rejected': 'Rejetée',
+  'expenses.filter.reported': 'En attente',
+  'expenses.filter.confirmed': 'Confirmées',
+  'expenses.filter.all': 'Toutes',
+  'expenses.empty.title': 'Rien ici',
+  'expenses.empty.body': 'Tout ce que vous déclarez apparaîtra ici.',
+  'expenses.empty.body.owner': 'Rien ne vous attend.',
+  'expenses.notFound.title': 'Introuvable',
+  'expenses.notFound.body': 'Cette dépense n’existe pas, ou ne vous est pas accessible.',
+  'expenses.reported.explain':
+    'Déclarée seulement. Aucun argent n’a bougé et aucun chiffre ne l’inclut encore.',
+  'expenses.confirmed.immutable':
+    'Une dépense confirmée ne peut plus être modifiée. Une erreur se répare par une correction.',
+  'expenses.reportedBy': 'Déclarée par',
+  'expenses.reportedAt': 'Déclarée le',
+  'expenses.confirmedBy': 'Confirmée par',
+  'expenses.countedOn': 'Comptée le',
+  'expenses.rejectedReason': 'Motif du rejet',
+  'expenses.report.action': 'Déclarer une dépense',
+  'expenses.report.title': 'Déclarer une dépense',
+  'expenses.report.what': 'De quoi s’agissait-il',
+  'expenses.report.detail': 'Autre chose',
+  'expenses.report.submit': 'Envoyer pour approbation',
+  'expenses.report.notice':
+    'Ceci enregistre ce que vous avez dépensé. Rien ne change tant qu’un propriétaire ne l’a pas confirmé.',
+  'expenses.report.done': 'Envoyée. Un propriétaire l’examinera.',
+  'expenses.report.failed': 'Impossible d’envoyer cela',
+  'expenses.offline': 'Pas de connexion. Réessayez à son retour.',
+  'expenses.noAccounts':
+    'Aucun compte n’est configuré. Choisissez les espèces, ou demandez à un propriétaire d’en ajouter un.',
+  'expenses.confirm.action': 'Confirmer',
+  'expenses.confirm.title': 'Confirmer cette dépense ?',
+  'expenses.confirm.irreversible':
+    'Cela compte l’argent comme dépensé. Une dépense confirmée ne peut plus être modifiée — seulement corrigée.',
+  'expenses.confirm.done': 'Confirmée.',
+  'expenses.confirm.failed': 'Impossible de confirmer cela',
+  'expenses.reject.action': 'Rejeter',
+  'expenses.reject.done': 'Rejetée. Rien n’a été compté.',
+  'expenses.reject.failed': 'Impossible de rejeter cela',
+  'expenses.review.ownerOnly': 'Seul un propriétaire peut confirmer ou rejeter une dépense.',
+  // The warning the brief asks for, word for word.
+  'expenses.reasonMissing.title': 'Aucun motif donné',
+  'expenses.reasonMissing.body': 'Êtes-vous sûr de ne pas vouloir préciser le motif ?',
+  'expenses.reasonMissing.confirm': 'Confirmer quand même',
+  'expenses.reasonMissing.addReason': 'Revenir',
+  'expenses.reasonOmitted.notice': 'Confirmée sans motif indiqué.',
+  'expenses.conflict.stale.title': 'Ceci a changé pendant que vous regardiez',
+  'expenses.conflict.stale.body':
+    'Quelqu’un d’autre est intervenu. Rouvrez pour voir où cela en est.',
+  'expenses.conflict.already_decided.title': 'Déjà tranché',
+  'expenses.conflict.already_decided.body': 'Cette dépense a déjà été confirmée ou rejetée.',
+  'expenses.conflict.day_locked.title': 'La journée est clôturée',
+  'expenses.conflict.day_locked.body':
+    'Une dépense au jour le jour compte sur aujourd’hui, et aujourd’hui est clôturé. Confirmez-la à l’ouverture de la journée suivante.',
+  'expenses.conflict.idempotency.title': 'Déjà envoyée',
+  'expenses.conflict.idempotency.body':
+    'Cette demande a déjà servi pour une autre dépense.',
+  'expenses.conflict.other.title': 'Impossible de faire cela',
+  'expenses.conflict.other.body': 'Quelque chose a changé sur cette dépense. Rouvrez-la.',
+
+  // ── More menu ─────────────────────────────────────────────────────────────
+  'more.manage': 'Gérer',
+  'more.account': 'Compte',
+  'nav.catalog': 'Catalogue',
+  'nav.team': 'Équipe',
+  'nav.analytics': 'Analyses',
+  'nav.settings': 'Paramètres de l’entreprise',
+  'nav.notifications': 'Notifications',
+  'nav.devices': 'Appareils',
+  'nav.branch': 'Site',
+  'transfers.count.waiting': '{n} en attente',
+  'transfers.count.toSend': '{n} à envoyer',
+  'transfers.count.onTheWay': '{n} en route',
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  'analytics.mostProfitable': 'Les plus rentables',
+  'analytics.bestSelling': 'Les plus vendus',
+  'analytics.worstPerforming': 'Les moins performants',
+  'analytics.deadStock': 'Ne bouge pas',
+  'analytics.deadStock.none': 'Tout se vend',
+  'analytics.branches': 'Comparaison des sites',
+  'analytics.employees': 'Performance de l’équipe',
+  'analytics.sold': '{n} vendus',
+  'analytics.inStock': '{n} en stock',
+  'analytics.sales': '{n} ventes',
+  'analytics.revenue': 'Encaissé',
+  'analytics.net': 'Bénéfice',
+  'action.undo': 'Annuler l’action',
+  'action.close': 'Fermer',
+  'action.back': 'Retour',
+  'action.next': 'Suivant',
+  'action.search': 'Rechercher',
+  'action.scan': 'Scanner',
+  'action.typeInstead': 'Saisir à la place',
+  'action.change': 'Changer',
+  'action.selectAll': 'Tout sélectionner',
+  'action.clear': 'Effacer',
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  'tab.home': 'Accueil',
+  'tab.sell': 'Vendre',
+  'tab.inventory': 'Stock',
+  'tab.more': 'Plus',
+
+  // ── Generic states ────────────────────────────────────────────────────────
+  'state.loading': 'Chargement…',
+  'state.empty.title': 'Rien ici pour l’instant',
+  'state.error.title': 'Un problème est survenu',
+  'state.error.body':
+    'Impossible de charger ceci. Vérifiez votre connexion et réessayez.',
+  // Persistent while the server is unreachable. Says the consequence, not the
+  // diagnosis: staff do not need to know which layer failed, they need to know
+  // that what they do now will not be recorded.
+  // ── Home / role landing ───────────────────────────────────────────────────
+  'home.title': 'Aujourd’hui',
+  'home.branch.unknown': 'Aucun site sélectionné',
+  'home.pending.title': 'En attente de vous',
+  'home.pending.transfers': 'Transferts à approuver',
+  'home.pending.returns': 'Retours à examiner',
+  'home.pending.refunds': 'Remboursements à confirmer',
+  'home.actions.title': 'Commencer',
+  'home.actions.receive': 'Réceptionner du stock',
+  'home.today.title': 'Aujourd’hui',
+  'home.today.revenue': 'Argent encaissé aujourd’hui',
+  'home.today.profit': 'Bénéfice du jour',
+  'home.today.sales': '{count} ventes',
+  'home.today.items': '{count} articles',
+  'home.today.unavailable.title': 'Les chiffres du jour ne se sont pas chargés',
+  'home.today.unavailable.body': 'Tout le reste de cet écran fonctionne toujours.',
+  'home.month.profit': 'Bénéfice du mois',
+  'home.stock.title': 'Stock',
+  'home.stock.value': 'Valeur du stock',
+  'home.stock.low': 'Bientôt épuisé',
+  'home.stock.low.hint': 'Produits à recommander',
+  'home.more.title': 'Tout le reste',
+  'home.health.title': 'Santé de la boutique',
+  // Said in words, never as a colour name. "GREEN" told a shopkeeper nothing.
+  'home.health.good': 'La boutique tourne bien',
+  'home.health.watch': 'Quelques points à surveiller',
+  'home.health.attention': 'Quelque chose demande votre attention',
+  'home.health.score': 'Note de {score} sur 100',
+  'nav.sales': 'Ventes',
+  'nav.returns': 'Retours',
+  'nav.suppliers': 'Fournisseurs',
+  'nav.suppliers.hint': 'Ce que la boutique doit',
+  'nav.transfers': 'Transferts',
+  'nav.expenses': 'Argent dépensé',
+  'nav.goals': 'Objectifs',
+  // ── Bringing a stock list in (Milestone G) ────────────────────────────────
+  // Worded so that picking a file can never be mistaken for importing one.
+  'imports.title': 'Importer une liste de stock',
+  'imports.start': 'Depuis un tableur',
+  'imports.intro':
+    'Choisissez votre fichier de stock et nous vous montrerons exactement ce qui serait ajouté. Rien n’est ajouté avant votre accord.',
+  'imports.columns':
+    'Il faut une colonne pour l’IMEI, le numéro de série ou le code-barres, une pour le nom du produit et une pour le prix d’achat.',
+  'imports.pick': 'Choisir un fichier',
+  'imports.failed': 'Ce fichier n’a pas pu être lu',
+  'imports.recent': 'Fichiers précédents',
+  'imports.empty.title': 'Aucun fichier pour l’instant',
+  'imports.empty.body': 'Le stock importé depuis un tableur sera listé ici.',
+  'imports.untitled': 'Fichier de stock',
+  'imports.rowsRead': '{count} lignes lues',
+  'imports.broughtIn': '{count} importés',
+  'imports.status.parsing': 'Lecture',
+  'imports.status.preview': 'En attente de vous',
+  'imports.status.committed': 'Importé',
+  'imports.status.failed': 'Illisible',
+  'imports.preview.title': 'Ce que ce fichier va ajouter',
+  'imports.unreadable':
+    'Nous n’avons pas pu déterminer le sens des colonnes de ce fichier.',
+  'imports.summary.clean': 'Les {willImport} seront ajoutés.',
+  'imports.summary.mixed':
+    '{willImport} seront ajoutés. {errors} ne peuvent pas l’être et sont listés ci-dessous.',
+  'imports.done': '{count} ajoutés à votre stock.',
+  'imports.count.total': 'Lignes',
+  'imports.count.willImport': 'Seront ajoutés',
+  'imports.count.warning': 'À regarder',
+  'imports.count.error': 'Impossible à ajouter',
+  'imports.commit': 'Ajouter {count} au stock',
+  'imports.commit.failed': 'Impossible de les importer',
+  'imports.rows': 'Ligne par ligne',
+  'imports.line': 'Ligne {n}',
+  'imports.row.valid': 'Prêt',
+  'imports.row.warning': 'À vérifier',
+  'imports.row.error': 'Ajout impossible',
+  'nav.imports': 'Importer du stock',
+  // ── Other stores, and consignment (Milestone H) ───────────────────────────
+  // Worded so that "confirmed" never means merely agreed, and a payment
+  // reference is never presented as proof.
+  'stores.title': 'Autres boutiques',
+  'stores.tab.connections': 'Connectées',
+  'stores.tab.find': 'Trouver une boutique',
+  'stores.search.placeholder': 'Identifiant, téléphone ou nom',
+  'stores.search.hint':
+    'Saisissez un identifiant complet ou un numéro de téléphone, ou au moins 3 lettres d’un nom.',
+  'stores.search.none.title': 'Aucun résultat',
+  'stores.search.none.body':
+    'Aucune boutique ne correspond. Vérifiez l’identifiant ou demandez-le-leur.',
+  'stores.verification.pending': 'Badge vérifié bientôt disponible',
+  'stores.connect': 'Demander à se connecter',
+  'stores.request.failed': 'Impossible d’envoyer cette demande',
+  'stores.action.failed': 'Cela n’a pas fonctionné',
+  'stores.empty.title': 'Aucune boutique connectée',
+  'stores.empty.body': 'Les boutiques avec lesquelles vous travaillez apparaîtront ici.',
+  'stores.empty.body.owner':
+    'Trouvez une boutique et demandez à vous connecter : vous pourrez ensuite lui confier du stock à vendre.',
+  'stores.status.pending': 'En attente',
+  'stores.status.accepted': 'Connectée',
+  'stores.status.rejected': 'Refusée',
+  'stores.status.blocked': 'Bloquée',
+  'stores.pending.incoming': 'Elle a demandé à se connecter avec vous.',
+  'stores.pending.outgoing': 'En attente de sa réponse.',
+  'stores.blocked.byMe': 'Vous avez bloqué cette boutique.',
+  'stores.blocked.byThem': 'Cette boutique vous a bloqué.',
+  'stores.blocked.note':
+    'Bloquer arrête toute nouvelle activité. Ce qui est déjà dû reste dû.',
+  'stores.accept': 'Accepter',
+  'stores.reject': 'Refuser',
+  'stores.block': 'Bloquer',
+  'stores.unblock': 'Débloquer',
+
+  'consignment.title': 'Stock chez d’autres boutiques',
+  'consignment.one': 'Dépôt-vente',
+  'consignment.new': 'Confier du stock',
+  'consignment.tab.pending': 'En attente',
+  'consignment.tab.accepted': 'En cours',
+  'consignment.tab.confirmed': 'Terminés',
+  'consignment.empty.pending.title': 'Rien en attente',
+  'consignment.empty.pending.body':
+    'Les propositions en attente de réponse apparaîtront ici.',
+  'consignment.empty.accepted.title': 'Rien en cours',
+  'consignment.empty.accepted.body':
+    'Le stock détenu par une autre boutique apparaîtra ici.',
+  'consignment.empty.confirmed.title': 'Rien de terminé pour l’instant',
+  'consignment.empty.confirmed.body': 'Le stock réglé et rendu apparaîtra ici.',
+  'consignment.side.source': 'Vous avez envoyé ceci',
+  'consignment.side.destination': 'Vous détenez ceci',
+  'consignment.side.sent': 'Envoyé',
+  'consignment.side.holding': 'Détenu',
+  'consignment.phones': '{count} téléphone(s)',
+  'consignment.phones.title': 'Les téléphones',
+  'consignment.agreed': 'Montant convenu',
+  'consignment.money': 'L’argent',
+  'consignment.outstanding': 'Reste dû',
+  'consignment.awaiting': '{amount} déclarés mais pas encore confirmés',
+  'consignment.reference': 'Référence : {ref} — une note, pas une preuve de paiement',
+  'consignment.disclosed': 'Signalé : {note}',
+  'consignment.next': 'Ce que vous pouvez faire',
+  'consignment.ledger.receivable_raised': 'Vendu — montant désormais dû',
+  'consignment.ledger.payment_reported': 'Paiement déclaré',
+  'consignment.ledger.payment_confirmed': 'Paiement confirmé',
+  'consignment.ledger.payment_corrected': 'Paiement annulé',
+  'consignment.ledger.forgiven': 'Passé en perte',
+  'consignment.ledger.settled': 'Réglé',
+  'consignment.line.proposed': 'Proposé',
+  'consignment.line.in_custody': 'Chez eux',
+  'consignment.line.sold': 'Vendu',
+  'consignment.line.returned': 'Rendu',
+  'consignment.line.cancelled': 'Annulé',
+  'consignment.accept': 'Accepter',
+  'consignment.counter': 'Proposer un autre montant',
+  'consignment.counterAmount': 'Votre montant',
+  'consignment.dispute': 'Signaler un problème',
+  'consignment.disputeReason': 'Ce qui ne va pas',
+  'consignment.send': 'Remettre les téléphones',
+  'consignment.confirmReceipt': 'Confirmer leur arrivée',
+  'consignment.confirmReceipt.hint':
+    'Ne confirmez qu’une fois les téléphones physiquement chez vous.',
+  'consignment.reportSold': 'Déclarer comme vendu',
+  'consignment.startReturn': 'Renvoyer',
+  'consignment.shipReturn': 'Marquer comme en cours de retour',
+  'consignment.acceptGood': 'Reçu, en bon état',
+  'consignment.acceptDamaged': 'Reçu, endommagé',
+  'consignment.payAmount': 'Montant payé',
+  'consignment.reportPayment': 'Déclarer un paiement',
+  'consignment.reportPayment.hint':
+    'Ceci indique à l’autre boutique que vous avez payé. Rien n’est réglé tant qu’elle n’a pas confirmé.',
+  'consignment.confirmPayment.hint':
+    'Les paiements déclarés par l’autre boutique apparaissent ci-dessus pour que vous les confirmiez.',
+  'consignment.forgive': 'Passer en perte',
+  'consignment.forgiveAmount': 'Montant à passer en perte',
+  'consignment.forgiveReason': 'Pourquoi',
+  'consignment.forgive.hint':
+    'Passer en perte réduit ce qui est dû. Aucun argent ne change de mains.',
+  'consignment.failed': 'Cela n’a pas fonctionné',
+  'consignment.new.who': 'À qui cela va',
+  'consignment.new.what': 'Téléphones ({count})',
+  'consignment.new.scan': 'Scanner un téléphone',
+  'consignment.new.scanHint': 'Visez l’étiquette IMEI ou numéro de série',
+  'consignment.new.typed': 'Ou saisissez l’IMEI ou le numéro de série',
+  'consignment.new.add': 'Ajouter',
+  'consignment.new.remove': 'Retirer de la liste',
+  'consignment.new.duplicate': 'Celui-ci est déjà dans la liste',
+  'consignment.new.notInStock': '{identifier} n’est pas en stock ici',
+  'consignment.new.notFound': 'Aucun téléphone ici avec {identifier}',
+  'consignment.new.terms': 'Ce que vous demandez',
+  'consignment.new.amount': 'Montant pour l’ensemble',
+  'consignment.new.defects': 'Les défauts qu’ils doivent connaître',
+  'consignment.new.hint':
+    'Ceci propose l’accord. Rien ne quitte votre stock avant qu’ils acceptent.',
+  'consignment.new.stale':
+    'Ceux-ci ne sont plus en stock et ont été retirés de la liste : {identifiers}. Vérifiez-les, puis proposez de nouveau.',
+  'consignment.new.send': 'Proposer',
+
+  // Money loans (Milestone I). The wording carries the rules: a reported
+  // payment is a claim until the person owed it says otherwise, and a reference
+  // is a note somebody typed, never proof that anything was checked.
+  'loans.title': 'Argent dû',
+  'loans.one': 'Dette',
+  'loans.new': 'Enregistrer une dette',
+  'loans.tab.pending': 'En attente',
+  'loans.tab.accepted': 'Convenues',
+  'loans.tab.confirmed': 'Réglées',
+  'loans.empty.pending.title': 'Rien en attente',
+  'loans.empty.pending.body':
+    'Les dettes que vous avez proposées, ou qu’on vous a proposées, restent ici jusqu’à ce que les deux parties soient d’accord.',
+  'loans.empty.accepted.title': 'Rien en cours',
+  'loans.empty.accepted.body':
+    'L’argent convenu mais pas encore remboursé apparaît ici.',
+  'loans.empty.confirmed.title': 'Rien de réglé pour l’instant',
+  'loans.empty.confirmed.body':
+    'Les dettes arrivent ici une fois l’argent réellement transféré, ou une fois passées en perte.',
+  'loans.direction.they_owe_us': 'Ils nous doivent',
+  'loans.direction.we_owe_them': 'Nous leur devons',
+  'loans.onTheTable': 'En discussion',
+  'loans.remaining': 'Reste dû',
+  'loans.principal': 'Convenu : {amount}',
+  'loans.awaiting':
+    '{amount} déclarés comme payés, en attente que vous confirmiez leur arrivée. Ils n’ont pas encore été déduits.',
+  'loans.history': 'Ce qui s’est passé',
+  'loans.paid': 'Payé et confirmé',
+  'loans.reversed': 'Remis en place',
+  'loans.forgiven': 'Passé en perte',
+  'loans.ledger.principal_accepted': 'Les deux parties ont convenu du montant',
+  'loans.ledger.payment_reported': 'Paiement déclaré',
+  'loans.ledger.payment_confirmed': 'Paiement confirmé comme reçu',
+  'loans.ledger.payment_corrected': 'Paiement annulé',
+  'loans.ledger.forgiven': 'Passé en perte',
+  'loans.ledger.settled': 'Réglé',
+  'loans.reference': 'Note : {ref}',
+  'loans.evidence':
+    'Joint à la main : {ref}. Rien n’a été vérifié auprès d’un prestataire.',
+  'loans.next': 'Ce que vous pouvez faire',
+  'loans.counterAmount': 'Un autre montant',
+  'loans.accept': 'Accepter',
+  'loans.counter': 'Proposer un autre montant',
+  'loans.disputeReason': 'Ce qui ne va pas',
+  'loans.dispute': 'Ne pas être d’accord',
+  'loans.accept.hint':
+    'Une fois d’accord, le montant est figé et ne peut plus être modifié.',
+  'loans.payAmount': 'Combien vous avez payé',
+  'loans.payReference': 'Une note à ce sujet (facultatif)',
+  'loans.reportPayment': 'Déclarer avoir payé',
+  'loans.reportPayment.hint':
+    'Ceci leur indique que vous avez payé. Rien n’est déduit de la dette avant qu’ils confirment la réception.',
+  'loans.confirmPayment.ask': 'Ils déclarent avoir payé {amount}.',
+  'loans.confirmPayment': 'Confirmer la réception',
+  'loans.confirmPayment.hint':
+    'Ne confirmez qu’une fois l’argent réellement en main. C’est ce qui réduit la dette.',
+  'loans.correctReason': 'Pourquoi vous le remettez en place',
+  'loans.correct': 'Annuler ce paiement',
+  'loans.correct.hint':
+    'À utiliser si l’argent n’est jamais réellement arrivé. L’entrée d’origine reste dans l’historique.',
+  'loans.forgiveAmount': 'Montant à passer en perte',
+  'loans.forgiveReason': 'Pourquoi',
+  'loans.forgive': 'Passer en perte',
+  'loans.forgive.hint':
+    'Passer en perte réduit ce qui est dû. Aucun argent ne change de mains.',
+  'loans.new.who': 'Avec qui',
+  'loans.new.which': 'Dans quel sens',
+  'loans.new.amount': 'Combien',
+  'loans.new.note': 'À quoi cela correspond (facultatif)',
+  'loans.new.hint':
+    'Ceci propose le montant. Cela ne devient une dette qu’une fois l’autre partie d’accord.',
+  'loans.new.send': 'Proposer',
+  'loans.new.failed': 'Cela n’a pas pu être enregistré',
+  'loans.failed': 'Cela n’a pas fonctionné',
+
+  // Choosing the other side, shared by consignment and loans.
+  'counterparty.kind.connected_store': 'Boutique sur l’app',
+  'counterparty.kind.manual_store': 'Boutique',
+  'counterparty.kind.manual_person': 'Personne',
+  'counterparty.kind.employee': 'Employé',
+  'counterparty.selected': 'Choisi',
+  'counterparty.empty.title': 'Personne d’ajouté',
+  'counterparty.empty.body':
+    'Ajoutez la personne ou la boutique concernée. Les boutiques connectées apparaissent ici automatiquement.',
+  'counterparty.add': 'Ajouter quelqu’un',
+  'counterparty.add.hint':
+    'Pour quelqu’un qui n’utilise pas l’app. Ceci enregistre seulement un nom pour vos propres archives — cela ne lui crée pas de compte.',
+  'counterparty.add.name': 'Son nom',
+  'counterparty.add.phone': 'Téléphone (facultatif)',
+  'counterparty.add.save': 'Enregistrer',
+  'counterparty.add.failed': 'Cela n’a pas pu être enregistré',
+
+  // Shown on the closing screen. A nudge, never a figure.
+  'closing.loans.title': 'Argent dû',
+  'closing.loans.answer': '{count} en attente de votre réponse',
+  'closing.loans.confirm': '{count} paiements en attente de votre confirmation',
+  'closing.loans.outstanding': '{count} encore ouverts, {amount} au total',
+  'closing.loans.hint':
+    'Rien de tout cela ne change les espèces que vous devriez avoir ni le bénéfice du jour.',
+
+  // The Sync centre (Milestone J). Nothing here may claim the server agreed.
+  'sync.title': 'En attente d’envoi',
+  'sync.connected': 'Connecté. Ce qui attend va partir maintenant.',
+  'sync.disconnected': 'Pas de connexion. Votre travail est enregistré sur ce téléphone.',
+  'sync.corrupted':
+    'Une partie du travail enregistré sur ce téléphone n’a pas pu être lue. Elle a été mise de côté plutôt que supprimée — prévenez la personne qui a installé l’app.',
+  'sync.count.drafts': 'Enregistré sur ce téléphone',
+  'sync.count.waiting': 'En attente d’envoi',
+  'sync.count.attention': 'Demande votre attention',
+  'sync.lastAt': 'Dernier envoi à {when}',
+  'sync.never': 'Rien n’a encore été envoyé',
+  'sync.retryAll': 'Envoyer ce qui attend',
+  'sync.retryAll.offline':
+    'Cela se fera tout seul au retour de la connexion.',
+  'sync.section.attention': 'Demande votre attention',
+  'sync.section.waiting': 'En attente d’envoi',
+  'sync.section.drafts': 'Enregistré sur ce téléphone',
+  'sync.section.done': 'Terminé récemment',
+  'sync.empty.title': 'Rien en attente',
+  'sync.empty.body': 'Tout ce que vous avez fait est arrivé au serveur.',
+  'sync.state.draft': 'Enregistré ici',
+  'sync.state.waiting_for_connection': 'En attente d’envoi',
+  'sync.state.sending': 'Envoi en cours',
+  'sync.state.synced': 'Envoyé',
+  'sync.state.needs_attention': 'Demande votre attention',
+  'sync.state.cancelled': 'Annulé',
+  'sync.reason.no_network': 'Le téléphone n’a pas de connexion.',
+  'sync.reason.api_unreachable': 'Le serveur n’a pas pu être joint.',
+  'sync.reason.timeout_uncertain':
+    'Le serveur n’a pas répondu à temps. Une nouvelle tentative aura lieu — cela ne sera pas enregistré deux fois.',
+  'sync.reason.session_expired':
+    'Vous avez été déconnecté. Reconnectez-vous et cela partira.',
+  'sync.reason.permission_denied': 'Vous n’avez plus le droit de faire cela.',
+  'sync.reason.validation': 'Le serveur ne l’a pas accepté tel quel.',
+  'sync.reason.conflict':
+    'Quelque chose a changé sur le serveur. Vérifiez, puis envoyez-en un nouveau ou annulez celui-ci.',
+  'sync.reason.server_error': 'Le serveur a rencontré un problème.',
+  'sync.tryAgain': 'Réessayer',
+  'sync.cancel': 'Annuler',
+  // Restored drafts (Milestone J.1). Never says the work was sent.
+  'draft.restored': 'Nous avons restauré ce que vous aviez ici depuis {when}.',
+  'draft.restored.hint':
+    'Seul ce que vous aviez saisi est revenu. Les prix, les soldes et le stock sont relus depuis le serveur.',
+  'draft.keep': 'Le garder',
+  'draft.discard': 'Recommencer',
+  'draft.notSaved':
+    'Ceci n’a pas pu être enregistré sur le téléphone : ce sera perdu si l’app se ferme.',
+  'sync.reason.entitlement_blocked':
+    'Votre abonnement a pris fin : ceci n’a pas pu être enregistré sur le serveur.',
+  // Subscription status (Milestone K). No prices, no payment button, no link.
+  'subscription.title': 'Abonnement',
+  'nav.subscription': 'Abonnement',
+  'subscription.state.active': 'Actif',
+  'subscription.state.grace': 'Terminé — période de tolérance',
+  'subscription.state.expired': 'Terminé',
+  'subscription.state.complimentary': 'Offert',
+  'subscription.countdown':
+    'L’abonnement se termine dans {days} jours. Il peut être prolongé via notre site officiel communiqué par WhatsApp.',
+  'subscription.endsToday':
+    'L’abonnement se termine aujourd’hui. Il peut être prolongé via notre site officiel communiqué par WhatsApp.',
+  'subscription.grace':
+    'Votre abonnement a pris fin. Il vous reste {hours} heures avant que l’app cesse d’accepter des modifications.',
+  'subscription.grace.hint':
+    'Tout fonctionne encore pour l’instant. L’abonnement peut être prolongé via notre site officiel communiqué par WhatsApp.',
+  'subscription.expired':
+    'Votre abonnement a pris fin. Vous pouvez encore tout consulter et tout exporter, mais rien de nouveau ne peut être enregistré.',
+  'subscription.expired.hint':
+    'Rien n’a été supprimé. L’abonnement peut être prolongé via notre site officiel communiqué par WhatsApp.',
+  'subscription.complimentary': 'Cette boutique bénéficie d’un accès offert.',
+  'subscription.stale':
+    'Voici ce que ce téléphone savait en dernier. La vérification auprès du serveur n’a pas pu se faire à l’instant.',
+  'subscription.seats': 'Places pour le personnel',
+  'subscription.seats.used': '{used} sur {limit} utilisées',
+  'subscription.seats.included': '{included} incluses, {extra} ajoutées',
+  'subscription.seats.over':
+    'Il y a plus d’employés actifs que de places. Personne n’a été désactivé — désactivez quelqu’un dans Équipe avant d’en ajouter un nouveau.',
+  'subscription.branches': 'Sites abonnés',
+  'subscription.branches.value': '{subscribed} payés, {active} en activité',
+  'entitlement.blocked.title': 'Abonnement terminé',
+  'entitlement.blocked.body':
+    'Ceci n’a pas pu être enregistré. Votre abonnement a pris fin : l’app ne peut plus rien enregistrer de nouveau — tout ce que vous avez déjà est toujours là.',
+  // Where the money is (Milestone L). Profit and cash are never mixed.
+  'money.title': 'Où est l’argent',
+  'nav.money': 'Où est l’argent',
+  'money.period.today': 'Aujourd’hui',
+  'money.period.week': '7 jours',
+  'money.period.month': '30 jours',
+  'money.profit': 'Ce que vous avez gagné',
+  'money.netOperatingProfit': 'Bénéfice après tout',
+  'money.netRevenue': 'Ventes, après retours',
+  'money.returnsRevenue': 'Retourné',
+  'money.cogs': 'Ce que la marchandise a coûté',
+  'money.grossProfit': 'Bénéfice sur la marchandise',
+  'money.expenses': 'Frais de fonctionnement',
+  'money.expenses.detail': 'Dont {fixed} de charges fixes et {salaries} de salaires.',
+  'money.cash': 'Ce qui a réellement bougé',
+  'money.cash.hint':
+    'Argent entré et sorti. Ce n’est pas le bénéfice — une bonne semaine peut laisser la caisse vide.',
+  'money.cash.in': 'Encaissé auprès des clients',
+  'money.cash.refunds': 'Remboursements versés',
+  'money.cash.suppliers': 'Payé aux fournisseurs',
+  'money.cash.expenses': 'Payé en espèces',
+  'money.cash.net': 'Mouvement net',
+  'money.owed': 'Créances et dettes',
+  'money.owed.hint': 'Tel qu’à cet instant, pas sur la période ci-dessus.',
+  'money.owed.toUs': 'On vous doit',
+  'money.owed.byUs': 'Vous devez',
+  'money.owed.consignment': 'Solde des dépôts-ventes',
+  'money.discrepancies': 'À examiner',
+  'money.discrepancies.open':
+    '{count} écarts de comptage pour {amount} ne sont pas réglés.',
+  'money.discrepancies.hint':
+    'Un écart est une question, pas une perte. Il n’est jamais compté comme du bénéfice.',
+  'money.vsPrevious': 'que la période précédente',
+  'money.change': '{percent} % {direction} {label}',
+  'money.direction.up': 'de plus',
+  'money.direction.down': 'de moins',
+  'money.direction.flat': 'identique à',
+  'money.noComparison': 'Rien à comparer pour l’instant',
+  'money.unavailable.hint':
+    'Ceci n’est pas encore suivi : c’est donc laissé de côté plutôt qu’affiché à zéro.',
+  'money.unavailable.refund_liability': 'Remboursements dus',
+  'money.unavailable.supplier_liability': 'Soldes fournisseurs',
+  'money.unavailable.commissions_and_fees': 'Commissions et frais',
+  'money.unavailable.per_channel_expected_movement': 'Attendu par canal',
+  'money.unavailable.unattributed_legacy_payments': 'Anciens paiements sans canal',
+  'money.empty.title': 'Rien ne s’est encore passé',
+  'money.empty.body': 'Aucune vente, aucun remboursement ni frais sur cette période.',
+  'money.offline':
+    'Pas de connexion. Ces chiffres sont les derniers reçus par ce téléphone.',
+  'money.noPermission.title': 'Ces chiffres ne vous sont pas accessibles',
+  'money.noPermission.body':
+    'Demandez au propriétaire si vous avez besoin d’accéder à l’argent de la boutique.',
+  'nav.sync': 'En attente d’envoi',
+  // Wording for work that has not reached the server. None of it may say sent,
+  // reserved, paid, approved, confirmed or completed.
+  'offline.savedHere': 'Enregistré sur ce téléphone',
+  'offline.notSentYet': 'Pas encore envoyé',
+  'offline.sell.chargeDisabled':
+    'Vous pouvez préparer la vente, mais elle ne peut pas être encaissée sans connexion — rien ne peut garantir que le téléphone est toujours invendu.',
+  'offline.closing.cannotFinalize':
+    'Vos comptages sont enregistrés ici. La journée ne peut pas être clôturée sans connexion.',
+  'offline.report.queued':
+    'En attente d’être déclaré au serveur. Cela ne veut pas dire que c’est confirmé.',
+  'offline.proposal.notSent':
+    'Enregistré ici seulement. L’autre boutique n’a pas été prévenue.',
+  'offline.import.notActivated':
+    'Enregistré ici seulement. Rien n’a été ajouté au stock.',
+  'nav.loans': 'Argent dû',
+  'nav.stores': 'Autres boutiques',
+  'nav.consignments': 'Stock chez d’autres boutiques',
+  'nav.closing': 'Clôture du jour',
+  'state.offline.banner': 'Pas de connexion — rien de ce que vous validez ne sera enregistré',
+  'permission.notice.title': 'Vous ne pouvez pas faire ceci',
+  'state.error.offline.title': 'Pas de connexion',
+  'state.error.offline.body':
+    'Vous semblez hors ligne. Cela refonctionnera dès la reconnexion.',
+  'state.error.permission.title': 'Pas accessible pour vous',
+  'state.error.permission.body':
+    'Votre rôle ne l’inclut pas. Demandez à un responsable si vous en avez besoin.',
+  'state.error.notFound.title': 'Introuvable',
+  'state.noResults.title': 'Aucun résultat',
+  'state.noResults.body': 'Essayez une autre recherche, ou scannez l’article.',
+
+  // ── Field helpers ─────────────────────────────────────────────────────────
+  'field.required': 'Obligatoire',
+  'field.optional': 'Facultatif',
+  'field.password.show': 'Afficher le mot de passe',
+  'field.password.hide': 'Masquer le mot de passe',
+
+  // ── Selection sheet ───────────────────────────────────────────────────────
+  'select.search': 'Rechercher',
+  'select.create': 'Créer « {name} »',
+  'select.selected': '{count} sélectionnés',
+  'select.confirm': 'Choisir',
+
+  // ── Dialogs ───────────────────────────────────────────────────────────────
+  'dialog.discard.title': 'Abandonner les modifications ?',
+  'dialog.discard.body': 'Ce que vous avez saisi ne sera pas enregistré.',
+  'dialog.discard.confirm': 'Abandonner',
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  'toast.dismiss': 'Fermer',
+  // ── Scanner ───────────────────────────────────────────────────────────────
+  'scanner.title': 'Scanner',
+  'scanner.hint': 'Pointez la caméra vers le code-barres',
+  'scanner.hint.continuous':
+    'Continuez à scanner — chaque article est ajouté au fur et à mesure',
+  'scanner.scanned': '{count} scannés',
+  'scanner.looking': 'Recherche…',
+  'scanner.torch.on': 'Allumer la lumière',
+  'scanner.torch.off': 'Éteindre la lumière',
+  'scanner.manual.title': 'Saisir le code',
+  'scanner.manual.placeholder': 'IMEI, numéro de série ou code-barres',
+  'scanner.manual.submit': 'Rechercher',
+  'scanner.permission.title': 'Accès à la caméra nécessaire',
+  'scanner.permission.body':
+    'Scanner est bien plus rapide que saisir. Autorisez la caméra pour scanner les IMEI, numéros de série et codes-barres.',
+  'scanner.permission.grant': 'Autoriser la caméra',
+  'scanner.permission.denied':
+    'L’accès à la caméra est désactivé. Activez-le dans les réglages du téléphone, ou saisissez le code.',
+  'scanner.unavailable.title': 'Pas de caméra ici',
+  'scanner.unavailable.body':
+    'Cet appareil n’a pas de caméra disponible. Vous pouvez saisir le code à la place.',
+
+  // ── Sell ──────────────────────────────────────────────────────────────────
+  'sell.title': 'Vendre',
+  'sell.scan.placeholder': 'Scannez IMEI, série ou code-barres',
+  'sell.empty.title': 'Prêt à vendre',
+  'sell.empty.body': 'Scannez le premier article pour commencer une vente.',
+  'sell.alreadyInCart': 'Déjà dans cette vente',
+  'sell.addToSale': 'Ajouter à la vente',
+  'sell.priceRequired': 'Ce produit n’a pas encore de prix — saisissez-en un.',
+  'sell.cart.count': '{count} article(s)',
+  'sell.subtotal': 'Sous-total',
+  'sell.discount': 'Remise',
+  'sell.total': 'Total',
+  'sell.charge': 'Encaisser {amount}',
+  'sell.clear': 'Vider la vente',
+  'sell.clear.confirm': 'Vider cette vente ?',
+  'sell.clear.body': 'Tout ce qui a été scanné sera retiré.',
+
+  // ── Payment ───────────────────────────────────────────────────────────────
+  'sell.payment.title': 'Encaisser',
+  'sell.payment.method': 'Comment paient-ils ?',
+  'sell.payment.amount': 'Montant',
+  'sell.payment.remaining': 'Reste {amount} à payer',
+  'sell.payment.change': 'Monnaie à rendre {amount}',
+  'sell.payment.split': 'Répartir entre plusieurs moyens',
+  'sell.payment.addMethod': 'Ajouter un autre moyen',
+  'sell.payment.complete': 'Terminer la vente',
+  'sell.payment.exactOnly':
+    'Le montant total doit être payé. La vente à crédit n’est pas encore disponible.',
+
+  // ── Below cost ────────────────────────────────────────────────────────────
+  'sell.belowCost.title': 'Vendre à perte ?',
+  // ── Return workflow stages ────────────────────────────────────────────────
+  // Worded so the three money stages cannot be mistaken for one another:
+  // "owes" / "says they paid" / "money has left".
+  'returns.stage.requested': 'Retour demandé',
+  'returns.stage.custody': 'Téléphone revenu en boutique',
+  'returns.stage.investigation': 'En cours d’examen',
+  'returns.stage.decision': 'Décision prise',
+  'returns.stage.due': 'Remboursement dû — la boutique le doit',
+  'returns.stage.reported': 'Versement déclaré — pas encore confirmé',
+  'returns.stage.confirmed': 'Remboursement confirmé — l’argent est sorti',
+  'sell.belowCost.body':
+    'Cette vente est {amount} en dessous de ce que le stock a coûté.',
+  // Shown in the cart, before Charge — a cashier who finds out at checkout has
+  // already quoted the customer a price.
+  'sell.belowCost.inline':
+    '{amount} en dessous du prix d’achat — une approbation sera nécessaire',
+  'sell.offline.body':
+    'Pas de connexion. Votre panier est conservé, mais le paiement ne peut pas être encaissé — rien ne peut garantir que ce téléphone est toujours invendu.',
+  'sell.belowCost.confirm': 'Vendre quand même',
+  'sell.belowCost.reason': 'Pourquoi ?',
+  'sell.belowCost.reasonPlaceholder':
+    'Boîte abîmée, accord du propriétaire…',
+  'sell.belowCost.needsManager':
+    'Ce prix est en dessous du prix d’achat. Un responsable doit l’approuver.',
+
+  // ── Sale complete ─────────────────────────────────────────────────────────
+  'sell.done.title': 'Vente terminée',
+  'sell.done.invoice': 'Facture {number}',
+  'sell.done.profit': 'Bénéfice {amount}',
+  'sell.done.new': 'Nouvelle vente',
+  'sell.done.share': 'Partager le reçu',
+  'sell.done.shareFailed': 'Impossible de créer le reçu',
+
+  // ── Receipt ───────────────────────────────────────────────────────────────
+  'receipt.title': 'Reçu',
+  'receipt.invoice': 'Facture',
+  'receipt.date': 'Date',
+  'receipt.servedBy': 'Servi par',
+  'receipt.item': 'Article',
+  'receipt.qty': 'Qté',
+  'receipt.price': 'Prix',
+  'receipt.lineTotal': 'Total',
+  'receipt.thanks': 'Merci',
+
+  // ── Sale history (I1) ─────────────────────────────────────────────────────
+  'sales.title': 'Ventes',
+  'sales.search': 'Facture, IMEI, produit ou client',
+  'sales.invoice': 'Facture {no}',
+  'sales.items': '{count} articles',
+  'sales.itemsInLines': '{count} articles sur {lines} lignes',
+  'sales.reversed': 'Annulée',
+  'sales.endOfResults': 'C’est tout l’historique',
+  'sales.forbidden': 'L’historique des ventes ne vous est pas accessible',
+  'sales.forbiddenBody':
+    'Demandez au propriétaire ou à un responsable si vous devez voir ce que le site a vendu.',
+  'sales.empty': 'Aucune vente pour l’instant',
+  'sales.emptyBody': 'Les ventes réalisées sur ce site apparaîtront ici.',
+  'sales.empty.search': 'Aucun résultat',
+  'sales.empty.searchBody':
+    'Essayez le numéro de facture, un IMEI ou numéro de série, ou le nom du client.',
+  'sales.empty.filter': 'Rien dans ce filtre',
+  'sales.empty.filterBody': 'Essayez un autre état de paiement.',
+  'sales.filter.all': 'Toutes',
+  'sales.filter.paid': 'Payées',
+  'sales.filter.partial': 'Partiellement payées',
+  'sales.filter.credit': 'À crédit',
+  'sales.payStatus.paid': 'Payée',
+  'sales.payStatus.partial': 'Partiellement payée',
+  'sales.payStatus.credit': 'À crédit',
+  'sales.detail.title': 'Vente',
+  'sales.detail.soldBy': 'Vendu par {name}',
+  'sales.detail.customer': 'Client',
+  'sales.detail.lines': 'Ce qui a été vendu',
+  'sales.detail.payments': 'Paiements',
+  'sales.detail.totals': 'Totaux',
+  'sales.detail.subtotal': 'Sous-total',
+  'sales.detail.discount': 'Remise',
+  'sales.detail.total': 'Total',
+  'sales.detail.paid': 'Payé',
+  'sales.detail.balanceDue': 'Reste dû',
+  'sales.detail.cost': 'Prix d’achat',
+  'sales.detail.margin': 'Bénéfice',
+  'sales.detail.quantity': 'x{count}',
+  'sales.detail.reversedNotice': 'Cette vente a été annulée.',
+  'sales.detail.voidedLine': 'Retiré de cette vente',
+  'sales.detail.notFound': 'Vente introuvable',
+  'sales.detail.notFoundBody':
+    'Elle appartient peut-être à un autre site. Changez de site et réessayez.',
+
+  // ── Returns workflow (I2) ─────────────────────────────────────────────────
+  'status.return.pending_investigation': 'En attente d’examen',
+  'status.return.under_review': 'En cours d’examen',
+  'status.return.approved_refund_due': 'Approuvé — remboursement dû',
+  'status.return.rejected': 'Refusé',
+  'status.custody.customer_holds': 'Le client a le téléphone',
+  'status.custody.store_holds': 'La boutique détient le téléphone',
+  'status.custody.handed_back': 'Rendu',
+  'status.custody.retained_hold': 'Retenu — pas à la vente',
+  'status.responsibility.pending_investigation': 'Pas encore tranché',
+  'status.responsibility.store_or_product_fault': 'Faute de la boutique ou du produit',
+  'status.responsibility.customer_damage': 'Dommage causé par le client',
+  'status.responsibility.other': 'Autre',
+
+  'returns.title': 'Retours',
+  'returns.search': 'Facture, IMEI ou numéro de série',
+  'returns.empty': 'Aucun retour pour l’instant',
+  'returns.emptyBody': 'Les retours ouverts sur ce site apparaîtront ici.',
+  'returns.empty.search': 'Aucun résultat',
+  'returns.empty.searchBody':
+    'Essayez le numéro de facture, ou l’IMEI inscrit sur le téléphone.',
+  'returns.empty.filter': 'Rien dans ce filtre',
+  'returns.empty.filterBody': 'Essayez un autre état.',
+  'returns.forbidden': 'Les retours ne vous sont pas accessibles',
+  'returns.forbiddenBody':
+    'Demandez au propriétaire ou à un responsable si vous devez voir les retours.',
+  'returns.endOfResults': 'C’est l’ensemble des retours',
+  'returns.filter.all': 'Tous',
+  'returns.filter.pending_investigation': 'En attente',
+  'returns.filter.under_review': 'En cours d’examen',
+  'returns.filter.approved_refund_due': 'Remboursement dû',
+  'returns.filter.rejected': 'Refusés',
+  'returns.requestedBy': 'Ouvert par {name}',
+  'returns.exceptionNeeded': 'Approbation du propriétaire nécessaire',
+
+  'returns.new.title': 'Demander un retour',
+  'returns.new.scan': 'Scanner le téléphone',
+  'returns.new.scanHint':
+    'Composez *#06# sur le téléphone et scannez l’IMEI affiché — pas celui de la boîte.',
+  'returns.new.manual': 'Saisir l’IMEI à la place',
+  'returns.new.manualLabel': 'IMEI ou numéro de série',
+  'returns.new.find': 'Trouver la vente',
+  'returns.new.notFound': 'Aucun téléphone vendu ne correspond',
+  'returns.new.notFoundBody':
+    'Vérifiez le numéro, ou retrouvez la vente dans l’historique et lancez le retour depuis là.',
+  'returns.new.reason': 'Quel est le problème ?',
+  'returns.new.reasonHint': 'Ce que dit le client, dans ses mots',
+  'returns.new.condition': 'État du téléphone',
+  'returns.new.conditionHint':
+    'Marques, dommages, contenu de la boîte — assez pour que quelqu’un d’autre puisse examiner',
+  'returns.new.custody': 'Où est le téléphone maintenant ?',
+  'returns.new.custody.customer': 'Le client l’a encore',
+  'returns.new.custody.store': 'Nous l’avons ici',
+  'returns.new.custodyWarning':
+    'Le retour ne peut pas être approuvé tant que le téléphone n’est pas physiquement ici.',
+  'returns.new.exceptionWarning':
+    'Cette vente est hors de sa politique de retour. La demande reste possible, mais seul le propriétaire peut l’approuver.',
+  'returns.new.submit': 'Ouvrir le retour',
+  'returns.new.existing': 'Un retour est déjà ouvert pour ce téléphone',
+  'returns.new.existingBody': 'Ouverture de celui-ci à la place.',
+  'returns.new.discard': 'Abandonner cette demande de retour ?',
+  'returns.new.discardBody': 'Ce que vous avez saisi sera perdu.',
+
+  'returns.detail.title': 'Retour',
+  'returns.detail.phone': 'Téléphone',
+  'returns.detail.sale': 'Vente d’origine',
+  'returns.detail.policy': 'Politique au moment de la vente',
+  'returns.detail.custody': 'Détention',
+  'returns.detail.investigation': 'Examen',
+  'returns.detail.responsibility': 'Responsabilité',
+  'returns.detail.notes': 'Notes sur l’état',
+  'returns.detail.reason': 'Problème signalé',
+  'returns.detail.money': 'Remboursement',
+  'returns.detail.provisional':
+    'Provisoire — rien n’est dû tant que ce n’est pas approuvé',
+  'returns.detail.final': 'Fixé à l’approbation et non modifiable',
+  'returns.detail.gross': 'Remboursement pour le téléphone',
+  'returns.detail.adjustments': 'Retenu',
+  'returns.detail.net': 'Remboursement dû',
+  'returns.detail.cost': 'Prix d’achat',
+  'returns.detail.hidden': 'Masqué',
+  'returns.detail.timeline': 'Historique',
+  'returns.detail.notFound': 'Retour introuvable',
+  'returns.detail.notFoundBody':
+    'Il appartient peut-être à un autre site. Changez de site et réessayez.',
+  'returns.detail.dueNotPaid':
+    'Remboursement dû — le versement n’a pas encore été confirmé.',
+  'returns.detail.heldNotSellable':
+    'Le téléphone est retenu et n’est pas à la vente.',
+  'returns.detail.noAdjustments': 'Rien de retenu',
+
+  'returns.custody.action': 'Enregistrer que nous avons le téléphone',
+  'returns.custody.confirm': 'Confirmer que le téléphone est ici',
+  'returns.custody.body':
+    'Scannez ou saisissez l’IMEI du téléphone que vous avez devant vous. Une fois enregistré, il ne peut plus être vendu, tarifé ni transféré.',
+  'returns.custody.done': 'Téléphone enregistré comme reçu',
+  'returns.custody.already': 'Déjà enregistré comme reçu',
+
+  'returns.review.action': 'Examiner',
+  'returns.review.save': 'Enregistrer l’examen',
+  'returns.review.responsibilityLabel': 'Qui est responsable ?',
+  'returns.review.otherRequired': 'Précisez ce que « autre » signifie ici',
+  'returns.review.damageWarning':
+    'Un dommage causé par le client ne peut être approuvé que par le propriétaire, à titre exceptionnel.',
+  'returns.review.adjustment.add': 'Retenir un montant',
+  'returns.review.adjustment.kind': 'Qu’est-ce qui est retenu ?',
+  'returns.review.adjustment.label': 'Décrivez-le pour le client',
+  'returns.review.adjustment.quantity': 'Combien',
+  'returns.review.adjustment.unitAmount': 'Montant unitaire',
+  'returns.review.adjustment.remove': 'Retirer',
+  'returns.review.adjustment.tooBig':
+    'Les montants retenus ne peuvent pas dépasser le remboursement',
+  'returns.adjustment.screen_protector': 'Protection d’écran',
+  'returns.adjustment.accessory_retained': 'Accessoire conservé',
+  'returns.adjustment.restocking_fee': 'Frais de remise en stock',
+  'returns.adjustment.other': 'Autre',
+
+  'returns.approve.action': 'Approuver le retour',
+  'returns.approve.title': 'Approuver ce retour ?',
+  'returns.approve.body':
+    'La boutique DEVRA {amount}. Ceci n’enregistre aucun versement. Le téléphone reste retenu et n’est pas à la vente.',
+  'returns.approve.exceptionTitle': 'Approuver à titre exceptionnel, en tant que propriétaire ?',
+  'returns.approve.exceptionBody':
+    'Ceci sort de ce qui a été promis au client. Dites pourquoi.',
+  'returns.approve.exceptionReason': 'Pourquoi cette exception est-elle accordée ?',
+  'returns.approve.notAllowed': 'Seul le propriétaire peut approuver celui-ci',
+  'returns.approve.done': 'Approuvé — remboursement dû',
+  'returns.reject.action': 'Refuser le retour',
+  'returns.reject.title': 'Refuser ce retour ?',
+  'returns.reject.reason': 'Pourquoi est-il refusé ?',
+  'returns.reject.handBack':
+    'Le téléphone est ici : il doit donc être rendu au client.',
+  'returns.reject.done': 'Retour refusé',
+  'returns.conflict': 'Quelqu’un d’autre est intervenu sur ce retour',
+  'returns.conflictBody': 'Actualisé pour montrer ce qui s’est réellement passé.',
+  'sales.detail.requestReturn': 'Demander un retour',
+
+  // ── Returns policy (I1) ───────────────────────────────────────────────────
+  // The shop's promise, said in words rather than in hours-since-epoch. The
+  // server decides the deadline and whether a return is still open; these
+  // strings only report it.
+  'returns.window.none': 'aucun retour',
+  'returns.window.oneHour': '1 heure',
+  'returns.window.hours': '{count} heures',
+  'returns.window.oneDay': '1 jour',
+  'returns.window.days': '{count} jours',
+  'returns.receipt.none': 'Cette vente est définitive — aucun retour.',
+  'returns.receipt.until': 'Retour possible sous {window} — jusqu’au {deadline}.',
+  'returns.status.open': 'Retour possible',
+  'returns.status.until': 'jusqu’au {deadline}',
+  'returns.status.expired': 'Délai de retour écoulé',
+  'returns.status.closedOn': 'terminé le {deadline}',
+  'returns.status.none': 'Aucun retour',
+  'returns.status.returned': 'Déjà retourné',
+  'returns.status.reversed': 'Vente annulée',
+  'returns.status.accessoriesOnly': 'Accessoires — retour pas encore possible',
+  'returns.policy.title': 'Politique de retour',
+  'returns.policy.shopDefault': 'Politique de la boutique',
+  'returns.policy.change': 'Modifier pour cette vente',
+  'returns.policy.readOnly': 'Seul un responsable peut modifier ceci',
+  'returns.policy.reason': 'Pourquoi cette vente est-elle différente ?',
+  'returns.policy.reasonRequired': 'Indiquez pourquoi avant de continuer',
+  'returns.policy.deadlinePreview': 'Le client peut retourner jusqu’au {deadline}',
+  'returns.policy.noReturnsPreview': 'Vendu en l’état — aucun retour',
+  'returns.policy.changedBy': 'Modifié par {name}',
+
+  // ── Inventory ─────────────────────────────────────────────────────────────
+  'inventory.title': 'Stock',
+  'inventory.scan.placeholder': 'Scannez ou saisissez un IMEI ou numéro de série',
+  'inventory.filter.in_stock': 'En stock',
+  'inventory.filter.sold': 'Vendu',
+  'inventory.filter.faulty': 'Défectueux',
+  'inventory.filter.all': 'Tout',
+  'inventory.units': 'Articles suivis',
+  'inventory.accessories': 'Accessoires',
+  'inventory.cost': 'prix d’achat',
+  'inventory.inStock': 'en stock',
+  'inventory.empty.title': 'Aucun stock ici pour l’instant',
+  'inventory.empty.body': 'Réceptionnez une livraison et elle apparaîtra ici.',
+  'inventory.empty.filtered.title': 'Aucun résultat',
+  'inventory.empty.filtered.body': 'Essayez un autre filtre.',
+  'inventory.notFound': 'Aucun article avec ce code sur ce site',
+  'inventory.search': 'Rechercher par nom, variante ou code-barres',
+  'inventory.count.units': '{shown} sur {total} suivis',
+  'inventory.count.stock': '{shown} sur {total} accessoires',
+  'inventory.loadingMore': 'Chargement…',
+  'inventory.loadMore': 'Charger plus',
+  'inventory.endOfResults': 'C’est tout',
+  'inventory.loadFailed': 'Impossible de charger la suite',
+  'inventory.empty.search.title': 'Aucun résultat',
+  'inventory.empty.search.body':
+    'Essayez moins de mots, ou scannez l’article à la place.',
+
+  // ── Receive ───────────────────────────────────────────────────────────────
+  'receive.title': 'Réceptionner du stock',
+  'receive.scan.placeholder': 'Scannez l’article ou son code-barres',
+  'receive.supplier.choose': 'Choisir le fournisseur',
+  'receive.supplier.title': 'Fournisseur',
+  'receive.supplier.search': 'Rechercher un fournisseur',
+  'receive.supplier.needed': 'Choisissez un fournisseur pour terminer',
+  'receive.session': 'Cette livraison',
+  'receive.empty.title': 'Rien d’ajouté pour l’instant',
+  'receive.empty.body': 'Scannez le premier article pour commencer la livraison.',
+  'receive.cost': 'Ce qu’il vous a coûté',
+  'receive.cost.hint': 'Par unité, avant tout prix de vente',
+  'receive.price': 'Prix de vente',
+  'receive.price.hint': 'Facultatif — fixe le prix auquel la boutique le vend',
+  'receive.quantity': 'Combien',
+  'receive.units': '{count} unité(s)',
+  'receive.addItem': 'Ajouter à la livraison',
+  'receive.added': '{label} ajouté',
+  'receive.counted': '{label} · {count}',
+  'receive.finish': 'Terminer la réception',
+  'receive.estimated': '{count} article(s) · est.',
+  'receive.createProduct': 'Créez d’abord ce produit',
+  'receive.done.title': 'Stock réceptionné',
+  'receive.done.summary': '{units} article(s) · {lines} ligne(s) de produit',
+  'receive.done.more': 'Réceptionner davantage',
+
+  // ── Product confirmation ──────────────────────────────────────────────────
+  'confirm.recognized': 'Reconnu',
+  'confirm.checkThis': 'Vérifiez que c’est correct',
+  'confirm.checkThis.body':
+    'Nous l’avons identifié à partir du numéro de l’appareil. Confirmez ou choisissez le bon.',
+  'confirm.unknown.title': 'Nouveau dans cette boutique',
+  'confirm.unknown.body':
+    'Choisissez le produit et nous retiendrons ce code pour la prochaine fois.',
+  'confirm.unreadable.title': 'Code non reconnu',
+  'confirm.unreadable.body':
+    'Essayez de scanner à nouveau, ou choisissez le produit à la main.',
+  'confirm.chooseProduct': 'Choisir le produit',
+  'confirm.createProduct': 'Créer un nouveau produit',
+  'confirm.notThis': 'Ce n’est pas celui-ci',
+  'confirm.scanAgain': 'Scanner à nouveau',
+  'confirm.scannedCode': 'Code scanné',
+  'confirm.willLearn': 'Nous retiendrons ce code pour la prochaine fois.',
+
+  // ── Unit status ───────────────────────────────────────────────────────────
+  'status.unit.in_stock': 'En stock',
+  'status.unit.reserved': 'Réservé',
+  'status.unit.sold': 'Vendu',
+  'status.unit.returned': 'Retourné',
+  'status.unit.faulty': 'Défectueux',
+  'status.unit.in_transit': 'En transit',
+  'status.unit.transferred_out': 'Transféré',
+
+  // ── Transfer status ───────────────────────────────────────────────────────
+  'status.transfer.pending_approval': 'En attente d’approbation',
+  'status.transfer.approved': 'Approuvé',
+  'status.transfer.rejected': 'Refusé',
+  'status.transfer.in_transit': 'En transit',
+  'status.transfer.received': 'Reçu',
+  'status.transfer.cancelled': 'Annulé',
+
+  // ── Sale payment status ───────────────────────────────────────────────────
+  'status.sale.paid': 'Payée',
+  'status.sale.partial': 'Partiellement payée',
+  'status.sale.credit': 'À crédit',
+
+  // ── Purchase payment status ───────────────────────────────────────────────
+  'status.purchase.paid': 'Payée',
+  'status.purchase.partial': 'Partiellement payée',
+  'status.purchase.unpaid': 'Impayée',
+
+  // Team member status
+  'status.user.active': 'Actif',
+  'status.user.inactive': 'Inactif',
+  'status.user.pending_contact': 'Pas encore de téléphone',
+
+  // ── Tracking types ────────────────────────────────────────────────────────
+  'tracking.imei': 'IMEI',
+  'tracking.serial': 'Numéro de série',
+  'tracking.quantity': 'Quantité',
+
+  // ── Payment methods ───────────────────────────────────────────────────────
+  'payment.cash': 'Espèces',
+  'payment.card': 'Carte',
+  'payment.mobile': 'Paiement mobile',
+  'payment.bank': 'Virement bancaire',
+  'payment.other': 'Autre',
+
+  // ── Money & numbers ───────────────────────────────────────────────────────
+  'money.hidden': 'Masqué',
+  'money.free': 'Gratuit',
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+  'settings.language': 'Langue',
+  'settings.language.restartTitle': 'Redémarrage nécessaire',
+  'settings.language.restartBody':
+    'Fermez puis rouvrez l’app pour terminer le changement de langue.',
+
+  'settings.title': 'Paramètres de l’entreprise',
+  'settings.subtitle': 'Le fonctionnement de votre boutique. Tout le monde s’y conforme.',
+  'settings.save': 'Enregistrer les modifications',
+  'settings.saved': 'Paramètres enregistrés',
+  'settings.unsaved.title': 'Quitter sans enregistrer ?',
+  'settings.unsaved.body': 'Vos modifications seront perdues.',
+  'settings.unsaved.confirm': 'Abandonner les modifications',
+  'settings.conflict.title': 'Modifié sur un autre appareil',
+  'settings.conflict.body':
+    'Quelqu’un a enregistré d’autres paramètres pendant que cet écran était ouvert. Nous avons chargé les paramètres actuels — vérifiez-les avant d’enregistrer de nouveau.',
+  'settings.toggle.on': 'Activé',
+  'settings.toggle.off': 'Désactivé',
+
+  // Return policy
+  'settings.returns.section': 'Retours',
+  'settings.returns.label': 'Combien de temps un client peut-il rapporter un article ?',
+  'settings.returns.hint':
+    'S’applique aux nouvelles ventes. Le délai est calculé à partir du moment de la vente.',
+  'settings.returns.none': 'Aucun retour',
+  'settings.returns.24h': '24 heures',
+  'settings.returns.48h': '48 heures',
+  'settings.returns.custom': 'Personnalisé',
+  'settings.returns.customLabel': 'Heures',
+  'settings.returns.customHint': 'Entre 1 et 8760 heures (un an).',
+  'settings.returns.invalid':
+    'Saisissez un nombre entier d’heures entre 1 et 8760.',
+  'settings.returns.noneExplained':
+    'Les clients ne peuvent pas retourner d’article après une vente.',
+  'settings.returns.windowExplained':
+    'Les clients ont {hours} heures pour rapporter un article.',
+
+  // Receiving accounts
+  'settings.accounts.section': 'Où arrive l’argent',
+  'settings.accounts.hint':
+    'Les espèces sont toujours disponibles et ne demandent aucune configuration. Ajoutez les comptes sur lesquels les clients peuvent envoyer de l’argent.',
+  'settings.accounts.add': 'Ajouter un compte',
+  'settings.accounts.empty': 'Aucun compte pour l’instant',
+  'settings.accounts.emptyBody':
+    'Les clients peuvent payer en espèces. Ajoutez un compte pour accepter aussi les virements.',
+  'settings.accounts.label': 'Nom que le personnel verra',
+  'settings.accounts.labelHint':
+    'Quelque chose de reconnaissable d’un coup d’œil, par exemple « Bankily – Comptoir principal ».',
+  'settings.accounts.labelRequired': 'Donnez un nom à ce compte.',
+  'settings.accounts.provider': 'Service',
+  'settings.accounts.providerName': 'Nom du service',
+  'settings.accounts.providerNameRequired': 'Nommez le service.',
+  'settings.accounts.newTitle': 'Ajouter un compte',
+  'settings.accounts.editTitle': 'Modifier le compte',
+  'settings.accounts.active': 'Accepte l’argent',
+  'settings.accounts.activeHint':
+    'Désactivez pour le masquer au personnel. Les enregistrements passés continuent de fonctionner.',
+  'settings.accounts.inactive': 'Hors service',
+  'settings.accounts.created': 'Compte ajouté',
+  'settings.accounts.updated': 'Compte mis à jour',
+  'settings.accounts.duplicate': 'Un autre compte porte déjà ce nom.',
+  'settings.provider.bankily': 'Bankily',
+  'settings.provider.sedad': 'Sedad',
+  'settings.provider.bim_bank': 'BIM Bank',
+  'settings.provider.other': 'Autre',
+
+  // WhatsApp summaries
+  'settings.whatsapp.section': 'Résumés WhatsApp',
+  'settings.whatsapp.hint':
+    'Envoyés à vous seul. Le personnel ne les reçoit jamais.',
+  'settings.whatsapp.language': 'Langue du message',
+  'settings.whatsapp.amounts': 'Inclure les montants',
+  'settings.whatsapp.amountsHint':
+    'Désactivé, le résumé décrit l’activité sans aucun chiffre.',
+  'settings.whatsapp.daily': 'Résumé quotidien',
+  'settings.whatsapp.dailyHint': 'Un court récapitulatif à la fin de chaque journée.',
+  'settings.whatsapp.monthly': 'Résumé mensuel',
+  'settings.whatsapp.monthlyHint': 'Un tableau plus complet à la fin de chaque mois.',
+  'settings.whatsapp.notYet':
+    'Enregistré maintenant, envoyé une fois WhatsApp connecté.',
+
+  // Security
+  'settings.security.section': 'Sécurité',
+  'settings.security.autoLock': 'Verrouiller l’app après',
+  'settings.security.autoLockHint':
+    'Le délai maximal autorisé. Le personnel peut choisir plus court, jamais plus long.',
+  'settings.security.immediate': 'Immédiatement',
+  'settings.security.30s': '30 secondes',
+  'settings.security.1m': '1 minute',
+  'settings.security.5m': '5 minutes',
+  'settings.security.15m': '15 minutes',
+
+  // ── Team (F1 Stage 1) ───────────────────────────────────────────────────────
+  'team.title': 'Équipe',
+  'team.subtitle': 'Les personnes autorisées à utiliser l’app de cette boutique.',
+  'team.empty': 'Aucun membre pour l’instant',
+  'team.emptyBody': 'Les personnes que vous invitez apparaîtront ici.',
+  'team.role.owner': 'Propriétaire',
+  'team.role.store_manager': 'Responsable',
+  'team.role.store_employee': 'Employé',
+  'team.role.administrator': 'Administrateur',
+  'team.branchRole': '{role} · {branch}',
+  'team.noBranches': 'Aucun site pour l’instant',
+  'team.contact.none': 'Pas encore de téléphone',
+  'team.editTitle': 'Modifier le membre de l’équipe',
+  'team.field.name': 'Nom',
+  'team.field.login': 'Nom d’utilisateur',
+  'team.field.phone': 'Téléphone',
+  'team.field.phoneHint':
+    'Format international, par exemple +2223XXXXXX. Servira plus tard pour les codes WhatsApp.',
+  'team.field.email': 'E-mail (facultatif)',
+  'team.field.emailHint':
+    'Uniquement pour la récupération du compte. Peut rester vide.',
+  'team.field.active': 'Peut utiliser l’app',
+  'team.field.activeHint':
+    'Désactivez pour empêcher cette personne de se connecter. Son historique est conservé.',
+  'team.detail.lastLogin': 'Dernière connexion',
+  'team.detail.never': 'Jamais',
+  'team.saved': 'Membre de l’équipe mis à jour',
+  'team.error.phone':
+    'Saisissez le téléphone au format international, par exemple +2223XXXXXX.',
+  'team.error.email': 'Cela ne ressemble pas à une adresse e-mail.',
+  'team.error.phoneTaken': 'Un autre membre utilise déjà ce numéro de téléphone.',
+  'team.error.self': 'Vous ne pouvez pas couper votre propre accès.',
+  'team.error.noChanges': 'Rien n’a changé.',
+
+  // Branch price-edit delegation (F1 Stage 2)
+  'team.delegation.section': 'Modification des prix',
+  'team.delegation.hint':
+    'Choisissez les sites où ce responsable peut modifier les prix de vente ordinaires.',
+  'team.delegation.allow': 'Peut modifier les prix sur {branch}',
+  'team.delegation.allowHint': 'Modifications de prix ordinaires uniquement.',
+  'team.delegation.belowCost':
+    'Vendre à perte demande toujours votre approbation — ceci n’y change rien.',
+  'team.delegation.granted': 'Modification des prix activée pour {branch}',
+  'team.delegation.revoked': 'Modification des prix désactivée pour {branch}',
+  'team.delegation.confirmOnTitle': 'Autoriser la modification des prix ?',
+  'team.delegation.confirmOnBody':
+    '{name} pourra modifier les prix de vente ordinaires sur {branch}. Vendre à perte demandera toujours votre approbation.',
+  'team.delegation.confirmOffTitle': 'Désactiver la modification des prix ?',
+  'team.delegation.confirmOffBody':
+    '{name} ne pourra plus modifier les prix sur {branch}.',
+  'team.delegation.confirmOn': 'Autoriser',
+  'team.delegation.confirmOff': 'Désactiver',
+  'team.delegation.conflict':
+    'Ce n’est plus possible — rechargez l’équipe et réessayez.',
+  'team.delegation.notYet':
+    'La modification des prix elle-même arrive avec le travail sur la tarification. Ceci définit qui y sera autorisé.',
+  // ── Devices (F1 Stage 3) ──────────────────────────────────────────────────
+  'devices.title': 'Appareils',
+  'devices.subtitle': 'Téléphones et tablettes connectés à votre compte.',
+  'devices.current': 'Cet appareil',
+  'devices.empty': 'Aucun autre appareil',
+  'devices.emptyBody': 'Vous êtes connecté ici seulement.',
+  'devices.lastSeen': 'Dernière utilisation {when}',
+  'devices.lastSeenNever': 'Pas utilisé depuis la connexion',
+  'devices.firstSeen': 'Ajouté {when}',
+  'devices.trust.legacy': 'Connecté avant les contrôles d’appareil',
+  'devices.trust.password': 'Connecté avec un mot de passe',
+  'devices.trust.otp': 'Confirmé par code',
+  'devices.status.active': 'Actif',
+  'devices.status.revoked': 'Retiré',
+  'devices.status.reverify': 'Demandera un code la prochaine fois',
+  'devices.revoke': 'Retirer cet appareil',
+  'devices.revoke.title': 'Retirer cet appareil ?',
+  'devices.revoke.body':
+    'Il sera déconnecté immédiatement et devra se reconnecter.',
+  'devices.revoke.bodyCurrent':
+    'C’est l’appareil que vous utilisez. Le retirer vous déconnecte à l’instant.',
+  'devices.revoke.confirm': 'Retirer',
+  'devices.revoked': 'Appareil retiré',
+  'devices.revokedCurrent': 'Déconnecté sur cet appareil',
+  'devices.section.other': 'Autres appareils',
+  'devices.section.removed': 'Appareils retirés',
+  'devices.removedHint':
+    'Conservés pour que vous puissiez voir ce qui est arrivé à votre compte.',
+  'devices.notVerifiedYet':
+    'Les codes de confirmation par téléphone arrivent dans une mise à jour ultérieure. Rien ici ne prétend qu’un téléphone a été confirmé.',
+  'devices.owner.title': 'Appareils',
+  'devices.owner.subtitle': 'Où {name} est connecté.',
+  'devices.owner.revoke.body': 'Cet appareil sera déconnecté immédiatement.',
+
+  // ── Authentication ─────────────────────────────────────────────────────────
+  'auth.title': 'Retail ERP',
+  'auth.subtitle': 'Connectez-vous à votre boutique',
+  'auth.field.storeId': 'Identifiant boutique',
+  'auth.field.storeId.hint':
+    'L’identifiant de votre entreprise — le propriétaire le trouve dans les Paramètres. Ce n’est pas un mot de passe.',
+  'auth.field.login': 'Identifiant',
+  'auth.field.password': 'Mot de passe',
+  'auth.action.signIn': 'Se connecter',
+  // Non-enumerating: never reveals which field was wrong.
+  'auth.error.failed':
+    'Connexion impossible. Vérifiez vos informations et réessayez.',
+  'auth.error.network': 'Pas de connexion. Vérifiez votre réseau et réessayez.',
+  'auth.error.unknown': 'Un problème est survenu. Veuillez réessayer.',
+  'auth.device.title': 'Cet appareil doit être vérifié',
+  'auth.device.body':
+    'Pour votre sécurité, cet appareil n’a pas pu être vérifié. La vérification des appareils n’est pas encore disponible dans cette version — connectez-vous depuis l’appareil utilisé précédemment, ou demandez de l’aide à votre administrateur.',
+
+  // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  'settings.storeId.section': 'Identifiant du compte boutique',
+  'settings.storeId.hint':
+    'Votre personnel le saisit à la connexion, avec son propre nom d’utilisateur et son mot de passe.',
+  'settings.storeId.share':
+    'Peut être partagé sans risque avec votre équipe. Ce n’est pas un mot de passe et il ne suffit pas à lui seul.',
+  'settings.storeId.copy': 'Copier',
+  'settings.storeId.copied': 'Identifiant du compte boutique copié',
+  'settings.storeId.copyFailed':
+    'Copie impossible. Vous pouvez lire l’identifiant à l’écran.',
+
+  // ── Catalog (G1) ───────────────────────────────────────────────────────────
+  'catalog.title': 'Catalogue',
+  'catalog.search': 'Rechercher nom, marque, code-barres…',
+  'catalog.count': '{count} produits',
+  'catalog.count.one': '1 produit',
+  'catalog.filter.allTypes': 'Tous les types',
+  'catalog.filter.phones': 'Téléphones',
+  'catalog.filter.serial': 'Numéro de série',
+  'catalog.filter.quantity': 'Quantité',
+  'catalog.filter.activeOnly': 'Actifs seulement',
+  'catalog.filter.includingArchived': 'Y compris archivés',
+  'catalog.empty': 'Aucun produit pour l’instant',
+  'catalog.empty.manager': 'Touchez + pour ajouter votre premier produit.',
+  'catalog.empty.employee': 'Demandez à un responsable d’ajouter des produits.',
+  'catalog.empty.search': 'Aucun résultat',
+  'catalog.empty.searchBody': 'Essayez une autre recherche.',
+  'catalog.error': 'Nous n’avons pas pu charger le catalogue.',
+  'catalog.retry': 'Réessayer',
+  'catalog.add': 'Ajouter un produit',
+
+  // Status — colour AND words, never colour alone.
+  'catalog.status.active': 'Actif',
+  'catalog.status.archived': 'Archivé',
+
+  // Detail
+  'catalog.detail.title': 'Produit',
+  'catalog.detail.identity': 'Produit',
+  'catalog.detail.brand': 'Marque',
+  'catalog.detail.model': 'Modèle',
+  'catalog.detail.variant': 'Variante',
+  'catalog.detail.category': 'Catégorie',
+  'catalog.detail.noCategory': 'Aucune catégorie',
+  'catalog.detail.tracking': 'Suivi par',
+  'catalog.detail.barcode': 'Code-barres',
+  'catalog.detail.noBarcode': 'Aucun code-barres',
+  'catalog.detail.specifications': 'Caractéristiques',
+  'catalog.detail.noSpecifications': 'Aucune caractéristique enregistrée.',
+  'catalog.detail.stock': 'Stock',
+  'catalog.detail.noStock': 'Aucun stock dans vos sites.',
+  'catalog.detail.totalStock': '{count} en stock',
+  'catalog.detail.pricing': 'Prix',
+  'catalog.detail.defaultPrice': 'Prix de vente',
+  'catalog.detail.noPrice': 'Non défini',
+  'catalog.detail.branchPrice': 'Prix sur ce site',
+  'catalog.detail.lastSold': 'Dernière vente',
+  'catalog.detail.lastSoldFor': 'Dernière vente à {price}',
+  'catalog.detail.cost': 'Prix d’achat',
+  'catalog.detail.hidden': 'Masqué',
+  'catalog.detail.priceReadOnly':
+    'Les prix se modifient là où le stock est réceptionné et vendu, pas ici.',
+  'catalog.detail.viewInventory': 'Voir dans le stock',
+  'catalog.detail.archivedNote':
+    'Archivé. Il est masqué lors de l’ajout de nouveau stock, et le stock existant peut encore être vendu.',
+  'catalog.detail.added': 'Ajouté',
+  'catalog.detail.updated': 'Mis à jour',
+  'catalog.detail.notFound': 'Ce produit n’existe plus.',
+  'catalog.detail.noAccess': 'Vous n’avez pas accès à ce produit.',
+
+  // Actions
+  'catalog.action.edit': 'Modifier le produit',
+  'catalog.action.archive': 'Archiver',
+  'catalog.action.restore': 'Restaurer',
+  'catalog.archive.title': 'Archiver ce produit ?',
+  'catalog.archive.body':
+    'Il sera masqué lors de l’ajout de nouveau stock. Le stock existant reste visible et peut encore être vendu.',
+  'catalog.archive.confirm': 'Archiver',
+  'catalog.archive.done': 'Produit archivé',
+  'catalog.restore.title': 'Restaurer ce produit ?',
+  'catalog.restore.body': 'Il réapparaîtra lors de l’ajout de nouveau stock.',
+  'catalog.restore.confirm': 'Restaurer',
+  'catalog.restore.done': 'Produit restauré',
+
+  // Tracking modes
+  'catalog.tracking.imei': 'IMEI (téléphones)',
+  'catalog.tracking.serial': 'Numéro de série',
+  'catalog.tracking.quantity': 'Quantité',
+
+  // ── Product form (create / edit) ───────────────────────────────────────────
+  'catalog.form.newTitle': 'Nouveau produit',
+  'catalog.form.editTitle': 'Modifier le produit',
+  'catalog.form.section.identity': 'De quoi s’agit-il ?',
+  'catalog.form.section.category': 'Catégorie',
+  'catalog.form.section.tracking': 'Comment est-il compté ?',
+  'catalog.form.section.barcode': 'Code-barres',
+  'catalog.form.section.specs': 'Détails',
+  'catalog.form.section.review': 'Vérification',
+  'catalog.form.brand': 'Marque',
+  'catalog.form.brand.hint': 'Apple, Samsung, Anker…',
+  'catalog.form.model': 'Modèle',
+  'catalog.form.model.hint': 'iPhone 13 Pro Max',
+  'catalog.form.variant': 'Variante',
+  'catalog.form.variant.hint':
+    'Exactement ce que vous vendez — 256 Go Bleu Sierra.',
+  'catalog.form.category.select': 'Choisir une catégorie',
+  'catalog.form.category.none': 'Aucune catégorie',
+  'catalog.form.category.sheet': 'Catégorie',
+  'catalog.form.category.inactiveKept':
+    'Cette catégorie est inactive. Elle est conservée jusqu’à ce que vous en choisissiez une autre.',
+  'catalog.form.tracking.hint':
+    'Les téléphones et tout ce qui porte un numéro de série sont comptés un par un.',
+  'catalog.form.tracking.locked':
+    'Le mode de suivi ne peut pas changer — ce produit a déjà du stock ou un historique.',
+  'catalog.form.barcode': 'Code-barres',
+  'catalog.form.barcode.hint': 'Facultatif. Scannez-le ou saisissez-le.',
+  'catalog.form.barcode.scan': 'Scanner',
+  'catalog.form.price': 'Prix de vente',
+  'catalog.form.price.hint':
+    'Prix de départ facultatif. Vous pourrez le changer à la réception du stock.',
+  'catalog.form.price.locked':
+    'Seule une personne autorisée sur les prix peut en définir un.',
+  'catalog.form.specs.add': 'Ajouter un détail',
+  'catalog.form.specs.name': 'Nom',
+  'catalog.form.specs.value': 'Valeur',
+  'catalog.form.specs.empty':
+    'Aucun détail pour l’instant. Stockage, couleur, taille…',
+  'catalog.form.specs.limit':
+    'C’est le nombre maximal de détails pour un produit.',
+  'catalog.form.save': 'Enregistrer le produit',
+  'catalog.form.saveChanges': 'Enregistrer les modifications',
+  'catalog.form.created': 'Produit ajouté',
+  'catalog.form.updated': 'Produit mis à jour',
+  'catalog.form.required': 'Obligatoire',
+  'catalog.form.noChanges': 'Rien n’a encore changé.',
+  'catalog.form.unsaved.title': 'Quitter sans enregistrer ?',
+  'catalog.form.unsaved.body': 'Vos modifications seront perdues.',
+  'catalog.form.unsaved.confirm': 'Abandonner les modifications',
+
+  // Conflicts
+  'catalog.conflict.barcode': 'Un autre produit utilise déjà ce code-barres.',
+  'catalog.conflict.variant': 'Ce produit exact existe déjà.',
+  'catalog.conflict.openExisting': 'Ouvrir le produit existant',
+  'catalog.conflict.maybeCreated.title': 'Il est peut-être déjà enregistré',
+  'catalog.conflict.maybeCreated.body':
+    'La connexion a été coupée, et un produit avec ces informations existe déjà. Il a probablement été créé par votre dernière tentative.',
+
+  // Scanner
+  'catalog.scan.known.title': 'Déjà dans le catalogue',
+  'catalog.scan.known.body': 'Ce code-barres appartient à {label}.',
+  'catalog.scan.imei.title': 'Ceci est un IMEI de téléphone',
+  'catalog.scan.imei.body':
+    'Les IMEI appartiennent aux téléphones individuels au moment de la réception, pas au produit lui-même.',
+  'catalog.scan.filled': 'Code-barres renseigné',
+
+  // Categories
+  'categories.title': 'Catégories',
+  'categories.subtitle': 'Comment les produits sont regroupés.',
+  'categories.add': 'Ajouter une catégorie',
+  'categories.name': 'Nom',
+  'categories.tracking': 'Comptage par défaut',
+  'categories.newTitle': 'Nouvelle catégorie',
+  'categories.editTitle': 'Modifier la catégorie',
+  'categories.active': 'En service',
+  'categories.activeHint':
+    'Désactivez pour la masquer lors de l’ajout de produits. Les produits existants la conservent.',
+  'categories.empty': 'Aucune catégorie pour l’instant',
+  'categories.emptyBody': 'Regroupez les produits pour les retrouver plus vite.',
+  'categories.showInactive': 'Afficher les inactives',
+  'categories.created': 'Catégorie ajoutée',
+  'categories.updated': 'Catégorie mise à jour',
+  'categories.duplicate': 'Une catégorie porte déjà ce nom.',
+
+  // ── Pricing (G2A-CP4) ──────────────────────────────────────────────────
+  // Source labels say WHERE a price came from, in shop language. The backend
+  // names (unit_override, branch_variant, …) never reach the screen.
+  'pricing.source.unit_override': 'Le prix propre à ce téléphone',
+  'pricing.source.branch_variant': 'Le prix de ce modèle sur ce site',
+  'pricing.source.stock_item': 'Le prix de cet article sur ce site',
+  'pricing.source.product_default': 'Prix de l’entreprise',
+  'pricing.source.unpriced': 'Aucun prix défini',
+  'pricing.source.explain.unit_override':
+    'Défini pour ce téléphone précis, sur ce site. Il prime sur le prix du site et sur celui de l’entreprise.',
+  'pricing.source.explain.branch_variant':
+    'Défini pour ce modèle précis sur ce site. Un téléphone peut toujours avoir son propre prix.',
+  'pricing.source.explain.stock_item':
+    'Le prix de vente de cet article sur ce site.',
+  'pricing.source.explain.product_default':
+    'Aucun prix n’est défini pour ce site : le prix de l’entreprise est utilisé.',
+  'pricing.source.explain.unpriced':
+    'Personne n’a encore défini de prix. Définissez-en un avant de vendre.',
+
+  'pricing.section': 'Prix de vente',
+  'pricing.effective': 'Se vend à',
+  'pricing.inBranch': 'Sur {branch}',
+  'pricing.unpricedWarning': 'Aucun prix défini pour ce site',
+  'pricing.unpricedBody':
+    'Définissez un prix pour que le personnel ne devine pas au comptoir.',
+  'pricing.staleOverrideIgnored':
+    'Le prix propre à ce téléphone a été défini sur un autre site : il n’est donc pas utilisé ici.',
+  'pricing.fallbackPreview': 'Sans lui : {price}',
+  'pricing.fallbackPreviewNone': 'Sans lui, il n’y aurait aucun prix du tout.',
+
+  'pricing.action.setBranch': 'Changer le prix de ce modèle ici',
+  'pricing.action.setBranchBody': 'S’applique à chaque {label} sur ce site.',
+  'pricing.action.setUnit': 'Changer le prix d’un seul téléphone',
+  'pricing.action.setUnitBody':
+    'Scannez ou saisissez son IMEI. N’affecte que ce téléphone.',
+  'pricing.action.setStock': 'Changer ce prix',
+  'pricing.action.remove': 'Supprimer ce prix',
+  'pricing.action.history': 'Historique des prix',
+
+  'pricing.editor.currentPrice': 'Actuellement',
+  'pricing.editor.newPrice': 'Nouveau prix',
+  'pricing.editor.save': 'Enregistrer le prix',
+  'pricing.editor.invalid': 'Saisissez un prix',
+  'pricing.editor.negative': 'Un prix ne peut pas être négatif',
+  'pricing.editor.unchanged': 'C’est déjà le prix',
+  'pricing.editor.scopeBranch':
+    'Ceci change chaque {label} sur {branch}. Les autres sites et les autres modèles ne sont pas affectés.',
+  'pricing.editor.scopeUnit':
+    'Ceci ne change que ce seul téléphone, sur {branch}.',
+  'pricing.editor.scopeStock': 'Ceci change {label} sur {branch}.',
+  'pricing.editor.discard': 'Abandonner ce changement ?',
+  'pricing.editor.discardBody': 'Votre nouveau prix n’a pas été enregistré.',
+  'pricing.editor.discardConfirm': 'Abandonner',
+
+  'pricing.saved': 'Prix enregistré',
+  'pricing.removed': 'Prix supprimé',
+  'pricing.remove.title': 'Supprimer ce prix ?',
+  'pricing.remove.confirm': 'Supprimer',
+
+  'pricing.belowCost.title': 'En dessous du prix d’achat',
+  'pricing.belowCost.owner':
+    'Ce prix est en dessous du prix d’achat. Dites pourquoi, et ce sera enregistré.',
+  'pricing.belowCost.reason': 'Motif',
+  'pricing.belowCost.confirm': 'Approuver et enregistrer',
+
+  'pricing.conflict.title': 'Quelqu’un d’autre a changé ce prix',
+  'pricing.conflict.body':
+    'Vous avez tenté {attempted}. Il est maintenant à {current}. Vérifiez le nouveau prix avant de le changer de nouveau.',
+  'pricing.conflict.reload': 'Afficher le prix actuel',
+
+  'pricing.unit.title': 'Le prix d’un téléphone',
+  'pricing.unit.howTo':
+    'Ouvrez le clavier du téléphone et tapez *#06# pour afficher son IMEI, puis scannez-le.',
+  'pricing.unit.scan': 'Scanner l’IMEI',
+  'pricing.unit.manual': 'Saisir l’IMEI à la place',
+  'pricing.unit.notFound': 'Aucun article avec ce numéro.',
+  'pricing.unit.wrongBranch':
+    'Ce téléphone est sur un autre site. Changez de site pour le tarifer.',
+  'pricing.unit.hasOverride': 'Ce téléphone a son propre prix',
+  'pricing.unit.noOverride': 'Ce téléphone utilise le prix du site',
+
+  'pricing.history.title': 'Historique des prix',
+  'pricing.history.empty': 'Aucun changement de prix pour l’instant',
+  'pricing.history.emptyBody':
+    'Les changements apparaissent ici dès que quelqu’un définit un prix.',
+  'pricing.history.removed': 'Prix supprimé',
+  'pricing.history.system': 'Automatique',
+  'pricing.history.transfer':
+    'Supprimé automatiquement lors du changement de site du téléphone',
+  'pricing.history.scope.unit': 'Un téléphone',
+  'pricing.history.scope.branch_variant': 'Ce modèle, ce site',
+  'pricing.history.scope.stock_item': 'Prix du stock sur le site',
+  'pricing.history.reason': 'Motif : {reason}',
+  'pricing.history.more': 'Afficher plus',
+  'pricing.unit.notPriceable':
+    'Ce téléphone est {status} — il n’est pas en rayon, il ne peut donc pas être tarifé.',
+  'notifications.title': 'Notifications',
+  'notifications.empty': 'Rien de nouveau',
+  'notifications.emptyBody':
+    'Les changements de prix et les transferts apparaîtront ici.',
+  'notifications.unread': 'Nouveau',
+  'notifications.type.price.changed': 'Prix modifié',
+  'notifications.type.transfer.incoming': 'Transfert entrant',
+  'notifications.type.transfer.received': 'Transfert reçu',
+  'inventory.availableOf': '{available} disponibles à la vente',
+  // ── Transfers (H1.3) ───────────────────────────────────────────────────────
+  'transfers.title': 'Transferts',
+  'transfers.new': 'Nouveau transfert',
+  'transfers.forbidden': 'Les transferts ne vous sont pas accessibles',
+  'transfers.forbiddenBody':
+    'Demandez au propriétaire ou à un responsable si vous devez déplacer du stock entre les sites.',
+  'transfers.notFound': 'Ce transfert n’existe plus',
+
+  // Counts on the menu entry
+  'transfers.count.pendingApproval': '{count} en attente d’approbation',
+  'transfers.count.approved': '{count} prêts à envoyer',
+  'transfers.count.inTransit': '{count} en route',
+  'transfers.count.none': 'Rien en attente',
+
+  // List
+  'transfers.search': 'Numéro, site, produit ou IMEI',
+  'transfers.filter.all': 'Tous',
+  'transfers.filter.pending_approval': 'En attente',
+  'transfers.filter.approved': 'Approuvés',
+  'transfers.filter.in_transit': 'En route',
+  'transfers.filter.received': 'Reçus',
+  'transfers.filter.rejected': 'Refusés',
+  'transfers.filter.cancelled': 'Annulés',
+  'transfers.empty': 'Aucun transfert pour l’instant',
+  'transfers.emptyBody': 'Le stock envoyé à un autre site apparaît ici.',
+  'transfers.empty.search': 'Aucun résultat',
+  'transfers.empty.searchBody':
+    'Essayez le numéro de transfert, un nom de site, un produit, ou l’IMEI complet.',
+  'transfers.empty.filter': 'Rien ici pour le moment',
+  'transfers.empty.filterBody':
+    'Essayez un autre onglet pour voir le reste de l’historique.',
+  'transfers.endOfResults': 'C’est tout l’historique',
+  'transfers.direction.outgoing': 'Envoi',
+  'transfers.direction.incoming': 'Réception',
+  'transfers.route': 'De {from} à {to}',
+  'transfers.items.one': '1 article',
+  'transfers.items': '{count} articles',
+  'transfers.requestedBy': 'Demandé par {name}',
+  'transfers.autoApproved': 'Approuvé à la création',
+
+  // Detail
+  'transfers.detail.title': 'Transfert',
+  'transfers.detail.items': 'Ce qui est envoyé',
+  'transfers.detail.history': 'Ce qui s’est passé',
+  'transfers.detail.reason': 'Motif indiqué',
+  'transfers.event.requested': 'Demandé par {name}',
+  'transfers.event.approved': 'Approuvé par {name}',
+  'transfers.event.rejected': 'Refusé par {name}',
+  'transfers.event.shipped': 'Envoyé par {name}',
+  'transfers.event.received': 'Reçu par {name}',
+  'transfers.event.cancelled': 'Annulé par {name}',
+  'transfers.person.unknown': 'quelqu’un',
+
+  // Actions
+  'transfers.action.approve': 'Approuver',
+  'transfers.action.reject': 'Refuser',
+  'transfers.action.ship': 'Envoyer maintenant',
+  'transfers.action.receive': 'Réceptionner',
+  'transfers.action.cancel': 'Annuler le transfert',
+  'transfers.action.done.approve': 'Approuvé',
+  'transfers.action.done.reject': 'Demande refusée',
+  'transfers.action.done.ship': 'En route',
+  'transfers.action.done.receive': 'Reçu',
+  'transfers.action.done.cancel': 'Transfert annulé',
+
+  // Confirmations
+  'transfers.confirm.approve.title': 'Approuver ce transfert ?',
+  'transfers.confirm.approve.body':
+    'Le stock reste réservé jusqu’à ce que quelqu’un l’envoie depuis {from}.',
+  'transfers.confirm.reject.title': 'Refuser cette demande ?',
+  'transfers.confirm.reject.body': 'Le stock retourne en rayon à {from}.',
+  'transfers.confirm.reject.reason': 'Pourquoi refusez-vous ?',
+  'transfers.confirm.ship.title': 'Le stock a-t-il quitté {from} ?',
+  'transfers.confirm.ship.body':
+    'Ne confirmez qu’une fois les articles physiquement en route vers {to}.',
+  'transfers.confirm.receive.title': 'Tout est-il arrivé à {to} ?',
+  'transfers.confirm.receive.body':
+    'Ne confirmez que ce que vous avez réellement en main.',
+  'transfers.confirm.cancel.title': 'Annuler ce transfert ?',
+  'transfers.confirm.cancel.body': 'Le stock retourne en rayon à {from}.',
+  'transfers.confirm.cancel.reason': 'Pourquoi annulez-vous ?',
+  'transfers.reason.placeholder': 'Un motif court',
+
+  // Why an action is unavailable
+  'transfers.blocked.permission': 'Vous n’avez pas l’autorisation pour cela',
+  'transfers.blocked.ownership':
+    'Seule la personne qui l’a demandé peut le retirer, et seulement avant approbation',
+  'transfers.blocked.branch': 'Ceci se fait à {branch}',
+  'transfers.switchBranch': 'Passer à {branch}',
+  'transfers.wrongBranch.title': 'Vous travaillez sur {current}',
+  'transfers.wrongBranch.body':
+    'Ce transfert se traite à {branch}. Changez de site pour intervenir.',
+  'transfers.conflict.title': 'Quelqu’un d’autre est intervenu avant vous',
+  'transfers.conflict.body':
+    'Ce transfert a changé pendant que vous l’aviez ouvert. Voici où il en est.',
+
+  // Create
+  'transfers.new.from': 'Envoi depuis',
+  'transfers.new.to': 'Envoi vers',
+  'transfers.new.chooseDestination': 'Choisissez le site de destination',
+  'transfers.new.scan': 'Scanner un article',
+  'transfers.new.howTo':
+    'Composez *#06# sur le téléphone pour afficher son IMEI, puis scannez l’écran.',
+  'transfers.new.manual': 'Ou saisissez l’IMEI ou le numéro de série',
+  'transfers.new.items': 'Articles à envoyer',
+  'transfers.new.noItems': 'Rien d’ajouté pour l’instant',
+  'transfers.new.noItemsBody': 'Scannez un article, ou saisissez son numéro.',
+  'transfers.new.submit.awaits': 'Envoyer pour approbation',
+  'transfers.new.submit.approved': 'Créer le transfert',
+  'transfers.new.note.awaits':
+    'Un responsable ou le propriétaire devra approuver ceci avant l’envoi.',
+  'transfers.new.note.approved':
+    'Ceci sera créé déjà approuvé, car vous pouvez approuver les transferts ici.',
+  'transfers.new.duplicate': 'Celui-ci est déjà dans la liste',
+  'transfers.new.blank': 'Saisissez d’abord un numéro',
+  'transfers.new.quantityNotYet': 'Les accessoires ne peuvent pas encore être déplacés',
+  'transfers.new.quantityNotYetBody':
+    'La prise en charge des accessoires et du stock en vrac arrive bientôt. Pour l’instant, vous pouvez transférer tout ce qui a un IMEI ou un numéro de série.',
+  'transfers.new.problems': 'Certains articles ne peuvent pas être envoyés',
+  'transfers.new.discard.title': 'Quitter sans envoyer ?',
+  'transfers.new.discard.body': 'Vous avez ajouté {count}. Ils seront perdus.',
+  'transfers.new.discard.confirm': 'Quitter',
+  'transfers.new.keep': 'Continuer à modifier',
+  'transfers.new.created': 'Transfert {ref} créé',
+  'transfers.new.sameBranch': 'Choisissez un autre site',
+
+  // Notification wording, composed from the fields the server stored
+  'notifications.transfer.requested.title': 'Le transfert {ref} demande une approbation',
+  'notifications.transfer.requested.body':
+    '{actor} a demandé à envoyer {count} de {from} vers {to}.',
+  'notifications.transfer.created_approved.title': 'Le transfert {ref} arrive à {to}',
+  'notifications.transfer.created_approved.body':
+    '{actor} a approuvé l’envoi de {count} depuis {from}.',
+  'notifications.transfer.approved.title': 'Transfert {ref} approuvé',
+  'notifications.transfer.approved.body':
+    '{actor} a approuvé l’envoi de {count} de {from} vers {to}.',
+  'notifications.transfer.rejected.title': 'Transfert {ref} refusé',
+  'notifications.transfer.rejected.body':
+    '{actor} a refusé l’envoi de {count} de {from} vers {to}.',
+  'notifications.transfer.shipped.title': 'Le transfert {ref} est en route vers {to}',
+  'notifications.transfer.shipped.body': '{actor} a envoyé {count} depuis {from}.',
+  'notifications.transfer.received.title': 'Le transfert {ref} est arrivé à {to}',
+  'notifications.transfer.received.body': '{actor} a reçu {count} depuis {from}.',
+  'notifications.transfer.cancelled.title': 'Transfert {ref} annulé',
+  'notifications.transfer.cancelled.body':
+    '{actor} a annulé l’envoi de {count} de {from} vers {to}.',
+  'notifications.type.transfer.requested': 'Demande une approbation',
+  'notifications.type.transfer.created_approved': 'Transfert entrant',
+  'notifications.type.transfer.approved': 'Approuvé',
+  'notifications.type.transfer.rejected': 'Refusé',
+  'notifications.type.transfer.shipped': 'En route',
+  'notifications.type.transfer.cancelled': 'Annulé',
+
+  // ── H1.4: quantity-tracked accessory transfers ──────────────────────────
+  'transfers.summary.unit.one': '1 téléphone',
+  'transfers.summary.unit': '{count} téléphones',
+  'transfers.summary.accessory.one': '1 accessoire',
+  'transfers.summary.accessory': '{count} accessoires',
+  'transfers.new.findAccessory': 'Accessoires',
+  'transfers.new.findAccessoryHint':
+    'Recherchez par nom ou scannez le code-barres sur la boîte.',
+  'transfers.new.searchPlaceholder': 'Câble, chargeur, coque…',
+  'transfers.new.noAccessories': 'Rien ici ne correspond.',
+  'transfers.new.stockLine':
+    '{physical} ici · {reserved} promis · {available} libres à envoyer',
+  'transfers.new.quantity': 'Combien',
+  'transfers.new.added': '{product} ajouté',
+  'transfers.new.merged': 'Encore un {product} ajouté',
+  'transfers.new.noneAvailable': 'Aucun {product} n’est libre à envoyer',
+  'transfers.new.overAvailable':
+    'Seulement {available} {product} sont libres à envoyer',
+  'transfers.new.ambiguous': 'Plusieurs correspondances',
+  'transfers.new.ambiguousBody':
+    'Ce code correspond à plusieurs produits. Choisissez le bon dans la liste.',
+  'transfers.detail.qtyOf':
+    'Envoi de {count} · {physical} ici, {reserved} promis, {available} libres',
+  'transfers.detail.qtySent': 'Envoi de {count}',
+  'transfers.problem.shortBy':
+    'demandé {requested}, seulement {available} libres',
+
+  // ── I3: refund payout — reporting, confirming, receipt ───────────────────
+  // Wording rule: a REPORTED payout is never green and never worded as settled.
+  // Only a confirmed one may be. The phone stays held either way.
+  'refund.section': 'Remboursement',
+  'refund.due.status': 'Remboursement dû',
+  'refund.due.explain':
+    'Remboursement dû — le versement n’a pas encore été confirmé.',
+  'refund.due.net': 'Remboursement net dû',
+  'refund.phoneHeld':
+    'Le téléphone reste à la boutique et n’est pas à la vente.',
+  'refund.amountLabel': 'Montant à remettre',
+  'refund.amountLocked':
+    'Fixé par le retour approuvé. Il ne peut pas être payé en plusieurs fois.',
+  'refund.method': 'Payé par',
+  'refund.method.cash': 'Espèces',
+  'refund.method.account': 'Compte',
+  'refund.account': 'Quel compte',
+  'refund.noAccounts':
+    'Aucun compte actif n’est configuré. Ajoutez-en un dans les Paramètres, ou payez en espèces.',
+  'refund.keepingAccount': 'On garde {account} sauf si vous en choisissez un autre.',
+  'refund.reference': 'Référence de la transaction',
+  'refund.reference.placeholder': 'Facultatif — le numéro du virement',
+  'refund.note': 'Note',
+  'refund.note.placeholder': 'Facultatif',
+  'refund.reportedAmount': 'Déclaré comme remis',
+  'refund.confirmedAmount': 'Montant rendu',
+  'refund.reportedBy': 'Déclaré par',
+  'refund.reportedAt': 'Déclaré le',
+  'refund.confirmedBy': 'Confirmé par',
+  'refund.confirmedAt': 'Confirmé le',
+
+  'refund.report.action': 'Déclarer le remboursement remis au client',
+  'refund.report.title': 'Déclarer le remboursement',
+  'refund.report.submit': 'Déclarer',
+  'refund.report.stillNeedsApproval':
+    'Ceci enregistre que vous avez remis l’argent. Un responsable ou le propriétaire doit encore le confirmer.',
+  'refund.report.confirm.title': 'Déclarer {amount} remis ?',
+  'refund.report.confirm.body':
+    'Ceci indique que le client a reçu {amount}. Ce n’est pas encore confirmé — un responsable ou le propriétaire doit l’accepter avant que ce soit compté comme payé.',
+  'refund.report.confirm.action': 'Oui, déclarer',
+  'refund.report.done': 'Déclaré. En attente de confirmation.',
+  'refund.report.failed':
+    'Impossible de déclarer le remboursement. Rien n’a été enregistré.',
+
+  'refund.pending.status': 'En attente de confirmation',
+  'refund.pending.explain':
+    'En attente de la confirmation d’un responsable ou du propriétaire. Aucun argent n’a encore été enregistré comme sorti de la caisse.',
+
+  'refund.correct.action': 'Vérifier / corriger',
+  'refund.correct.title': 'Corriger le mode de paiement',
+  'refund.correct.submit': 'Enregistrer la correction',
+  'refund.correct.hint':
+    'Le montant ne peut pas changer. Seulement la façon dont il a été payé.',
+  'refund.correct.done': 'Corrigé.',
+  'refund.correct.failed': 'Impossible d’enregistrer la correction.',
+
+  'refund.confirm.action': 'Confirmer le remboursement payé',
+  'refund.confirm.title': 'Confirmer ce remboursement ?',
+  'refund.confirm.irreversible':
+    'Ceci enregistre que le client a reçu le remboursement. Il ne pourra plus être considéré comme en attente.',
+  'refund.confirm.done': 'Remboursement confirmé.',
+  'refund.confirm.failed':
+    'Impossible de confirmer le remboursement. Rien n’a changé.',
+  'refund.confirmed.status': 'Remboursement confirmé',
+
+  'refund.conflict.stale.title': 'Quelqu’un d’autre est intervenu avant vous',
+  'refund.conflict.stale.body':
+    'Ce remboursement a changé pendant que l’écran était ouvert. Il a été actualisé — vérifiez et réessayez.',
+  'refund.conflict.already_confirmed.title': 'Déjà confirmé',
+  'refund.conflict.already_confirmed.body':
+    'Quelqu’un a déjà confirmé ce remboursement. Rien n’a été enregistré deux fois.',
+  'refund.conflict.day_locked.title': 'Cette journée est clôturée',
+  'refund.conflict.day_locked.body':
+    'Les comptes de cette journée sont clôturés : le versement ne peut pas y être rattaché. Voyez avec le propriétaire.',
+  'refund.conflict.not_confirmed.title': 'Pas encore confirmé',
+  'refund.conflict.not_confirmed.body':
+    'Un reçu est disponible une fois le remboursement confirmé.',
+  'refund.conflict.other.title': 'Impossible',
+  'refund.conflict.other.body':
+    'Le remboursement n’est pas dans un état qui le permet. L’écran a été actualisé.',
+
+  'refund.receipt.action': 'Partager le reçu de remboursement',
+  'refund.receipt.title': 'Reçu de remboursement',
+  'refund.receipt.reference': 'Référence du remboursement',
+  'refund.receipt.originalInvoice': 'Facture d’origine',
+  'refund.receipt.adjustmentTotal': 'Déductions',
+  'refund.receipt.netReturned': 'Rendu au client',
+  'refund.receipt.status': 'État',
+  'refund.receipt.unavailable': 'Le partage n’est pas disponible sur cet appareil.',
+  'refund.receipt.failed':
+    'Impossible de créer le reçu. Le remboursement reste confirmé.',
+
+  'refund.recon.section': 'Remboursements',
+  'refund.recon.outstanding': 'Encore dû aux clients',
+  'refund.recon.outstandingHint': '{count} approuvés et pas encore payés',
+  'refund.recon.awaiting': 'Déclarés, non confirmés',
+  'refund.recon.awaitingHint':
+    '{count} en attente d’un responsable — non comptés comme espèces',
+  'refund.recon.confirmedHeading': 'Versés aujourd’hui',
+  'refund.recon.timingNote':
+    'Le bénéfice a été annulé à la date d’approbation. L’argent bouge à la date de confirmation. Ils sont comptés séparément, jamais deux fois.',
+
+  // ── J1: suppliers and payables ──────────────────────────────────────────
+  // Wording rule, as with refunds: owed is a warning, reported is still not
+  // paid, and only a confirmed payment is a success.
+  'suppliers.title': 'Fournisseurs',
+  'suppliers.search': 'Rechercher par nom ou téléphone',
+  'suppliers.filter.active': 'Actifs',
+  'suppliers.filter.inactive': 'Inactifs',
+  'suppliers.filter.all': 'Tous',
+  'suppliers.inactive': 'Inactif',
+  'suppliers.inactiveExplain':
+    'Masqué à la réception de nouveau stock. Tout l’historique est conservé.',
+  'suppliers.empty': 'Aucun fournisseur pour l’instant',
+  'suppliers.emptyBody': 'Ajoutez les entreprises auprès desquelles vous achetez.',
+  'suppliers.empty.search': 'Aucun résultat',
+  'suppliers.empty.searchBody':
+    'Essayez une partie du nom, ou le numéro de téléphone.',
+  'suppliers.add': 'Ajouter un fournisseur',
+  'suppliers.created': 'Fournisseur ajouté',
+  'suppliers.duplicate':
+    'Vous achetez déjà auprès d’un fournisseur portant ce nom. Recherchez-le plutôt que d’en ajouter un second.',
+  'suppliers.notFound': 'Fournisseur introuvable',
+  'suppliers.notFoundBody':
+    'Il a peut-être été retiré, ou appartient à un autre site.',
+  'suppliers.updateFailed': 'Impossible d’enregistrer ce changement.',
+
+  'suppliers.form.section': 'Informations du fournisseur',
+  'suppliers.form.name': 'Nom',
+  'suppliers.form.namePlaceholder': 'L’entreprise auprès de laquelle vous achetez',
+  'suppliers.form.phone': 'Téléphone',
+  'suppliers.form.phonePlaceholder': 'Facultatif',
+  'suppliers.form.notes': 'Notes',
+  'suppliers.form.save': 'Enregistrer le fournisseur',
+
+  'suppliers.detail.title': 'Fournisseur',
+  'suppliers.detail.supplier': 'Fournisseur',
+  'suppliers.detail.money': 'Compte',
+  'suppliers.detail.moneyHidden':
+    'Ce que la boutique doit n’est pas affiché pour votre rôle.',
+  'suppliers.detail.purchased': 'Total acheté',
+  'suppliers.detail.paid': 'Payé à ce jour',
+  'suppliers.detail.outstanding': 'Reste dû',
+  'suppliers.detail.awaiting':
+    '{amount} déclarés et en attente de confirmation. Pas encore comptés comme payés.',
+  'suppliers.detail.purchases': 'Livraisons',
+  'suppliers.detail.noPurchases': 'Rien acheté auprès d’eux pour l’instant.',
+  'suppliers.detail.pending': 'En attente de confirmation',
+  'suppliers.detail.payments': 'Paiements effectués',
+
+  'suppliers.deactivate.title': 'Ne plus utiliser ce fournisseur ?',
+  'suppliers.deactivate.body':
+    'Il n’apparaîtra plus à la réception de nouveau stock. Chaque livraison et chaque paiement passés sont conservés.',
+  'suppliers.deactivate.action': 'Désactiver',
+  'suppliers.deactivated': 'Fournisseur désactivé',
+  'suppliers.reactivate.title': 'Réutiliser ce fournisseur ?',
+  'suppliers.reactivate.body':
+    'Il réapparaîtra lors de la réception de stock.',
+  'suppliers.reactivate.action': 'Réactiver',
+  'suppliers.reactivated': 'Fournisseur réactivé',
+
+  'suppliers.pay.action': 'Enregistrer un paiement',
+  'suppliers.pay.title': 'Enregistrer un paiement',
+  'suppliers.pay.outstanding': 'Reste dû',
+  'suppliers.pay.amount': 'Montant payé',
+  'suppliers.pay.tooMuch': 'C’est plus que les {outstanding} dus.',
+  'suppliers.pay.allocation': 'Ce que cela règle',
+  'suppliers.pay.allocationHint':
+    'Les livraisons les plus anciennes d’abord. Vérifiez avant d’enregistrer.',
+  'suppliers.pay.purchaseOf': 'Livraison {ref} · {outstanding} dus',
+  'suppliers.pay.stillNeedsApproval':
+    'Ceci enregistre que vous les avez payés. Un responsable ou le propriétaire doit encore le confirmer.',
+  'suppliers.pay.submit': 'Enregistrer',
+  'suppliers.pay.confirm.title': 'Enregistrer {amount} payés ?',
+  'suppliers.pay.confirm.body':
+    'Ceci indique que le fournisseur a été payé. Ce n’est pas encore confirmé — un responsable ou le propriétaire doit l’accepter avant que cela compte.',
+  'suppliers.pay.confirm.action': 'Oui, enregistrer',
+  'suppliers.pay.done': 'Enregistré. En attente de confirmation.',
+  'suppliers.pay.failed':
+    'Impossible d’enregistrer ce paiement. Rien n’a été sauvegardé.',
+  'suppliers.pay.problems': 'Ce paiement ne peut pas être appliqué',
+
+  'suppliers.pending.status': 'En attente de confirmation',
+  'suppliers.pending.employeeNote':
+    'Un responsable ou le propriétaire doit confirmer ceci.',
+  'suppliers.confirmed.status': 'Payé',
+
+  'suppliers.confirm.action': 'Confirmer le paiement',
+  'suppliers.confirm.title': 'Confirmer ce paiement ?',
+  'suppliers.confirm.irreversible':
+    'Ceci enregistre que l’argent est sorti de la boutique. Il ne pourra plus être considéré comme en attente.',
+  'suppliers.confirm.done': 'Paiement confirmé.',
+  'suppliers.confirm.failed':
+    'Impossible de confirmer le paiement. Rien n’a changé.',
+
+  'suppliers.conflict.stale.title': 'Quelqu’un d’autre est intervenu avant vous',
+  'suppliers.conflict.stale.body':
+    'Ceci a changé pendant que l’écran était ouvert. Il a été actualisé — vérifiez et réessayez.',
+  'suppliers.conflict.already_confirmed.title': 'Déjà confirmé',
+  'suppliers.conflict.already_confirmed.body':
+    'Quelqu’un a déjà confirmé ce paiement. Rien n’a été enregistré deux fois.',
+  'suppliers.conflict.day_locked.title': 'Cette journée est clôturée',
+  'suppliers.conflict.day_locked.body':
+    'Les comptes de cette journée sont clôturés : le paiement ne peut pas y être rattaché. Voyez avec le propriétaire.',
+  'suppliers.conflict.supplier_inactive.title': 'Fournisseur inactif',
+  'suppliers.conflict.supplier_inactive.body':
+    'Réactivez le fournisseur avant d’enregistrer un nouveau paiement. Ce qui lui est déjà dû reste inchangé.',
+  'suppliers.conflict.account_inactive.title': 'Compte inactif',
+  'suppliers.conflict.account_inactive.body':
+    'Ce compte n’est plus utilisé. Choisissez-en un autre, ou payez en espèces.',
+  'suppliers.conflict.duplicate.title': 'Déjà dans la liste',
+  'suppliers.conflict.duplicate.body': 'Un fournisseur porte déjà ce nom.',
+  'suppliers.conflict.other.title': 'Impossible',
+  'suppliers.conflict.other.body':
+    'Ce n’est pas possible pour l’instant. L’écran a été actualisé.',
+};

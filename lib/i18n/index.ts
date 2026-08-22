@@ -4,25 +4,37 @@ import { create } from 'zustand';
 import { getItem, setItem } from '../storage';
 import { en } from './en';
 import { ar } from './ar';
+import { fr } from './fr';
 import type { Catalogue, TranslationKey, TranslationValues } from './keys';
 
-export type Language = 'en' | 'ar';
+export type Language = 'en' | 'ar' | 'fr';
 
-const CATALOGUES: Record<Language, Catalogue> = { en, ar };
+const CATALOGUES: Record<Language, Catalogue> = { en, ar, fr };
 const RTL_LANGUAGES: ReadonlySet<Language> = new Set<Language>(['ar']);
 const LANGUAGE_STORAGE_KEY = 'erp.language';
 
+/**
+ * Each language named in its own words.
+ *
+ * Never translated: somebody who has landed in a language they cannot read
+ * needs to recognise their own on this list, and "Arabic" spelled in French
+ * helps nobody who only reads Arabic.
+ */
 export const LANGUAGE_LABELS: Record<Language, string> = {
   en: 'English',
   ar: 'العربية',
+  fr: 'Français',
 };
+
+/** Every language the app ships, in the order the picker shows them. */
+export const LANGUAGES: readonly Language[] = ['en', 'fr', 'ar'];
 
 export function isRtlLanguage(lang: Language): boolean {
   return RTL_LANGUAGES.has(lang);
 }
 
 function isSupported(value: string | null | undefined): value is Language {
-  return value === 'en' || value === 'ar';
+  return value === 'en' || value === 'ar' || value === 'fr';
 }
 
 /** Best guess from the device before the user has chosen explicitly. */

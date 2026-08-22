@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, BadgeCheck, CloudOff, FileSpreadsheet, HandCoins, Handshake, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
+import { LogOut, User, Store, ChevronRight, Tag, BarChart3, ClipboardCheck, SlidersHorizontal, Users, Smartphone, Bell, ArrowLeftRight, Building2, BadgeCheck, Check, CloudOff, FileSpreadsheet, HandCoins, Handshake, Languages, ReceiptText, Target, Truck, Undo2, Wallet } from 'lucide-react-native';
 import { Screen, H1, Card, Row } from '../../components/ui';
 import { Can } from '../../components/access';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
 import { useTransferCounts } from '../../lib/transfers';
-import { useTranslation } from '../../lib/i18n';
+import { LANGUAGES, LANGUAGE_LABELS, useI18n, useTranslation, type Language } from '../../lib/i18n';
 import { colors } from '../../lib/theme';
 
 export default function MoreScreen() {
@@ -143,6 +143,11 @@ export default function MoreScreen() {
 
       <Text className="mb-1 mt-6 text-xs font-semibold uppercase text-slate-400">{t('more.account')}</Text>
       <View className="mt-2 gap-3">
+        {/* First in the section, and ungated. Somebody who has landed in a
+            language they cannot read has to be able to find their way out, and
+            this is the only row whose value they are guaranteed to recognise —
+            each language is named in its own words. */}
+        <LanguageRow />
         {/* Every signed-in user can see and cut off their own devices — this is
             personal account security, not an Owner power. */}
         {/* Every signed-in user has notifications of their own — an Owner is
@@ -164,6 +169,79 @@ export default function MoreScreen() {
         </Pressable>
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Choosing the language the app speaks.
+ *
+ * Expands in place rather than pushing a screen: it is two taps either way,
+ * and a reader who cannot read this menu should not have to navigate deeper
+ * into it to escape.
+ *
+ * Every language is written in its own words — "Arabic" spelled in French is
+ * no use to somebody who only reads Arabic.
+ *
+ * Switching to or from Arabic changes the layout direction, which React Native
+ * only applies natively at startup. The notice says so plainly instead of
+ * leaving somebody to wonder why the words changed and the layout did not.
+ */
+function LanguageRow() {
+  const { t } = useTranslation();
+  const language = useI18n((s) => s.language);
+  const setLanguage = useI18n((s) => s.setLanguage);
+  const restartRequired = useI18n((s) => s.restartRequired);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View className="gap-3">
+      <Pressable onPress={() => setOpen((v) => !v)}>
+        <Card className="flex-row items-center justify-between">
+          <Row>
+            <Languages size={20} color={colors.brand} />
+            <Text className="font-medium text-slate-700">{t('settings.language')}</Text>
+          </Row>
+          <Row>
+            <Text className="text-slate-500">{LANGUAGE_LABELS[language]}</Text>
+            <ChevronRight size={18} color={colors.muted} />
+          </Row>
+        </Card>
+      </Pressable>
+
+      {open ? (
+        <Card className="gap-1">
+          {LANGUAGES.map((lang: Language) => (
+            <Pressable
+              key={lang}
+              onPress={() => {
+                void setLanguage(lang);
+                setOpen(false);
+              }}
+              className="flex-row items-center justify-between py-3"
+            >
+              <Text
+                className={
+                  lang === language ? 'font-semibold text-brand-600' : 'font-medium text-slate-700'
+                }
+              >
+                {LANGUAGE_LABELS[lang]}
+              </Text>
+              {/* The chosen one is marked, not merely coloured. */}
+              {lang === language ? <Check size={18} color={colors.brand} /> : null}
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
+
+      {restartRequired ? (
+        <Card className="gap-1">
+          <Text className="font-semibold text-amber-700">
+            {t('settings.language.restartTitle')}
+          </Text>
+          <Text className="text-sm text-slate-500">{t('settings.language.restartBody')}</Text>
+        </Card>
+      ) : null}
+    </View>
   );
 }
 

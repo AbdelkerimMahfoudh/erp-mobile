@@ -318,7 +318,13 @@ export interface OwnerSettings {
   canManage: true;
   returnWindowHours: number;
   whatsapp: {
-    language: 'en' | 'ar';
+    /**
+     * Mirrors the server's `SummaryLanguage` enum, widened to French in
+     * migration `0053`. Kept in step deliberately: this type is an assertion
+     * over whatever the server sent, not a check of it, so a value the server
+     * accepts and this union omits fails silently rather than loudly.
+     */
+    language: 'en' | 'ar' | 'fr';
     includeAmounts: boolean;
     dailyEnabled: boolean;
     monthlyEnabled: boolean;

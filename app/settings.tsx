@@ -64,10 +64,19 @@ const PROVIDER_ICONS: Record<ReceivingProvider, typeof Smartphone> = {
   other: Wallet,
 };
 
+/**
+ * Language of the Owner's WhatsApp summary.
+ *
+ * Deliberately its own type rather than reusing the app's `Language`: they
+ * happen to hold the same three values today, but they answer different
+ * questions and the server owns this one.
+ */
+type SummaryLanguage = 'en' | 'ar' | 'fr';
+
 /** Local edit state — what the screen owns until Save. */
 interface Draft {
   returnWindowHours: number;
-  language: 'en' | 'ar';
+  language: SummaryLanguage;
   includeAmounts: boolean;
   dailyEnabled: boolean;
   monthlyEnabled: boolean;
@@ -341,12 +350,22 @@ export default function SettingsScreen() {
       <Section title={t('settings.whatsapp.section')} subtitle={t('settings.whatsapp.hint')}>
         <Card>
           <Text variant="label">{t('settings.whatsapp.language')}</Text>
+          {/*
+            Each language in its own words, and the same three the app itself
+            speaks. This is the Owner's summary message, NOT the app's language
+            — the two are chosen separately on purpose, because an Owner may
+            read the app in one language and want the nightly message in
+            another.
+          */}
           <SegmentedControl
             style={styles.control}
             value={draft?.language ?? 'en'}
-            onChange={(value) => setDraft((d) => (d ? { ...d, language: value as 'en' | 'ar' } : d))}
+            onChange={(value) =>
+              setDraft((d) => (d ? { ...d, language: value as SummaryLanguage } : d))
+            }
             options={[
               { value: 'en', label: 'English' },
+              { value: 'fr', label: 'Français' },
               { value: 'ar', label: 'العربية' },
             ]}
           />
