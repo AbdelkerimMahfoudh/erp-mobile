@@ -1,4 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import { isDurable } from './durable-storage.ts';
 import type { QueueItem } from './queue-rules.ts';
 import {
   fileNameFor,
@@ -63,6 +64,12 @@ function ensureRoot(): void {
  * no trace that it ever existed.
  */
 export function readQueue(scope: Scope): { items: QueueItem[]; quarantined: boolean } {
+  /*
+    Asked before anything native is constructed. On web `Paths.document`
+    does not exist and throws, and this is reached from `AuthProvider`, so
+    the throw used to take the whole authenticated tree down at sign-in.
+  */
+  if (!isDurable()) return { items: [], quarantined: false };
   ensureRoot();
   const file = fileFor(scope);
   if (!file.exists) return { items: [], quarantined: false };
@@ -88,6 +95,9 @@ export function readQueue(scope: Scope): { items: QueueItem[]; quarantined: bool
 }
 
 export function writeQueue(scope: Scope, items: QueueItem[]): void {
+  // Silently dropping a write would be worse than refusing one: nothing
+  // may reach `enqueue` on web, so nothing should ever arrive here.
+  if (!isDurable()) return;
   ensureRoot();
   const payload: QueueFile = { version: QUEUE_SCHEMA_VERSION, items };
   fileFor(scope).write(JSON.stringify(payload));
@@ -119,12 +129,14 @@ function quarantine(file: File): void {
  * opens a different file and sees nothing of theirs.
  */
 export function clearScope(scope: Scope): void {
+  if (!isDurable()) return;
   const file = fileFor(scope);
   if (file.exists) file.delete();
 }
 
 /** Diagnostics for the Sync centre: which scope files exist on this device. */
 export function listScopeFiles(): string[] {
+  if (!isDurable()) return [];
   ensureRoot();
   try {
     return ROOT()

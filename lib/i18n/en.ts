@@ -633,6 +633,7 @@ export const en = {
   'closing.loans.hint': 'None of this changes the cash you should have or today’s profit.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
+  'sync.notDurable': 'This browser cannot keep work on the device. Everything here needs a connection, and nothing is saved if you close the tab.',
   'sync.title': 'Sync center',
   'sync.connected': 'Connected. Anything waiting will go now.',
   'sync.disconnected': 'No connection. Your work is saved on this phone.',

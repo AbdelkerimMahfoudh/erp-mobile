@@ -37,6 +37,7 @@ export default function SyncScreen() {
   const running = useQueue((s) => s.running);
   const lastSyncAt = useQueue((s) => s.lastSyncAt);
   const corrupted = useQueue((s) => s.corruptionDetected);
+  const durable = useQueue((s) => s.durable);
   const process = useQueue((s) => s.process);
 
   const waiting = items.filter((i) => i.state === 'waiting_for_connection' || i.state === 'sending');
@@ -48,6 +49,15 @@ export default function SyncScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('sync.title') }} />
       <ScrollView contentContainerStyle={styles.list}>
+        {/*
+          On web there is no device storage, so nothing can be kept or queued
+          (CP1). Said plainly rather than shown as an empty queue, which would
+          read as "nothing waiting" — the opposite of the truth.
+        */}
+        {!durable ? (
+          <InlineNotice tone="warning">{t('sync.notDurable')}</InlineNotice>
+        ) : null}
+
         <InlineNotice tone={online ? 'success' : 'warning'}>
           {online ? t('sync.connected') : t('sync.disconnected')}
         </InlineNotice>

@@ -1,4 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import { isDurable } from './durable-storage.ts';
 import {
   draftKey,
   DRAFT_SCHEMA_VERSION,
@@ -37,7 +38,7 @@ function ensureRoot(): void {
 
 export interface SaveResult {
   saved: boolean;
-  reason?: 'forbidden_field' | 'too_large' | 'io';
+  reason?: 'forbidden_field' | 'too_large' | 'io' | 'unsupported';
 }
 
 export function saveDraft<T>(
@@ -50,6 +51,10 @@ export function saveDraft<T>(
   // Refused BEFORE any I/O: a credential or a photograph must never reach the
   // disk even briefly, and a refusal that happened after the write would be
   // an apology rather than a guarantee.
+  // Web keeps nothing. Reported as an ordinary refusal so the screen can
+  // say so, rather than as an io error that suggests a transient problem.
+  if (!isDurable()) return { saved: false, reason: 'unsupported' };
+
   const allowed = isWritable(value);
   if (!allowed.ok) return { saved: false, reason: allowed.reason };
 
@@ -92,6 +97,7 @@ export function loadDraft<T>(
   payloadVersion: number,
   recordId?: string | null,
 ): LoadedDraft<T> | null {
+  if (!isDurable()) return null;
   try {
     ensureRoot();
     const file = fileFor(form, scope, recordId);
@@ -137,6 +143,7 @@ function quarantine(file: File): void {
  * kept so it can be corrected.
  */
 export function clearDraft(form: string, scope: DraftScope, recordId?: string | null): void {
+  if (!isDurable()) return;
   try {
     const file = fileFor(form, scope, recordId);
     if (file.exists) file.delete();
@@ -147,6 +154,7 @@ export function clearDraft(form: string, scope: DraftScope, recordId?: string | 
 
 /** Diagnostics for the Sync centre. */
 export function listDraftFiles(): string[] {
+  if (!isDurable()) return [];
   try {
     ensureRoot();
     return ROOT()

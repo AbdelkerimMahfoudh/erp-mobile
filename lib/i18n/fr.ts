@@ -696,6 +696,7 @@ export const fr: Catalogue = {
     'Rien de tout cela ne change les espèces que vous devriez avoir ni le bénéfice du jour.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
+  'sync.notDurable': 'Ce navigateur ne peut rien conserver sur l’appareil. Tout ici exige une connexion, et rien n’est enregistré si vous fermez l’onglet.',
   'sync.title': 'Centre de synchronisation',
   'sync.connected': 'Connecté. Ce qui attend va partir maintenant.',
   'sync.disconnected': 'Pas de connexion. Votre travail est enregistré sur ce téléphone.',

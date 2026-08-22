@@ -5,6 +5,7 @@ import { usePermissionStore } from '../permissions';
 import { uuidv4 } from '../utils';
 import { classifyError } from './classify.ts';
 import { mayQueue } from './policy.ts';
+import { isDurable, unavailableReason } from './durable-storage.ts';
 import { readQueue, writeQueue, type Scope } from './queue-store.ts';
 import {
   MAX_ATTEMPTS,
@@ -50,6 +51,8 @@ interface QueueStoreState {
   lastSyncAt: number | null;
   /** Set when a stored file could not be trusted, so the shop can be told. */
   corruptionDetected: boolean;
+  /** False on web, where there is no device storage to queue into. */
+  durable: boolean;
 
   load: (scope: Scope) => void;
   enqueue: (input: {
@@ -69,6 +72,7 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
   running: false,
   lastSyncAt: null,
   corruptionDetected: false,
+  durable: isDurable(),
 
   /**
    * Open the queue belonging to this user, company and branch.
@@ -91,6 +95,13 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
       rather than stored and refused later — storing it would mean a build that
       reclassified something could still find it waiting on disk.
     */
+    /*
+      Web keeps nothing on the device (CP1), so nothing may be accepted into
+      the queue there. Refusing is the honest answer: telling a shop its
+      payment report is "waiting to send" when a closed tab would erase it is
+      exactly the lie this whole subsystem exists to avoid.
+    */
+    if (!isDurable()) return { queued: false, reason: 'not_durable' };
     if (!mayQueue(kind)) return { queued: false, reason: 'not_queueable' };
     if (!ENDPOINT[kind]) return { queued: false, reason: 'no_endpoint' };
 
