@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter , useLocalSearchParams } from 'expo-router';
+import { useAuth } from '../../hooks/useAuth';
+import { useBranch } from '../../lib/branch';
+import { notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, ErrorState, Screen } from '../../components/ui';
 import {
@@ -28,6 +31,14 @@ export default function NewProductScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { branchId } = useBranch();
+  const { barcode: scannedBarcode } = useLocalSearchParams<{ barcode?: string }>();
+  const intakeScope = {
+    companyId: user?.companyId ?? '',
+    userId: user?.id ?? '',
+    branchId: branchId ?? '',
+  };
   const canManage = usePermission('catalog.manage');
   const canSetPrice = usePermission('price.edit');
 
@@ -60,6 +71,19 @@ export default function NewProductScreen() {
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       void queryClient.invalidateQueries({ queryKey: ['inventory'] });
       toast.success(t('catalog.form.created'));
+      /*
+       * If a scan is waiting, this product was created *for* it — go back to
+       * intake rather than to the product page, with the identifier that was
+       * accepted before the detour still held.
+       *
+       * Creating a Product does NOT create the inventory Unit. The unit is
+       * still made by the intake submission the user is being returned to.
+       */
+      if (peekPendingIntake(intakeScope)) {
+        notePendingProduct(product.id);
+        router.replace('/receive');
+        return;
+      }
       router.replace(`/catalog/${product.id}` as never);
     },
     onError: async (error, values) => {
@@ -100,7 +124,12 @@ export default function NewProductScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('catalog.form.newTitle') }} />
       <ProductForm
         mode="create"
-        initial={emptyProductForm}
+        /*
+         * Prefilled ONLY from a genuine product barcode handed over by intake.
+         * An IMEI never reaches this parameter — it identifies one phone, and
+         * `ProductForm` refuses it here for the same reason.
+         */
+        initial={{ ...emptyProductForm, barcode: scannedBarcode ?? '' }}
         submitting={create.isPending}
         errors={errors}
         onSubmit={(values) => {

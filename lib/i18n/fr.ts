@@ -253,24 +253,10 @@ export const fr: Catalogue = {
     'Ce paiement attend encore d’être confirmé : il peut donc être modifié directement.',
   'correction.conflict.other.title': 'Impossible de faire cela',
   'correction.conflict.other.body': 'Quelque chose a changé sur ce paiement. Rouvrez-le.',
-
-  // ── Reading an IMEI off a phone screen (Milestone C) ──────────────────────
-  'scanner.mode.imei': 'Lire l’IMEI à l’écran',
-  'scanner.mode.barcode': 'Scanner un code-barres à la place',
-  'scanner.imei.hint':
-    'Composez *#06# sur le téléphone, puis pointez la caméra vers son écran',
-  'scanner.imei.capture': 'Lire l’écran',
-  'scanner.imei.reading': 'Lecture…',
-  'scanner.imei.nothingFound': 'Aucun IMEI trouvé. Tenez plus stable, ou saisissez-le.',
-  'scanner.imei.failed': 'Lecture impossible. Réessayez, ou saisissez-le.',
-  'scanner.imei.unavailable':
-    'La lecture à l’écran n’est pas disponible sur cet appareil. Saisissez-le.',
-  // Every reinterpreted character is shown, so a human agrees to the reading
-  // rather than being told about it.
-  'scanner.imei.substituted': 'Lu comme : {list}',
+  // ── Reading an IMEI (O: barcode/QR, and always typing) ────────────────────
   'scanner.imei.single': 'Un IMEI — un téléphone à une SIM',
   'scanner.imei.dualSim': 'Deux IMEI — un seul téléphone double SIM, pas deux téléphones',
-  'scanner.imei.use': 'Utiliser ceci',
+  'scanner.imei.use': 'Utiliser cet IMEI',
   // Where a suggestion came from. A suggestion the user cannot trace is one
   // they cannot judge — and a proposal must never read like a decision.
   'scanner.tac.confirmed': 'Votre boutique a confirmé ce modèle : {product}',
@@ -2212,5 +2198,29 @@ export const fr: Catalogue = {
   'more.sync.waiting': '{count} en attente d’envoi',
   'more.sync.attention': '{count} demandent votre attention',
   'more.sync.notConfirmed': 'En attente d’envoi ne veut dire ni envoyé ni confirmé.',
+
+
+  // ── O: what the scanner shows after a valid read ──────────────────────────
+  'scan.detected': 'IMEI détecté',
+  'scan.imei1': 'IMEI',
+  'scan.imei2': 'IMEI 2',
+  'scan.addSecond': 'Ajouter un second IMEI — facultatif',
+  'scan.removeSecond': 'Retirer l’IMEI 2',
+  'scan.bothOnePhone': 'Les deux IMEI appartiennent au même téléphone',
+  'scan.alreadyInInventory': 'Ce téléphone est déjà en stock',
+  'scan.productUnknown': 'Produit non reconnu',
+  'scan.imeiKept': 'L’IMEI scanné sera conservé',
+  'scan.scanAgain': 'Scanner à nouveau',
+  'scan.enterManually': 'Saisir manuellement',
+  'scan.hint.barcode': 'Visez le code-barres ou le QR code de l’IMEI',
+  'scan.hint.notEveryPhone':
+    'Tous les téléphones n’affichent pas un code scannable. Vous pouvez toujours le saisir.',
+  'scan.problem.checksum': 'Ces chiffres ne forment pas un IMEI valide. Vérifiez-les et rescannez.',
+  'scan.problem.length': 'Un IMEI compte 15 chiffres. Ce code avait une autre longueur.',
+  'scan.problem.ambiguous': 'Plus de deux IMEI ont été trouvés. Saisissez plutôt les bons.',
+  'scan.problem.notImei': 'Ce n’est pas un IMEI. Scannez le code IMEI, ou saisissez-le.',
+  'scan.problem.sameAsPrimary': 'C’est le même numéro que le premier IMEI. Scannez l’autre.',
+  'scan.manual.secondaryOptional': 'IMEI 2 — facultatif',
+  'scan.a11y.close': 'Fermer le scanner',
 
 };

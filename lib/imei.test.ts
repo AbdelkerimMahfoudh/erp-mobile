@@ -12,7 +12,6 @@ import {
   extractImeis,
   isValidImei,
   isValidLuhn,
-  mergeFrames,
   readDualSim,
   tacOf,
 } from './imei.ts';
@@ -142,30 +141,6 @@ it('ignores a serial number sitting beside the IMEIs', () => {
 it('deduplicates the same IMEI printed twice on one screen', () => {
   assert.equal(extractImeis(`IMEI: ${A}\nIMEI: ${A}`).length, 1);
 });
-
-describe_frames();
-function describe_frames() {
-  it('accumulates across frames rather than replacing', () => {
-    const f1 = extractImeis(`IMEI1: ${A}`);
-    const f2 = extractImeis(`IMEI2: ${B}`);
-    const merged = mergeFrames(f1, f2);
-    assert.equal(merged.length, 2);
-  });
-
-  it('a later EXACT frame beats an earlier guess for the same number', () => {
-    const guessed = extractImeis(`IMEI: ${A.replace(/0/g, 'O')}`);
-    assert.equal(guessed[0].source, 'ambiguity_resolved');
-    const clean = extractImeis(`IMEI: ${A}`);
-    const merged = mergeFrames(guessed, clean);
-    assert.equal(merged.length, 1);
-    assert.equal(merged[0].source, 'exact');
-  });
-
-  it('a blurred frame never loses an IMEI already read cleanly', () => {
-    const clean = extractImeis(`IMEI: ${A}`);
-    assert.equal(mergeFrames(clean, []).length, 1);
-  });
-}
 
 it('handles empty and junk input without throwing', () => {
   assert.deepEqual(extractImeis(''), []);

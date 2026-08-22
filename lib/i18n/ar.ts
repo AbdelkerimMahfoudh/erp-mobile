@@ -230,18 +230,9 @@ export const ar: Catalogue = {
   'correction.conflict.other.body': 'تغيّر شيء بخصوص هذه الدفعة. افتحها مرة أخرى.',
 
   // ── قراءة رقم IMEI من شاشة الهاتف ─────────────────────────────────────────
-  'scanner.mode.imei': 'قراءة IMEI من الشاشة',
-  'scanner.mode.barcode': 'مسح باركود بدلًا من ذلك',
-  'scanner.imei.hint': 'اطلب ‎*#06#‎ على الهاتف، ثم وجّه الكاميرا نحو شاشته',
-  'scanner.imei.capture': 'اقرأ الشاشة',
-  'scanner.imei.reading': 'جارٍ القراءة…',
-  'scanner.imei.nothingFound': 'لم يُعثر على IMEI. ثبّت الكاميرا أو أدخله يدويًا.',
-  'scanner.imei.failed': 'تعذّرت القراءة. حاول مجددًا أو أدخله يدويًا.',
-  'scanner.imei.unavailable': 'القراءة من الشاشة غير متاحة على هذا الجهاز. أدخله يدويًا.',
-  'scanner.imei.substituted': 'قُرئ كـ: {list}',
   'scanner.imei.single': 'رقم IMEI واحد — هاتف بشريحة واحدة',
   'scanner.imei.dualSim': 'رقمان — هاتف واحد بشريحتين، وليس هاتفين',
-  'scanner.imei.use': 'استخدم هذا',
+  'scanner.imei.use': 'استخدام هذا الرقم',
   'scanner.tac.confirmed': 'متجرك أكّد هذا الطراز: {product}',
   'scanner.tac.proposed': 'اقترح أحدهم طرازًا لهذا — ما زال يحتاج تأكيد المدير',
   'scanner.tac.generic': 'يبدو أنه {product}. اختر المنتج الدقيق بنفسك.',
@@ -1928,5 +1919,28 @@ export const ar: Catalogue = {
   'more.sync.waiting': '{count} بانتظار الإرسال',
   'more.sync.attention': '{count} تحتاج إلى انتباهك',
   'more.sync.notConfirmed': 'الانتظار للإرسال لا يعني أنه أُرسل أو أنه تأكّد.',
+
+
+  // ── O: what the scanner shows after a valid read ──────────────────────────
+  'scan.detected': 'تم التعرّف على رقم IMEI',
+  'scan.imei1': 'رقم IMEI',
+  'scan.imei2': 'رقم IMEI الثاني',
+  'scan.addSecond': 'إضافة رقم IMEI ثانٍ — اختياري',
+  'scan.removeSecond': 'إزالة رقم IMEI الثاني',
+  'scan.bothOnePhone': 'الرقمان يخصّان هاتفًا واحدًا',
+  'scan.alreadyInInventory': 'هذا الهاتف موجود في المخزون بالفعل',
+  'scan.productUnknown': 'لم يتم التعرّف على المنتج',
+  'scan.imeiKept': 'سيتم الاحتفاظ بالرقم الذي مسحته',
+  'scan.scanAgain': 'مسح مرّة أخرى',
+  'scan.enterManually': 'إدخال يدوي',
+  'scan.hint.barcode': 'وجّه الكاميرا نحو باركود أو رمز QR الخاص برقم IMEI',
+  'scan.hint.notEveryPhone': 'ليست كل الهواتف تعرض رمزًا قابلًا للمسح. يمكنك دائمًا كتابته يدويًا.',
+  'scan.problem.checksum': 'هذه الأرقام ليست رقم IMEI صحيحًا. تحقّق منها وامسح مرّة أخرى.',
+  'scan.problem.length': 'رقم IMEI مكوّن من 15 رقمًا. هذا الرمز بطول مختلف.',
+  'scan.problem.ambiguous': 'تم العثور على أكثر من رقمين. اكتب الرقمين الصحيحين بدلًا من ذلك.',
+  'scan.problem.notImei': 'هذا ليس رقم IMEI. امسح رمز الـ IMEI أو اكتبه.',
+  'scan.problem.sameAsPrimary': 'هذا هو نفس الرقم الأول. امسح الرقم الآخر.',
+  'scan.manual.secondaryOptional': 'رقم IMEI الثاني — اختياري',
+  'scan.a11y.close': 'إغلاق الماسح',
 
 };

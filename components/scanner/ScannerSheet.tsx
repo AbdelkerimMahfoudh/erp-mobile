@@ -1,20 +1,27 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
-import { File as FsFile } from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Barcode, Keyboard, Flashlight, FlashlightOff, ScanText, X } from 'lucide-react-native';
+import { Keyboard, Flashlight, FlashlightOff, Plus, X } from 'lucide-react-native';
 import { colors } from '../../lib/design/colors';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
+import { haptics } from '../../lib/haptics';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
-import { readImeisFromImage, isOcrAvailable } from '../../lib/ocr';
-import type { ImeiCandidate } from '../../lib/imei';
+import { classifyScan } from '../../lib/scan/payload';
+import {
+  acceptsDetection,
+  cameraActive,
+  initialScannerState,
+  scannerReducer,
+  type ResultProblem,
+  type ScannerState,
+} from '../../lib/scan/machine';
 import { reconcileTacs, useTacResolution } from '../../lib/tac';
 import type { ScanResult } from '../../types/api';
 
@@ -25,14 +32,24 @@ import type { ScanResult } from '../../types/api';
  * typing the fallback — so the keypad lives *inside* this sheet rather than
  * being a separate path a hurried employee has to go find.
  *
- * Two modes:
- *  - `single`   — one scan, then close. Selling a phone, looking a unit up.
- *  - `continuous` — stays open and keeps reporting. Receiving a delivery of
- *    twenty units, where reopening the camera each time would be absurd.
+ * ## What replaced OCR (milestone O)
  *
- * The barcode formats are the ones that actually appear on electronics: Code128
- * and Code39 carry IMEIs and serials on device boxes, EAN/UPC cover retail
- * packaging, QR and DataMatrix show up on newer labels.
+ * Reading a `*#06#` screen with on-device text recognition was retired. The
+ * supported intake methods are a scanned IMEI barcode or QR code, an ordinary
+ * product barcode, and typing — and **typing is permanent**, because whether a
+ * phone shows a scannable code beside its IMEI is up to its manufacturer.
+ *
+ * ## Why the state machine
+ *
+ * A valid IMEI used to be detected while the camera carried on scanning, and
+ * nothing appeared until the sheet was closed by hand. The guard released
+ * itself in a `finally`, so the camera resumed the moment the lookup returned.
+ *
+ * `lib/scan/machine.ts` makes the lock the state itself: a detection is taken
+ * only in `scanning`, and only an explicit decision goes back there. The state
+ * is held in a **ref as well as** React state, because the camera fires again
+ * before React re-renders — a `useState` value read inside the callback is
+ * stale exactly when it matters.
  */
 
 const BARCODE_TYPES = [
@@ -53,19 +70,35 @@ const BARCODE_TYPES = [
 export interface ScannerSheetProps {
   open: boolean;
   onClose: () => void;
-  /** Fired for every successful lookup. */
   onResult: (result: ScanResult) => void;
+  /**
+   * What an accepted IMEI means to the caller.
+   *
+   * Separate from `onResult` on purpose: an IMEI identifies one physical phone
+   * and belongs in a unit's identifier fields, while a product barcode
+   * identifies a reusable model. Collapsing them is how an IMEI ends up in the
+   * Product barcode box.
+   */
+  onImeiAccepted?: (imei: { primary: string; secondary: string | null }) => void;
   mode?: 'single' | 'continuous';
-  /** Replaces the default instruction under the viewfinder. */
   hint?: string;
   /** Running tally shown in continuous mode, e.g. units added so far. */
   scannedCount?: number;
 }
 
+const PROBLEM_KEY: Record<ResultProblem, string> = {
+  checksum: 'scan.problem.checksum',
+  length: 'scan.problem.length',
+  ambiguous: 'scan.problem.ambiguous',
+  not_an_imei: 'scan.problem.notImei',
+  same_as_primary: 'scan.problem.sameAsPrimary',
+};
+
 export function ScannerSheet({
   open,
   onClose,
   onResult,
+  onImeiAccepted,
   mode = 'single',
   hint,
   scannedCount,
@@ -76,121 +109,112 @@ export function ScannerSheet({
   const [torch, setTorch] = useState(false);
   const [manual, setManual] = useState(false);
   const [typed, setTyped] = useState('');
-  // Guards against the camera firing again while the result is being handled.
-  const handling = useRef(false);
+  const [typedSecond, setTypedSecond] = useState('');
 
+  const [machine, dispatch] = useReducer(scannerReducer, initialScannerState);
   /**
-   * Which of the three intake modes is active (Milestone C).
+   * The same state, readable synchronously.
    *
-   * `barcode` reads a printed code. `imei` photographs the phone's own `*#06#`
-   * screen and reads the digits off it, which is the only route for a used
-   * phone with no box and no label. Typing is the third, and it is reachable
-   * from both — see `manual`.
+   * THE LOCK. The camera can fire several times before React commits a render,
+   * so the callback must not consult `machine` — it would still say `scanning`
+   * for the second and third event of the same barcode.
    */
-  const [scanMode, setScanMode] = useState<'barcode' | 'imei'>('barcode');
-  const cameraRef = useRef<CameraView | null>(null);
-  const [reading, setReading] = useState<ImeiCandidate[]>([]);
-  const [capturing, setCapturing] = useState(false);
-  const [ocrNote, setOcrNote] = useState<string | null>(null);
+  const machineRef = useRef<ScannerState>(initialScannerState);
+  const setMachine = useCallback((event: Parameters<typeof scannerReducer>[1]) => {
+    machineRef.current = scannerReducer(machineRef.current, event);
+    dispatch(event);
+  }, []);
+
+  const result = machine.name === 'result' ? machine : null;
+  const primary = result?.primary ?? null;
+  const secondary = result?.secondary ?? null;
 
   /**
-   * The TAC behind each IMEI read, resolved through the company overlay. Both
+   * The TAC behind each identifier, resolved through the company overlay. Both
    * are resolved for a dual-SIM phone, because they must be reconciled before
    * anything is offered — see `reconcileTacs`.
    */
-  const primaryTac = useTacResolution(reading[0]?.imei);
-  const secondaryTac = useTacResolution(reading[1]?.imei);
+  const primaryTac = useTacResolution(primary ?? undefined);
+  const secondaryTac = useTacResolution(secondary ?? undefined);
   const { resolution: tacResolution, conflict: tacConflict } = reconcileTacs(
     primaryTac.data,
     secondaryTac.data,
   );
 
-  /**
-   * Photograph the screen and read it, on the device.
-   *
-   * The image is deleted immediately after recognition, in a `finally` so it
-   * goes even when recognition throws. Nothing is uploaded — see `lib/ocr.ts`.
-   */
-  const captureImei = useCallback(async () => {
-    if (capturing || !cameraRef.current) return;
-    setCapturing(true);
-    setOcrNote(null);
-    let uri: string | null = null;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.6, skipProcessing: true });
-      uri = photo?.uri ?? null;
-      if (!uri) return;
-      const out = await readImeisFromImage(uri, reading);
-      if (out.unavailable) {
-        // Honest, and immediately actionable: typing is right there.
-        setOcrNote(t('scanner.imei.unavailable'));
-        return;
-      }
-      setReading(out.candidates);
-      if (out.candidates.length === 0) setOcrNote(t('scanner.imei.nothingFound'));
-    } catch {
-      setOcrNote(t('scanner.imei.failed'));
-    } finally {
-      /**
-       * The photograph never outlives the read. In a `finally`, so it goes even
-       * when recognition throws — an IMEI photo left in the cache is exactly
-       * the kind of thing that should not accumulate on a shop's phone.
-       */
-      if (uri) {
-        try {
-          new FsFile(uri).delete();
-        } catch {
-          // Already gone, or never written. Nothing to recover from.
-        }
-      }
-      setCapturing(false);
-    }
-  }, [capturing, reading, t]);
-
   const handleResult = useCallback(
-    (result: ScanResult) => {
-      onResult(result);
-      if (mode === 'single') {
-        onClose();
-      }
+    (r: ScanResult) => {
+      onResult(r);
+      if (mode === 'single') onClose();
     },
     [mode, onClose, onResult],
   );
 
   const { scan, loading, error, reset } = useScan({ onResult: handleResult });
 
-  // Fresh state each time it opens — a stale torch or half-typed code from the
-  // last scan has no business being here.
+  // Fresh state each time it opens — a stale torch, a half-typed code or a
+  // result from the last phone has no business being here.
   useEffect(() => {
     if (open) {
       setTorch(false);
       setManual(false);
       setTyped('');
-      handling.current = false;
-      setScanMode('barcode');
-      setReading([]);
-      setOcrNote(null);
+      setTypedSecond('');
+      machineRef.current = scannerReducer(initialScannerState, { type: 'open' });
+      dispatch({ type: 'open' });
       reset();
     }
   }, [open, reset]);
 
+  /**
+   * One camera detection.
+   *
+   * Everything that makes this safe happens before the first `await`: the ref
+   * is consulted and advanced synchronously, so every callback that arrives
+   * while this one is still working is dropped by the machine rather than
+   * racing it.
+   */
   const onBarcodeScanned = useCallback(
     ({ data }: BarcodeScanningResult) => {
-      if (handling.current || loading) return;
-      handling.current = true;
-      void scan(data).finally(() => {
-        // Duplicate suppression lives in useScan; this only stops the callback
-        // from stacking while a request is in flight.
-        handling.current = false;
-      });
+      if (!acceptsDetection(machineRef.current)) return;
+      setMachine({ type: 'detected', raw: data });
+
+      const payload = classifyScan(data);
+      if (payload.kind === 'imei') haptics.success();
+      else haptics.warning();
+      setMachine({ type: 'validated', payload });
     },
-    [loading, scan],
+    [setMachine],
   );
+
+  const acceptImei = useCallback(() => {
+    if (!primary) return;
+    setMachine({ type: 'accept' });
+    onImeiAccepted?.({ primary, secondary });
+    // The identifier still goes down the same `/scan` pipeline, so recognition
+    // and the TAC overlay learn from it exactly as they do from a barcode.
+    void scan(primary);
+  }, [onImeiAccepted, primary, scan, secondary, setMachine]);
 
   const submitTyped = () => {
     const code = typed.trim();
     if (!code) return;
+    const second = typedSecond.trim();
+
+    // Typed input goes through the same classifier, so a pasted QR payload or a
+    // spaced-out number behaves identically to a scan.
+    const payload = classifyScan(code);
+    if (payload.kind === 'imei' && onImeiAccepted) {
+      const secondPayload = second ? classifyScan(second) : null;
+      const secondaryTyped =
+        secondPayload?.kind === 'imei' && secondPayload.primary !== payload.primary
+          ? secondPayload.primary
+          : payload.secondary;
+      setMachine({ type: 'manual', primary: payload.primary, secondary: secondaryTyped ?? null });
+      onImeiAccepted({ primary: payload.primary, secondary: secondaryTyped ?? null });
+    }
+
     setTyped('');
+    setTypedSecond('');
     void scan(code);
   };
 
@@ -199,25 +223,23 @@ export function ScannerSheet({
   const canUseCamera = permission?.granted === true;
   // Web and simulators frequently have no usable camera; typing must still work.
   const cameraSupported = Platform.OS !== 'web';
+  const live = cameraActive(machine);
 
   return (
     <Modal visible transparent={false} statusBarTranslucent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
         {canUseCamera && cameraSupported && !manual ? (
           <CameraView
-            ref={cameraRef}
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torch}
+            barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
             /**
-             * Barcode detection is switched OFF while reading a phone screen.
-             * A `*#06#` display often carries a QR alongside the digits, and a
-             * stray barcode hit would close the sheet mid-read.
+             * Detaching the handler is what actually pauses scanning. Leaving it
+             * attached and filtering inside would keep the camera pipeline
+             * running behind a result the user is still reading.
              */
-            barcodeScannerSettings={
-              scanMode === 'barcode' ? { barcodeTypes: [...BARCODE_TYPES] } : undefined
-            }
-            onBarcodeScanned={scanMode === 'barcode' ? onBarcodeScanned : undefined}
+            onBarcodeScanned={live ? onBarcodeScanned : undefined}
           />
         ) : null}
 
@@ -225,9 +247,12 @@ export function ScannerSheet({
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
           <IconButton
             icon={X}
-            accessibilityLabel={t('action.close')}
+            accessibilityLabel={t('scan.a11y.close')}
             variant="inverse"
-            onPress={onClose}
+            onPress={() => {
+              setMachine({ type: 'cancel' });
+              onClose();
+            }}
           />
           <Text variant="bodyStrong" tone="inverse">
             {t('scanner.title')}
@@ -251,6 +276,9 @@ export function ScannerSheet({
             body={t('scanner.unavailable.body')}
             typed={typed}
             setTyped={setTyped}
+            typedSecond={typedSecond}
+            setTypedSecond={setTypedSecond}
+            allowSecond={Boolean(onImeiAccepted)}
             onSubmit={submitTyped}
             loading={loading}
             error={error}
@@ -284,6 +312,9 @@ export function ScannerSheet({
             title={t('scanner.manual.title')}
             typed={typed}
             setTyped={setTyped}
+            typedSecond={typedSecond}
+            setTypedSecond={setTypedSecond}
+            allowSecond={Boolean(onImeiAccepted)}
             onSubmit={submitTyped}
             loading={loading}
             error={error}
@@ -299,7 +330,7 @@ export function ScannerSheet({
                 <Corner style={styles.br} />
               </View>
               <View style={styles.hintBox}>
-                {loading ? (
+                {loading || machine.name === 'validating' ? (
                   <View style={styles.loadingRow}>
                     <ActivityIndicator color={colors.text.inverse} size="small" />
                     <Text variant="label" tone="inverse">
@@ -308,10 +339,12 @@ export function ScannerSheet({
                   </View>
                 ) : (
                   <Text variant="label" tone="inverse" align="center">
-                    {scanMode === 'imei'
-                      ? t('scanner.imei.hint')
-                      : (hint ??
-                        (mode === 'continuous' ? t('scanner.hint.continuous') : t('scanner.hint')))}
+                    {hint ??
+                      (mode === 'continuous'
+                        ? t('scanner.hint.continuous')
+                        : onImeiAccepted
+                          ? t('scan.hint.barcode')
+                          : t('scanner.hint'))}
                   </Text>
                 )}
               </View>
@@ -332,124 +365,136 @@ export function ScannerSheet({
               ) : null}
 
               {/*
-                What was read, before anything enters inventory. Every character
-                the recogniser reinterpreted is listed, so a human agrees to the
-                reading rather than being told about it.
+                The result, shown here and now. Nothing waits for the sheet to be
+                closed, and the camera is already detached above.
               */}
-              {scanMode === 'imei' && reading.length > 0 ? (
+              {result ? (
                 <View style={styles.readingBox}>
-                  {reading.map((c) => (
-                    <View key={c.imei} style={styles.readingRow}>
-                      <Text variant="bodyStrong" tone="inverse">
-                        {c.label ? `${c.label.toUpperCase()}: ` : ''}
-                        {c.imei}
+                  {result.problem ? (
+                    <Text variant="bodyStrong" tone="inverse">
+                      {t(PROBLEM_KEY[result.problem] as never)}
+                    </Text>
+                  ) : (
+                    <Text variant="bodyStrong" tone="inverse">
+                      {t('scan.detected')}
+                    </Text>
+                  )}
+
+                  {primary ? (
+                    <View style={styles.readingRow}>
+                      <Text variant="caption" tone="inverse">
+                        {t('scan.imei1')}
                       </Text>
-                      {c.substitutions.length > 0 ? (
-                        <Text variant="caption" tone="inverse">
-                          {t('scanner.imei.substituted', { list: c.substitutions.join(' ') })}
-                        </Text>
-                      ) : null}
+                      <Text variant="bodyStrong" tone="inverse">
+                        {primary}
+                      </Text>
                     </View>
-                  ))}
-                  <Text variant="caption" tone="inverse">
-                    {reading.length > 1 ? t('scanner.imei.dualSim') : t('scanner.imei.single')}
-                  </Text>
+                  ) : null}
+
+                  {secondary ? (
+                    <View style={styles.readingRow}>
+                      <Text variant="caption" tone="inverse">
+                        {t('scan.imei2')}
+                      </Text>
+                      <Text variant="bodyStrong" tone="inverse">
+                        {secondary}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {primary ? (
+                    <Text variant="caption" tone="inverse">
+                      {secondary ? t('scan.bothOnePhone') : t('scanner.imei.single')}
+                    </Text>
+                  ) : null}
 
                   {/*
                     What the shop knows about this model, and WHERE that came
-                    from. Shown before anything is submitted, because a
-                    suggestion the user cannot trace is a suggestion they cannot
+                    from. A suggestion the user cannot trace is one they cannot
                     judge — and a proposal must never look like a decision.
                   */}
-                  <Text variant="caption" tone="inverse">
-                    {tacConflict
-                      ? t('scanner.tac.conflict')
-                      : tacResolution?.source === 'company_confirmed'
-                        ? t('scanner.tac.confirmed', {
-                            product:
-                              tacResolution.product
+                  {primary ? (
+                    <Text variant="caption" tone="inverse">
+                      {tacConflict
+                        ? t('scanner.tac.conflict')
+                        : tacResolution?.source === 'company_confirmed'
+                          ? t('scanner.tac.confirmed', {
+                              product: tacResolution.product
                                 ? [tacResolution.product.brand, tacResolution.product.model]
                                     .filter(Boolean)
                                     .join(' ')
                                 : '',
-                          })
-                        : tacResolution?.source === 'company_proposed'
-                          ? t('scanner.tac.proposed')
-                          : tacResolution?.source === 'global_catalog'
-                            ? t('scanner.tac.generic', {
-                                product: [tacResolution.brand, tacResolution.model]
-                                  .filter(Boolean)
-                                  .join(' '),
-                              })
-                            : t('scanner.tac.unknown')}
-                  </Text>
+                            })
+                          : tacResolution?.source === 'company_proposed'
+                            ? t('scanner.tac.proposed')
+                            : tacResolution?.source === 'global_catalog'
+                              ? t('scanner.tac.generic', {
+                                  product: [tacResolution.brand, tacResolution.model]
+                                    .filter(Boolean)
+                                    .join(' '),
+                                })
+                              : t('scan.productUnknown')}
+                    </Text>
+                  ) : null}
+
+                  {primary && !result.problem ? (
+                    <Button
+                      title={t('scanner.imei.use')}
+                      /**
+                       * Blocked on a dual-SIM conflict. Two TACs naming
+                       * different products is a question for a human, not
+                       * something to resolve by picking one.
+                       */
+                      disabled={tacConflict}
+                      fullWidth
+                      onPress={acceptImei}
+                    />
+                  ) : null}
+
+                  {primary && !secondary && !result.problem ? (
+                    <Button
+                      title={t('scan.addSecond')}
+                      variant="secondary"
+                      icon={Plus}
+                      fullWidth
+                      onPress={() => setMachine({ type: 'addSecond' })}
+                    />
+                  ) : null}
+
+                  {secondary ? (
+                    <Button
+                      title={t('scan.removeSecond')}
+                      variant="tertiary"
+                      fullWidth
+                      onPress={() => setMachine({ type: 'removeSecond' })}
+                    />
+                  ) : null}
 
                   <Button
-                    title={t('scanner.imei.use')}
-                    /**
-                     * Blocked on a dual-SIM conflict. Two TACs naming different
-                     * products is a question for a human, not something to
-                     * resolve by picking one.
-                     */
-                    disabled={tacConflict}
+                    title={t('scan.scanAgain')}
+                    variant="secondary"
                     fullWidth
-                    onPress={() => {
-                      // The primary identifier goes down the SAME `/scan`
-                      // pipeline as a barcode, so recognition learns from an
-                      // OCR read exactly as it does from a scan.
-                      const first = reading[0];
-                      setReading([]);
-                      void scan(first.imei);
-                    }}
+                    onPress={() => setMachine({ type: 'scanAgain' })}
                   />
                 </View>
               ) : null}
 
-              {ocrNote ? (
-                <Text variant="label" tone="inverse" align="center">
-                  {ocrNote}
-                </Text>
-              ) : null}
-
-              {scanMode === 'imei' ? (
-                <Button
-                  title={capturing ? t('scanner.imei.reading') : t('scanner.imei.capture')}
-                  icon={ScanText}
-                  fullWidth
-                  loading={capturing}
-                  onPress={() => void captureImei()}
-                />
-              ) : null}
-
               {/*
-                The mode switch. Offered only where OCR can actually run — a
-                button that always fails is worse than one that is absent, and
-                typing is available either way.
+                Always present, in every state. Typing is never taken away —
+                many manufacturers show the IMEI with no code beside it.
               */}
-              {isOcrAvailable() ? (
-                <Button
-                  title={
-                    scanMode === 'imei' ? t('scanner.mode.barcode') : t('scanner.mode.imei')
-                  }
-                  variant="secondary"
-                  icon={scanMode === 'imei' ? Barcode : ScanText}
-                  fullWidth
-                  onPress={() => {
-                    setScanMode((m) => (m === 'imei' ? 'barcode' : 'imei'));
-                    setReading([]);
-                    setOcrNote(null);
-                  }}
-                />
-              ) : null}
-
-              {/* Always present, in every mode. Typing is never taken away. */}
               <Button
-                title={t('action.typeInstead')}
+                title={t('scan.enterManually')}
                 variant="secondary"
                 icon={Keyboard}
                 fullWidth
                 onPress={() => setManual(true)}
               />
+              {!result ? (
+                <Text variant="caption" tone="inverse" align="center">
+                  {t('scan.hint.notEveryPhone')}
+                </Text>
+              ) : null}
             </View>
           </>
         )}
@@ -464,6 +509,9 @@ function Fallback({
   body,
   typed,
   setTyped,
+  typedSecond,
+  setTypedSecond,
+  allowSecond,
   onSubmit,
   loading,
   error,
@@ -473,6 +521,10 @@ function Fallback({
   body?: string;
   typed: string;
   setTyped: (v: string) => void;
+  typedSecond: string;
+  setTypedSecond: (v: string) => void;
+  /** Offer the optional second identifier. Only where an IMEI is expected. */
+  allowSecond: boolean;
   onSubmit: () => void;
   loading: boolean;
   error: string | null;
@@ -500,6 +552,20 @@ function Fallback({
           returnKeyType="search"
           onSubmitEditing={onSubmit}
         />
+        {/*
+          The optional second identifier. A single-SIM phone is never blocked
+          for lacking it, so this is an extra box and never a required one.
+        */}
+        {allowSecond ? (
+          <TextField
+            variant="identifier"
+            label={t('scan.manual.secondaryOptional')}
+            value={typedSecond}
+            onChangeText={setTypedSecond}
+            returnKeyType="done"
+            onSubmitEditing={onSubmit}
+          />
+        ) : null}
         <Button
           title={t('scanner.manual.submit')}
           fullWidth

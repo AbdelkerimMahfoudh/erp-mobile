@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,13 @@ import { StagedItemRow } from '../components/receive/StagedItemRow';
 import { stagedCostTotal, stagedUnitTotal, type StagedItem } from '../components/receive/types';
 import { api } from '../lib/api-client';
 import { useBranch } from '../lib/branch';
+import { useAuth } from '../hooks/useAuth';
+import {
+  holdPendingIntake,
+  pendingFrom,
+  takePendingIntake,
+  type IntakeScope,
+} from '../lib/scan/pending-intake';
 import { colors } from '../lib/design/colors';
 import { radius, space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
@@ -54,6 +61,19 @@ export default function ReceiveScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const { branchId } = useBranch();
+  const { user } = useAuth();
+
+  /**
+   * Who this pending scan belongs to. All three must still match on the way
+   * back, so a branch or account switch mid-detour cannot surface it here.
+   */
+  const scope: IntakeScope | null = useMemo(
+    () =>
+      user?.companyId && user?.id && branchId
+        ? { companyId: user.companyId, userId: user.id, branchId }
+        : null,
+    [user?.companyId, user?.id, branchId],
+  );
 
   // The picker now yields a SupplierRow (the paged list shape), which carries
   // everything receiving needs: id, name and phone.
@@ -126,6 +146,29 @@ export default function ReceiveScreen() {
   const costTotal = stagedCostTotal(staged);
 
   // ── Scanning ──────────────────────────────────────────────────────────────
+
+  /**
+   * Coming back from the Create-product detour.
+   *
+   * The identifier accepted before leaving is re-resolved through the same
+   * `/scan` pipeline, so the product that has just been created comes back as
+   * a populated suggestion and the intake sheet opens on the phone the user
+   * actually scanned — rather than on an empty screen, which is what happened
+   * before and forced them to scan it again.
+   */
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || !scope) return;
+    const back = takePendingIntake(scope);
+    if (!back?.primaryImei) return;
+    restored.current = true;
+    void api
+      .post<ScanResult>('/scan', { code: back.primaryImei })
+      .then((result) => setPending({ result, suggestion: result.suggestion ?? null }))
+      // A failed re-resolve is not worth an error dialog: the identifier is
+      // shown again by scanning, and nothing has been lost from inventory.
+      .catch(() => undefined);
+  }, [scope]);
 
   const onScanResult = useCallback(
     (result: ScanResult) => {
@@ -421,8 +464,32 @@ export default function ReceiveScreen() {
         onClose={() => setPending(null)}
         onAdd={addStaged}
         onCreateProduct={() => {
+          /*
+           * The scan must survive the detour. It used to be dropped here, so
+           * the user came back to an empty screen and scanned the phone again.
+           *
+           * Only a GENUINE product barcode is handed to the product form. An
+           * IMEI identifies one phone, never a model — putting it in the
+           * Product barcode box would poison recognition for every unit of
+           * that model, and is not a way to solve lost state.
+           */
+          const result = pending?.result;
+          const isImei = result?.kind === 'imei';
+          const barcode = result && result.kind === 'barcode' ? result.code : null;
+          if (scope && result) {
+            holdPendingIntake(
+              pendingFrom(scope, {
+                imei: isImei ? { primary: result.code, secondary: null } : null,
+                productBarcode: barcode,
+              }),
+            );
+          }
           setPending(null);
-          router.push('/catalog/new');
+          router.push(
+            barcode
+              ? (`/catalog/new?barcode=${encodeURIComponent(barcode)}` as never)
+              : '/catalog/new',
+          );
         }}
       />
     </>

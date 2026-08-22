@@ -232,34 +232,3 @@ export function readDualSim(candidates: ImeiCandidate[]): DualSimReading | null 
   };
 }
 
-/**
- * Merge readings across camera frames.
- *
- * OCR fires many times a second and the same screen yields the same digits
- * repeatedly. Accumulating rather than replacing means a brief blur does not
- * lose an IMEI that was already read cleanly, and the confirmation card does
- * not flicker between readings.
- *
- * An EXACT reading always wins over an ambiguity-resolved one for the same
- * number, because a later clean frame is better evidence than an earlier guess.
- */
-export function mergeFrames(
-  seen: ImeiCandidate[],
-  incoming: ImeiCandidate[],
-): ImeiCandidate[] {
-  const byImei = new Map(seen.map((c) => [c.imei, c]));
-  for (const c of incoming) {
-    const existing = byImei.get(c.imei);
-    if (!existing) {
-      byImei.set(c.imei, c);
-      continue;
-    }
-    if (existing.source === 'ambiguity_resolved' && c.source === 'exact') {
-      byImei.set(c.imei, c);
-    } else if (existing.label === null && c.label !== null) {
-      // A later frame that caught the label is more informative.
-      byImei.set(c.imei, { ...existing, label: c.label });
-    }
-  }
-  return [...byImei.values()];
-}

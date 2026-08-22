@@ -230,22 +230,10 @@ export const en = {
     'This payment is still waiting for confirmation, so it can be changed directly instead.',
   'correction.conflict.other.title': 'Could not do that',
   'correction.conflict.other.body': 'Something about this payment changed. Open it again.',
-
-  // ── Reading an IMEI off a phone screen (Milestone C) ──────────────────────
-  'scanner.mode.imei': 'Read IMEI from screen',
-  'scanner.mode.barcode': 'Scan a barcode instead',
-  'scanner.imei.hint': 'Dial *#06# on the phone, then point the camera at its screen',
-  'scanner.imei.capture': 'Read the screen',
-  'scanner.imei.reading': 'Reading…',
-  'scanner.imei.nothingFound': 'No IMEI found. Hold steadier, or type it in.',
-  'scanner.imei.failed': 'Could not read that. Try again, or type it in.',
-  'scanner.imei.unavailable': 'Reading from a screen is not available on this device. Type it in.',
-  // Every reinterpreted character is shown, so a human agrees to the reading
-  // rather than being told about it.
-  'scanner.imei.substituted': 'Read as: {list}',
+  // ── Reading an IMEI (O: barcode/QR, and always typing) ────────────────────
   'scanner.imei.single': 'One IMEI — a single-SIM phone',
   'scanner.imei.dualSim': 'Two IMEIs — one dual-SIM phone, not two phones',
-  'scanner.imei.use': 'Use this',
+  'scanner.imei.use': 'Use this IMEI',
   // Where a suggestion came from. A suggestion the user cannot trace is one
   // they cannot judge — and a proposal must never read like a decision.
   'scanner.tac.confirmed': 'Your shop has confirmed this model: {product}',
@@ -1983,5 +1971,31 @@ export const en = {
   'more.sync.waiting': '{count} waiting to send',
   'more.sync.attention': '{count} need your attention',
   'more.sync.notConfirmed': 'Waiting to send is not the same as sent or confirmed.',
+
+
+  // ── O: what the scanner shows after a valid read ──────────────────────────
+  'scan.detected': 'IMEI detected',
+  'scan.imei1': 'IMEI',
+  'scan.imei2': 'IMEI 2',
+  'scan.addSecond': 'Add second IMEI — optional',
+  'scan.removeSecond': 'Remove IMEI 2',
+  'scan.bothOnePhone': 'Both IMEIs belong to one phone',
+  'scan.alreadyInInventory': 'This phone is already in inventory',
+  'scan.productUnknown': 'Product not recognized',
+  'scan.imeiKept': 'The scanned IMEI will be kept',
+  'scan.scanAgain': 'Scan again',
+  'scan.enterManually': 'Enter manually',
+  'scan.hint.barcode': 'Point the camera at the IMEI barcode or QR code',
+  // Said plainly because it is true and people discover it the hard way: many
+  // manufacturers show the number without a code beside it.
+  'scan.hint.notEveryPhone': 'Not every phone shows a scannable code. You can always type it instead.',
+  // Refusals. No jargon — nobody at a counter needs the word "Luhn".
+  'scan.problem.checksum': 'Those digits are not a valid IMEI. Check them and scan again.',
+  'scan.problem.length': 'An IMEI has 15 digits. That code was a different length.',
+  'scan.problem.ambiguous': 'More than two IMEIs were found. Type the right ones instead.',
+  'scan.problem.notImei': 'That is not an IMEI. Scan the IMEI code, or type it in.',
+  'scan.problem.sameAsPrimary': 'That is the same number as the first IMEI. Scan the other one.',
+  'scan.manual.secondaryOptional': 'IMEI 2 — optional',
+  'scan.a11y.close': 'Close the scanner',
 
 } as const;
