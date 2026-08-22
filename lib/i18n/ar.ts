@@ -1328,9 +1328,12 @@ export const ar: Catalogue = {
   // ── تسجيل الدخول ───────────────────────────────────────────────────────────
   'auth.title': 'نظام إدارة المتجر',
   'auth.subtitle': 'سجّل الدخول إلى متجرك',
-  'auth.field.storeId': 'معرّف المتجر',
-  'auth.field.storeId.hint': 'معرّف نشاطك التجاري — يجده المالك في الإعدادات. ليس كلمة مرور.',
-  'auth.field.login': 'اسم المستخدم',
+  'auth.field.identifier': 'رقم الهاتف أو المعرّف الشخصي',
+  'auth.field.identifier.hint': 'استخدم أيًّا منهما.',
+  'auth.personalId.label': 'معرّفك الشخصي',
+  'auth.choose.title': 'أي متجر؟',
+  'auth.choose.body': 'هذا الرقم مستخدم في أكثر من متجر. اختر متجرك.',
+  'auth.choose.cancel': 'ابدأ من جديد',
   'auth.field.password': 'كلمة المرور',
   'auth.action.signIn': 'تسجيل الدخول',
   'auth.error.failed': 'تعذّر تسجيل دخولك. تحقّق من بياناتك وحاول مرة أخرى.',
@@ -1341,6 +1344,12 @@ export const ar: Catalogue = {
     'لأمانك، تعذّر التحقّق من هذا الجهاز. التحقّق من الجهاز غير متاح بعد في هذه النسخة — سجّل الدخول من الجهاز الذي استخدمته سابقًا، أو اطلب المساعدة من المسؤول.',
 
   // Store Account ID (Stage 4A CP1)
+  'settings.personalId.section': 'معرّفك الشخصي',
+  'settings.personalId.hint': 'به تسجّل الدخول. يُنشأ لك تلقائيًا — وليس كلمة مرور.',
+  'settings.personalId.copy': 'نسخ',
+  'settings.personalId.copied': 'نُسخ المعرّف الشخصي',
+  'settings.personalId.copyFailed': 'تعذّر النسخ',
+  'settings.personalId.instead': 'يمكنك تسجيل الدخول بهذا بدلًا من رقم هاتفك.',
   'settings.storeId.section': 'معرّف حساب المتجر',
   'settings.storeId.hint': 'يكتبه موظفوك عند تسجيل الدخول، مع اسم المستخدم وكلمة المرور الخاصة بهم.',
   'settings.storeId.share': 'يمكن مشاركته مع فريقك بأمان. ليس كلمة مرور ولا يكفي وحده لتسجيل الدخول.',

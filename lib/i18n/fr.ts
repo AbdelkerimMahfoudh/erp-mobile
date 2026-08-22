@@ -1492,10 +1492,12 @@ export const fr: Catalogue = {
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Retail ERP',
   'auth.subtitle': 'Connectez-vous à votre boutique',
-  'auth.field.storeId': 'Identifiant boutique',
-  'auth.field.storeId.hint':
-    'L’identifiant de votre entreprise — le propriétaire le trouve dans les Paramètres. Ce n’est pas un mot de passe.',
-  'auth.field.login': 'Identifiant',
+  'auth.field.identifier': 'Numéro de téléphone ou identifiant personnel',
+  'auth.field.identifier.hint': 'L’un ou l’autre suffit.',
+  'auth.personalId.label': 'Votre identifiant personnel',
+  'auth.choose.title': 'Quelle boutique ?',
+  'auth.choose.body': 'Ce numéro est utilisé dans plusieurs boutiques. Choisissez la vôtre.',
+  'auth.choose.cancel': 'Recommencer',
   'auth.field.password': 'Mot de passe',
   'auth.action.signIn': 'Se connecter',
   // Non-enumerating: never reveals which field was wrong.
@@ -1508,6 +1510,12 @@ export const fr: Catalogue = {
     'Pour votre sécurité, cet appareil n’a pas pu être vérifié. La vérification des appareils n’est pas encore disponible dans cette version — connectez-vous depuis l’appareil utilisé précédemment, ou demandez de l’aide à votre administrateur.',
 
   // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  'settings.personalId.section': 'Votre identifiant personnel',
+  'settings.personalId.hint': 'Il sert à vous connecter. Généré pour vous — ce n’est pas un mot de passe.',
+  'settings.personalId.copy': 'Copier',
+  'settings.personalId.copied': 'Identifiant personnel copié',
+  'settings.personalId.copyFailed': 'Copie impossible',
+  'settings.personalId.instead': 'Vous pouvez vous connecter avec ceci au lieu de votre numéro de téléphone.',
   'settings.storeId.section': 'Identifiant du compte boutique',
   'settings.storeId.hint':
     'Votre personnel le saisit à la connexion, avec son propre nom d’utilisateur et son mot de passe.',

@@ -1351,9 +1351,12 @@ export const en = {
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Retail ERP',
   'auth.subtitle': 'Sign in to your store',
-  'auth.field.storeId': 'Store ID',
-  'auth.field.storeId.hint': 'Your business ID — the Owner finds it in Settings. Not a password.',
-  'auth.field.login': 'Login',
+  'auth.field.identifier': 'Phone number or personal ID',
+  'auth.field.identifier.hint': 'Use either one.',
+  'auth.personalId.label': 'Your personal ID',
+  'auth.choose.title': 'Which shop?',
+  'auth.choose.body': 'This number is used at more than one shop. Pick yours.',
+  'auth.choose.cancel': 'Start again',
   'auth.field.password': 'Password',
   'auth.action.signIn': 'Sign In',
   // Non-enumerating: never reveals which field was wrong.
@@ -1365,6 +1368,12 @@ export const en = {
     'For your security, this device could not be verified. Device verification is not available yet in this version — sign in from the device you used before, or ask your administrator for help.',
 
   // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  'settings.personalId.section': 'Your personal ID',
+  'settings.personalId.hint': 'How you sign in. Generated for you — it is not a password.',
+  'settings.personalId.copy': 'Copy',
+  'settings.personalId.copied': 'Personal ID copied',
+  'settings.personalId.copyFailed': 'Could not copy',
+  'settings.personalId.instead': 'You can sign in with this instead of your phone number.',
   'settings.storeId.section': 'Store Account ID',
   'settings.storeId.hint':
     'Your staff type this when they sign in, together with their own username and password.',

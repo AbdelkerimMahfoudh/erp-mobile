@@ -14,6 +14,11 @@ export interface AuthUser {
    * Public Store Account ID (Stage 3.2) — the client namespaces its device
    * credential by this, at login and on a restored session. NOT a secret.
    */
+  /**
+   * The generated identifier this person can sign in with instead of a phone
+   * number (CP3). Shown in Settings so nobody has to ask support for it.
+   */
+  personalId: string;
   publicStoreId: string;
 }
 
@@ -28,6 +33,27 @@ export interface AuthResponse {
    * this one response and nowhere else — store it, never log it.
    */
   device?: { deviceId: string; deviceSecret: string; trustMethod: DeviceTrustMethod };
+}
+
+/**
+ * One phone number, more than one shop (CP3).
+ *
+ * Returned by `/auth/login` INSTEAD of tokens, and only ever after the password
+ * has already been verified — which is why it is safe for it to name shops at
+ * all. It carries no access token and cannot be used as one.
+ */
+export interface AccountChoice {
+  status: 'choose_account';
+  continuationToken: string;
+  expiresIn: number;
+  accounts: { accountRef: string; companyName: string; userName: string }[];
+}
+
+/** What `/auth/login` may answer: signed in, or "which shop did you mean?". */
+export type LoginResult = AuthResponse | AccountChoice;
+
+export function isAccountChoice(r: LoginResult): r is AccountChoice {
+  return (r as AccountChoice).status === 'choose_account';
 }
 
 /** How a device came to be trusted. `otp` is Stage 4 and is never set today. */

@@ -263,6 +263,7 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
+      <PersonalIdCard />
       <StoreAccountIdCard />
 
       {/* ── Returns ─────────────────────────────────────────────────────── */}
@@ -595,6 +596,57 @@ function AccountSheet({
 }
 
 
+/**
+ * The identifier this person signs in with (CP3).
+ *
+ * Needed here because it is generated, not chosen: without somewhere to read
+ * it, anybody who has no phone number on their account would have to contact
+ * support to get into the app at all.
+ *
+ * It is not a password and is not treated as one — it is half of a
+ * credential, exactly like a username, and the screen says so. No password,
+ * PIN or session token is ever shown here.
+ */
+function PersonalIdCard() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+
+  if (!user?.personalId) return null;
+  const personalId = user.personalId;
+
+  const copy = async () => {
+    try {
+      const ok = await Clipboard.setStringAsync(personalId);
+      if (!ok) {
+        toast.error(t('settings.personalId.copyFailed'));
+        return;
+      }
+      toast.success(t('settings.personalId.copied'));
+    } catch {
+      toast.error(t('settings.personalId.copyFailed'));
+    }
+  };
+
+  return (
+    <Section title={t('settings.personalId.section')} subtitle={t('settings.personalId.hint')}>
+      <Card>
+        <View style={styles.storeIdRow}>
+          <Identifier tone="primary" style={styles.storeIdValue}>{personalId}</Identifier>
+          <Button
+            title={t('settings.personalId.copy')}
+            variant="secondary"
+            size="sm"
+            icon={Copy}
+            onPress={() => void copy()}
+          />
+        </View>
+        <Text variant="caption" tone="secondary" style={styles.hint}>
+          {t('settings.personalId.instead')}
+        </Text>
+      </Card>
+    </Section>
+  );
+}
 /**
  * The Store Account ID, where the Owner can actually find it.
  *

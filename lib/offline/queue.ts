@@ -5,7 +5,7 @@ import { usePermissionStore } from '../permissions';
 import { uuidv4 } from '../utils';
 import { classifyError } from './classify.ts';
 import { mayQueue } from './policy.ts';
-import { isDurable, unavailableReason } from './durable-storage.ts';
+import { isDurable } from './durable-storage.ts';
 import { readQueue, writeQueue, type Scope } from './queue-store.ts';
 import {
   MAX_ATTEMPTS,

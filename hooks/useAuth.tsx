@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import { api, clearSession } from '../lib/api-client';
@@ -11,17 +11,36 @@ import {
   clearLegacyCredential,
   deviceMeta,
   loadCredential,
-  loadLegacyCredential,
   migrateLegacyCredential,
   rememberStoreId,
   saveCredential,
 } from '../lib/device';
-import type { AuthResponse, AuthUser } from '../types/api';
+
+import type { AccountChoice, AuthResponse, AuthUser, LoginResult } from '../types/api';
+import { isAccountChoice } from '../types/api';
+import { credentialNamespace } from '../lib/identifier';
+
+/**
+ * The second half of the credential key, now that there is no login to put
+ * there. A constant rather than an empty string, so the stored key reads as a
+ * deliberate scheme rather than a missing value.
+ */
+const IDENTIFIER_SCOPE = 'id';
 
 interface AuthContextValue {
   user: AuthUser | null;
   bootstrapping: boolean;
-  signIn: (storeAccountId: string, login: string, password: string) => Promise<void>;
+  /**
+   * One identifier — a phone number or a personal ID — and a password.
+   * No Store ID: the server resolves the shop from the credential.
+   *
+   * Resolves to `null` on a normal sign-in. When one phone number turns out to
+   * belong to a person at more than one shop, it resolves to the choice
+   * instead, and the caller finishes with {@link chooseAccount}.
+   */
+  signIn: (identifier: string, password: string) => Promise<AccountChoice | null>;
+  /** Finish a sign-in that needed a shop picked. The password is not asked again. */
+  chooseAccount: (choice: AccountChoice, accountRef: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -51,60 +70,105 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signIn = async (storeAccountId: string, login: string, password: string) => {
+  /**
+   * The device namespace of the sign-in attempt currently awaiting a shop
+   * choice. A ref, not state: it must not cause a render, and it must be gone
+   * the moment the attempt is finished or abandoned.
+   */
+  const pendingNamespace = useRef<string | null>(null);
+
+  const signIn = async (identifier: string, password: string) => {
     /*
-     * Device identity (F1 Stage 3 / 3.1 / 3.2).
+     * Device identity (F1 Stage 3 / 3.1 / 3.2, renamespaced in CP3).
      *
-     * The credential is namespaced by Store ID + login now that the Store
-     * Account ID is known before login. We present the company-scoped
-     * credential; if there is none but a pre-3.2 login-only credential exists,
-     * we present THAT — and if the server recognises it for this company, we
-     * migrate it into the scoped key. If neither exists, no credential is sent
-     * and the server enrolls a new device.
+     * The credential used to be namespaced by Store ID + login, both known
+     * before the request. Neither is now — that is the whole point of the
+     * change — so it is namespaced by the identifier the person typed,
+     * folded to one form so `4321 0987` and `43210987` are the same device.
+     *
+     * Somebody who signs in by phone one day and by personal ID the next
+     * finds no credential and the server enrols a new device. That is safe:
+     * enrolment happens only after the password is verified. It is also far
+     * better than presenting a credential belonging to a different key, which
+     * the server would fail closed on — locking them out of their own shop.
+     *
+     * The pre-3.2 login-only credential can no longer be PRESENTED, because
+     * presenting it needed a login the client no longer has before
+     * authenticating. Those devices simply re-enrol on first sign-in, and the
+     * stale key is cleared below once we know who they are.
      *
      * The server FAILS CLOSED on a credential it cannot verify. There is NO
-     * client retry: the error propagates untouched (the credential is kept) and
-     * the login screen shows a blocking device-verification state. See CP1.
+     * client retry: the error propagates untouched and the login screen shows
+     * a blocking device-verification state. See CP1.
      */
-    const typedStoreId = storeAccountId;
-    let presented = await loadCredential(typedStoreId, login);
-    let fromLegacy = false;
-    if (!presented) {
-      const legacy = await loadLegacyCredential(login);
-      if (legacy) {
-        presented = legacy;
-        fromLegacy = true;
-      }
-    }
+    const namespace = credentialNamespace(identifier);
+    const presented = await loadCredential(namespace, IDENTIFIER_SCOPE);
 
-    const res = await api.post<AuthResponse>('/auth/login', {
-      storeAccountId,
-      login,
+    const res = await api.post<LoginResult>('/auth/login', {
+      identifier: identifier.trim(),
       password,
       deviceCredential: { ...deviceMeta(), ...(presented ?? {}) },
     });
 
+    /*
+     * Ambiguous, and the server says so instead of guessing. Nothing is stored
+     * and nobody is signed in yet: the caller shows the shops and comes back
+     * through `chooseAccount`. The namespace is carried in the closure of that
+     * call rather than in state, so a half-finished attempt leaves nothing
+     * behind if the screen is abandoned.
+     */
+    if (isAccountChoice(res)) {
+      pendingNamespace.current = namespace;
+      return res;
+    }
+
+    await establish(res, namespace);
+    return null;
+  };
+
+  const chooseAccount = async (choice: AccountChoice, accountRef: string) => {
+    const namespace = pendingNamespace.current;
+    if (!namespace) throw new Error('No sign-in is waiting for a shop to be chosen.');
+
+    const res = await api.post<AuthResponse>('/auth/choose-account', {
+      continuationToken: choice.continuationToken,
+      accountRef,
+      deviceCredential: { ...deviceMeta(), ...((await loadCredential(namespace, IDENTIFIER_SCOPE)) ?? {}) },
+    });
+
+    pendingNamespace.current = null;
+    await establish(res, namespace);
+  };
+
+  /**
+   * Everything that happens once the server has issued tokens — shared by the
+   * direct sign-in and the shop chooser, so the rarer path cannot drift away
+   * from the common one.
+   */
+  const establish = async (res: AuthResponse, namespace: string) => {
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
 
-    // Key everything by the SERVER's canonical Store ID, so login-save and
-    // restore-load always agree. Remembering it is fine — it is not a secret.
-    const storeId = res.user.publicStoreId;
-    await rememberStoreId(storeId);
+    /*
+      Still remembered, but no longer to sign in with — nobody types it now.
+      It stays because other surfaces show it as support information, and
+      because it keys nothing secret.
+    */
+    await rememberStoreId(res.user.publicStoreId);
 
     if (res.device) {
-      // Newly enrolled device: keep its secret under the scoped key.
-      await saveCredential(storeId, login, {
+      // Newly enrolled: keep its secret under the identifier namespace, so the
+      // next sign-in with the same identifier is recognised.
+      await saveCredential(namespace, IDENTIFIER_SCOPE, {
         deviceId: res.device.deviceId,
         deviceSecret: res.device.deviceSecret,
       });
-    } else if (fromLegacy && presented) {
-      // The server recognised the legacy pair for THIS company — migrate it into
-      // the scoped key, then drop the ambiguous login-only key.
-      await saveCredential(storeId, login, presented);
-      await clearLegacyCredential(login);
     }
+
+    // Now that the login is known, retire any pre-3.2 key for it. It can never
+    // be presented again, and leaving it would be dead credential material.
+    await clearLegacyCredential(res.user.login);
     setUser(res.user);
   };
 
@@ -181,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
 
-  return <AuthContext.Provider value={{ user, bootstrapping, signIn, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
