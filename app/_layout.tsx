@@ -1,6 +1,6 @@
 import '../global.css';
 import React, { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
@@ -42,7 +42,24 @@ export default function RootLayout() {
             because a banner that hides what it warns about is worse than none.
           */}
           <OfflineBanner />
-          <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          {/*
+            The back-swipe is the native stack's own gesture, and on iOS it
+            belongs to UINavigationController's push transition. Naming an
+            `animation` replaces that transition with a custom one and takes the
+            interactive pop gesture with it — the screens still slide, so the app
+            looks right while the swipe every iPhone user reaches for does
+            nothing. Letting iOS use its own transition is what brings it back.
+
+            Android keeps the explicit slide: it has no edge-swipe to lose, and
+            the system back button is unaffected either way.
+          */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
+              gestureEnabled: true,
+            }}
+          >
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="select-branch" />
             <Stack.Screen name="(tabs)" />
