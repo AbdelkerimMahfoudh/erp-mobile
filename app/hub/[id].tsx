@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Card, EmptyState, ListRow, Screen, Text } from '../../components/ui';
@@ -28,6 +28,18 @@ export default function HubScreen() {
   const granted = usePermissionStore((s) => s.granted);
 
   const hub = typeof id === 'string' ? hubById(id) : undefined;
+
+  /*
+    Money became a bottom tab (CP2), so /hub/money must not render a second
+    copy of it here. Old bookmarks and notification links keep working by
+    landing on the tab instead — the destination they wanted, reached the way
+    it is reached now.
+  */
+  useEffect(() => {
+    if (hub?.placement === 'tab') router.replace('/money-hub' as Href);
+  }, [hub, router]);
+
+  if (hub?.placement === 'tab') return null;
 
   if (!hub) {
     return (

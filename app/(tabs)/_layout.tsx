@@ -1,12 +1,13 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, ShoppingCart, Boxes, Menu } from 'lucide-react-native';
+import { Home, ShoppingCart, Boxes, Menu, Wallet } from 'lucide-react-native';
 import { ErrorState } from '../../components/ui';
 import { colors } from '../../lib/design/colors';
 import { useBranch } from '../../lib/branch';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
+import { tabHubIsVisible } from '../../lib/navigation/registry';
 
 /**
  * The tab bar, gated by role.
@@ -25,6 +26,13 @@ export default function TabsLayout() {
   const error = usePermissionStore((s) => s.error);
   const { branchId } = useBranch();
   const canSell = usePermission('sale.create');
+  const granted = usePermissionStore((s) => s.granted);
+  /*
+    Money is shown when the user can reach at least one of its four
+    children, not when they are the Owner. A store manager who counts the
+    drawer needs the tab that holds the daily closing.
+  */
+  const canSeeMoney = tabHubIsVisible(granted);
 
   // Permissions failed to resolve. Without an escape here the app is a
   // permanent spinner — the tab bar cannot decide what to show, and there is
@@ -86,6 +94,26 @@ export default function TabsLayout() {
           title: t('tab.sell'),
           href: canSell ? undefined : null,
           tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
+        }}
+      />
+      {/*
+        Money, directly beside Sell (CP2).
+
+        Second only to selling in how often a shopkeeper reaches for it, and
+        it used to sit two taps away behind More. `href: null` removes it
+        entirely when no child is permitted, rather than leaving a tab that
+        opens onto an empty screen.
+
+        The bar order is the source order. The navigator mirrors it in RTL
+        on its own — reversing it here as well would put Money back on the
+        wrong side of Sell.
+      */}
+      <Tabs.Screen
+        name="money-hub"
+        options={{
+          title: t('tab.money'),
+          href: canSeeMoney ? undefined : null,
+          tabBarIcon: ({ color, size }) => <Wallet color={color} size={size} />,
         }}
       />
       {/* Everyone looks stock up — warehouse, sales and owner alike. */}

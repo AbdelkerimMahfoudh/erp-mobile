@@ -34,6 +34,8 @@ import {
   hubById,
   visibleChildren,
   visibleHubs,
+  tabHub,
+  tabHubIsVisible,
 } from './registry.ts';
 
 let passed = 0;
@@ -223,15 +225,17 @@ it('every permission named by a destination exists in the catalogue', () => {
 
 // ── 5. role visibility ───────────────────────────────────────────────────────
 
-it('an Owner sees all six business hubs', () => {
+it('an Owner sees the five business hubs — Money is a tab now, not a card', () => {
   assert.deepEqual(titles(visibleHubs(OWNER, 'business')), [
     'sales',
     'stock',
-    'money',
     'network',
     'performance',
     'business',
   ]);
+  // Moved, not removed: the Owner still reaches all four of its children.
+  assert.equal(hubById('money')?.placement, 'tab');
+  assert.equal(visibleChildren(hubById('money')!, OWNER).length, 4);
 });
 
 it('an Owner sees every destination', () => {
@@ -243,11 +247,12 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   assert.deepEqual(titles(visibleHubs(MANAGER, 'business')), [
     'sales',
     'stock',
-    'money',
     'network',
     'performance',
     'business',
   ]);
+  // Money moved to the tab bar, and a Manager still reaches it there.
+  assert.equal(tabHubIsVisible(MANAGER), true);
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
   assert.deepEqual(business, ['subscription'], 'a Manager holds neither user.manage nor settings.manage');
 
@@ -452,5 +457,145 @@ it('the bell carries a translated accessible label, not a hardcoded one', () => 
     'no badge may be shown while the notifications contract supplies no count',
   );
 });
+
+
+// ── Money as a bottom tab (CP2) ─────────────────────────────────────────────
+
+const TABS_LAYOUT = () => fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', '_layout.tsx'), 'utf8');
+
+it('Money is a tab, not a card on More', () => {
+  const money = hubById('money');
+  assert.ok(money, 'the Money hub must still exist');
+  assert.equal(money.placement, 'tab');
+  assert.equal(tabHub()?.id, 'money');
+});
+
+it('and is therefore absent from the More business list', () => {
+  /*
+    The duplicate is removed by the SAME field that creates the tab. There is
+    no edit where both exist, which is what stops a second copy being left
+    behind by accident.
+  */
+  const all = new Set(['report.view', 'expense.submit', 'closing.count', 'loan.view']);
+  const onMore = visibleHubs(all, 'business').map((e) => e.hub.id);
+  assert.ok(!onMore.includes('money'), 'Money must not appear on More: ' + onMore.join(', '));
+});
+
+it('More still shows exactly the five remaining business hubs', () => {
+  const all = new Set(HUBS.flatMap((h) => h.children).flatMap((c) => [c.perm, ...(c.anyOf ?? [])]).filter(Boolean));
+  const onMore = visibleHubs(all, 'business').map((e) => e.hub.id);
+  assert.deepEqual(onMore, ['sales', 'stock', 'network', 'performance', 'business']);
+});
+
+it('the whole hub moved — all four children, unchanged', () => {
+  const money = hubById('money');
+  assert.deepEqual(
+    money.children.map((c) => c.route),
+    ['/money', '/expenses', '/closing', '/loans'],
+    'the complete Money section moves, not just its landing card',
+  );
+  // The permissions are the ones the hub always enforced. Widening any of them
+  // here would hand a role a financial screen it was never given.
+  assert.deepEqual(
+    money.children.map((c) => c.perm),
+    ['report.view', 'expense.submit', 'closing.count', 'loan.view'],
+  );
+});
+
+it('the bar order is Home, Sell, Money, Inventory, More', () => {
+  const src = TABS_LAYOUT();
+  const order = [...src.matchAll(/name="([a-z-]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ['index', 'sell', 'money-hub', 'inventory', 'more']);
+});
+
+it('with Money directly beside Sell', () => {
+  const src = TABS_LAYOUT();
+  const order = [...src.matchAll(/name="([a-z-]+)"/g)].map((m) => m[1]);
+  assert.equal(order[order.indexOf('sell') + 1], 'money-hub');
+});
+
+it('RTL is left to the navigator, not reversed a second time', () => {
+  // Mirroring the order here as well would put Money back on the wrong side of
+  // Sell in Arabic — two reversals cancel out.
+  const src = TABS_LAYOUT();
+  assert.ok(!/reverse\(\)|I18nManager\.isRTL/.test(src), 'the tab bar must not mirror itself');
+});
+
+it('the tab is hidden, not emptied, when no child is permitted', () => {
+  assert.equal(tabHubIsVisible(new Set()), false);
+  assert.equal(tabHubIsVisible(new Set(['sale.create'])), false, 'an unrelated permission grants nothing');
+  const src = TABS_LAYOUT();
+  assert.match(src, /href: canSeeMoney \? undefined : null/);
+});
+
+it('and is not restricted to the Owner', () => {
+  /*
+    A store manager who counts the drawer needs the tab that holds the daily
+    closing. Hard-coding a role here would take it from exactly the person the
+    closing workflow exists for.
+  */
+  assert.equal(tabHubIsVisible(new Set(['closing.count'])), true, 'closing alone should show Money');
+  assert.equal(tabHubIsVisible(new Set(['expense.submit'])), true, 'expenses alone should show Money');
+  assert.equal(tabHubIsVisible(new Set(['loan.view'])), true, 'loans alone should show Money');
+  assert.equal(tabHubIsVisible(new Set(['report.view'])), true, 'cash & accounts alone should show Money');
+});
+
+it('shows only the children a role actually holds', () => {
+  const money = hubById('money');
+  // An employee who may report an expense and count the drawer sees two rows,
+  // not four, and never the cash-and-accounts screen.
+  const employee = new Set(['expense.submit', 'closing.count']);
+  assert.deepEqual(
+    visibleChildren(money, employee).map((c) => c.route),
+    ['/expenses', '/closing'],
+  );
+  // An Owner with everything sees all four.
+  const owner = new Set(['report.view', 'expense.submit', 'closing.count', 'loan.view']);
+  assert.equal(visibleChildren(money, owner).length, 4);
+});
+
+it('the tab screen is a primary screen, with no header and no back label', () => {
+  /*
+    A pushed hub route carries a header and a back arrow to whatever pushed it,
+    which on a tab renders as "(tabs)" — the wrong thing to show on a screen
+    nothing navigated to.
+  */
+  const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'money-hub.tsx'), 'utf8');
+  // The file's own comment explains that it declares no `Stack.Screen`, so the
+  // prose has to be stripped before the code is checked.
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.ok(!/Stack\.Screen/.test(code), 'a tab screen must not declare a Stack header');
+  assert.ok(!/headerShown/.test(code), 'a tab screen must not set headerShown');
+  assert.match(code, /t\('tab\.money'\)/, 'the title comes from the translated tab key');
+});
+
+it('the tab reads its children from the registry, not a second list', () => {
+  const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'money-hub.tsx'), 'utf8');
+  assert.match(src, /visibleChildren/);
+  assert.match(src, /tabHub\(\)/);
+  // A hardcoded route in the tab would let it drift from the registry.
+  assert.ok(!/'\/expenses'|'\/closing'|'\/loans'/.test(src), 'routes must come from the registry');
+});
+
+it('the old /hub/money deep link still resolves', () => {
+  // Bookmarks and notification links keep working by landing on the tab — the
+  // destination they wanted, reached the way it is reached now.
+  const src = fs.readFileSync(path.join(MOBILE, 'app', 'hub', '[id].tsx'), 'utf8');
+  assert.match(src, /placement === 'tab'/);
+  assert.match(src, /router\.replace\('\/money-hub'/);
+});
+
+it('the tab route is classified, so the drift test does not report it missing', () => {
+  assert.ok(EXCLUDED_ROUTES['/money-hub'], '/money-hub needs a reason in EXCLUDED_ROUTES');
+  assert.match(EXCLUDED_ROUTES['/money-hub'], /Bottom tab/);
+});
+
+it('Money is named in all three languages', () => {
+  for (const locale of ['en', 'ar', 'fr']) {
+    const src = fs.readFileSync(path.join(MOBILE, 'lib', 'i18n', locale + '.ts'), 'utf8');
+    assert.match(src, /'tab\.money':/, locale + ' is missing the Money tab name');
+  }
+});
+
 
 console.log('\n' + passed + ' passed');

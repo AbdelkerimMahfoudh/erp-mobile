@@ -356,6 +356,7 @@ export const ar: Catalogue = {
   'tab.home': 'الرئيسية',
   'tab.sell': 'بيع',
   'tab.inventory': 'المخزون',
+  'tab.money': 'المال',
   'tab.more': 'المزيد',
 
   // ── Generic states ────────────────────────────────────────────────────────

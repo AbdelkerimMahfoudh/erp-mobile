@@ -361,6 +361,7 @@ export const en = {
   'tab.home': 'Home',
   'tab.sell': 'Sell',
   'tab.inventory': 'Inventory',
+  'tab.money': 'Money',
   'tab.more': 'More',
 
   // ── Generic states ────────────────────────────────────────────────────────

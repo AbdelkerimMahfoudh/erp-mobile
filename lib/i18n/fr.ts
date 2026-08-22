@@ -393,6 +393,7 @@ export const fr: Catalogue = {
   'tab.home': 'Accueil',
   'tab.sell': 'Vendre',
   'tab.inventory': 'Stock',
+  'tab.money': 'Argent',
   'tab.more': 'Plus',
 
   // ── Generic states ────────────────────────────────────────────────────────

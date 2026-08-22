@@ -64,8 +64,15 @@ export type HubId =
   | 'business'
   | 'account';
 
-/** Where a hub is rendered on More. */
-export type HubPlacement = 'business' | 'account';
+/**
+ * Where a hub is rendered.
+ *
+ * `tab` is a **primary destination in the bottom bar**, not a card on More.
+ * It is a placement rather than a separate concept so that one registry still
+ * describes every entry point — a hub that moved to the tab bar must not also
+ * have to be remembered somewhere else, or the two copies drift apart.
+ */
+export type HubPlacement = 'business' | 'account' | 'tab';
 
 export interface Destination {
   /** Stable identity, independent of the route string. */
@@ -136,7 +143,16 @@ export const HUBS: readonly Hub[] = [
     titleKey: 'hub.money.title',
     descriptionKey: 'hub.money.desc',
     icon: 'Wallet',
-    placement: 'business',
+    /*
+      A bottom tab, beside Sell (CP2).
+
+      Money is the second thing a shopkeeper opens after selling, and it sat
+      two taps away behind More. Changing this one field is what moves it:
+      `visibleHubs('business')` no longer returns it, so the card disappears
+      from More in the same edit that puts it in the bar — there is no
+      moment where both exist.
+    */
+    placement: 'tab',
     children: [
       { id: 'money', route: '/money', titleKey: 'nav.money', icon: 'Landmark', perm: 'report.view' },
       // `expense.submit`, not `expense.manage`: the person who spent the money
@@ -215,6 +231,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/sell': 'Bottom tab — Sell.',
   '/inventory': 'Bottom tab — Inventory.',
   '/more': 'Bottom tab — this screen itself.',
+  '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
   '/login': 'Authentication, reached when signed out.',
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
@@ -262,4 +279,25 @@ export function hubById(id: string): Hub | undefined {
 /** Every destination across every hub, for tests and audits. */
 export function allDestinations(): Destination[] {
   return HUBS.flatMap((h) => h.children);
+}
+
+/** The hub rendered as a bottom tab, if there is one. */
+export function tabHub(): Hub | undefined {
+  return HUBS.find((h) => h.placement === 'tab');
+}
+
+/**
+ * Whether the Money tab should appear at all.
+ *
+ * Visible when the user can reach **at least one** child. Deliberately not
+ * Owner-only: a store manager who can count the drawer needs the tab that
+ * holds the daily closing, and hard-coding a role here would take it away
+ * from exactly the person the closing workflow exists for.
+ *
+ * When nothing is reachable the tab is removed entirely rather than shown
+ * empty — a tab that opens onto nothing teaches people the app lies.
+ */
+export function tabHubIsVisible(granted: ReadonlySet<string>): boolean {
+  const hub = tabHub();
+  return hub !== undefined && visibleChildren(hub, granted).length > 0;
 }
