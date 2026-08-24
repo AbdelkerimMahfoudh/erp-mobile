@@ -1343,15 +1343,17 @@ export const ar: Catalogue = {
   'auth.device.body':
     'لأمانك، تعذّر التحقّق من هذا الجهاز. التحقّق من الجهاز غير متاح بعد في هذه النسخة — سجّل الدخول من الجهاز الذي استخدمته سابقًا، أو اطلب المساعدة من المسؤول.',
 
-  // Store Account ID (Stage 4A CP1)
+  // Personal login ID (CP3) — what somebody signs in with.
   'settings.personalId.section': 'معرّفك الشخصي',
   'settings.personalId.hint': 'به تسجّل الدخول. يُنشأ لك تلقائيًا — وليس كلمة مرور.',
   'settings.personalId.copy': 'نسخ',
   'settings.personalId.copied': 'نُسخ المعرّف الشخصي',
   'settings.personalId.copyFailed': 'تعذّر النسخ',
   'settings.personalId.instead': 'يمكنك تسجيل الدخول بهذا بدلًا من رقم هاتفك.',
+
+  // Store Account ID (Stage 4A CP1; no longer typed to sign in — CP3)
   'settings.storeId.section': 'معرّف حساب المتجر',
-  'settings.storeId.hint': 'يكتبه موظفوك عند تسجيل الدخول، مع اسم المستخدم وكلمة المرور الخاصة بهم.',
+  'settings.storeId.hint': 'معرّف نشاطك التجاري. لا أحد يكتبه لتسجيل الدخول — اذكره عند التواصل مع الدعم.',
   'settings.storeId.share': 'يمكن مشاركته مع فريقك بأمان. ليس كلمة مرور ولا يكفي وحده لتسجيل الدخول.',
   'settings.storeId.copy': 'نسخ',
   'settings.storeId.copied': 'تم نسخ معرّف حساب المتجر',

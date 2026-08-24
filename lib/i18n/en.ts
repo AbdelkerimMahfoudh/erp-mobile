@@ -1367,16 +1367,18 @@ export const en = {
   'auth.device.body':
     'For your security, this device could not be verified. Device verification is not available yet in this version — sign in from the device you used before, or ask your administrator for help.',
 
-  // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  // Personal login ID (CP3) — what somebody signs in with.
   'settings.personalId.section': 'Your personal ID',
   'settings.personalId.hint': 'How you sign in. Generated for you — it is not a password.',
   'settings.personalId.copy': 'Copy',
   'settings.personalId.copied': 'Personal ID copied',
   'settings.personalId.copyFailed': 'Could not copy',
   'settings.personalId.instead': 'You can sign in with this instead of your phone number.',
+
+  // Store Account ID (Stage 4A CP1; no longer typed to sign in — CP3)
   'settings.storeId.section': 'Store Account ID',
   'settings.storeId.hint':
-    'Your staff type this when they sign in, together with their own username and password.',
+    'Your business ID. Nobody types it to sign in — quote it if you contact support.',
   'settings.storeId.share': 'Safe to share with your team. It is not a password and cannot be used on its own.',
   'settings.storeId.copy': 'Copy',
   'settings.storeId.copied': 'Store Account ID copied',

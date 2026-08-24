@@ -1509,16 +1509,18 @@ export const fr: Catalogue = {
   'auth.device.body':
     'Pour votre sécurité, cet appareil n’a pas pu être vérifié. La vérification des appareils n’est pas encore disponible dans cette version — connectez-vous depuis l’appareil utilisé précédemment, ou demandez de l’aide à votre administrateur.',
 
-  // Store Account ID (Stage 4A CP1) — the public tenant selector employees type
+  // Personal login ID (CP3) — what somebody signs in with.
   'settings.personalId.section': 'Votre identifiant personnel',
   'settings.personalId.hint': 'Il sert à vous connecter. Généré pour vous — ce n’est pas un mot de passe.',
   'settings.personalId.copy': 'Copier',
   'settings.personalId.copied': 'Identifiant personnel copié',
   'settings.personalId.copyFailed': 'Copie impossible',
   'settings.personalId.instead': 'Vous pouvez vous connecter avec ceci au lieu de votre numéro de téléphone.',
+
+  // Store Account ID (Stage 4A CP1; no longer typed to sign in — CP3)
   'settings.storeId.section': 'Identifiant du compte boutique',
   'settings.storeId.hint':
-    'Votre personnel le saisit à la connexion, avec son propre nom d’utilisateur et son mot de passe.',
+    'L’identifiant de votre entreprise. Personne ne le saisit pour se connecter — citez-le au support.',
   'settings.storeId.share':
     'Peut être partagé sans risque avec votre équipe. Ce n’est pas un mot de passe et il ne suffit pas à lui seul.',
   'settings.storeId.copy': 'Copier',
