@@ -21,6 +21,9 @@ ios/
 # .env files still hold hosts and keys that should not be committed.
 .env
 .env.*
+# ...but the EXAMPLES are the documentation: names and safe descriptions,
+# never values. Committing them is the whole point.
+!.env.*.example
 !.env.example
 
 # ── Test & coverage output ─────────────────────────────────────────────────
@@ -50,3 +53,6 @@ desktop.ini
 
 expo-env.d.ts
 # @end expo-cli
+
+# Staging build configuration.
+.env.staging

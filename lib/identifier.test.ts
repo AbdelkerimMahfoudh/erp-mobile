@@ -309,3 +309,42 @@ it('no new screen mentions a Store ID or a personal ID', () => {
 });
 
 console.log(`sign-in identifier and login-screen drift: ${passed} passed`);
+
+it('a staging build is labelled, and the label costs a production build nothing', () => {
+  /*
+    A staging build looks exactly like a production one. The only thing between
+    a test IMEI and a real ledger is knowing which build is in your hand, so the
+    label is mounted at the app ROOT rather than on screens somebody has to
+    remember — and it renders nothing when the flag is unset, so the shopkeeper
+    never sees a pixel of it.
+  */
+  const config = withoutComments(source('constants/config.ts'));
+  assert.match(config, /EXPO_PUBLIC_APP_ENV/);
+  assert.match(config, /isStagingBuild/);
+
+  const banner = withoutComments(source('components/ui/StagingBanner.tsx'));
+  assert.match(banner, /if \(!isStagingBuild\(\)\) return null;/);
+
+  const layout = withoutComments(source('app/_layout.tsx'));
+  assert.match(layout, /<StagingBanner \/>/);
+});
+
+it('no server secret can reach the bundle through the app config', () => {
+  /*
+    Everything `EXPO_PUBLIC_` is INLINED into the JavaScript and readable by
+    anybody holding the app. That makes the config module the exact place a
+    database URL or an administrator password would get published by accident,
+    so the names are checked here rather than trusted to review.
+  */
+  const config = source('constants/config.ts');
+  for (const banned of [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'SESSION_SECRET',
+    'ADMIN_PASSWORD',
+    'MYSQL_',
+    'PRIVATE_KEY',
+  ]) {
+    assert.ok(!config.includes(banned), `${banned} must never appear in a bundled module`);
+  }
+});
