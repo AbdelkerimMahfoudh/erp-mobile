@@ -18,8 +18,45 @@ function resolveHost(): string {
   return 'localhost';
 }
 
-export const API_BASE = `http://${resolveHost()}:3010`;
+/**
+ * The API origin.
+ *
+ * `EXPO_PUBLIC_API_ORIGIN` overrides everything — scheme and port included. A
+ * deployed environment serves the website and the API from ONE origin
+ * (`https://host/` and `https://host/api/v1`), so there is no port to guess and
+ * no second site for a session cookie to be withheld across. That is the exact
+ * failure Phase 2 lost time to, when the page was on `localhost` and the API on
+ * `127.0.0.1`: different sites, so `SameSite=Lax` withheld the cookie precisely
+ * as designed.
+ *
+ * With nothing configured the development default is unchanged: the API beside
+ * this app on port 3010.
+ */
+function resolveOrigin(): string {
+  const configured = process.env.EXPO_PUBLIC_API_ORIGIN?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  return `http://${resolveHost()}:3010`;
+}
+
+export const API_BASE = resolveOrigin();
 export const API_V1_URL = `${API_BASE}/api/v1`;
+
+/**
+ * Which environment this build talks to.
+ *
+ * A tester must never have to wonder whether the shop on screen is the real
+ * one. Unset means production: no label, no banner, nothing extra on the
+ * shopkeeper's screen.
+ */
+export function appEnvironment(): 'staging' | 'production' {
+  return process.env.EXPO_PUBLIC_APP_ENV?.trim().toLowerCase() === 'staging'
+    ? 'staging'
+    : 'production';
+}
+
+export function isStagingBuild(): boolean {
+  return appEnvironment() === 'staging';
+}
 
 
 /**
