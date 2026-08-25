@@ -1328,8 +1328,8 @@ export const ar: Catalogue = {
   // ── تسجيل الدخول ───────────────────────────────────────────────────────────
   'auth.title': 'نظام إدارة المتجر',
   'auth.subtitle': 'سجّل الدخول إلى متجرك',
-  'auth.field.identifier': 'رقم الهاتف أو المعرّف الشخصي',
-  'auth.field.identifier.hint': 'استخدم أيًّا منهما.',
+  'auth.field.identifier': 'البريد الإلكتروني أو رقم واتساب',
+  'auth.field.identifier.hint': 'أدخل بريدك الإلكتروني أو رقم واتساب.',
   'auth.personalId.label': 'معرّفك الشخصي',
   'auth.choose.title': 'أي متجر؟',
   'auth.choose.body': 'هذا الرقم مستخدم في أكثر من متجر. اختر متجرك.',

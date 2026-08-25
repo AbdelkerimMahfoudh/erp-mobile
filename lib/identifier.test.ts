@@ -39,12 +39,22 @@ it('the same phone typed two ways is one device', () => {
   assert.equal(credentialNamespace('+222 4321-0987'), credentialNamespace('22243210987'));
 });
 
+it('and an email is case-insensitive for the same reason', () => {
+  // Matches the server, where the column is ai_ci and the two are one row.
+  assert.equal(credentialNamespace('Owner@Shop.MR'), credentialNamespace('owner@shop.mr'));
+});
+
 it('and a personal ID is case-insensitive for the same reason', () => {
   assert.equal(credentialNamespace('u-r6h5nwry'), credentialNamespace('U-R6H5NWRY'));
 });
 
-it('but a phone and a personal ID are never the same device', () => {
-  assert.notEqual(credentialNamespace('43210987'), credentialNamespace('U-R6H5NWRY'));
+it('but an email, a phone and a personal ID are never the same device', () => {
+  const ns = [
+    credentialNamespace('owner@shop.mr'),
+    credentialNamespace('43210987'),
+    credentialNamespace('U-R6H5NWRY'),
+  ];
+  assert.equal(new Set(ns).size, 3, 'three different identifiers, three device namespaces');
 });
 
 it('anything typed is worth asking the server about', () => {
@@ -74,6 +84,55 @@ it('and no Store ID field, label or hint anywhere on it', () => {
   const code = withoutComments(source(LOGIN));
   for (const banned of ['storeId', 'storeAccountId', 'auth.field.login']) {
     assert.ok(!code.includes(banned), `the login screen must not mention ${banned}`);
+  }
+});
+
+it('and nothing else the ordinary sign-in must never ask for (CP1)', () => {
+  /*
+    The binding list. A Store ID, a branch, a company, a generated personal ID
+    and a username are each things somebody would have to be TOLD rather than
+    already know — which is the whole reason the field is a contact now.
+  */
+  const code = withoutComments(source(LOGIN))
+    // `autoComplete="username"` / `textContentType="username"` are autofill
+    // SEMANTICS — they tell a password manager which saved credential fits a
+    // field that already exists. They are required, and are not a username
+    // field, so they are removed before the check rather than exempted by a
+    // looser pattern that would also miss a real one.
+    .replace(/(autoComplete|textContentType)="[^"]*"/g, '');
+
+  for (const banned of ['personalId', 'personal_id', 'branchId', 'companyId', 'username']) {
+    assert.ok(!code.includes(banned), `the login screen must not ask for ${banned}`);
+  }
+});
+
+it('but it does carry autofill semantics a password manager understands', () => {
+  const code = withoutComments(source(LOGIN));
+  assert.match(code, /autoComplete="username"/);
+  assert.match(code, /autoComplete="current-password"/);
+});
+
+it('the field is labelled for an email or a WhatsApp number', () => {
+  const code = withoutComments(source(LOGIN));
+  assert.match(code, /auth\.field\.identifier/);
+  // Both must be offered by one field — never two fields, never a chooser.
+  const en = readFileSync('lib/i18n/en.ts', 'utf8');
+  const label = en.match(/'auth\.field\.identifier':\s*'([^']+)'/)?.[1] ?? '';
+  assert.match(label, /email/i, 'the label must say email');
+  assert.match(label, /whatsapp/i, 'the label must say WhatsApp');
+});
+
+it('the helper copy exists in all three languages and mentions both', () => {
+  for (const [file, words] of [
+    ['lib/i18n/en.ts', [/email/i, /whatsapp/i]],
+    ['lib/i18n/ar.ts', [/بريد/, /واتساب/]],
+    ['lib/i18n/fr.ts', [/mail/i, /whatsapp/i]],
+  ] as [string, RegExp[]][]) {
+    const hint = readFileSync(file, 'utf8').match(
+      /'auth\.field\.identifier\.hint':\s*'([^']+)'/,
+    )?.[1];
+    assert.ok(hint, `${file} must carry the identifier hint`);
+    for (const w of words) assert.match(hint!, w, `${file} hint must mention ${w}`);
   }
 });
 

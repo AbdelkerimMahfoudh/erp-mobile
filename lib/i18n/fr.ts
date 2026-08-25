@@ -1492,8 +1492,8 @@ export const fr: Catalogue = {
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Retail ERP',
   'auth.subtitle': 'Connectez-vous à votre boutique',
-  'auth.field.identifier': 'Numéro de téléphone ou identifiant personnel',
-  'auth.field.identifier.hint': 'L’un ou l’autre suffit.',
+  'auth.field.identifier': 'E-mail ou numéro WhatsApp',
+  'auth.field.identifier.hint': 'Saisissez votre e-mail ou votre numéro WhatsApp.',
   'auth.personalId.label': 'Votre identifiant personnel',
   'auth.choose.title': 'Quelle boutique ?',
   'auth.choose.body': 'Ce numéro est utilisé dans plusieurs boutiques. Choisissez la vôtre.',

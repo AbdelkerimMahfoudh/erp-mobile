@@ -12,21 +12,25 @@ import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-d
 import { colors } from '../../lib/theme';
 
 /**
- * Signing in (CP3).
+ * Signing in.
  *
  * One identifier and a password. Nothing else.
  *
- * The Store ID field is gone, and so are the demo values that used to sit in
- * it: the screen shipped with a real store code and the login `owner` as
- * placeholders, which is both a credential hint in the bundle and a promise
- * that the app is a demo. A shopkeeper should not have to know their
- * business's identifier to reach their own till — the server works out which
- * shop they belong to from the credential itself.
+ * The identifier is an **email address or a WhatsApp number** — something the
+ * person already knows, rather than a code the product invented and asked them
+ * to keep. No Store ID, no branch, no company, no generated personal ID and no
+ * username: a shopkeeper should not have to know their business's identifier
+ * to reach their own till, and the server works out which shop they belong to
+ * from the credential itself.
  *
- * The field takes either a phone number or the generated personal ID, and the
- * app deliberately does not try to tell which: guessing here would let it
- * refuse something the server would have accepted, and the person holding the
- * phone would have no way to argue with it.
+ * The app deliberately does not try to tell which of the two was typed.
+ * Guessing here would let it refuse something the server would have accepted,
+ * and the person holding the phone would have no way to argue with it. The
+ * server classifies; the screen just sends what was typed.
+ *
+ * "WhatsApp number" is what a shop calls the number they are reachable on. It
+ * is a label, not a claim — nothing here verifies that the number is
+ * registered with WhatsApp, because nothing can yet.
  */
 export default function Login() {
   const { t } = useTranslation();
@@ -152,9 +156,10 @@ export default function Login() {
               label={t('auth.field.identifier')}
               hint={t('auth.field.identifier.hint')}
               /*
-                A general keyboard, NOT a phone pad: the same field has to accept
-                an alphanumeric personal ID, and a numeric keyboard would make
-                that impossible to type.
+                A general keyboard, NOT a phone pad: the same field has to
+                accept an email address, and a numeric keyboard would make that
+                impossible to type. `email-address` is wrong for the same
+                reason in reverse — it would make the number awkward.
               */
               keyboardType="default"
               autoCapitalize="none"

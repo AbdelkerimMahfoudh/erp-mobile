@@ -1351,8 +1351,8 @@ export const en = {
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Retail ERP',
   'auth.subtitle': 'Sign in to your store',
-  'auth.field.identifier': 'Phone number or personal ID',
-  'auth.field.identifier.hint': 'Use either one.',
+  'auth.field.identifier': 'Email or WhatsApp number',
+  'auth.field.identifier.hint': 'Enter either your email or WhatsApp number.',
   'auth.personalId.label': 'Your personal ID',
   'auth.choose.title': 'Which shop?',
   'auth.choose.body': 'This number is used at more than one shop. Pick yours.',
