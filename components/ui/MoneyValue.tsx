@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import { colors, money as moneyTone } from '../../lib/design/colors';
+import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { moneyColors, type Palette } from '../../lib/design/colors';
 import { type } from '../../lib/design/tokens';
 import { ABSENT, formatMoney } from '../../lib/format';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * A money figure.
@@ -81,7 +82,10 @@ const SIZE_STYLE: Record<MoneySize, TextStyle> = {
   small: tabular(type.moneySmall),
 };
 
-function resolveColor(tone: MoneyTone, value?: number | null): string {
+function resolveColor(colors: Palette, tone: MoneyTone, value?: number | null): string {
+  // Profit and loss are a READING of a number, not an intent, so they are
+  // derived from the live palette rather than captured at import.
+  const moneyTone = moneyColors(colors);
   switch (tone) {
     case 'positive':
       return moneyTone.positive;
@@ -108,6 +112,8 @@ export function MoneyValue({
   style,
   testID,
 }: MoneyValueProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const missing = value == null;
   const text = missing ? fallback : formatMoney(value, { signed, showCurrency });
 
@@ -116,7 +122,7 @@ export function MoneyValue({
       <Text
         style={[
           SIZE_STYLE[size],
-          { color: missing ? colors.text.tertiary : resolveColor(tone, value) },
+          { color: missing ? colors.text.tertiary : resolveColor(colors, tone, value) },
         ]}
         accessibilityLabel={accessibilityLabel}
         numberOfLines={1}
@@ -132,10 +138,10 @@ export function MoneyValue({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     // Latin digits stay LTR even on an RTL screen; see the note above.
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-});
+}));

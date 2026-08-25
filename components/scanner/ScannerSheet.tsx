@@ -3,7 +3,6 @@ import { ActivityIndicator, Modal, Platform, StyleSheet, View } from 'react-nati
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keyboard, Flashlight, FlashlightOff, Plus, X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { haptics } from '../../lib/haptics';
@@ -24,6 +23,7 @@ import {
 } from '../../lib/scan/machine';
 import { reconcileTacs, useTacResolution } from '../../lib/tac';
 import type { ScanResult } from '../../types/api';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The camera scanner.
@@ -103,6 +103,8 @@ export function ScannerSheet({
   hint,
   scannedCount,
 }: ScannerSheetProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
@@ -530,6 +532,7 @@ function Fallback({
   error: string | null;
   onBack?: () => void;
 }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   return (
     <View style={styles.center}>
@@ -582,13 +585,14 @@ function Fallback({
 }
 
 function Corner({ style }: { style: object }) {
+  const styles = useStyles();
   return <View style={[styles.corner, style]} />;
 }
 
 const CORNER = 34;
 const CORNER_WIDTH = 3;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.surface.inverse,
@@ -661,4 +665,4 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     gap: space.md,
   },
-});
+}));

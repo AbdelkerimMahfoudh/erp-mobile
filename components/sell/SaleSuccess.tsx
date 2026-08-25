@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Check, Share2, ShoppingCart } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -9,6 +8,7 @@ import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/recei
 import { toast } from '../../lib/toast';
 import { Button } from '../ui/Button';
 import { Text } from '../ui/Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The sale-complete screen.
@@ -32,6 +32,8 @@ export interface SaleSuccessProps {
 }
 
 export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: SaleSuccessProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const [sharing, setSharing] = useState(false);
 
@@ -95,7 +97,7 @@ export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: Sa
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     alignItems: 'center',
@@ -120,4 +122,4 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginTop: space.lg,
   },
-});
+}));

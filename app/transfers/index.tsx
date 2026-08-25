@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { ArrowDownLeft, ArrowUpRight, Plus } from 'lucide-react-native';
 import {
@@ -17,7 +17,6 @@ import {
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -25,6 +24,7 @@ import { transferSummary } from '../../lib/transfer-summary';
 import { usePermission } from '../../lib/permissions';
 import { useTransfers } from '../../lib/transfers';
 import type { TransferListRow, TransferStatus } from '../../types/api';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * Transfers — the history, and the work waiting.
@@ -51,6 +51,7 @@ const TABS: Tab[] = [
 ];
 
 export default function TransfersScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const canView = usePermission('transfer.view');
@@ -198,6 +199,7 @@ export default function TransfersScreen() {
 }
 
 function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const outgoing = row.direction === 'outgoing';
 
@@ -244,7 +246,7 @@ function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: { backgroundColor: colors.surface.canvas, paddingBottom: space.sm, gap: space.sm },
   tabs: { gap: space.xs, paddingVertical: space.xs },
   list: { padding: space.base, paddingBottom: space['3xl'] },
@@ -260,4 +262,4 @@ const styles = StyleSheet.create({
   },
   end: { textAlign: 'center', paddingVertical: space.base },
   fab: { position: 'absolute', left: space.base, right: space.base, bottom: space.base },
-});
+}));

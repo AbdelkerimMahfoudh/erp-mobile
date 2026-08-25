@@ -3,13 +3,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleAlert, CircleCheck, Info, TriangleAlert } from 'lucide-react-native';
-import { colors, type Intent } from '../../lib/design/colors';
+import { type Intent } from '../../lib/design/colors';
 import { elevation, radius, space } from '../../lib/design/tokens';
 import { useToastStore, type Toast, type ToastTone } from '../../lib/toast';
 import { useTranslation } from '../../lib/i18n';
 import { Text } from '../ui/Text';
 import { usePressed } from '../ui/use-pressed';
 import type { IconComponent } from '../ui/Button';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Renders the toast queue.
@@ -30,6 +31,7 @@ const TONE_META: Record<ToastTone, { intent: Intent; icon: IconComponent }> = {
 };
 
 export function ToastHost() {
+  const styles = useStyles();
   const toasts = useToastStore((s) => s.toasts);
   const insets = useSafeAreaInsets();
 
@@ -45,6 +47,8 @@ export function ToastHost() {
 }
 
 function ToastCard({ toast }: { toast: Toast }) {
+  const colors = useColors();
+  const styles = useStyles();
   const { t } = useTranslation();
   const dismiss = useToastStore((s) => s.dismiss);
   const actionPress = usePressed();
@@ -108,7 +112,7 @@ function ToastCard({ toast }: { toast: Toast }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   host: {
     position: 'absolute',
     top: 0,
@@ -148,4 +152,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderWidth: StyleSheet.hairlineWidth,
   },
-});
+}));

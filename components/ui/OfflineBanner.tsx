@@ -1,12 +1,12 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { icon as iconSize, space } from '../../lib/design/tokens';
 import { useConnectivity } from '../../lib/connectivity';
 import { useTranslation } from '../../lib/i18n';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The persistent "you are not connected" strip.
@@ -23,6 +23,8 @@ import { Text } from './Text';
  * root and no screen has to remember to include it.
  */
 export function OfflineBanner() {
+  const styles = useStyles();
+  const colors = useColors();
   const online = useConnectivity((s) => s.online);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -49,7 +51,7 @@ export function OfflineBanner() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -62,4 +64,4 @@ const styles = StyleSheet.create({
   // `flexShrink` so long Arabic wraps to a second line instead of pushing the
   // icon off the edge of a narrow phone.
   text: { color: colors.intent.danger.onSolid, flexShrink: 1 },
-});
+}));

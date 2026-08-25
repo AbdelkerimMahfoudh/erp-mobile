@@ -1,12 +1,12 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { ScanLine, Search, X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
 import { textAlign } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { haptics } from '../../lib/haptics';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The search input.
@@ -53,6 +53,8 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
   },
   ref,
 ) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const scanPress = usePressed();
@@ -150,7 +152,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   well: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,4 +194,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

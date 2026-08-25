@@ -18,12 +18,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { duration, elevation, radius, space } from '../../lib/design/tokens';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
 import { useTranslation } from '../../lib/i18n';
 import { IconButton } from '../ui/IconButton';
 import { Text } from '../ui/Text';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * Bottom sheet — the app's standard way to ask for one thing without leaving
@@ -73,6 +73,7 @@ export function BottomSheet({
   children,
   style,
 }: BottomSheetProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -215,7 +216,7 @@ export function BottomSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   backdrop: {
     backgroundColor: colors.surface.scrim,
   },
@@ -266,4 +267,4 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.subtle,
     gap: space.sm,
   },
-});
+}));

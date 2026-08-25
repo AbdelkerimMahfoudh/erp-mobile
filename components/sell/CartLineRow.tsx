@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -11,6 +10,7 @@ import { MoneyField } from '../ui/Field';
 import { Stepper } from '../ui/Stepper';
 import { Identifier, Text } from '../ui/Text';
 import { lineTotal, type CartLine } from './types';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * One line in the sale.
@@ -30,6 +30,7 @@ export interface CartLineRowProps {
 }
 
 export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }: CartLineRowProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const isQuantity = line.kind === 'quantity';
   // `cost` is only present with `cost.view`; without it we simply cannot tell.
@@ -98,7 +99,7 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     gap: space.sm,
     padding: space.md,
@@ -148,4 +149,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.sm,
   },
-});
+}));

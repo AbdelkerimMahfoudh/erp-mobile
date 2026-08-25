@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import {
   Boxes,
@@ -45,12 +45,12 @@ import { ProductConfirmationCard } from '../../components/product';
 import { ScannerSheet, ScanTarget } from '../../components/scanner';
 import { ApiError } from '../../lib/api-client';
 import type { ScanResult } from '../../types/api';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { formatMoney, formatQuantity, formatRelative } from '../../lib/format';
 import { toast } from '../../lib/toast';
 import { LANGUAGE_LABELS, useI18n, useTranslation, type Language } from '../../lib/i18n';
+import { makeStyles } from '../../lib/design/theme';
 
 interface DemoSupplier {
   id: string;
@@ -161,6 +161,7 @@ const DEMO_SUPPLIERS: DemoSupplier[] = [
  * Development only. Not linked from the app's navigation.
  */
 export default function GalleryScreen() {
+  const styles = useStyles();
   const { t, isRTL, language } = useTranslation();
   const setLanguage = useI18n((s) => s.setLanguage);
   const restartRequired = useI18n((s) => s.restartRequired);
@@ -862,6 +863,7 @@ export default function GalleryScreen() {
 }
 
 function Between({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.between}>
       <Text variant="body" tone="secondary">
@@ -872,7 +874,7 @@ function Between({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -897,4 +899,4 @@ const styles = StyleSheet.create({
     marginVertical: space.xs,
     backgroundColor: colors.border.subtle,
   },
-});
+}));

@@ -8,8 +8,8 @@ import Animated, {
   withTiming,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Loading skeletons.
@@ -36,6 +36,7 @@ export interface SkeletonProps {
 }
 
 export function Skeleton({ width = '100%', height = 16, rounded = 'sm', style }: SkeletonProps) {
+  const colors = useColors();
   const pulse = useSharedValue(PULSE_MAX);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export function SkeletonText({ lines = 2, style }: { lines?: number; style?: Sty
 
 /** Matches `ListRow`'s geometry: leading square, two lines, trailing value. */
 export function SkeletonListRow() {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       <Skeleton width={40} height={40} rounded="md" />
@@ -99,6 +101,7 @@ export function SkeletonList({ count = 6 }: { count?: number }) {
 
 /** Matches a stat tile: small label over a large number. */
 export function SkeletonStat() {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Skeleton height={10} width="52%" />
@@ -107,7 +110,7 @@ export function SkeletonStat() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -131,4 +134,4 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border.subtle,
   },
-});
+}));

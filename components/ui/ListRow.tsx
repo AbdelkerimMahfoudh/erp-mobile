@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { mirror } from '../../lib/design/direction';
 import { Identifier, Text } from './Text';
 import type { IconComponent } from './Button';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The list row.
@@ -67,6 +67,8 @@ export function ListRow({
   selected = false,
   style,
 }: ListRowProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const showChevron = chevron ?? Boolean(onPress);
   const interactive = Boolean(onPress) && !disabled;
   const { pressed, pressHandlers } = usePressed();
@@ -151,6 +153,8 @@ export function ListRow({
 }
 
 function Leading({ leading }: { leading?: IconComponent | React.ReactElement }) {
+  const styles = useStyles();
+  const colors = useColors();
   if (!leading) return null;
   // A ready-made element (thumbnail, avatar) is used as-is; a component is
   // wrapped in the standard tinted square so icon rows align across screens.
@@ -163,7 +167,7 @@ function Leading({ leading }: { leading?: IconComponent | React.ReactElement }) 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,4 +196,4 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
-});
+}));

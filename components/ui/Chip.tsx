@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, type Intent } from '../../lib/design/colors';
+import { type Intent } from '../../lib/design/colors';
 import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { resolveStatus, type StatusDomain } from '../../lib/design/status';
 import { useTranslation } from '../../lib/i18n';
@@ -8,6 +8,7 @@ import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 import type { IconComponent } from './Button';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Chips — small, non-interactive labels (`Chip`, `StatusChip`) and the
@@ -32,6 +33,8 @@ export interface ChipProps {
 }
 
 export function Chip({ label, tone = 'neutral', size = 'md', icon: Icon, dot = false, style }: ChipProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const intent = colors.intent[tone];
   const s = SIZES[size];
 
@@ -96,6 +99,8 @@ export interface FilterChipProps {
 
 /** The selectable pill used for list filters. */
 export function FilterChip({ label, selected, onPress, count, style }: FilterChipProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const { pressed, pressHandlers } = usePressed();
   return (
     <Pressable
@@ -137,7 +142,7 @@ export function FilterChip({ label, selected, onPress, count, style }: FilterChi
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -162,4 +167,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: StyleSheet.hairlineWidth,
   },
-});
+}));

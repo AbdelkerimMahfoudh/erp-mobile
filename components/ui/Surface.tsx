@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
 import { elevation, radius, space } from '../../lib/design/tokens';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Containers.
@@ -31,6 +31,7 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
+  const colors = useColors();
   const variantStyle: ViewStyle =
     variant === 'card'
       ? { backgroundColor: colors.surface.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.subtle }
@@ -71,6 +72,7 @@ export interface SectionProps extends ViewProps {
  * what keeps vertical rhythm identical everywhere.
  */
 export function Section({ title, subtitle, action, gap = 'md', style, children, ...rest }: SectionProps) {
+  const styles = useStyles();
   return (
     <View style={[{ gap: space[gap] }, style]} {...rest}>
       {title || action ? (
@@ -93,6 +95,7 @@ export function Section({ title, subtitle, action, gap = 'md', style, children, 
 
 /** Hairline rule. `inset` aligns it with text that sits beside a leading icon. */
 export function Divider({ inset = false, style }: { inset?: boolean; style?: ViewStyle }) {
+  const styles = useStyles();
   return <View style={[styles.divider, inset ? styles.dividerInset : null, style]} />;
 }
 
@@ -101,7 +104,7 @@ export function Spacer({ size = 'base' }: { size?: keyof typeof space }) {
   return <View style={{ height: space[size] }} />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -121,4 +124,4 @@ const styles = StyleSheet.create({
     // an avatar or product thumbnail.
     marginStart: space['3xl'] + space.md,
   },
-});
+}));

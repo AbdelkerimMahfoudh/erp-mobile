@@ -1,13 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, ShoppingCart, Boxes, Menu, Wallet } from 'lucide-react-native';
 import { ErrorState } from '../../components/ui';
-import { colors } from '../../lib/design/colors';
 import { useBranch } from '../../lib/branch';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
 import { tabHubIsVisible } from '../../lib/navigation/registry';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The tab bar, gated by role.
@@ -21,6 +21,8 @@ import { tabHubIsVisible } from '../../lib/navigation/registry';
  * invites a tap on something about to disappear.
  */
 export default function TabsLayout() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const status = usePermissionStatus();
   const error = usePermissionStore((s) => s.error);
@@ -136,11 +138,11 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface.canvas,
   },
-});
+}));

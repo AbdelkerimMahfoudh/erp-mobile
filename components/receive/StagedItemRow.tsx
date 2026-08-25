@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -9,6 +8,7 @@ import { StatusChip } from '../ui/Chip';
 import { IconButton } from '../ui/IconButton';
 import { Identifier, Text } from '../ui/Text';
 import { itemCount, type StagedItem } from './types';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * One staged product line.
@@ -24,6 +24,7 @@ export interface StagedItemRowProps {
 }
 
 export function StagedItemRow({ item, onRemove }: StagedItemRowProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const count = itemCount(item);
   const isQuantity = item.trackingType === 'quantity';
@@ -75,7 +76,7 @@ export function StagedItemRow({ item, onRemove }: StagedItemRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,4 +114,4 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: space.xs,
   },
-});
+}));

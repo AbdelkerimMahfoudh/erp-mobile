@@ -7,9 +7,10 @@ import {
   Info,
   type LucideIcon,
 } from 'lucide-react-native';
-import { colors, type Intent } from '../../lib/design/colors';
+import { type Intent } from '../../lib/design/colors';
 import { icon as iconSize, radius, space } from '../../lib/design/tokens';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * A message attached to the thing it is about.
@@ -54,6 +55,8 @@ export function InlineNotice({
   style,
   testID,
 }: InlineNoticeProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const palette = colors.intent[tone];
   const Icon = icon === null ? null : (icon ?? TONE_ICON[tone]);
 
@@ -86,7 +89,7 @@ export function InlineNotice({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -99,4 +102,4 @@ const styles = StyleSheet.create({
   icon: { marginTop: 1 },
   body: { flex: 1, gap: space.xs },
   action: { marginTop: space.xs, alignSelf: 'flex-start' },
-});
+}));

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Plus, Target } from 'lucide-react-native';
 import {
@@ -14,11 +14,11 @@ import {
   SkeletonList,
   Text,
 } from '../../components/ui';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { toneOf, useGoals, type Goal } from '../../lib/goals';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * What the shop is aiming at, and whether it is getting there (Milestone F).
@@ -32,6 +32,7 @@ import { toneOf, useGoals, type Goal } from '../../lib/goals';
  * shop's own analytics use.
  */
 export default function GoalsScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const canManage = usePermission('goal.manage');
@@ -88,6 +89,7 @@ export default function GoalsScreen() {
 }
 
 function GoalCard({ goal }: { goal: Goal }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const p = goal.progress;
 
@@ -167,6 +169,7 @@ function GoalCard({ goal }: { goal: Goal }) {
  * it is where the good news lives.
  */
 function ProgressBar({ percent, state }: { percent: number; state: Goal['progress']['state'] }) {
+  const styles = useStyles();
   const width = Math.max(0, Math.min(100, percent));
   return (
     <View style={styles.track}>
@@ -181,7 +184,7 @@ function ProgressBar({ percent, state }: { percent: number; state: Goal['progres
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   controls: { paddingBottom: space.sm },
   list: { gap: space.base, paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
@@ -196,4 +199,4 @@ const styles = StyleSheet.create({
   fill: { height: 6, borderRadius: radius.full, backgroundColor: colors.intent.info.solid },
   fillMet: { backgroundColor: colors.intent.success.solid },
   fillBehind: { backgroundColor: colors.intent.warning.solid },
-});
+}));

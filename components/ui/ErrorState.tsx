@@ -1,12 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { CloudOff, Lock, RefreshCw, TriangleAlert } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
 import { useTranslation } from '../../lib/i18n';
 import { Button } from './Button';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Error state.
@@ -28,6 +28,8 @@ export interface ErrorStateProps {
 }
 
 export function ErrorState({ error, onRetry, size = 'page', style }: ErrorStateProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const friendly = toFriendlyError(error);
   const isPage = size === 'page';
@@ -67,7 +69,7 @@ export function ErrorState({ error, onRetry, size = 'page', style }: ErrorStateP
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     alignItems: 'center',
     gap: space.base,
@@ -100,4 +102,4 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
     minWidth: 160,
   },
-});
+}));

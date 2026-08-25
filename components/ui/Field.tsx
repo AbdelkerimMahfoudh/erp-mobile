@@ -8,7 +8,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
 import { textAlign } from '../../lib/design/direction';
 import { CURRENCY_CODE } from '../../lib/format';
@@ -16,6 +15,7 @@ import { useTranslation } from '../../lib/i18n';
 import { IconButton } from './IconButton';
 import { Text } from './Text';
 import type { IconComponent } from './Button';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Text inputs.
@@ -62,6 +62,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   },
   ref,
 ) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const [revealed, setReveal] = useState(false);
@@ -205,7 +207,7 @@ export const MoneyField = forwardRef<TextInput, MoneyFieldProps>(function MoneyF
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   group: {
     gap: space.xs,
   },
@@ -236,4 +238,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     writingDirection: 'ltr',
   },
-});
+}));

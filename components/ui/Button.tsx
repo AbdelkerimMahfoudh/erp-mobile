@@ -9,11 +9,11 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors } from '../../lib/design/colors';
 import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
+import { makeStyles, makeTokens } from '../../lib/design/theme';
 
 /**
  * The button.
@@ -55,7 +55,7 @@ interface VariantStyle {
  * looks like the button is simply missing. A disabled control must still say
  * "there is an action here, it is not ready yet".
  */
-const DISABLED: VariantStyle = {
+const useDisabled = makeTokens((colors) => ({
   background: colors.neutral[200],
   pressedBackground: colors.neutral[200],
   // Deliberately darker than `text.disabled`. The grey fill already signals
@@ -63,15 +63,15 @@ const DISABLED: VariantStyle = {
   // cheap screen, so the user can still tell what the action will be.
   foreground: colors.neutral[600],
   border: colors.border.subtle,
-};
+} as VariantStyle));
 
-const DISABLED_TRANSPARENT: VariantStyle = {
+const useDisabledTransparent = makeTokens((colors) => ({
   background: 'transparent',
   pressedBackground: 'transparent',
   foreground: colors.neutral[500],
-};
+} as VariantStyle));
 
-const VARIANTS: Record<ButtonVariant, VariantStyle> = {
+const useVariants = makeTokens((colors) => ({
   primary: {
     background: colors.brand[600],
     pressedBackground: colors.brand[700],
@@ -95,7 +95,7 @@ const VARIANTS: Record<ButtonVariant, VariantStyle> = {
     pressedBackground: colors.intent.danger.fg,
     foreground: colors.intent.danger.onSolid,
   },
-};
+} as Record<ButtonVariant, VariantStyle>));
 
 const SIZES: Record<ButtonSize, { height: number; paddingX: number; icon: number; variant: 'body' | 'bodyStrong' }> = {
   sm: { height: 44, paddingX: space.md, icon: 16, variant: 'bodyStrong' },
@@ -136,6 +136,10 @@ export function Button({
   style,
   ...rest
 }: ButtonProps) {
+  const DISABLED = useDisabled();
+  const DISABLED_TRANSPARENT = useDisabledTransparent();
+  const VARIANTS = useVariants();
+  const styles = useStyles();
   const resolved = variant === 'ghost' ? 'tertiary' : variant;
   const s = SIZES[size];
   const inactive = disabled || loading;
@@ -225,7 +229,7 @@ function Leading({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -236,4 +240,4 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%',
   },
-});
+}));

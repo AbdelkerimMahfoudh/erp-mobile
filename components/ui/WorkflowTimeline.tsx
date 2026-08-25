@@ -1,9 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { Check, Circle, CircleDot, X, type LucideIcon } from 'lucide-react-native';
-import { colors, type Intent } from '../../lib/design/colors';
+import { type Intent } from '../../lib/design/colors';
 import { icon as iconSize, radius, space } from '../../lib/design/tokens';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The state of a multi-step workflow — a return, a transfer, a supplier payment.
@@ -63,6 +64,8 @@ const STEP_TONE: Record<StepState, Intent> = {
 };
 
 export function WorkflowTimeline({ steps, style, testID }: WorkflowTimelineProps) {
+  const colors = useColors();
+  const styles = useStyles();
   return (
     <View style={[styles.container, style]} testID={testID}>
       {steps.map((step, index) => {
@@ -134,7 +137,7 @@ export function WorkflowTimeline({ steps, style, testID }: WorkflowTimelineProps
 
 const MARKER = 28;
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { width: '100%' },
   row: { flexDirection: 'row', gap: space.md },
   // The rail is a fixed-width column so markers align regardless of how much
@@ -157,4 +160,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.sm,
   },
-});
+}));

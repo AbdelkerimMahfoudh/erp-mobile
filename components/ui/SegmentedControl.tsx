@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
 import { disabledOpacity, elevation, radius, space, touch } from '../../lib/design/tokens';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Segmented control — for a small, fixed set of mutually exclusive choices
@@ -37,6 +37,8 @@ export function SegmentedControl<T extends string>({
   disabled = false,
   style,
 }: SegmentedControlProps<T>) {
+  const styles = useStyles();
+  const colors = useColors();
   const height = size === 'sm' ? 40 : touch.min;
 
   return (
@@ -98,7 +100,7 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   track: {
     flexDirection: 'row',
     alignItems: 'stretch',
@@ -116,4 +118,4 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   selected: elevation.xs,
-});
+}));

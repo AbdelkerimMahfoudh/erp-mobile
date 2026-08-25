@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Plus, X } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -14,6 +13,7 @@ import { SegmentedControl } from '../ui/SegmentedControl';
 import { Text } from '../ui/Text';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
 import type { PaymentEntry } from './types';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * Taking payment.
@@ -65,6 +65,7 @@ export function PaymentSheet({
   submitting = false,
   returnPolicy,
 }: PaymentSheetProps) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const [method, setMethod] = useState<Method>('cash');
   const [split, setSplit] = useState<PaymentEntry[]>([]);
@@ -228,7 +229,7 @@ export function PaymentSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   body: {
     paddingHorizontal: space.lg,
     paddingBottom: space.base,
@@ -255,4 +256,4 @@ const styles = StyleSheet.create({
   splitAmount: {
     flex: 1,
   },
-});
+}));

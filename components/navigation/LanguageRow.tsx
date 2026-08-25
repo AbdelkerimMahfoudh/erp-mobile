@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Check, Languages } from 'lucide-react-native';
 import { Card, InlineNotice, ListRow, Text } from '../ui';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import {
   LANGUAGES,
@@ -11,6 +10,7 @@ import {
   useTranslation,
   type Language,
 } from '../../lib/i18n';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Choosing the language the app speaks.
@@ -30,6 +30,8 @@ import {
  * leaving somebody to wonder why the words changed and the layout did not.
  */
 export function LanguageRow() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const language = useI18n((s) => s.language);
   const setLanguage = useI18n((s) => s.setLanguage);
@@ -83,8 +85,8 @@ export function LanguageRow() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   wrap: { gap: space.sm },
   card: { paddingVertical: space.xs },
   notice: { marginTop: space.xs },
-});
+}));

@@ -1,10 +1,10 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { Button, type IconComponent } from './Button';
 import { Text } from './Text';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Empty state.
@@ -44,6 +44,8 @@ export function EmptyState({
   size = 'page',
   style,
 }: EmptyStateProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const isPage = size === 'page';
 
@@ -88,7 +90,7 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     alignItems: 'center',
     gap: space.base,
@@ -121,4 +123,4 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
     minWidth: 180,
   },
-});
+}));

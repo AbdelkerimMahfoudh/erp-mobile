@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
-import { colors } from '../../lib/design/colors';
 import { elevation, radius, space } from '../../lib/design/tokens';
 import { useDialogStore } from '../../lib/dialog';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
@@ -9,6 +8,7 @@ import { useTranslation } from '../../lib/i18n';
 import { Button } from '../ui/Button';
 import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * Renders the active dialog. Mounted once at the app root.
@@ -19,6 +19,7 @@ import { Text } from '../ui/Text';
  * dismiss one with a stray thumb during a sale.
  */
 export function DialogHost() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const active = useDialogStore((s) => s.queue[0]);
   const resolveTop = useDialogStore((s) => s.resolveTop);
@@ -96,7 +97,7 @@ export function DialogHost() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   backdrop: {
     flex: 1,
     alignItems: 'center',
@@ -119,4 +120,4 @@ const styles = StyleSheet.create({
   actions: {
     gap: space.sm,
   },
-});
+}));

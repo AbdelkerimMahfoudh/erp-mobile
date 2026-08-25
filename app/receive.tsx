@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, PackagePlus, Truck } from 'lucide-react-native';
@@ -18,7 +18,6 @@ import {
   takePendingIntake,
   type IntakeScope,
 } from '../lib/scan/pending-intake';
-import { colors } from '../lib/design/colors';
 import { radius, space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
@@ -30,6 +29,7 @@ import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
 import type { ProductSuggestion, ScanResult, SupplierDetail, SupplierPage, SupplierRow } from '../types/api';
+import { makeStyles, useColors } from '../lib/design/theme';
 
 /**
  * Receive — the bulk workflow.
@@ -57,6 +57,8 @@ interface PendingScan {
 }
 
 export default function ReceiveScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const qc = useQueryClient();
@@ -496,7 +498,7 @@ export default function ReceiveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   list: {
     padding: space.base,
     gap: space.sm,
@@ -529,4 +531,4 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginTop: space.lg,
   },
-});
+}));

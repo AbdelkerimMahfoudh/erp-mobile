@@ -9,7 +9,8 @@ import { api } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
 import { useBranch } from '../lib/branch';
 import { useTranslation } from '../lib/i18n';
-import { colors, money, num, trackingLabel } from '../lib/theme';
+import { money, num, trackingLabel } from '../lib/theme';
+import { useColors } from '../lib/design/theme';
 
 interface ProductRow { productId: string; label: string | null; trackingType: string | null; qtySold: number; revenue: number; grossProfit?: number; sold30d: number; lastSoldAt: string | null; }
 interface Dashboard {
@@ -22,24 +23,25 @@ interface Dashboard {
 }
 
 export default function AnalyticsScreen() {
+  const colors = useColors();
   const { t } = useTranslation();
   const { branchId } = useBranch();
   const { data, isFetching, refetch } = useQuery({ queryKey: qk.dashboard(branchId), queryFn: () => api.get<Dashboard>('/dashboard') });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
       <Stack.Screen options={{ headerShown: true, title: t('nav.analytics') }} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 20 }} refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.brand} />}>
-        <Section icon={<TrendingUp size={18} color={colors.emerald} />} title={t('analytics.mostProfitable')}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 20 }} refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.brand[600]} />}>
+        <Section icon={<TrendingUp size={18} color={colors.intent.success.fg} />} title={t('analytics.mostProfitable')}>
           {data?.mostProfitable.map((p) => <ProductLine key={p.productId} p={p} metric={money(p.grossProfit)} tone="green" />)}
         </Section>
-        <Section icon={<Package size={18} color={colors.brand} />} title={t('analytics.bestSelling')}>
+        <Section icon={<Package size={18} color={colors.brand[600]} />} title={t('analytics.bestSelling')}>
           {data?.bestSelling.map((p) => <ProductLine key={p.productId} p={p} metric={t('analytics.sold', { n: num(p.qtySold) })} />)}
         </Section>
-        <Section icon={<TrendingDown size={18} color={colors.red} />} title={t('analytics.worstPerforming')}>
+        <Section icon={<TrendingDown size={18} color={colors.intent.danger.fg} />} title={t('analytics.worstPerforming')}>
           {data?.worstPerforming.map((p) => <ProductLine key={p.productId} p={p} metric={money(p.grossProfit)} tone={((p.grossProfit ?? 0) < 0) ? 'red' : 'slate'} />)}
         </Section>
-        <Section icon={<Package size={18} color={colors.amber} />} title={t('analytics.deadStock')}>
+        <Section icon={<Package size={18} color={colors.intent.warning.fg} />} title={t('analytics.deadStock')}>
           {(data?.deadStock ?? []).length === 0 ? <Muted>{t('analytics.deadStock.none')}</Muted> : data?.deadStock.map((d) => (
             <View key={d.productId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 text-slate-800">{d.label}</Text>
@@ -47,7 +49,7 @@ export default function AnalyticsScreen() {
             </View>
           ))}
         </Section>
-        <Section icon={<GitBranch size={18} color={colors.brand} />} title={t('analytics.branches')}>
+        <Section icon={<GitBranch size={18} color={colors.brand[600]} />} title={t('analytics.branches')}>
           {data?.branchComparison.map((b) => (
             <View key={b.branchId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 font-medium text-slate-800">{b.name}</Text>
@@ -59,7 +61,7 @@ export default function AnalyticsScreen() {
             </View>
           ))}
         </Section>
-        <Section icon={<Users size={18} color={colors.brand} />} title={t('analytics.employees')}>
+        <Section icon={<Users size={18} color={colors.brand[600]} />} title={t('analytics.employees')}>
           {data?.employeePerformance.map((e) => (
             <View key={e.userId} className="flex-row items-center justify-between py-2">
               <Text className="flex-1 font-medium text-slate-800">{e.name}</Text>

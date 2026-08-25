@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CircleCheck, CircleHelp, Package, Sparkles, TriangleAlert } from 'lucide-react-native';
-import { colors, type Intent } from '../../lib/design/colors';
+import { type Intent } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { CONFIDENCE_HIGH } from '../scanner/useScan';
@@ -10,6 +10,7 @@ import { Chip, StatusChip } from '../ui/Chip';
 import { Divider } from '../ui/Surface';
 import { Identifier, Text } from '../ui/Text';
 import type { ProductSuggestion, ScanResult } from '../../types/api';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The one product confirmation card.
@@ -84,6 +85,8 @@ export function ProductConfirmationCard({
   notice,
   style,
 }: ProductConfirmationCardProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const { t } = useTranslation();
   const state = deriveState(result);
   const meta = STATE_META[state];
@@ -276,7 +279,7 @@ function KeySpecs({ specifications }: { specifications?: Record<string, unknown>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     gap: space.base,
     padding: space.base,
@@ -344,4 +347,4 @@ const styles = StyleSheet.create({
   actions: {
     gap: space.sm,
   },
-});
+}));

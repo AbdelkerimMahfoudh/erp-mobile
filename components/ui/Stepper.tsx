@@ -1,11 +1,11 @@
 import React from 'react';
-import { I18nManager, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { I18nManager, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { disabledOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Quantity stepper.
@@ -40,6 +40,7 @@ export function Stepper({
   accessibilityLabel,
   style,
 }: StepperProps) {
+  const styles = useStyles();
   const button = size === 'sm' ? 36 : touch.min;
   const canDecrement = !disabled && value - step >= min;
   const canIncrement = !disabled && value + step <= max;
@@ -100,6 +101,8 @@ function StepButton({
   onPress: () => void;
   label: string;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const { pressed, pressHandlers } = usePressed();
   return (
     <Pressable
@@ -124,7 +127,7 @@ function StepButton({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     // flexDirection is set inline — it depends on the runtime direction.
     alignItems: 'center',
@@ -143,4 +146,4 @@ const styles = StyleSheet.create({
   count: {
     fontVariant: ['tabular-nums'],
   },
-});
+}));

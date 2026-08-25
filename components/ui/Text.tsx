@@ -1,8 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
+import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
 import { type TypeVariant, type as typeScale } from '../../lib/design/tokens';
 import { textAlign } from '../../lib/design/direction';
+import { makeStyles, makeTokens } from '../../lib/design/theme';
 
 /**
  * The typography primitive. Every string in the app renders through this.
@@ -24,7 +24,7 @@ export type TextTone =
   | 'warning'
   | 'danger';
 
-const TONE_COLORS: Record<TextTone, string> = {
+const useToneColors = makeTokens((colors) => ({
   primary: colors.text.primary,
   secondary: colors.text.secondary,
   tertiary: colors.text.tertiary,
@@ -35,7 +35,7 @@ const TONE_COLORS: Record<TextTone, string> = {
   success: colors.intent.success.fg,
   warning: colors.intent.warning.fg,
   danger: colors.intent.danger.fg,
-};
+} as Record<TextTone, string>));
 
 export interface TextProps extends Omit<RNTextProps, 'style'> {
   variant?: TypeVariant;
@@ -55,6 +55,7 @@ export function Text({
   children,
   ...rest
 }: TextProps) {
+  const TONE_COLORS = useToneColors();
   const scale = typeScale[variant];
   const composed: TextStyle = {
     fontSize: scale.fontSize,
@@ -78,6 +79,8 @@ export function Text({
  * Always LTR: an identifier is not language.
  */
 export function Identifier({ children, tone = 'secondary', style, ...rest }: TextProps) {
+  const TONE_COLORS = useToneColors();
+  const styles = useStyles();
   return (
     <RNText
       style={[styles.identifier, { color: TONE_COLORS[tone] }, style]}
@@ -90,7 +93,7 @@ export function Identifier({ children, tone = 'secondary', style, ...rest }: Tex
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   identifier: {
     fontSize: typeScale.mono.fontSize,
     lineHeight: typeScale.mono.lineHeight,
@@ -100,4 +103,4 @@ const styles = StyleSheet.create({
     writingDirection: 'ltr',
     textAlign: 'left',
   },
-});
+}));

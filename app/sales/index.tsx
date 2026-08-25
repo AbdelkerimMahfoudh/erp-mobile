@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import {
   Card,
@@ -14,7 +14,6 @@ import {
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatMoney, formatSmartDateTime, formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -22,6 +21,7 @@ import { usePermission } from '../../lib/permissions';
 import { policyStatus } from '../../lib/return-policy';
 import { useSales } from '../../lib/sales';
 import type { SaleListRow, SalePayStatus } from '../../types/api';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
  * Sale history — what this branch sold, and whether it can still come back.
@@ -41,6 +41,7 @@ type Tab = 'all' | SalePayStatus;
 const TABS: Tab[] = ['all', 'paid', 'partial', 'credit'];
 
 export default function SalesScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const canView = usePermission('sale.view');
@@ -177,6 +178,7 @@ export default function SalesScreen() {
 }
 
 function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const status = policyStatus(row.returnPolicy, t, formatDateTime);
 
@@ -234,7 +236,7 @@ function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: { backgroundColor: colors.surface.canvas, paddingBottom: space.sm, gap: space.sm },
   tabs: { gap: space.xs, paddingVertical: space.xs },
   list: { padding: space.base, paddingBottom: space['3xl'] },
@@ -256,4 +258,4 @@ const styles = StyleSheet.create({
   },
   detail: { flexShrink: 1 },
   end: { textAlign: 'center', paddingVertical: space.base },
-});
+}));

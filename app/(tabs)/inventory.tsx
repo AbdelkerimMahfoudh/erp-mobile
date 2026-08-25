@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Cable, PackageSearch } from 'lucide-react-native';
@@ -19,7 +19,6 @@ import {
 import { ScanTarget } from '../../components/scanner';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatQuantity } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -27,6 +26,7 @@ import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
 import type { InventoryPage, InventoryRow, ScanResult, Unit } from '../../types/api';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Inventory — what is physically here.
@@ -49,6 +49,8 @@ const PAGE_SIZE = 50;
 const SEARCH_DEBOUNCE_MS = 350;
 
 export default function InventoryScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const { branchId } = useBranch();
@@ -318,6 +320,8 @@ function ListFooter({
   failed: boolean;
   onRetry: () => void;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
 
   if (failed) {
@@ -365,6 +369,7 @@ function SectionHeading({
   count: string;
   spaced?: boolean;
 }) {
+  const styles = useStyles();
   return (
     <View style={[styles.sectionHeading, spaced ? styles.sectionSpaced : null]}>
       <Text variant="label" tone="tertiary">
@@ -377,7 +382,7 @@ function SectionHeading({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   filters: {
     flexDirection: 'row',
     gap: space.sm,
@@ -401,4 +406,4 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingVertical: space.lg,
   },
-});
+}));

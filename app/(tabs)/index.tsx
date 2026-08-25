@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,7 +30,6 @@ import { qk } from '../../lib/query-keys';
 import { useBranch } from '../../lib/branch';
 import { usePermission } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { formatMoney, formatQuantity } from '../../lib/format';
 import type {
@@ -40,6 +39,7 @@ import type {
   ReturnPage,
   TransferCounts,
 } from '../../types/api';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The role landing screen.
@@ -63,6 +63,7 @@ import type {
  */
 
 export default function HomeScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { t } = useTranslation();
   const { branchId, branchName } = useBranch();
@@ -377,6 +378,7 @@ function PendingRow({
  * than leading.
  */
 function HealthRow({ status, score }: { status: HealthScore['status']; score: number }) {
+  const colors = useColors();
   const { t } = useTranslation();
   const tone =
     status === 'green' ? colors.intent.success : status === 'amber' ? colors.intent.warning : colors.intent.danger;
@@ -402,11 +404,11 @@ function HealthRow({ status, score }: { status: HealthScore['status']; score: nu
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   actions: { gap: space.md },
   actionRow: { flexDirection: 'row', gap: space.md },
   actionHalf: { flex: 1 },
   statRow: { flexDirection: 'row', gap: space.md },
   inlineStats: { flexDirection: 'row', gap: space.base, marginTop: space.xs },
   retry: { alignSelf: 'flex-start', marginTop: space.sm },
-});
+}));

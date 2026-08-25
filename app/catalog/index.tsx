@@ -9,8 +9,8 @@ import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { usePermission } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
-import { colors } from '../../lib/theme';
 import type { ProductListRow, ProductPage, TrackingType } from '../../types/api';
+import { useColors } from '../../lib/design/theme';
 
 /**
  * Catalog (G1).
@@ -32,6 +32,7 @@ const TRACKING_FILTERS: { value: TrackingType | 'all'; key: string }[] = [
 ];
 
 export default function CatalogScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { t } = useTranslation();
   const canManage = usePermission('catalog.manage');
@@ -62,17 +63,17 @@ export default function CatalogScreen() {
   const total = page.data?.pages[0]?.totalActive ?? 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
       <Stack.Screen options={{ headerShown: true, title: t('catalog.title') }} />
 
       <View className="border-b border-slate-200 bg-white px-4 py-3">
         <View className="flex-row items-center gap-2 rounded-xl border border-slate-300 px-3">
-          <Search size={18} color={colors.brand} />
+          <Search size={18} color={colors.brand[600]} />
           <TextInput
             value={q}
             onChangeText={setQ}
             placeholder={t('catalog.search')}
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={colors.text.tertiary}
             className="flex-1 py-3 text-base text-slate-900"
             autoCapitalize="none"
             autoCorrect={false}
@@ -99,7 +100,7 @@ export default function CatalogScreen() {
               onPress={() => router.push('/catalog/categories' as never)}
               className="flex-row items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1"
             >
-              <FolderTree size={14} color={colors.brand} />
+              <FolderTree size={14} color={colors.brand[600]} />
               <Text className="text-sm text-slate-600">{t('categories.title')}</Text>
             </Pressable>
           ) : null}
@@ -132,7 +133,7 @@ export default function CatalogScreen() {
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
           refreshControl={
-            <RefreshControl refreshing={page.isRefetching} onRefresh={() => page.refetch()} tintColor={colors.brand} />
+            <RefreshControl refreshing={page.isRefetching} onRefresh={() => page.refetch()} tintColor={colors.brand[600]} />
           }
           ListHeaderComponent={
             rows.length > 0 ? (
@@ -143,7 +144,7 @@ export default function CatalogScreen() {
           }
           ListEmptyComponent={
             page.isLoading ? (
-              <ActivityIndicator color={colors.brand} />
+              <ActivityIndicator color={colors.brand[600]} />
             ) : (
               <EmptyState
                 title={q.trim() ? t('catalog.empty.search') : t('catalog.empty')}
@@ -163,7 +164,7 @@ export default function CatalogScreen() {
           onEndReached={() => {
             if (page.hasNextPage && !page.isFetchingNextPage) void page.fetchNextPage();
           }}
-          ListFooterComponent={page.isFetchingNextPage ? <ActivityIndicator color={colors.brand} /> : null}
+          ListFooterComponent={page.isFetchingNextPage ? <ActivityIndicator color={colors.brand[600]} /> : null}
         />
       )}
 
@@ -191,13 +192,14 @@ function ProductRow({
   trackingText: string;
   onPress: () => void;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       onPress={onPress}
       className="mb-2 flex-row items-center justify-between rounded-2xl border border-slate-200 bg-white p-3"
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-        <Tag size={18} color={colors.brand} />
+        <Tag size={18} color={colors.brand[600]} />
       </View>
       <View className="ml-3 flex-1">
         {/* The exact-variant label the server assembled — one name everywhere. */}

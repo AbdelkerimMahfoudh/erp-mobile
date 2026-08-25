@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { BadgeCheck, Bell, ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
 import {
@@ -14,7 +14,6 @@ import {
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
-import { colors } from '../../lib/design/colors';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { mirror } from '../../lib/design/direction';
 import { useEntitlement } from '../../lib/entitlement';
@@ -23,6 +22,7 @@ import { subscriptionNotice, syncNotice } from '../../lib/navigation/notices';
 import { visibleHubs } from '../../lib/navigation/registry';
 import { useQueue } from '../../lib/offline/queue';
 import { usePermissionStore } from '../../lib/permissions';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * More — six business hubs, and a quieter account section.
@@ -41,6 +41,8 @@ import { usePermissionStore } from '../../lib/permissions';
  * counts, and the server-calculated entitlement.
  */
 export default function MoreScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const { signOut } = useAuth();
@@ -118,6 +120,7 @@ export default function MoreScreen() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <Text variant="caption" tone="tertiary" style={styles.sectionLabel}>
       {children}
@@ -137,6 +140,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
  * granted, so a branch from another company cannot appear here.
  */
 function BranchControl() {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const { branchName, clear } = useBranch();
@@ -181,6 +186,7 @@ function BranchControl() {
  * report is a queued financial report.
  */
 function SyncNotice() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const items = useQueue((s) => s.items);
@@ -223,6 +229,7 @@ function SyncNotice() {
  * milestone K.
  */
 function SubscriptionNotice() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const { data } = useEntitlement();
@@ -261,7 +268,7 @@ function SubscriptionNotice() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,4 +297,4 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingVertical: space.base,
   },
-});
+}));

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Pressable, StyleSheet, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
+import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { disabledOpacity, pressedOpacity, radius, touch } from '../../lib/design/tokens';
 import { mirror } from '../../lib/design/direction';
 import { haptics } from '../../lib/haptics';
 import type { IconComponent } from './Button';
 import { usePressed } from './use-pressed';
+import { makeStyles, makeTokens } from '../../lib/design/theme';
 
 /**
  * An icon-only control: close, torch, back, overflow.
@@ -17,12 +17,12 @@ import { usePressed } from './use-pressed';
 
 export type IconButtonVariant = 'plain' | 'filled' | 'sunken' | 'inverse';
 
-const VARIANTS: Record<IconButtonVariant, { background: string; pressed: string; color: string }> = {
+const useVariants = makeTokens((colors) => ({
   plain: { background: 'transparent', pressed: colors.surface.sunken, color: colors.text.secondary },
   filled: { background: colors.brand[600], pressed: colors.brand[700], color: colors.text.inverse },
   sunken: { background: colors.surface.sunken, pressed: colors.neutral[200], color: colors.text.primary },
   inverse: { background: 'rgba(255,255,255,0.14)', pressed: 'rgba(255,255,255,0.24)', color: colors.text.inverse },
-};
+} as Record<IconButtonVariant, { background: string; pressed: string; color: string }>));
 
 export interface IconButtonProps extends Omit<PressableProps, 'style' | 'children'> {
   icon: IconComponent;
@@ -46,6 +46,8 @@ export function IconButton({
   style,
   ...rest
 }: IconButtonProps) {
+  const VARIANTS = useVariants();
+  const styles = useStyles();
   const v = VARIANTS[variant];
   const glyph = Math.round(size * 0.45);
   // PressableProps types `disabled` as nullable, so the default alone is not
@@ -83,9 +85,9 @@ export function IconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

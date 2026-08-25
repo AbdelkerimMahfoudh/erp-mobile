@@ -9,8 +9,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The page wrapper.
@@ -57,6 +57,8 @@ export function Screen({
   style,
   className,
 }: ScreenProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const gutter = padded ? space.base : 0;
 
   return (
@@ -102,7 +104,7 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   safe: {
     flex: 1,
     backgroundColor: colors.surface.canvas,
@@ -128,4 +130,4 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.subtle,
     gap: space.sm,
   },
-});
+}));

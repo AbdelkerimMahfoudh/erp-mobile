@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Lock, TrendingDown, TrendingUp } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { pressedOpacity, radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { Skeleton } from './Skeleton';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors, makeTokens } from '../../lib/design/theme';
 
 /**
  * A single figure with its meaning attached.
@@ -22,12 +22,12 @@ import { usePressed } from './use-pressed';
 
 export type StatTone = 'neutral' | 'accent' | 'success' | 'danger';
 
-const VALUE_COLOR: Record<StatTone, string> = {
+const useValueColor = makeTokens((colors) => ({
   neutral: colors.text.primary,
   accent: colors.brand[600],
   success: colors.intent.success.fg,
   danger: colors.intent.danger.fg,
-};
+} as Record<StatTone, string>));
 
 export interface StatTrend {
   /** Percentage change vs. the comparison period. Sign drives the arrow. */
@@ -78,6 +78,9 @@ export function StatTile({
   size = 'md',
   style,
 }: StatTileProps) {
+  const VALUE_COLOR = useValueColor();
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const { pressed, pressHandlers } = usePressed();
 
@@ -141,6 +144,8 @@ export function StatTile({
 }
 
 function Trend({ trend }: { trend: StatTrend }) {
+  const styles = useStyles();
+  const colors = useColors();
   const { direction, label, positiveIsGood = true } = trend;
   if (direction === 'flat') {
     return (
@@ -165,7 +170,7 @@ function Trend({ trend }: { trend: StatTrend }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   pressable: {
     flex: 1,
   },
@@ -197,4 +202,4 @@ const styles = StyleSheet.create({
     gap: space.xs,
     marginTop: 2,
   },
-});
+}));

@@ -9,7 +9,7 @@ import { useTranslation } from '../../lib/i18n';
 import { looksSubmittable } from '../../lib/identifier';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
-import { colors } from '../../lib/theme';
+import { useColors } from '../../lib/design/theme';
 
 /**
  * Signing in.
@@ -33,6 +33,7 @@ import { colors } from '../../lib/theme';
  * registered with WhatsApp, because nothing can yet.
  */
 export default function Login() {
+  const colors = useColors();
   const { t } = useTranslation();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
@@ -105,7 +106,7 @@ export default function Login() {
   const canSubmit = looksSubmittable(identifier) && password.length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View className="flex-1 justify-center px-6">
           <View className="mb-8 items-center">

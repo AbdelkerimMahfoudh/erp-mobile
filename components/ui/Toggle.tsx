@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors } from '../../lib/design/colors';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * A labelled on/off setting.
@@ -39,6 +39,8 @@ export function Toggle({
   disabled = false,
   style,
 }: ToggleProps) {
+  const styles = useStyles();
+  const colors = useColors();
   const { pressed, pressHandlers } = usePressed();
 
   return (
@@ -89,7 +91,7 @@ export function Toggle({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -105,4 +107,4 @@ const styles = StyleSheet.create({
   hint: { marginTop: space.xs },
   control: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   disabled: { opacity: 0.5 },
-});
+}));

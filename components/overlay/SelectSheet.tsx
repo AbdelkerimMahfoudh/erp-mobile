@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { Check, Plus } from 'lucide-react-native';
-import { colors } from '../../lib/design/colors';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { Button, type IconComponent } from '../ui/Button';
@@ -12,6 +11,7 @@ import { SearchInput } from '../ui/SearchInput';
 import { SkeletonList } from '../ui/Skeleton';
 import { Text } from '../ui/Text';
 import { BottomSheet } from './BottomSheet';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * The one picker.
@@ -99,6 +99,8 @@ export function SelectSheet<T>({
   onCreate,
   creating = false,
 }: SelectSheetProps<T>) {
+  const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>(selectedKeys);
@@ -256,7 +258,7 @@ export function SelectSheet<T>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   search: {
     paddingHorizontal: space.lg,
     paddingBottom: space.md,
@@ -266,4 +268,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingBottom: space.base,
   },
-});
+}));
