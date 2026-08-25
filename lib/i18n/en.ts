@@ -327,6 +327,7 @@ export const en = {
   'nav.analytics': 'Analytics',
   'nav.settings': 'Business settings',
   'nav.notifications': 'Notifications',
+  'nav.appearance': 'Appearance & language',
   'nav.devices': 'Devices',
   'nav.branch': 'Branch',
   'transfers.count.waiting': '{n} waiting',
@@ -1186,6 +1187,12 @@ export const en = {
   'money.free': 'Free',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'appearance.title': 'Appearance & language',
+  'appearance.subtitle': 'How this app looks on this phone, and the language it speaks.',
+  'appearance.darkMode': 'Dark mode',
+  'appearance.darkMode.hint': 'Easier on the eyes in a dim shop or at night.',
+  'appearance.dark': 'Dark',
+  'appearance.light': 'Light',
   'settings.language': 'Language',
   'settings.language.restartTitle': 'Restart needed',
   'settings.language.restartBody':

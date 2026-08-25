@@ -21,7 +21,11 @@ const useVariants = makeTokens((colors) => ({
   plain: { background: 'transparent', pressed: colors.surface.sunken, color: colors.text.secondary },
   filled: { background: colors.brand[600], pressed: colors.brand[700], color: colors.text.inverse },
   sunken: { background: colors.surface.sunken, pressed: colors.neutral[200], color: colors.text.primary },
-  inverse: { background: 'rgba(255,255,255,0.14)', pressed: 'rgba(255,255,255,0.24)', color: colors.text.inverse },
+  inverse: {
+    background: colors.surface.inverseRaised,
+    pressed: colors.surface.inverseRaisedPressed,
+    color: colors.text.inverse,
+  },
 } as Record<IconButtonVariant, { background: string; pressed: string; color: string }>));
 
 export interface IconButtonProps extends Omit<PressableProps, 'style' | 'children'> {

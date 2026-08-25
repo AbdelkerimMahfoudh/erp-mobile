@@ -83,6 +83,9 @@ export interface Palette {
     sunken: string;
     hover: string;
     inverse: string;
+    /** A raised control ON the inverse surface — a torch button over camera. */
+    inverseRaised: string;
+    inverseRaisedPressed: string;
     scrim: string;
   };
   border: {
@@ -98,6 +101,8 @@ export interface Palette {
     tertiary: string;
     placeholder: string;
     inverse: string;
+    /** Quieter text on a solid brand fill — a count beside a chip's label. */
+    onSolidMuted: string;
     accent: string;
     disabled: string;
   };
@@ -119,6 +124,13 @@ export const lightColors: Palette = {
     hover: neutral[100],
     /** Full-bleed dark surface — camera scanner chrome, image backdrops. */
     inverse: neutral[950],
+    /**
+     * Controls sitting ON that dark chrome. Translucent white so the camera
+     * shows through, which is the point — and identical in both themes,
+     * because the camera view is dark whatever the app is set to.
+     */
+    inverseRaised: 'rgba(255, 255, 255, 0.14)',
+    inverseRaisedPressed: 'rgba(255, 255, 255, 0.24)',
     /** Scrim behind modals and sheets. */
     scrim: 'rgba(11, 15, 23, 0.55)',
   },
@@ -148,10 +160,16 @@ export const lightColors: Palette = {
     secondary: neutral[600],
     /** Labels, timestamps, metadata. Never for anything actionable. */
     tertiary: neutral[500],
-    /** Placeholder text only. Fails contrast for real content by design. */
-    placeholder: neutral[400],
+    /**
+     * Placeholder text only — deliberately quieter than real content, but not
+     * so quiet it disappears. A shop counter is often in direct sunlight, and
+     * the previous value (neutral[400]) sat at 1.8:1 against an input well,
+     * which is invisible there.
+     */
+    placeholder: neutral[500],
     /** On a solid dark/brand fill. */
     inverse: neutral[0],
+    onSolidMuted: brand[100],
     /** The accent, for links and active states. */
     accent: brand[600],
     /** Disabled text. */
@@ -192,7 +210,7 @@ export const lightColors: Palette = {
       bg: '#FDF3E4',
       border: '#F7E1BE',
       fg: '#8A5209',
-      solid: '#B4690E',
+      solid: '#A85F0B',
       onSolid: neutral[0],
     },
     danger: {
@@ -224,8 +242,13 @@ export const darkColors: Palette = {
     card: dark.card,
     sunken: dark.sunken,
     hover: dark.hover,
-    /** Still the *opposite* of the current surface — so it is light here. */
-    inverse: neutral[0],
+    /**
+     * The camera's chrome, which is dark whatever the app is set to — a live
+     * camera view is not repainted by a theme. Kept identical to light.
+     */
+    inverse: neutral[950],
+    inverseRaised: 'rgba(255, 255, 255, 0.14)',
+    inverseRaisedPressed: 'rgba(255, 255, 255, 0.24)',
     /** Deeper than the light scrim: it sits over an already-dark app. */
     scrim: 'rgba(0, 0, 0, 0.66)',
   },
@@ -244,9 +267,20 @@ export const darkColors: Palette = {
     primary: neutral[100],
     secondary: neutral[400],
     tertiary: neutral[500],
-    placeholder: neutral[600],
-    /** On a solid light fill. */
-    inverse: neutral[900],
+    /** Same reasoning as light: quiet, still legible. */
+    placeholder: '#6E7889',
+    /**
+     * Deliberately NOT flipped.
+     *
+     * Every caller means "on a solid brand fill" — a primary button, a
+     * selected chip, the camera chrome — and a brand button is brand-coloured
+     * in both themes. Flipping this to a dark neutral would have put dark text
+     * on an indigo button after dark: a real contrast failure, and one that
+     * reads as a plausible "inverse" at a glance, which is why it is spelled
+     * out here.
+     */
+    inverse: neutral[0],
+    onSolidMuted: brand[100],
     /** Lifted so a link is legible on the dark canvas. */
     accent: brand[300],
     disabled: neutral[600],
@@ -281,7 +315,7 @@ export const darkColors: Palette = {
       bg: '#2C1D08',
       border: '#4A3312',
       fg: '#F0C07A',
-      solid: '#B4690E',
+      solid: '#A85F0B',
       onSolid: neutral[0],
     },
     danger: {

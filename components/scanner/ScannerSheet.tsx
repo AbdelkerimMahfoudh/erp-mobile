@@ -644,7 +644,7 @@ const useStyles = makeStyles((colors) => ({
     paddingHorizontal: space.base,
     paddingVertical: space.sm,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.surface.scrim,
   },
   loadingRow: {
     flexDirection: 'row',

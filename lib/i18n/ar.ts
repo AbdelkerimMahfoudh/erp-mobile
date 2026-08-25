@@ -322,6 +322,7 @@ export const ar: Catalogue = {
   'nav.analytics': 'التحليلات',
   'nav.settings': 'إعدادات المتجر',
   'nav.notifications': 'الإشعارات',
+  'nav.appearance': 'المظهر واللغة',
   'nav.devices': 'الأجهزة',
   'nav.branch': 'الفرع',
   'transfers.count.waiting': '{n} بانتظار الموافقة',
@@ -1167,6 +1168,12 @@ export const ar: Catalogue = {
   'money.free': 'مجاني',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'appearance.title': 'المظهر واللغة',
+  'appearance.subtitle': 'شكل التطبيق على هذا الهاتف، واللغة التي يتحدث بها.',
+  'appearance.darkMode': 'الوضع الداكن',
+  'appearance.darkMode.hint': 'أراح للعين في متجر خافت الإضاءة أو ليلًا.',
+  'appearance.dark': 'داكن',
+  'appearance.light': 'فاتح',
   'settings.language': 'اللغة',
   'settings.language.restartTitle': 'يلزم إعادة التشغيل',
   'settings.language.restartBody': 'أغلق التطبيق وأعد فتحه لإكمال تغيير اللغة.',

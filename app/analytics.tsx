@@ -44,18 +44,18 @@ export default function AnalyticsScreen() {
         <Section icon={<Package size={18} color={colors.intent.warning.fg} />} title={t('analytics.deadStock')}>
           {(data?.deadStock ?? []).length === 0 ? <Muted>{t('analytics.deadStock.none')}</Muted> : data?.deadStock.map((d) => (
             <View key={d.productId} className="flex-row items-center justify-between py-2">
-              <Text className="flex-1 text-slate-800">{d.label}</Text>
-              <Text className="text-slate-500">{t('analytics.inStock', { n: num(d.inStock) })} · {money(d.inventoryValue)}</Text>
+              <Text className="flex-1" style={{ color: colors.text.primary }}>{d.label}</Text>
+              <Text style={{ color: colors.text.secondary }}>{t('analytics.inStock', { n: num(d.inStock) })} · {money(d.inventoryValue)}</Text>
             </View>
           ))}
         </Section>
         <Section icon={<GitBranch size={18} color={colors.brand[600]} />} title={t('analytics.branches')}>
           {data?.branchComparison.map((b) => (
             <View key={b.branchId} className="flex-row items-center justify-between py-2">
-              <Text className="flex-1 font-medium text-slate-800">{b.name}</Text>
+              <Text className="flex-1 font-medium" style={{ color: colors.text.primary }}>{b.name}</Text>
               {/* Spelled out rather than "Rev"/"Net" — abbreviations do not
                   translate, and this screen is read by owners, not analysts. */}
-              <Text className="text-slate-500">
+              <Text style={{ color: colors.text.secondary }}>
                 {t('analytics.revenue')} {money(b.revenue)} · {t('analytics.net')} {money(b.netProfit)}
               </Text>
             </View>
@@ -64,8 +64,8 @@ export default function AnalyticsScreen() {
         <Section icon={<Users size={18} color={colors.brand[600]} />} title={t('analytics.employees')}>
           {data?.employeePerformance.map((e) => (
             <View key={e.userId} className="flex-row items-center justify-between py-2">
-              <Text className="flex-1 font-medium text-slate-800">{e.name}</Text>
-              <Text className="text-slate-500">
+              <Text className="flex-1 font-medium" style={{ color: colors.text.primary }}>{e.name}</Text>
+              <Text style={{ color: colors.text.secondary }}>
                 {t('analytics.sales', { n: num(e.salesCount) })} · {money(e.revenue)}
               </Text>
             </View>
@@ -85,14 +85,16 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
   );
 }
 function Muted({ children }: { children: React.ReactNode }) {
-  return <Text className="py-2 text-slate-400">{children}</Text>;
+  const colors = useColors();
+  return <Text className="py-2" style={{ color: colors.text.tertiary }}>{children}</Text>;
 }
 function ProductLine({ p, metric, tone = 'slate' }: { p: ProductRow; metric: string; tone?: 'slate' | 'green' | 'red' }) {
+  const colors = useColors();
   const t: Record<string, string> = { slate: 'text-slate-700', green: 'text-emerald-600', red: 'text-red-600' };
   return (
     <View className="flex-row items-center justify-between py-2">
       <View className="flex-1 pr-2">
-        <Text className="font-medium text-slate-800" numberOfLines={1}>{p.label ?? '—'}</Text>
+        <Text className="font-medium" style={{ color: colors.text.primary }} numberOfLines={1}>{p.label ?? '—'}</Text>
         {p.trackingType ? <Badge label={trackingLabel[p.trackingType]} tone="brand" /> : null}
       </View>
       <Text className={`font-semibold ${t[tone]}`}>{metric}</Text>

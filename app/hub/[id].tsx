@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Card, EmptyState, ListRow, Screen, Text } from '../../components/ui';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
-import { LanguageRow } from '../../components/navigation/LanguageRow';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermissionStore } from '../../lib/permissions';
@@ -84,16 +83,6 @@ export default function HubScreen() {
         </Card>
       )}
 
-      {/*
-        The one thing in a hub that is not a route. Language is an account-level
-        preference with nowhere else sensible to live now that More holds only
-        hubs, and it belongs beside the devices you would change it on.
-      */}
-      {hub.id === 'account' ? (
-        <View style={styles.extras}>
-          <LanguageRow />
-        </View>
-      ) : null}
     </Screen>
   );
 }
@@ -101,5 +90,4 @@ export default function HubScreen() {
 const styles = StyleSheet.create({
   intro: { marginBottom: space.md },
   list: { paddingVertical: space.xs },
-  extras: { marginTop: space.md },
 });

@@ -111,10 +111,10 @@ export default function Login() {
         <View className="flex-1 justify-center px-6">
           <View className="mb-8 items-center">
             <View className="h-16 w-16 items-center justify-center rounded-2xl bg-brand-600">
-              <Store color="#fff" size={30} />
+              <Store color={colors.text.inverse} size={30} />
             </View>
-            <Text className="mt-4 text-2xl font-bold text-slate-900">{t('auth.title')}</Text>
-            <Text className="mt-1 text-slate-500">{t('auth.subtitle')}</Text>
+            <Text className="mt-4 text-2xl font-bold" style={{ color: colors.text.primary }}>{t('auth.title')}</Text>
+            <Text className="mt-1" style={{ color: colors.text.secondary }}>{t('auth.subtitle')}</Text>
           </View>
 
           {choice ? (
@@ -125,10 +125,10 @@ export default function Login() {
               everybody, every day.
             */
             <View className="gap-4">
-              <Text className="text-center text-base font-semibold text-slate-900">
+              <Text className="text-center text-base font-semibold" style={{ color: colors.text.primary }}>
                 {t('auth.choose.title')}
               </Text>
-              <Text className="text-center text-sm text-slate-500">{t('auth.choose.body')}</Text>
+              <Text className="text-center text-sm" style={{ color: colors.text.secondary }}>{t('auth.choose.body')}</Text>
               {choice.accounts.map((a) => (
                 <Button
                   key={a.accountRef}
@@ -139,7 +139,7 @@ export default function Login() {
                 />
               ))}
               {inlineError ? (
-                <Text className="text-center text-sm text-red-600">{inlineError}</Text>
+                <Text className="text-center text-sm" style={{ color: colors.intent.danger.fg }}>{inlineError}</Text>
               ) : null}
               <Button
                 title={t('auth.choose.cancel')}
@@ -184,16 +184,16 @@ export default function Login() {
             {/* Blocking, translated device-verification state. No Continue /
                 Retry as new device / Send code action — none of those exist. */}
             {failure === 'device_verification_required' ? (
-              <View className="rounded-xl border border-amber-300 bg-amber-50 p-4">
-                <Text className="text-center text-base font-semibold text-amber-900">
+              <View className="rounded-xl border p-4" style={{ borderColor: colors.intent.warning.border, backgroundColor: colors.intent.warning.bg }}>
+                <Text className="text-center text-base font-semibold" style={{ color: colors.intent.warning.fg }}>
                   {t('auth.device.title')}
                 </Text>
-                <Text className="mt-2 text-center text-sm leading-5 text-amber-800">
+                <Text className="mt-2 text-center text-sm leading-5" style={{ color: colors.intent.warning.fg }}>
                   {t('auth.device.body')}
                 </Text>
               </View>
             ) : inlineError ? (
-              <Text className="text-center text-sm text-red-600">{inlineError}</Text>
+              <Text className="text-center text-sm" style={{ color: colors.intent.danger.fg }}>{inlineError}</Text>
             ) : null}
 
             <Button

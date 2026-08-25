@@ -133,7 +133,7 @@ export function FilterChip({ label, selected, onPress, count, style }: FilterChi
       {count !== undefined ? (
         <Text
           variant="caption"
-          style={{ color: selected ? 'rgba(255,255,255,0.78)' : colors.text.tertiary, fontWeight: '600' }}
+          style={{ color: selected ? colors.text.onSolidMuted : colors.text.tertiary, fontWeight: '600' }}
         >
           {count}
         </Text>

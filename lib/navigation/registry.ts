@@ -53,6 +53,7 @@ export type IconName =
   | 'SlidersHorizontal'
   | 'ShieldCheck'
   | 'Smartphone'
+  | 'Palette'
   | 'RefreshCw';
 
 export type HubId =
@@ -210,6 +211,10 @@ export const HUBS: readonly Hub[] = [
     icon: 'ShieldCheck',
     placement: 'account',
     children: [
+      // How the app LOOKS and what it SPEAKS — personal preferences, not
+      // business configuration, which is why they are here and not in the
+      // store-wide Settings screen.
+      { id: 'appearance', route: '/appearance', titleKey: 'nav.appearance', icon: 'Palette' },
       { id: 'devices', route: '/devices', titleKey: 'nav.devices', icon: 'Smartphone' },
       // Reachable here even when the queue is empty, so its history can be
       // inspected without waiting for something to go wrong.

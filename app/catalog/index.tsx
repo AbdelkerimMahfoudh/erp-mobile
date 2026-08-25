@@ -66,15 +66,15 @@ export default function CatalogScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
       <Stack.Screen options={{ headerShown: true, title: t('catalog.title') }} />
 
-      <View className="border-b border-slate-200 bg-white px-4 py-3">
-        <View className="flex-row items-center gap-2 rounded-xl border border-slate-300 px-3">
+      <View className="border-b px-4 py-3" style={{ borderColor: colors.border.subtle, backgroundColor: colors.surface.card }}>
+        <View className="flex-row items-center gap-2 rounded-xl border px-3" style={{ borderColor: colors.border.default }}>
           <Search size={18} color={colors.brand[600]} />
           <TextInput
             value={q}
             onChangeText={setQ}
             placeholder={t('catalog.search')}
             placeholderTextColor={colors.text.tertiary}
-            className="flex-1 py-3 text-base text-slate-900"
+            className="flex-1 py-3 text-base" style={{ color: colors.text.primary }}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -98,10 +98,10 @@ export default function CatalogScreen() {
           {canManage ? (
             <Pressable
               onPress={() => router.push('/catalog/categories' as never)}
-              className="flex-row items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1"
+              className="flex-row items-center gap-1 rounded-full border px-3 py-1" style={{ borderColor: colors.border.default, backgroundColor: colors.surface.card }}
             >
               <FolderTree size={14} color={colors.brand[600]} />
-              <Text className="text-sm text-slate-600">{t('categories.title')}</Text>
+              <Text className="text-sm" style={{ color: colors.text.secondary }}>{t('categories.title')}</Text>
             </Pressable>
           ) : null}
           {/* Archived products are a manager concern; employees never need the toggle. */}
@@ -122,9 +122,9 @@ export default function CatalogScreen() {
 
       {page.isError ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-slate-600">{t('catalog.error')}</Text>
+          <Text className="text-center" style={{ color: colors.text.secondary }}>{t('catalog.error')}</Text>
           <Pressable onPress={() => page.refetch()} className="mt-3 rounded-xl bg-brand-600 px-4 py-2">
-            <Text className="font-medium text-white">{t('catalog.retry')}</Text>
+            <Text className="font-medium" style={{ color: colors.text.inverse }}>{t('catalog.retry')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -137,7 +137,7 @@ export default function CatalogScreen() {
           }
           ListHeaderComponent={
             rows.length > 0 ? (
-              <Text className="mb-2 text-xs text-slate-500">
+              <Text className="mb-2 text-xs" style={{ color: colors.text.secondary }}>
                 {total === 1 ? t('catalog.count.one') : t('catalog.count', { count: total })}
               </Text>
             ) : null
@@ -174,7 +174,7 @@ export default function CatalogScreen() {
           className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-brand-600 shadow-lg"
           accessibilityLabel={t('catalog.add')}
         >
-          <Plus size={26} color="#fff" />
+          <Plus size={26} color={colors.text.inverse} />
         </Pressable>
       ) : null}
     </SafeAreaView>
@@ -196,18 +196,18 @@ function ProductRow({
   return (
     <Pressable
       onPress={onPress}
-      className="mb-2 flex-row items-center justify-between rounded-2xl border border-slate-200 bg-white p-3"
+      className="mb-2 flex-row items-center justify-between rounded-2xl border p-3" style={{ borderColor: colors.border.subtle, backgroundColor: colors.surface.card }}
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
         <Tag size={18} color={colors.brand[600]} />
       </View>
       <View className="ml-3 flex-1">
         {/* The exact-variant label the server assembled — one name everywhere. */}
-        <Text className="font-medium text-slate-900" numberOfLines={1}>
+        <Text className="font-medium" style={{ color: colors.text.primary }} numberOfLines={1}>
           {row.label}
         </Text>
         <View className="mt-1 flex-row items-center gap-2">
-          <Text className="text-xs text-slate-500">{trackingText}</Text>
+          <Text className="text-xs" style={{ color: colors.text.secondary }}>{trackingText}</Text>
           {/* Status by colour AND words, never colour alone. */}
           {!row.isActive ? <Badge label={archivedLabel} tone="slate" /> : null}
         </View>

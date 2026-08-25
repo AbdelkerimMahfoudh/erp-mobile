@@ -359,6 +359,7 @@ export const fr: Catalogue = {
   'nav.analytics': 'Analyses',
   'nav.settings': 'Paramètres de l’entreprise',
   'nav.notifications': 'Notifications',
+  'nav.appearance': 'Apparence et langue',
   'nav.devices': 'Appareils',
   'nav.branch': 'Site',
   'transfers.count.waiting': '{n} en attente',
@@ -1308,6 +1309,12 @@ export const fr: Catalogue = {
   'money.free': 'Gratuit',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'appearance.title': 'Apparence et langue',
+  'appearance.subtitle': 'L’aspect de l’application sur ce téléphone, et sa langue.',
+  'appearance.darkMode': 'Mode sombre',
+  'appearance.darkMode.hint': 'Plus reposant dans une boutique peu éclairée ou la nuit.',
+  'appearance.dark': 'Sombre',
+  'appearance.light': 'Clair',
   'settings.language': 'Langue',
   'settings.language.restartTitle': 'Redémarrage nécessaire',
   'settings.language.restartBody':
