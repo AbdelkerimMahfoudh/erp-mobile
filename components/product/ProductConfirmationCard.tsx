@@ -310,7 +310,7 @@ const useStyles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
-    backgroundColor: colors.brand[50],
+    backgroundColor: colors.intent.info.bg,
   },
   identityText: {
     flex: 1,

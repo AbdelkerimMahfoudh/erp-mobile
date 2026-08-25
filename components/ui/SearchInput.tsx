@@ -82,13 +82,13 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
       style={[
         styles.well,
         {
-          borderColor: focused ? colors.brand[600] : colors.border.default,
+          borderColor: focused ? colors.border.focus : colors.border.default,
           borderWidth: focused ? 1.5 : StyleSheet.hairlineWidth,
         },
         style,
       ]}
     >
-      <Search color={focused ? colors.brand[600] : colors.text.tertiary} size={18} />
+      <Search color={focused ? colors.text.accent : colors.text.tertiary} size={18} />
 
       <TextInput
         ref={ref}
@@ -144,7 +144,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
             {...scanPress.pressHandlers}
             style={[styles.scan, scanPress.pressed ? { opacity: 0.6 } : null]}
           >
-            <ScanLine color={colors.brand[600]} size={20} />
+            <ScanLine color={colors.text.accent} size={20} />
           </Pressable>
         </>
       ) : null}

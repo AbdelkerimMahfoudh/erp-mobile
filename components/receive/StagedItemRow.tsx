@@ -94,7 +94,7 @@ const useStyles = makeStyles((colors) => ({
     justifyContent: 'center',
     paddingHorizontal: space.xs,
     borderRadius: radius.md,
-    backgroundColor: colors.brand[50],
+    backgroundColor: colors.intent.info.bg,
   },
   countText: {
     color: colors.brand[700],

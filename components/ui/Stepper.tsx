@@ -117,7 +117,7 @@ function StepButton({
         {
           width: size,
           height: size,
-          backgroundColor: pressed && enabled ? colors.neutral[200] : colors.surface.sunken,
+          backgroundColor: pressed && enabled ? colors.surface.hover : colors.surface.sunken,
           opacity: enabled ? 1 : 0.35,
         },
       ]}

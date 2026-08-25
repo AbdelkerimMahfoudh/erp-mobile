@@ -62,7 +62,9 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.brand[600],
+        // text.accent, not brand[600]: the accent lifts to a brighter step in
+        // dark mode, where brand[600] goes muddy against near-black.
+        tabBarActiveTintColor: colors.text.accent,
         tabBarInactiveTintColor: colors.text.tertiary,
         tabBarStyle: {
           borderTopColor: colors.border.subtle,
@@ -72,6 +74,9 @@ export default function TabsLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        // The scene behind each tab. Unset, the navigator paints its own
+        // light default, which ignores the theme entirely.
+        sceneStyle: { backgroundColor: colors.surface.canvas },
       }}
     >
       {/*

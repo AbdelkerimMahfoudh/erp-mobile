@@ -56,25 +56,25 @@ interface VariantStyle {
  * "there is an action here, it is not ready yet".
  */
 const useDisabled = makeTokens((colors) => ({
-  background: colors.neutral[200],
-  pressedBackground: colors.neutral[200],
+  background: colors.surface.sunken,
+  pressedBackground: colors.surface.sunken,
   // Deliberately darker than `text.disabled`. The grey fill already signals
   // "unavailable"; the label's job is to stay readable under shop glare on a
   // cheap screen, so the user can still tell what the action will be.
-  foreground: colors.neutral[600],
+  foreground: colors.text.secondary,
   border: colors.border.subtle,
 } as VariantStyle));
 
 const useDisabledTransparent = makeTokens((colors) => ({
   background: 'transparent',
   pressedBackground: 'transparent',
-  foreground: colors.neutral[500],
+  foreground: colors.text.disabled,
 } as VariantStyle));
 
 const useVariants = makeTokens((colors) => ({
   primary: {
-    background: colors.brand[600],
-    pressedBackground: colors.brand[700],
+    background: colors.intent.info.solid,
+    pressedBackground: colors.intent.info.solidPressed,
     foreground: colors.text.inverse,
   },
   secondary: {

@@ -73,14 +73,22 @@ it('body text is readable on its own surface, in both themes', () => {
   }
 });
 
-it('tertiary text clears the large-text bar at least', () => {
-  // Labels and metadata. Never used for anything actionable, so 3:1 is the
-  // honest bar — but it must not be invisible either.
+it('tertiary text clears the large-text bar on EVERY surface', () => {
+  /*
+    Labels and metadata. Never used for anything actionable, so 3:1 is the
+    honest bar — but it must not be invisible either.
+
+    Checked against the canvas as well as the card, deliberately. An earlier
+    version only checked the card, passed, and shipped hint text at 2.9:1 on
+    the canvas — where most of it actually sits.
+  */
   for (const [name, p] of Object.entries(PALETTES)) {
-    assert.ok(
-      contrast(p.text.tertiary, p.surface.card) >= 3,
-      `${name}: tertiary text is ${contrast(p.text.tertiary, p.surface.card).toFixed(2)}:1`,
-    );
+    for (const surface of [p.surface.canvas, p.surface.card, p.surface.sunken]) {
+      assert.ok(
+        contrast(p.text.tertiary, surface) >= 3,
+        `${name}: tertiary on ${surface} is ${contrast(p.text.tertiary, surface).toFixed(2)}:1`,
+      );
+    }
   }
 });
 
@@ -200,6 +208,31 @@ it('no screen imports the frozen palette for its values', () => {
   assert.deepEqual(offenders, [], 'these capture a static palette: ' + offenders.join(', '));
 });
 
+it('no colour utility class survives, even inside a conditional', () => {
+  /*
+    `className="text-slate-900"` was caught by an earlier sweep. This catches
+    the shape that sweep missed — a class chosen at runtime:
+
+        className={selected ? 'bg-brand-100' : 'bg-white'}
+
+    Tailwind colour utilities are fixed light values. They ignore the theme
+    entirely, so on a dark canvas they glow.
+  */
+  const COLOUR_CLASS =
+    /\b(bg|text|border)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|brand|white|black)(-\d{2,3})?\b/;
+  const offenders: string[] = [];
+  for (const file of APP_SOURCES) {
+    const code = withoutComments(readFileSync(file, 'utf8'));
+    // Any string literal that sits in a className position, quoted or braced.
+    for (const m of code.matchAll(/className=(?:"([^"]*)"|\{[^}]*\})/g)) {
+      const chunk = m[0];
+      const hit = chunk.match(COLOUR_CLASS);
+      if (hit) offenders.push(`${file}: ${hit[0]}`);
+    }
+  }
+  assert.deepEqual(offenders, [], 'colour utility classes: ' + offenders.join(' | '));
+});
+
 it('no raw colour is written outside the token layer', () => {
   const offenders: string[] = [];
   for (const file of APP_SOURCES) {
@@ -231,6 +264,29 @@ it('no screen branches on the theme itself', () => {
     if (/\bisDark\s*\?/.test(code)) offenders.push(file);
   }
   assert.deepEqual(offenders, [], 'these branch on the theme: ' + offenders.join(', '));
+});
+
+it('no raw ramp step is used as a surface', () => {
+  /*
+    `colors.brand[50]` is the SAME pale tint in both palettes — the ramps are
+    fixed, and only the semantic roles above them flip. Used as a background it
+    therefore stays light after dark, which is how a selected row ended up
+    glowing white on a near-black screen. `intent.info.bg` is the theme-aware
+    way to say the same thing.
+  */
+  const offenders: string[] = [];
+  // `background:` and `pressedBackground:` too — the variant tables in Button
+  // and IconButton name their fills that way, and the first version of this
+  // rule only looked for `backgroundColor:`, so it missed them.
+  const RAMP_SURFACE =
+    /(backgroundColor|borderColor|pressedBackground|background)\s*:\s*[^,;\n]*colors\.(brand|neutral)\[/g;
+  for (const file of APP_SOURCES) {
+    const code = withoutComments(readFileSync(file, 'utf8'));
+    for (const m of code.matchAll(RAMP_SURFACE)) {
+      offenders.push(`${file}: ${m[0]}…`);
+    }
+  }
+  assert.deepEqual(offenders, [], 'ramp steps used as surfaces: ' + offenders.join(' | '));
 });
 
 // ── The preference itself ───────────────────────────────────────────────────

@@ -72,6 +72,8 @@ interface IntentColor {
   fg: string;
   /** Solid fill for buttons and strong emphasis. */
   solid: string;
+  /** The same fill while held down. Always a DARKER step, in both themes. */
+  solidPressed: string;
   /** Text/icon colour that sits on `solid`. */
   onSolid: string;
 }
@@ -158,8 +160,14 @@ export const lightColors: Palette = {
     primary: neutral[900],
     /** Supporting copy, list subtitles. */
     secondary: neutral[600],
-    /** Labels, timestamps, metadata. Never for anything actionable. */
-    tertiary: neutral[500],
+    /**
+     * Labels, timestamps, metadata. Never for anything actionable.
+     *
+     * Its own value rather than `neutral[500]`: on the canvas that step came
+     * to 2.9:1, and this text carries real explanation — the line under a
+     * setting saying what it does — not decoration.
+     */
+    tertiary: '#828B9B',
     /**
      * Placeholder text only — deliberately quieter than real content, but not
      * so quiet it disappears. A shop counter is often in direct sunlight, and
@@ -190,6 +198,7 @@ export const lightColors: Palette = {
       border: neutral[200],
       fg: neutral[700],
       solid: neutral[800],
+      solidPressed: neutral[900],
       onSolid: neutral[0],
     },
     info: {
@@ -197,6 +206,7 @@ export const lightColors: Palette = {
       border: brand[100],
       fg: brand[700],
       solid: brand[600],
+      solidPressed: brand[700],
       onSolid: neutral[0],
     },
     success: {
@@ -204,6 +214,7 @@ export const lightColors: Palette = {
       border: '#C4E9DA',
       fg: '#0B6B4F',
       solid: '#0F7B5F',
+      solidPressed: '#0B6B4F',
       onSolid: neutral[0],
     },
     warning: {
@@ -211,6 +222,7 @@ export const lightColors: Palette = {
       border: '#F7E1BE',
       fg: '#8A5209',
       solid: '#A85F0B',
+      solidPressed: '#8A5209',
       onSolid: neutral[0],
     },
     danger: {
@@ -218,6 +230,7 @@ export const lightColors: Palette = {
       border: '#F6D2CD',
       fg: '#A32C23',
       solid: '#C0362C',
+      solidPressed: '#A32C23',
       onSolid: neutral[0],
     },
   },
@@ -295,6 +308,7 @@ export const darkColors: Palette = {
       border: dark.borderDefault,
       fg: neutral[300],
       solid: neutral[200],
+      solidPressed: neutral[300],
       onSolid: neutral[900],
     },
     info: {
@@ -302,6 +316,7 @@ export const darkColors: Palette = {
       border: '#2C2F63',
       fg: brand[300],
       solid: brand[600],
+      solidPressed: brand[700],
       onSolid: neutral[0],
     },
     success: {
@@ -309,6 +324,7 @@ export const darkColors: Palette = {
       border: '#1B4436',
       fg: '#6EE7B7',
       solid: '#0F7B5F',
+      solidPressed: '#0B6B4F',
       onSolid: neutral[0],
     },
     warning: {
@@ -316,6 +332,7 @@ export const darkColors: Palette = {
       border: '#4A3312',
       fg: '#F0C07A',
       solid: '#A85F0B',
+      solidPressed: '#8A5209',
       onSolid: neutral[0],
     },
     danger: {
@@ -323,6 +340,7 @@ export const darkColors: Palette = {
       border: '#4C201C',
       fg: '#F2A49B',
       solid: '#C0362C',
+      solidPressed: '#A32C23',
       onSolid: neutral[0],
     },
   },

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { ThemeProvider as NavigationThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { OfflineBanner } from '../components/ui';
@@ -69,8 +70,35 @@ function AppShell() {
     return <View style={{ flex: 1, backgroundColor: colors.surface.canvas }} />;
   }
 
+  /*
+   * The navigator paints its OWN background, from React Navigation's theme —
+   * not from any style a screen sets. Left alone it is `rgb(242,242,242)`, a
+   * light grey behind every screen in the app, which made dark mode look
+   * broken even where every element on top of it was correct. It was invisible
+   * in the token audit precisely because it is not in our token layer.
+   *
+   * Derived from our palette rather than React Navigation's own DarkTheme, so
+   * there is still exactly one source of truth for colour. `@react-navigation/
+   * native` is expo-router's own dependency and its theming API — nothing new
+   * was added to use it.
+   */
+  const navigationTheme = {
+    ...DefaultTheme,
+    dark: isDark,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: colors.text.accent,
+      background: colors.surface.canvas,
+      card: colors.surface.card,
+      text: colors.text.primary,
+      border: colors.border.subtle,
+      notification: colors.intent.danger.solid,
+    },
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
+      <NavigationThemeProvider value={navigationTheme}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           {/*
@@ -117,6 +145,7 @@ function AppShell() {
           <DialogHost />
         </AuthProvider>
       </QueryClientProvider>
+      </NavigationThemeProvider>
     </GestureHandlerRootView>
   );
 }

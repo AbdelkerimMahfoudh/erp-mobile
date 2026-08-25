@@ -85,11 +85,20 @@ export default function CatalogScreen() {
             <Pressable
               key={f.value}
               onPress={() => setTracking(f.value)}
-              className={`rounded-full border px-3 py-1 ${
-                tracking === f.value ? 'border-brand-600 bg-brand-100' : 'border-slate-300 bg-white'
-              }`}
+              className="rounded-full border px-3 py-1"
+              style={{
+                borderColor:
+                  tracking === f.value ? colors.intent.info.solid : colors.border.default,
+                backgroundColor:
+                  tracking === f.value ? colors.intent.info.bg : colors.surface.card,
+              }}
             >
-              <Text className={tracking === f.value ? 'text-sm text-brand-700' : 'text-sm text-slate-600'}>
+              <Text
+                className="text-sm"
+                style={{
+                  color: tracking === f.value ? colors.intent.info.fg : colors.text.secondary,
+                }}
+              >
                 {t(f.key as never)}
               </Text>
             </Pressable>
@@ -108,11 +117,20 @@ export default function CatalogScreen() {
           {canManage ? (
             <Pressable
               onPress={() => setActive(active === 'active' ? 'all' : 'active')}
-              className={`rounded-full border px-3 py-1 ${
-                active === 'active' ? 'border-slate-300 bg-white' : 'border-brand-600 bg-brand-100'
-              }`}
+              className="rounded-full border px-3 py-1"
+              style={{
+                borderColor:
+                  active === 'active' ? colors.border.default : colors.intent.info.solid,
+                backgroundColor:
+                  active === 'active' ? colors.surface.card : colors.intent.info.bg,
+              }}
             >
-              <Text className={active === 'active' ? 'text-sm text-slate-600' : 'text-sm text-brand-700'}>
+              <Text
+                className="text-sm"
+                style={{
+                  color: active === 'active' ? colors.text.secondary : colors.intent.info.fg,
+                }}
+              >
                 {t(active === 'active' ? 'catalog.filter.activeOnly' : 'catalog.filter.includingArchived')}
               </Text>
             </Pressable>
@@ -123,7 +141,11 @@ export default function CatalogScreen() {
       {page.isError ? (
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center" style={{ color: colors.text.secondary }}>{t('catalog.error')}</Text>
-          <Pressable onPress={() => page.refetch()} className="mt-3 rounded-xl bg-brand-600 px-4 py-2">
+          <Pressable
+            onPress={() => page.refetch()}
+            className="mt-3 rounded-xl px-4 py-2"
+            style={{ backgroundColor: colors.intent.info.solid }}
+          >
             <Text className="font-medium" style={{ color: colors.text.inverse }}>{t('catalog.retry')}</Text>
           </Pressable>
         </View>
@@ -171,7 +193,8 @@ export default function CatalogScreen() {
       {canManage ? (
         <Pressable
           onPress={() => router.push('/catalog/new' as never)}
-          className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full bg-brand-600 shadow-lg"
+          className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full shadow-lg"
+          style={{ backgroundColor: colors.intent.info.solid }}
           accessibilityLabel={t('catalog.add')}
         >
           <Plus size={26} color={colors.text.inverse} />
@@ -198,7 +221,10 @@ function ProductRow({
       onPress={onPress}
       className="mb-2 flex-row items-center justify-between rounded-2xl border p-3" style={{ borderColor: colors.border.subtle, backgroundColor: colors.surface.card }}
     >
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+      <View
+        className="h-10 w-10 items-center justify-center rounded-xl"
+        style={{ backgroundColor: colors.intent.info.bg }}
+      >
         <Tag size={18} color={colors.brand[600]} />
       </View>
       <View className="ml-3 flex-1">

@@ -55,7 +55,7 @@ export function Skeleton({ width = '100%', height = 16, rounded = 'sm', style }:
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={[
-        { width, height, borderRadius: radius[rounded], backgroundColor: colors.neutral[200] },
+        { width, height, borderRadius: radius[rounded], backgroundColor: colors.surface.sunken },
         animated,
         style,
       ]}

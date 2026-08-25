@@ -90,14 +90,25 @@ function Muted({ children }: { children: React.ReactNode }) {
 }
 function ProductLine({ p, metric, tone = 'slate' }: { p: ProductRow; metric: string; tone?: 'slate' | 'green' | 'red' }) {
   const colors = useColors();
-  const t: Record<string, string> = { slate: 'text-slate-700', green: 'text-emerald-600', red: 'text-red-600' };
+  /*
+    Tokens, not utility classes. This map used to hold `text-slate-700` and was
+    interpolated into a template string, which put a fixed light colour on the
+    figure a shopkeeper is actually reading — 1.7:1 against the dark canvas.
+    It was invisible to the className audit precisely because the class never
+    appeared literally in a `className` attribute.
+  */
+  const metricColor: Record<string, string> = {
+    slate: colors.text.primary,
+    green: colors.intent.success.fg,
+    red: colors.intent.danger.fg,
+  };
   return (
     <View className="flex-row items-center justify-between py-2">
       <View className="flex-1 pr-2">
         <Text className="font-medium" style={{ color: colors.text.primary }} numberOfLines={1}>{p.label ?? '—'}</Text>
         {p.trackingType ? <Badge label={trackingLabel[p.trackingType]} tone="brand" /> : null}
       </View>
-      <Text className={`font-semibold ${t[tone]}`}>{metric}</Text>
+      <Text className="font-semibold" style={{ color: metricColor[tone] }}>{metric}</Text>
     </View>
   );
 }

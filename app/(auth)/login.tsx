@@ -110,7 +110,10 @@ export default function Login() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View className="flex-1 justify-center px-6">
           <View className="mb-8 items-center">
-            <View className="h-16 w-16 items-center justify-center rounded-2xl bg-brand-600">
+            <View
+              className="h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: colors.intent.info.solid }}
+            >
               <Store color={colors.text.inverse} size={30} />
             </View>
             <Text className="mt-4 text-2xl font-bold" style={{ color: colors.text.primary }}>{t('auth.title')}</Text>

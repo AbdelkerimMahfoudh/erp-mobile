@@ -81,9 +81,14 @@ export function Toggle({
             value={value}
             onValueChange={onValueChange}
             disabled={disabled}
-            trackColor={{ false: colors.neutral[300], true: colors.brand[500] }}
+            /*
+              Every colour named explicitly. React Native Web supplies its own
+              Material teal for an unstyled switch, which belongs to no palette
+              here and looks like a bug beside the brand.
+            */
+            trackColor={{ false: colors.border.strong, true: colors.intent.info.solid }}
             thumbColor={colors.surface.card}
-            ios_backgroundColor={colors.neutral[300]}
+            ios_backgroundColor={colors.border.strong}
           />
         </View>
       </View>

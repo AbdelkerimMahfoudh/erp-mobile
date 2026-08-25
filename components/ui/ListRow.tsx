@@ -79,11 +79,11 @@ export function ListRow({
         styles.row,
         {
           backgroundColor: selected
-            ? colors.brand[50]
+            ? colors.intent.info.bg
             : pressed
               ? colors.surface.hover
               : colors.surface.card,
-          borderColor: selected ? colors.brand[200] : colors.border.subtle,
+          borderColor: selected ? colors.intent.info.border : colors.border.subtle,
         },
         disabled ? styles.disabled : null,
         style,
@@ -191,7 +191,7 @@ const useStyles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
-    backgroundColor: colors.brand[50],
+    backgroundColor: colors.intent.info.bg,
   },
   disabled: {
     opacity: 0.5,

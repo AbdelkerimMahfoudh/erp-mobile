@@ -19,8 +19,16 @@ export type IconButtonVariant = 'plain' | 'filled' | 'sunken' | 'inverse';
 
 const useVariants = makeTokens((colors) => ({
   plain: { background: 'transparent', pressed: colors.surface.sunken, color: colors.text.secondary },
-  filled: { background: colors.brand[600], pressed: colors.brand[700], color: colors.text.inverse },
-  sunken: { background: colors.surface.sunken, pressed: colors.neutral[200], color: colors.text.primary },
+  filled: {
+    background: colors.intent.info.solid,
+    pressed: colors.intent.info.solidPressed,
+    color: colors.text.inverse,
+  },
+  sunken: {
+    background: colors.surface.sunken,
+    pressed: colors.surface.hover,
+    color: colors.text.primary,
+  },
   inverse: {
     background: colors.surface.inverseRaised,
     pressed: colors.surface.inverseRaisedPressed,

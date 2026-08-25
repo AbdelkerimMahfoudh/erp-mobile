@@ -116,8 +116,8 @@ export function FilterChip({ label, selected, onPress, count, style }: FilterChi
       style={[
         styles.filter,
         {
-          backgroundColor: selected ? colors.brand[600] : colors.surface.card,
-          borderColor: selected ? colors.brand[600] : colors.border.default,
+          backgroundColor: selected ? colors.intent.info.solid : colors.surface.card,
+          borderColor: selected ? colors.intent.info.solid : colors.border.default,
           opacity: pressed ? pressedOpacity : 1,
         },
         style,
