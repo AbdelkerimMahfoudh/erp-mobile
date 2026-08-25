@@ -236,4 +236,76 @@ it('every visible string is translated', () => {
   assert.deepEqual(bare, [], 'hardcoded copy on the login screen: ' + bare.join(' | '));
 });
 
+
+
+// ── Create account (Phase 2) ────────────────────────────────────────────────
+
+it('the login screen offers a way to create an account', () => {
+  /*
+    Somebody whose shop has no account had nowhere to go from this screen at
+    all, and the answer to "how do I get one" should not be a phone call.
+  */
+  const code = withoutComments(source(LOGIN));
+  assert.match(code, /auth\.action\.createAccount/);
+  assert.match(code, /openSignup\(\)/);
+});
+
+it('and guards against the impatient second tap', () => {
+  // Opening a browser is slow enough that two taps is the normal case, and two
+  // taps must not open two browser sessions.
+  const code = withoutComments(source(LOGIN));
+  assert.match(code, /if \(openingSignup\) return;/);
+});
+
+it('the signup URL is configured, never hardcoded to a real domain', () => {
+  const config = withoutComments(source('constants/config.ts'));
+  assert.match(config, /EXPO_PUBLIC_SIGNUP_URL/);
+  // No production domain baked into the bundle.
+  assert.ok(
+    !/https?:\/\/[a-z0-9-]+\.(com|mr|net|org)/i.test(config),
+    'no real domain may be hardcoded in the app config',
+  );
+});
+
+it('only http(s) is ever opened', () => {
+  const signup = withoutComments(source('lib/signup.ts'));
+  assert.match(signup, /protocol === 'http:' \|\| u\.protocol === 'https:'/);
+});
+
+it('and no credential is ever put in that URL', () => {
+  const signup = withoutComments(source('lib/signup.ts'));
+  for (const banned of ['token', 'password', 'accessToken', 'identifier']) {
+    assert.ok(!signup.includes(banned), `the signup URL must not carry ${banned}`);
+  }
+});
+
+it('the blocked screen never decides the state itself', () => {
+  /*
+    Every word comes from the SERVER's state. A client that derives its own
+    entitlement from a date can be made to derive it wrongly, and a shopkeeper
+    told the wrong reason makes the wrong phone call.
+  */
+  const code = withoutComments(source('app/subscription-blocked.tsx'));
+  assert.match(code, /entitlement\?\.state/);
+  // No date arithmetic anywhere on this screen.
+  assert.ok(!/Date\.now\(\)|getTime\(\)/.test(code), 'the screen must not compute a state from dates');
+});
+
+it('and always offers a way forward', () => {
+  const code = withoutComments(source('app/subscription-blocked.tsx'));
+  assert.match(code, /sub\.recheck/);
+  assert.match(code, /sub\.manage/);
+  // Re-checking must let a newly activated shop straight in.
+  assert.match(code, /router\.replace\('\/'\)/);
+});
+
+it('no new screen mentions a Store ID or a personal ID', () => {
+  for (const f of ['app/(auth)/login.tsx', 'app/subscription-blocked.tsx', 'lib/signup.ts']) {
+    const code = withoutComments(source(f));
+    for (const banned of ['storeId', 'storeAccountId', 'personalId', 'personal_id']) {
+      assert.ok(!code.includes(banned), `${f} must not mention ${banned}`);
+    }
+  }
+});
+
 console.log(`sign-in identifier and login-screen drift: ${passed} passed`);

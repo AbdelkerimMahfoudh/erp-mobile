@@ -750,6 +750,9 @@ export const fr: Catalogue = {
   // Subscription status (Milestone K). No prices, no payment button, no link.
   'subscription.title': 'Abonnement',
   'nav.subscription': 'Abonnement',
+  'subscription.state.pending': 'En attente d’activation',
+  'subscription.state.suspended': 'Suspendu',
+  'subscription.state.cancelled': 'Annulé',
   'subscription.state.active': 'Actif',
   'subscription.state.grace': 'Terminé — période de tolérance',
   'subscription.state.expired': 'Terminé',
@@ -1507,6 +1510,17 @@ export const fr: Catalogue = {
   'auth.choose.cancel': 'Recommencer',
   'auth.field.password': 'Mot de passe',
   'auth.action.signIn': 'Se connecter',
+  'auth.action.createAccount': 'Créer un compte',
+  'auth.signup.unconfigured': 'La création de compte n’est pas encore configurée sur cet appareil.',
+  'auth.signup.unavailable': 'Impossible d’ouvrir le site. Vérifiez votre connexion et réessayez.',
+  'sub.pending.title': 'En attente d’activation',
+  'sub.pending.body': 'Votre entreprise est enregistrée. L’application s’ouvre dès l’activation. Il n’y a pas d’essai gratuit.',
+  'sub.suspended.title': 'Accès suspendu',
+  'sub.suspended.body': 'Cette entreprise a été suspendue. Ouvrez votre page de compte pour savoir pourquoi.',
+  'sub.expired.title': 'Abonnement terminé',
+  'sub.expired.body': 'Vous pouvez toujours consulter tout ce qui vous appartient. Les nouvelles saisies sont suspendues.',
+  'sub.manage': 'Gérer votre compte',
+  'sub.recheck': 'Vérifier à nouveau',
   // Non-enumerating: never reveals which field was wrong.
   'auth.error.failed':
     'Connexion impossible. Vérifiez vos informations et réessayez.',

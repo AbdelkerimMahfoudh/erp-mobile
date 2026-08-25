@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { looksSubmittable } from '../../lib/identifier';
+import { openSignup } from '../../lib/signup';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
 import { useColors } from '../../lib/design/theme';
@@ -47,6 +48,14 @@ export default function Login() {
     own, so an abandoned attempt simply stops working.
   */
   const [choice, setChoice] = useState<AccountChoice | null>(null);
+  /*
+    Opening a browser is slow enough that an impatient second tap is the
+    normal case, and two taps would open two browser sessions on top of each
+    other. The guard is state rather than a debounce timer so it survives
+    however long the handoff takes.
+  */
+  const [openingSignup, setOpeningSignup] = useState(false);
+  const [signupProblem, setSignupProblem] = useState<string | null>(null);
 
   const onSubmit = async () => {
     if (loading) return;
@@ -91,6 +100,18 @@ export default function Login() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onCreateAccount = async () => {
+    if (openingSignup) return;
+    setOpeningSignup(true);
+    setSignupProblem(null);
+    try {
+      const outcome = await openSignup();
+      if (outcome !== 'opened') setSignupProblem(t(`auth.signup.${outcome}`));
+    } finally {
+      setOpeningSignup(false);
     }
   };
 
@@ -205,6 +226,25 @@ export default function Login() {
               loading={loading}
               disabled={!canSubmit || loading}
             />
+
+            {/*
+              A clear SECONDARY action. Somebody whose shop has no account
+              yet currently has nowhere to go from this screen at all, and
+              the answer to "how do I get one" should not be a phone call.
+            */}
+            <Button
+              title={t('auth.action.createAccount')}
+              variant="secondary"
+              onPress={() => void onCreateAccount()}
+              loading={openingSignup}
+              disabled={openingSignup}
+            />
+
+            {signupProblem ? (
+              <Text className="text-center text-sm" style={{ color: colors.intent.warning.fg }}>
+                {signupProblem}
+              </Text>
+            ) : null}
           </View>
           )}
         </View>

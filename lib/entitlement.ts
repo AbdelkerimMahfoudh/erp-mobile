@@ -11,7 +11,21 @@ import { qk } from './query-keys';
  * made to decide wrongly, and the server would refuse it anyway.
  */
 
-export type EntitlementState = 'active' | 'grace' | 'expired' | 'complimentary';
+export type EntitlementState =
+  | 'pending'
+  | 'active'
+  | 'grace'
+  | 'expired'
+  | 'complimentary'
+  | 'suspended'
+  | 'cancelled';
+
+/** Where an administrator has put the subscription. Distinct from the state. */
+export type SubscriptionStatus =
+  | 'pending_activation'
+  | 'activated'
+  | 'suspended'
+  | 'cancelled';
 
 export interface Entitlement {
   state: EntitlementState;
@@ -29,6 +43,7 @@ export interface Entitlement {
   canRead: boolean;
   canWrite: boolean;
   isComplimentary: boolean;
+  status: SubscriptionStatus;
   calculatedAt: string;
 }
 
