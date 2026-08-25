@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider as NavigationThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
-import { OfflineBanner } from '../components/ui';
+import { OfflineBanner, StagingBanner } from '../components/ui';
 import { useI18n } from '../lib/i18n';
 import { ThemeProvider, useColors, useTheme } from '../lib/design/theme';
 
@@ -113,6 +113,11 @@ function AppShell() {
             when it does appear it pushes content down rather than covering it,
             because a banner that hides what it warns about is worse than none.
           */}
+          {/*
+            Renders nothing in a production build. In a staging build it is the
+            one thing on screen that says the shop is not real.
+          */}
+          <StagingBanner />
           <OfflineBanner />
           {/*
             The back-swipe is the native stack's own gesture, and on iOS it
