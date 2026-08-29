@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Button, Field } from '../../components/ui';
+import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
 import { useAuth } from '../../hooks/useAuth';
 import { api, ApiError } from '../../lib/api-client';
@@ -171,6 +171,15 @@ export default function VerifyScreen() {
               }}
               disabled={submitting}
             />
+
+            {/*
+              Compact here: the screen inherits whatever was chosen on the
+              previous one, and this exists only so an accidental selection is
+              not a trap. Changing it does not touch the code already typed, the
+              continuation, or the pending verification — it writes a preference
+              and re-renders.
+            */}
+            <AuthLanguageSwitch compact />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

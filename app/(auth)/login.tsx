@@ -3,7 +3,7 @@ import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
-import { Button, Field } from '../../components/ui';
+import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
@@ -235,6 +235,17 @@ export default function Login() {
               variant="secondary"
               onPress={onCreateAccount}
             />
+
+            {/*
+              Last on the screen, and the first thing somebody needs.
+
+              A person handed a phone in a language they cannot read cannot sign
+              in to change the language, and could not change the language
+              without signing in — the setting lived behind this screen. It sits
+              below the actions because it is not the task; it is the way out of
+              being unable to start the task.
+            */}
+            <AuthLanguageSwitch />
           </View>
           )}
         </View>

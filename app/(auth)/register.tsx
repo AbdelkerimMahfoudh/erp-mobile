@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { Button, Field } from '../../components/ui';
+import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
@@ -236,6 +236,14 @@ export default function RegisterScreen() {
               onPress={() => router.back()}
               disabled={submitting}
             />
+
+            {/*
+              The longest form in the product, and the one most likely to be
+              filled in by somebody who was handed the phone. Changing the
+              language here keeps every field exactly as typed: this writes a
+              preference and re-renders, it does not remount the form.
+            */}
+            <AuthLanguageSwitch />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
