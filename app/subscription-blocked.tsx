@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import * as Linking from 'expo-linking';
 import { useRouter, Stack } from 'expo-router';
-import { Button, Screen, Text } from '../components/ui';
+import { Button, InlineNotice, Screen, Text } from '../components/ui';
 import { space } from '../lib/design/tokens';
 import { makeStyles } from '../lib/design/theme';
 import { useTranslation } from '../lib/i18n';
 import { useEntitlement } from '../lib/entitlement';
-import { accountPortalUrl } from '../constants/config';
+import { useAccountPortal } from '../hooks/useAccountPortal';
 
 /**
  * The shop cannot get in, and this screen says why.
@@ -33,7 +32,14 @@ export default function SubscriptionBlocked() {
   const entitlement = query.data;
 
   const [checking, setChecking] = useState(false);
-  const [opening, setOpening] = useState(false);
+  /*
+   * The same handoff the app uses after registration, not a second one.
+   *
+   * This screen used to open the account URL directly, with no ticket — so the
+   * one place somebody actually taps "manage my subscription" was the one place
+   * that landed an authenticated Owner on a password form.
+   */
+  const portal = useAccountPortal();
 
   const state = entitlement?.state ?? 'pending';
 
@@ -59,20 +65,6 @@ export default function SubscriptionBlocked() {
     }
   };
 
-  const onManage = async () => {
-    if (opening) return;
-    setOpening(true);
-    try {
-      const url = accountPortalUrl();
-      if (url && (await Linking.canOpenURL(url))) await Linking.openURL(url);
-    } catch {
-      // A browser that will not open must not crash the screen explaining the
-      // problem.
-    } finally {
-      setOpening(false);
-    }
-  };
-
   return (
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
@@ -89,10 +81,22 @@ export default function SubscriptionBlocked() {
           <Button
             title={t('sub.manage')}
             variant="secondary"
-            onPress={() => void onManage()}
-            loading={opening}
+            onPress={() => void portal.open()}
+            loading={portal.opening}
           />
         </View>
+
+        {/*
+          A failed handoff is not a failed session. The shop is still signed in
+          and still on this screen; only the browser did not open.
+        */}
+        {portal.message ? (
+          <InlineNotice tone="warning" title={portal.message}>
+            <Text variant="caption" tone="secondary">
+              {t('sub.recheck')}
+            </Text>
+          </InlineNotice>
+        ) : null}
       </View>
     </Screen>
   );
