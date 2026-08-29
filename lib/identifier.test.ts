@@ -247,19 +247,95 @@ it('the login screen offers a way to create an account', () => {
   */
   const code = withoutComments(source(LOGIN));
   assert.match(code, /auth\.action\.createAccount/);
-  assert.match(code, /openSignup\(\)/);
 });
 
-it('and guards against the impatient second tap', () => {
-  // Opening a browser is slow enough that two taps is the normal case, and two
-  // taps must not open two browser sessions.
+it('and that way is a SCREEN in this app, never a browser', () => {
+  /*
+    Account creation moved into the app. Setting a shop up means scanning
+    stock, scanning happens here, and sending somebody to a browser to type the
+    longest form in the product — on the surface with the worst keyboard —
+    before doing the real work somewhere else was never the shorter path.
+  */
   const code = withoutComments(source(LOGIN));
-  assert.match(code, /if \(openingSignup\) return;/);
+  assert.match(code, /router\.push\('\/\(auth\)\/register'/);
+  assert.ok(!code.includes('openSignup'), 'the login screen must not open a browser to register');
+  assert.ok(!/Linking\./.test(code), 'and must not reach for Linking either');
 });
 
-it('the signup URL is configured, never hardcoded to a real domain', () => {
+it('registration asks for nothing the server generates', () => {
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  for (const banned of ['storeId', 'StoreId', 'nationalId', 'personalId', 'companyId', 'branchId', 'roleId']) {
+    assert.ok(!code.includes(banned), `registration must never ask for ${banned}`);
+  }
+});
+
+it('one idempotency key per attempt, reused across retries', () => {
+  /*
+    A dropped response on a bad connection is the ordinary case in a Nouakchott
+    shop. Without a stable key the anxious second tap creates a second business
+    with the same name and no way to tell which one is yours.
+  */
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(code, /const idempotencyKey = useRef\(uuidv4\(\)\)/);
+  assert.match(code, /idempotencyKey\.current/);
+});
+
+it('and against the impatient second tap, synchronously', () => {
+  // A ref, not state: two taps can both land before React re-renders.
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(code, /const inFlight = useRef\(false\)/);
+  assert.match(code, /if \(inFlight\.current\) return;/);
+});
+
+it('the password is cleared and never replayed for a session', () => {
+  const reg = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(reg, /password: '', passwordConfirm: ''/);
+
+  const verify = withoutComments(source('app/(auth)/verify.tsx'));
+  assert.ok(!verify.includes('password'), 'verification must not touch the password at all');
+});
+
+it('the continuation lives only in secure storage', () => {
+  const store = withoutComments(source('lib/registration-session.ts'));
+  // `lib/storage.ts` is the SecureStore wrapper; AsyncStorage is not.
+  assert.match(store, /from '\.\/storage'/);
+  assert.ok(!store.includes('AsyncStorage'), 'a credential does not belong in AsyncStorage');
+  // And it is removed rather than left lying about.
+  assert.match(store, /export async function forgetContinuation/);
+});
+
+it('the portal URL carries the one-time ticket and nothing else', () => {
+  const portal = withoutComments(source('lib/portal.ts'));
+  assert.match(portal, /portal-session\?t=/);
+  for (const banned of ['accessToken', 'refreshToken', 'password', 'code=']) {
+    assert.ok(!portal.includes(banned), `the portal URL must not carry ${banned}`);
+  }
+});
+
+it('a fresh ticket every time — a spent or uncertain one is never reused', () => {
+  const portal = withoutComments(source('lib/portal.ts'));
+  assert.match(portal, /api\.post<HandoffTicket>\('\/platform\/portal-handoff'/);
+  assert.ok(!/cache|stored ticket|savedTicket/i.test(portal));
+});
+
+it('a browser that will not open never costs the account', () => {
+  /*
+    By the time the portal is opened the account exists and the session is
+    installed. A refused browser must leave both alone — restarting a
+    registration because a browser would not launch is the one unforgivable
+    outcome here.
+  */
+  const verify = withoutComments(source('app/(auth)/verify.tsx'));
+  // Call sites, not imports: the import of one naturally precedes the other.
+  const opened = verify.indexOf('await adoptSession(');
+  const portal = verify.indexOf('await openAccountPortal(');
+  assert.ok(opened > -1 && portal > opened, 'the session must be installed BEFORE the browser is tried');
+  assert.ok(!/clearSession|signOut/.test(verify), 'no failure path may delete a valid session');
+});
+
+it('the portal URL is configured, never hardcoded to a real domain', () => {
   const config = withoutComments(source('constants/config.ts'));
-  assert.match(config, /EXPO_PUBLIC_SIGNUP_URL/);
+  assert.match(config, /EXPO_PUBLIC_PORTAL_URL/);
   // No production domain baked into the bundle.
   assert.ok(
     !/https?:\/\/[a-z0-9-]+\.(com|mr|net|org)/i.test(config),
@@ -268,15 +344,8 @@ it('the signup URL is configured, never hardcoded to a real domain', () => {
 });
 
 it('only http(s) is ever opened', () => {
-  const signup = withoutComments(source('lib/signup.ts'));
-  assert.match(signup, /protocol === 'http:' \|\| u\.protocol === 'https:'/);
-});
-
-it('and no credential is ever put in that URL', () => {
-  const signup = withoutComments(source('lib/signup.ts'));
-  for (const banned of ['token', 'password', 'accessToken', 'identifier']) {
-    assert.ok(!signup.includes(banned), `the signup URL must not carry ${banned}`);
-  }
+  const portal = withoutComments(source('lib/portal.ts'));
+  assert.match(portal, /protocol === 'http:' \|\| u\.protocol === 'https:'/);
 });
 
 it('the blocked screen never decides the state itself', () => {

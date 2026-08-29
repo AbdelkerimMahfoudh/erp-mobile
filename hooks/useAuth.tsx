@@ -42,6 +42,8 @@ interface AuthContextValue {
   /** Finish a sign-in that needed a shop picked. The password is not asked again. */
   chooseAccount: (choice: AccountChoice, accountRef: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Install a session issued by completing a registration. */
+  adoptSession: (tokens: { accessToken: string; refreshToken: string }) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -172,6 +174,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   };
 
+  /**
+   * Adopt the session a completed registration returned.
+   *
+   * Registration ends with an ordinary session — the same kind a password
+   * sign-in produces — so the only difference here is where the tokens came
+   * from. The password is NOT replayed to obtain them, and is not kept.
+   *
+   * The user record is then read from `/auth/me` rather than trusted from the
+   * completion response, so the identity the app shows is one the server has
+   * just confirmed against the stored session.
+   */
+  const adoptSession = async (tokens: { accessToken: string; refreshToken: string }) => {
+    await setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.accessToken);
+    await setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+
+    const me = await api.get<AuthUser>('/auth/me');
+    await setItem(TOKEN_KEYS.USER, JSON.stringify(me));
+    await rememberStoreId(me.publicStoreId);
+    await branch.hydrate();
+    setUser(me);
+    return me;
+  };
+
   const signOut = async () => {
     try {
       const refreshToken = await getItem(TOKEN_KEYS.REFRESH_TOKEN);
@@ -245,7 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
 
-  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut, adoptSession }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

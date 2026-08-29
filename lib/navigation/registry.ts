@@ -238,6 +238,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/more': 'Bottom tab — this screen itself.',
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
   '/login': 'Authentication, reached when signed out.',
+  '/register': 'Creating an account, reached from the sign-in screen when signed out.',
+  '/verify': 'Proving the contact for a registration in progress. Reached only from /register.',
   // Shown INSTEAD of the app when the server says the subscription blocks
   // operational access. Not a destination anybody navigates to on purpose.
   '/subscription-blocked': 'Subscription state screen, reached when the server refuses operational access.',

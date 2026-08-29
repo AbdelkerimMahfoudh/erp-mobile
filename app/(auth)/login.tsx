@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
 import { Button, Field } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { looksSubmittable } from '../../lib/identifier';
-import { openSignup } from '../../lib/signup';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
 import { useColors } from '../../lib/design/theme';
@@ -36,6 +36,7 @@ import { useColors } from '../../lib/design/theme';
 export default function Login() {
   const colors = useColors();
   const { t } = useTranslation();
+  const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -54,8 +55,6 @@ export default function Login() {
     other. The guard is state rather than a debounce timer so it survives
     however long the handoff takes.
   */
-  const [openingSignup, setOpeningSignup] = useState(false);
-  const [signupProblem, setSignupProblem] = useState<string | null>(null);
 
   const onSubmit = async () => {
     if (loading) return;
@@ -103,16 +102,15 @@ export default function Login() {
     }
   };
 
-  const onCreateAccount = async () => {
-    if (openingSignup) return;
-    setOpeningSignup(true);
-    setSignupProblem(null);
-    try {
-      const outcome = await openSignup();
-      if (outcome !== 'opened') setSignupProblem(t(`auth.signup.${outcome}`));
-    } finally {
-      setOpeningSignup(false);
-    }
+  /**
+   * Creating an account is a screen in this app now, not a website.
+   *
+   * It used to open a browser. Setting a shop up means scanning stock, scanning
+   * happens here, and sending somebody to a browser to type the longest form in
+   * the product was never the shorter path.
+   */
+  const onCreateAccount = () => {
+    router.push('/(auth)/register' as never);
   };
 
   const inlineError =
@@ -235,16 +233,8 @@ export default function Login() {
             <Button
               title={t('auth.action.createAccount')}
               variant="secondary"
-              onPress={() => void onCreateAccount()}
-              loading={openingSignup}
-              disabled={openingSignup}
+              onPress={onCreateAccount}
             />
-
-            {signupProblem ? (
-              <Text className="text-center text-sm" style={{ color: colors.intent.warning.fg }}>
-                {signupProblem}
-              </Text>
-            ) : null}
           </View>
           )}
         </View>

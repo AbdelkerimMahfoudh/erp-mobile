@@ -1232,3 +1232,28 @@ export interface Expense {
 export interface ExpensePage {
   rows: Expense[];
 }
+
+/**
+ * What  answers.
+ *
+ * Deliberately NOT a session. Registration proves somebody filled a form; it
+ * does not prove they can read the address they typed, so it cannot sign them
+ * in. The continuation carries the attempt forward and buys exactly one thing:
+ * the completion of THIS registration, once, after the bound code is proved.
+ */
+export interface RegistrationStarted {
+  status: string;
+  created: boolean;
+  publicStoreId: string;
+  /** Where the code goes. Masked by the server; taken from the Owner record. */
+  verification: { destination: string; channel: 'email' | 'phone' } | null;
+  continuation: { token: string; expiresAt: string; expiresInSeconds: number } | null;
+  next: string;
+}
+
+/** The ordinary session pair, as any sign-in returns it. */
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
