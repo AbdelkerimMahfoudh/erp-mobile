@@ -44,7 +44,7 @@ export { MoneyValue, type MoneyValueProps, type MoneySize, type MoneyTone } from
 export { InlineNotice, type InlineNoticeProps } from './InlineNotice';
 export { PermissionNotice, type PermissionNoticeProps } from './PermissionNotice';
 export { OfflineBanner } from './OfflineBanner';
-export { StagingBanner } from './StagingBanner';
+export { AuthLanguageSwitch, type AuthLanguageSwitchProps } from './AuthLanguageSwitch';
 export {
   WorkflowTimeline,
   type WorkflowTimelineProps,

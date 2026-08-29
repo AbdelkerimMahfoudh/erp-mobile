@@ -9,7 +9,7 @@
  * build; this can.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { credentialNamespace, looksSubmittable } from './identifier.ts';
 
 let passed = 0;
@@ -379,23 +379,48 @@ it('no new screen mentions a Store ID or a personal ID', () => {
 
 console.log(`sign-in identifier and login-screen drift: ${passed} passed`);
 
-it('a staging build is labelled, and the label costs a production build nothing', () => {
+it('no build wears a staging label on a user-facing screen', () => {
   /*
-    A staging build looks exactly like a production one. The only thing between
-    a test IMEI and a real ledger is knowing which build is in your hand, so the
-    label is mounted at the app ROOT rather than on screens somebody has to
-    remember — and it renders nothing when the flag is unset, so the shopkeeper
-    never sees a pixel of it.
+    The banner is gone from the interface, and the environment split is not.
+
+    It was mounted at the app root and said "STAGING — test data only" across
+    the top of every screen. It came out because the people using this build are
+    shopkeepers being shown their own shop, and a permanent warning strip across
+    a demonstration reads as "this software is unfinished" rather than "this
+    data is not real".
+
+    What it protected against is real, and has not gone away: a staging build
+    looks exactly like a production one. That protection now lives entirely
+    where it cannot be seen — `APP_ENV`, a separate database with its own
+    guards, staging-only scripts, loopback-bound administration, and separate
+    secrets. This test exists to keep the LABEL out and the SPLIT in.
   */
   const config = withoutComments(source('constants/config.ts'));
   assert.match(config, /EXPO_PUBLIC_APP_ENV/);
   assert.match(config, /isStagingBuild/);
 
-  const banner = withoutComments(source('components/ui/StagingBanner.tsx'));
-  assert.match(banner, /if \(!isStagingBuild\(\)\) return null;/);
+  // The phrase, in every casing and dash somebody might reintroduce it with.
+  const banner = /stagings*[-—–]s*tests*datas*only|tests*datas*only/i;
+  for (const f of [
+    'app/_layout.tsx',
+    'app/(auth)/login.tsx',
+    'app/(auth)/register.tsx',
+    'app/(auth)/verify.tsx',
+    'app/subscription-blocked.tsx',
+    'lib/i18n/en.ts',
+    'lib/i18n/ar.ts',
+    'lib/i18n/fr.ts',
+  ]) {
+    assert.ok(!banner.test(source(f)), `${f} must not carry a staging banner`);
+  }
 
-  const layout = withoutComments(source('app/_layout.tsx'));
-  assert.match(layout, /<StagingBanner \/>/);
+  // And the component itself is gone rather than merely unmounted, so it
+  // cannot be imported back by a hopeful autocomplete.
+  assert.ok(
+    !existsSync('components/ui/StagingBanner.tsx'),
+    'StagingBanner.tsx should be deleted, not left unused',
+  );
+  assert.ok(!source('components/ui/index.ts').includes('StagingBanner'));
 });
 
 it('no server secret can reach the bundle through the app config', () => {
