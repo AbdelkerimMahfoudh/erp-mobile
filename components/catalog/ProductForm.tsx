@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { BrandModelSelect } from './BrandModelSelect';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/native';
@@ -189,23 +190,25 @@ export function ProductForm({
       {/* 1 ── Identity ─────────────────────────────────────────────────────── */}
       <Section title={t('catalog.form.section.identity')}>
         <View style={styles.fields}>
-          <TextField
-            label={t('catalog.form.brand')}
-            hint={t('catalog.form.brand.hint')}
-            required
-            value={values.brand}
-            error={shown.brand}
-            onChangeText={(v) => set('brand', v)}
-            maxLength={80}
-          />
-          <TextField
-            label={t('catalog.form.model')}
-            hint={t('catalog.form.model.hint')}
-            required
-            value={values.model}
-            error={shown.model}
-            onChangeText={(v) => set('model', v)}
-            maxLength={120}
+          {/*
+            Brand and model were free text, so one shop's stock held `Samsung`,
+            `samsung`, `SAMSUNG` and `Sansung` and no report could add them up.
+            The selector fixes the spelling without taking away the ability to
+            sell something the catalogue has never heard of: `Other brand` and
+            `Other model` are ordinary options, and a product typed by hand
+            before this list existed still opens, edits and saves.
+
+            It lives in the shared form on purpose — create, edit and every
+            intake path get the same behaviour without any of them knowing.
+          */}
+          <BrandModelSelect
+            value={{ brand: values.brand, model: values.model }}
+            onChange={(next) => {
+              set('brand', next.brand);
+              set('model', next.model);
+            }}
+            brandError={shown.brand}
+            modelError={shown.model}
           />
           <TextField
             label={t('catalog.form.variant')}
