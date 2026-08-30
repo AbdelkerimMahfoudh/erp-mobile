@@ -68,6 +68,28 @@ it('the model list waits for a brand', () => {
   assert.match(code, /catalog\.select\.brandFirst/);
 });
 
+it('presents the server order, and never re-sorts it', () => {
+  /*
+   * Ordering is a product decision — which phone somebody is most likely
+   * holding — and it lives on the server. A client that re-sorted would make
+   * the list read one way on a phone and another in the portal, with neither
+   * being the decision anybody made.
+   *
+   * Release year used to decide it and could not: a family spans years, so
+   * `iPhone 17e` (2026) belongs below `iPhone 17 Pro Max` (2025).
+   */
+  for (const f of [CLIENT, SELECT]) {
+    const code = withoutComments(source(f));
+    assert.ok(!/\.sort\(/.test(code), `${f} must not sort the catalogue`);
+    assert.ok(!/localeCompare/.test(code), `${f} must not order by name`);
+  }
+  // The selector does not read the ordering fields at all — it cannot use what
+  // it never looks at.
+  assert.ok(!/releaseYear|displayRank/.test(withoutComments(source(SELECT))));
+  // Filtering is fine: it preserves order. Sorting is not.
+  assert.match(withoutComments(source(SELECT)), /\.filter\(/);
+});
+
 it('loads only the models of the chosen brand', () => {
   const code = withoutComments(source(SELECT));
   assert.match(code, /fetchModels\(selectedBrandKey\)/);

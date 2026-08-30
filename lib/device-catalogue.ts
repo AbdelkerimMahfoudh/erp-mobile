@@ -38,7 +38,17 @@ export interface CatalogueModel {
   id: number;
   name: string;
   family: string;
-  releaseRank: number;
+  /** The release YEAR. Shown if ever useful; never used to order anything. */
+  releaseYear: number;
+  /**
+   * The server's position for this model.
+   *
+   * Carried so the client can be CHECKED, not so it can sort. The order the
+   * server sends is canonical — newest family first, premium variant first —
+   * and re-sorting here would mean the list read one way on a phone and another
+   * in the administration portal, with neither being the product decision.
+   */
+  displayRank: number;
 }
 
 export interface CatalogueVersion {
