@@ -91,14 +91,21 @@ it('the callback is refused while validating and while a result is showing', () 
   }
 });
 
-it('the camera hardware is deactivated, not merely ignored', () => {
+it('the camera is unmounted — not merely ignored, and not merely deactivated', () => {
   /*
-   * THE defect. Detaching the handler stops us reacting; it does not stop the
-   * camera. On the phone the preview stayed live behind the result, still
-   * decoding, which is what a person reads as "it is still scanning".
+   * This assertion has been wrong twice, and each time a phone said so.
+   *
+   * First it only detached the handler, which stops us REACTING while the
+   * camera carries on previewing — a live image behind the result. Then it
+   * added `active={false}`, which stops the camera and leaves its last frame
+   * frozen on screen, so the scanner looks like it photographed a barcode that
+   * is usually half out of shot.
+   *
+   * The camera is unmounted. There is no session, and no frame to freeze.
    */
   const code = withoutComments(source(SHEET));
-  assert.match(code, /active=\{live\}/, 'CameraView must be deactivated');
+  assert.match(code, /&& live \? \(\s*<CameraView/, 'CameraView must unmount');
+  assert.ok(!/active=\{live\}/.test(code), 'deactivating leaves a frozen frame');
   assert.match(code, /onBarcodeScanned=\{live \? onBarcodeScanned : undefined\}/);
   assert.match(code, /const live = cameraActive\(machine\)/);
   // And `cameraActive` is true in exactly one state.
@@ -195,9 +202,15 @@ it('the parent gets the complete result before the sheet closes', () => {
 it('accepting does not repeat the haptic or the lookup work', () => {
   const sheet = withoutComments(source(SHEET));
   const accept = sheet.slice(sheet.indexOf('const acceptImei'), sheet.indexOf('const submitTyped'));
-  // The detection already buzzed. The learning call must be silent.
-  assert.match(accept, /scanSilently\(primary\)/);
+  /*
+   * The detection already buzzed, so nothing on the accept path may buzz
+   * again — and the lookup is long finished by then, because it runs when the
+   * result APPEARS rather than after acceptance. That ordering is what the
+   * second device test forced: doing it on accept meant the product arrived
+   * too late to be shown, and was discarded.
+   */
   assert.ok(!/haptics\./.test(accept), 'no second haptic on accept');
+  assert.ok(!/scanQuietly\(/.test(accept), 'the lookup has already happened');
 
   const scan = withoutComments(source(USE_SCAN));
   assert.match(scan, /silent = false/);
@@ -322,6 +335,147 @@ it('keeps RTL intact — no hardcoded left or right', () => {
   const code = withoutComments(source(SCREEN));
   assert.ok(!/\b(marginLeft|marginRight|paddingLeft|paddingRight|left:|right:)\b/.test(code));
   assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(code), 'no raw colours');
+});
+
+
+// ── The second device test: two regressions from the first fix ────────────
+
+it('no camera view survives into the result — not even a frozen one', () => {
+  /*
+   * `active={false}` stopped the camera and left its last frame on screen, so
+   * the scanner looked like it had taken a photograph. Worse, that frame is
+   * whatever the sensor held when the barcode decoded, which very often does
+   * not show the digits at all.
+   *
+   * The camera is UNMOUNTED. There is nothing to freeze.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /\{canUseCamera && cameraSupported && !manual && live \? \(\s*<CameraView/);
+  assert.ok(!/active=\{live\}/.test(code), 'deactivating is not enough — it must unmount');
+  // The torch button goes with it; there is no camera to light.
+  assert.match(code, /\{canUseCamera && cameraSupported && !manual && live \? \(\s*<IconButton/);
+});
+
+it('the displayed identifier is the decoder payload, as selectable text', () => {
+  const code = withoutComments(source(SHEET));
+  // Straight from `BarcodeScanningResult.data`, through the classifier.
+  assert.match(code, /\(\{ data \}: BarcodeScanningResult\)/);
+  assert.match(code, /setMachine\(\{ type: 'detected', raw: data \}\)/);
+  assert.match(code, /const payload = classifyScan\(data\)/);
+  // Rendered with the primitive that is selectable and forced LTR.
+  assert.match(code, /<Identifier tone="inverse">\{primary\}<\/Identifier>/);
+  assert.match(code, /<Identifier tone="inverse">\{secondary\}<\/Identifier>/);
+});
+
+it('invokes no photo, frame-capture or OCR API', () => {
+  /*
+   * OCR was retired in milestone O and must not creep back. Checked across the
+   * whole scan path rather than one file, because the tempting place to add it
+   * is always somewhere else.
+   */
+  const forbidden = [
+    'takePictureAsync',
+    'takePhoto',
+    'captureRef',
+    'recognizeText',
+    'TextRecognition',
+    'ImageManipulator',
+    'onFrameProcessor',
+  ];
+  for (const f of [SHEET, TARGET, USE_SCAN, 'lib/scan/payload.ts', 'lib/scan/machine.ts']) {
+    const code = withoutComments(source(f));
+    for (const api of forbidden) {
+      assert.ok(!code.includes(api), `${f} must not call ${api}`);
+    }
+  }
+  // And the classifier never invents a digit, which is what OCR did.
+  const payloadSrc = source('lib/scan/payload.ts');
+  assert.match(payloadSrc, /never replaces a digit with a different digit/);
+  // The OCR confusion table is not reachable from the scan path.
+  assert.ok(!/from '\.\.\/imei'|from '\.\/imei'/.test(withoutComments(source('lib/scan/payload.ts'))));
+});
+
+it('the lookup runs while the result is shown, not after acceptance', () => {
+  /*
+   * THE regression. The accepted IMEI was sent down `/scan` with a `silent`
+   * `useScan` that had **no `onResult`** — so the recognised product came back
+   * and was discarded. "Silent" was meant to mean "no second buzz"; it also
+   * meant "no product".
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /const \[lookup, setLookup\] = useState<ScanResult \| null>\(null\)/);
+  assert.match(code, /useScan\(\{\s*silent: true,\s*onResult: setLookup,\s*\}\)/);
+  // Fired by the identifier, not by a render, so it cannot run twice.
+  assert.match(code, /if \(!primary \|\| lookedUp\.current === primary\) return;/);
+  assert.match(code, /void scanQuietly\(primary\)/);
+  assert.ok(!/scanSilently/.test(code), 'the discarding path is gone');
+});
+
+it('accepting hands the product to the parent, both ways', () => {
+  const code = withoutComments(source(SHEET));
+  const accept = code.slice(code.indexOf('const acceptImei'), code.indexOf('const submitTyped'));
+  // In the structured result…
+  assert.match(accept, /scan: lookup,/);
+  // …and through the channel every embedding screen already listens on.
+  assert.match(accept, /if \(lookup\) onResult\(lookup\);/);
+  assert.ok(
+    accept.indexOf('onResult(lookup)') < accept.indexOf('onClose()'),
+    'the product must reach the parent before the sheet closes',
+  );
+});
+
+it('the result panel shows the existing product, and says how sure it is', () => {
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /lookup\?\.suggestion/);
+  assert.match(code, /lookup\.recognized \? t\('scan\.knownProduct'\) : t\('scan\.maybeProduct'\)/);
+  // A guess must never be dressed as an answer.
+  assert.match(code, /lookup\.suggestion\.brand/);
+});
+
+it('a re-render cannot clear what was accepted', () => {
+  /*
+   * The lookup is keyed on the identifier and guarded by a ref, so background
+   * learning cannot fire again and overwrite state the parent is already
+   * showing. And the accept guard means a double tap cannot re-run any of it.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /const lookedUp = useRef<string \| null>\(null\)/);
+  assert.match(code, /lookedUp\.current = primary;/);
+  assert.match(code, /if \(accepting\.current \|\| !primary\) return;/);
+  // Reopening starts clean rather than showing the last phone.
+  assert.match(code, /lookedUp\.current = null;/);
+  assert.match(code, /setLookup\(null\);/);
+});
+
+it('both identifiers of one phone reach the same lookup', () => {
+  /*
+   * `addSecond` keeps the confirmed primary, so the lookup — which is keyed on
+   * `primary` — is not repeated and not replaced when the second SIM arrives.
+   * One phone, one product.
+   */
+  const showing = run([
+    { type: 'open' },
+    { type: 'detected', raw: IMEI },
+    { type: 'validated', payload },
+  ]);
+  const second = scannerReducer(showing, { type: 'addSecond' });
+  assert.equal(second.name === 'scanning' && second.primary, IMEI);
+
+  const both = scannerReducer(
+    scannerReducer(second, { type: 'detected', raw: '010000045000047' }),
+    { type: 'validated', payload: { kind: 'imei', primary: '010000045000047', secondary: null } as never },
+  );
+  assert.equal(both.name, 'result');
+  assert.equal(both.name === 'result' && both.primary, IMEI, 'the primary survives the second pass');
+});
+
+it('nothing here creates a product or a unit', () => {
+  const code = withoutComments(source(SHEET)) + withoutComments(source(TARGET));
+  for (const write of ["api.post<Unit>", "'/units'", "'/products'"]) {
+    assert.ok(!code.includes(write), `the scanner must not create anything: ${write}`);
+  }
+  // The only call it makes is the recognition lookup.
+  assert.match(withoutComments(source(USE_SCAN)), /api\.post<ScanResult>\('\/scan'/);
 });
 
 console.log(`scanner and keyboard behaviour: ${passed} passed`);

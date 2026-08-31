@@ -2248,6 +2248,8 @@ export const fr: Catalogue = {
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'IMEI détecté',
   'scan.imei1': 'IMEI',
+  'scan.knownProduct': 'Dans votre stock',
+  'scan.maybeProduct': 'Peut-être',
   'scan.imei2': 'IMEI 2',
   'scan.addSecond': 'Ajouter un second IMEI — facultatif',
   'scan.removeSecond': 'Retirer l’IMEI 2',

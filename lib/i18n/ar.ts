@@ -1970,6 +1970,8 @@ export const ar: Catalogue = {
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'تم التعرّف على رقم IMEI',
   'scan.imei1': 'رقم IMEI',
+  'scan.knownProduct': 'في مخزونك',
+  'scan.maybeProduct': 'قد يكون',
   'scan.imei2': 'رقم IMEI الثاني',
   'scan.addSecond': 'إضافة رقم IMEI ثانٍ — اختياري',
   'scan.removeSecond': 'إزالة رقم IMEI الثاني',

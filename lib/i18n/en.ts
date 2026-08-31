@@ -2022,6 +2022,8 @@ export const en = {
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'IMEI detected',
   'scan.imei1': 'IMEI',
+  'scan.knownProduct': 'In your stock',
+  'scan.maybeProduct': 'Might be',
   'scan.imei2': 'IMEI 2',
   'scan.addSecond': 'Add second IMEI — optional',
   'scan.removeSecond': 'Remove IMEI 2',

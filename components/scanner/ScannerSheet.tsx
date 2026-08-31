@@ -9,7 +9,7 @@ import { haptics } from '../../lib/haptics';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { TextField } from '../ui/Field';
-import { Text } from '../ui/Text';
+import { Identifier, Text } from '../ui/Text';
 import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
 import { classifyScan, type ScanPayload } from '../../lib/scan/payload';
@@ -84,6 +84,11 @@ export interface AcceptedImei {
   readonly tac: TacResolution | null;
   /** True when two identifiers disagreed — never present one as the answer. */
   readonly tacConflict: boolean;
+  /**
+   * What `/scan` already knows: the existing product, and whether that is
+   * recognition or a guess. Null when the lookup has not returned.
+   */
+  readonly scan: ScanResult | null;
 }
 
 export interface ScannerSheetProps {
@@ -162,6 +167,13 @@ export function ScannerSheet({
     secondaryTac.data,
   );
 
+  /*
+   * One lookup per identifier, triggered by the identifier itself rather than
+   * by a render — so a re-render cannot fire a second one, and a result that
+   * survives `addSecond` is not looked up twice.
+   */
+  const lookedUp = useRef<string | null>(null);
+
   const handleResult = useCallback(
     (r: ScanResult) => {
       onResult(r);
@@ -172,14 +184,23 @@ export function ScannerSheet({
 
   const { scan, loading, error, reset } = useScan({ onResult: handleResult });
 
-  /*
-   * The same pipeline, without the feedback.
+  /**
+   * What the shop already knows about this identifier.
    *
-   * The detection already gave a haptic and the result is already on screen;
-   * running the full `useScan` here gave a second buzz and a second attempt to
-   * close a sheet that had closed itself.
+   * The device test found the hole my last change opened: I sent the accepted
+   * IMEI down `/scan` with a `silent` `useScan` that had **no `onResult`**, so
+   * the recognised product came back and was thrown away. Silent was supposed
+   * to mean "no second buzz"; it also meant "no product".
+   *
+   * The lookup now runs when the result APPEARS — early enough to show the
+   * phone in the panel, and long before anybody taps accept. Silent still means
+   * only that it does not buzz.
    */
-  const { scan: scanSilently } = useScan({ silent: true });
+  const [lookup, setLookup] = useState<ScanResult | null>(null);
+  const { scan: scanQuietly, loading: lookingUp } = useScan({
+    silent: true,
+    onResult: setLookup,
+  });
 
   // Fresh state each time it opens — a stale torch, a half-typed code or a
   // result from the last phone has no business being here.
@@ -192,6 +213,8 @@ export function ScannerSheet({
       machineRef.current = scannerReducer(initialScannerState, { type: 'open' });
       dispatch({ type: 'open' });
       accepting.current = false;
+      lookedUp.current = null;
+      setLookup(null);
       reset();
     }
   }, [open, reset]);
@@ -232,6 +255,12 @@ export function ScannerSheet({
    * identifier — but nothing on screen waits for it.
    */
   const accepting = useRef(false);
+  useEffect(() => {
+    if (!primary || lookedUp.current === primary) return;
+    lookedUp.current = primary;
+    void scanQuietly(primary);
+  }, [primary, scanQuietly]);
+
   const acceptImei = useCallback(() => {
     // Synchronous, like the camera lock: a double tap lands before React
     // re-renders, and two `accept` events would fire two `onClose` calls.
@@ -251,18 +280,28 @@ export function ScannerSheet({
       payload: result?.payload ?? null,
       tac: tacResolution ?? null,
       tacConflict,
+      /*
+       * The product the shop already has for this code — the piece that went
+       * missing. `suggestion.productId` is the exact product; `recognized`
+       * says whether that is authority or only a guess.
+       */
+      scan: lookup,
     });
 
-    // Recognition still learns from it. Nothing on screen waits for this, and
-    // it must not produce a second haptic — see `silent` below.
-    void scanSilently(primary);
+    /*
+     * And through the ordinary channel as well, because every screen that
+     * embeds a scanner already listens on `onResult` for its product. Dropping
+     * this is what made the phone disappear from the intake page.
+     */
+    if (lookup) onResult(lookup);
     onClose();
   }, [
+    lookup,
     onClose,
     onImeiAccepted,
+    onResult,
     primary,
     result,
-    scanSilently,
     secondary,
     setMachine,
     tacConflict,
@@ -291,7 +330,10 @@ export function ScannerSheet({
         secondary: secondaryTyped ?? null,
         payload,
         tac: null,
+        // A typed identifier has not been looked up yet; `scan(code)` below
+        // does that and reaches the parent through `onResult` as it always has.
         tacConflict: false,
+        scan: null,
       });
     }
 
@@ -310,22 +352,28 @@ export function ScannerSheet({
   return (
     <Modal visible transparent={false} statusBarTranslucent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
-        {canUseCamera && cameraSupported && !manual ? (
+        {/*
+          UNMOUNTED, not merely deactivated.
+
+          The device test found the correction I made last time was half right.
+          `active={false}` does stop the camera — and leaves the last frame on
+          screen, frozen, so the scanner looks like it has taken a photograph.
+          Worse, that frame is whatever the sensor happened to hold when the
+          barcode decoded, which very often does not show the digits at all.
+
+          Nothing is captured, nothing is kept, and no frame is ever shown as a
+          result. The identifier comes from the decoder's payload, and the panel
+          below renders it as text — so what is on screen does not depend on
+          what the lens was pointing at when it fired.
+        */}
+        {canUseCamera && cameraSupported && !manual && live ? (
           <CameraView
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torch}
             barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
-            /*
-             * BOTH, and the first one is what the device test proved was
-             * missing. Detaching the handler stops us reacting; it does not
-             * stop the camera. On a real phone the preview stayed live behind
-             * the result, still decoding, which is what a user reads as "it is
-             * still scanning".
-             *
-             * `active` deactivates the capture session itself.
-             */
-            active={live}
+            // Belt and braces while it is mounted; the mount condition above is
+            // what actually ends the session.
             onBarcodeScanned={live ? onBarcodeScanned : undefined}
           />
         ) : null}
@@ -344,7 +392,7 @@ export function ScannerSheet({
           <Text variant="bodyStrong" tone="inverse">
             {t('scanner.title')}
           </Text>
-          {canUseCamera && cameraSupported && !manual ? (
+          {canUseCamera && cameraSupported && !manual && live ? (
             <IconButton
               icon={torch ? FlashlightOff : Flashlight}
               accessibilityLabel={torch ? t('scanner.torch.off') : t('scanner.torch.on')}
@@ -472,9 +520,12 @@ export function ScannerSheet({
                       <Text variant="caption" tone="inverse">
                         {t('scan.imei1')}
                       </Text>
-                      <Text variant="bodyStrong" tone="inverse">
-                        {primary}
-                      </Text>
+                      {/*
+                        The decoder's payload, as selectable text. This is the
+                        answer — not the camera frame, which is gone by now and
+                        very often never showed the digits at all.
+                      */}
+                      <Identifier tone="inverse">{primary}</Identifier>
                     </View>
                   ) : null}
 
@@ -483,9 +534,7 @@ export function ScannerSheet({
                       <Text variant="caption" tone="inverse">
                         {t('scan.imei2')}
                       </Text>
-                      <Text variant="bodyStrong" tone="inverse">
-                        {secondary}
-                      </Text>
+                      <Identifier tone="inverse">{secondary}</Identifier>
                     </View>
                   ) : null}
 
@@ -493,6 +542,37 @@ export function ScannerSheet({
                     <Text variant="caption" tone="inverse">
                       {secondary ? t('scan.bothOnePhone') : t('scanner.imei.single')}
                     </Text>
+                  ) : null}
+
+                  {/*
+                    The phone the shop already has for this code.
+                    
+                    Shown HERE, before anybody accepts, because the previous
+                    version resolved it and threw it away — the product only
+                    reappeared if the intake page happened to look it up again.
+                    `recognized` is the difference between an answer and a
+                    guess, and the wording follows it.
+                  */}
+                  {primary && lookingUp ? (
+                    <Text variant="caption" tone="inverse">
+                      {t('scanner.looking')}
+                    </Text>
+                  ) : null}
+                  {primary && !lookingUp && lookup?.suggestion ? (
+                    <View style={styles.readingRow}>
+                      <Text variant="caption" tone="inverse">
+                        {lookup.recognized ? t('scan.knownProduct') : t('scan.maybeProduct')}
+                      </Text>
+                      <Text variant="bodyStrong" tone="inverse">
+                        {[
+                          lookup.suggestion.brand,
+                          lookup.suggestion.model,
+                          lookup.suggestion.variant,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      </Text>
+                    </View>
                   ) : null}
 
                   {/*
