@@ -2060,6 +2060,8 @@ export const en = {
   // manufacturers show the number without a code beside it.
   'scan.hint.notEveryPhone': 'Not every phone shows a scannable code. You can always type it instead.',
   // Refusals. No jargon — nobody at a counter needs the word "Luhn".
+  'scan.guide.position': 'Position the barcode inside the frame',
+  'scan.guide.holdSteady': 'Hold steady…',
   'scan.problem.checksum': 'Those digits are not a valid IMEI. Check them and scan again.',
   'scan.problem.length': 'An IMEI has 15 digits. That code was a different length.',
   'scan.problem.ambiguous': 'More than two IMEIs were found. Type the right ones instead.',

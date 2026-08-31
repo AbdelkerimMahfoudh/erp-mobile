@@ -12,7 +12,15 @@ import { TextField } from '../ui/Field';
 import { Identifier, Text } from '../ui/Text';
 import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
+// Still used by the typed path, which needs no stabilization: typing a number
+// is already a deliberate act, and there is no camera to steady.
 import { classifyScan, type ScanPayload } from '../../lib/scan/payload';
+import {
+  hasLapsed,
+  observe,
+  type Candidate,
+  type ScanBounds,
+} from '../../lib/scan/stabilizer';
 import {
   acceptsDetection,
   cameraActive,
@@ -110,6 +118,46 @@ export interface ScannerSheetProps {
   scannedCount?: number;
 }
 
+/**
+ * A monotonic millisecond clock.
+ *
+ * `Date.now()` is a wall clock: it can jump backwards when the OS syncs time,
+ * and a backwards jump would silently extend a stability window. `performance
+ * .now()` only ever moves forward, which is the only property this needs.
+ */
+const monotonicNow = (): number =>
+  typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now();
+
+/**
+ * Where the decoder saw the barcode — **audited, and deliberately not used.**
+ *
+ * `expo-camera`'s own type documentation disqualifies both fields it offers:
+ *
+ *   - `bounds` "in some case will be representing an empty rectangle", "doesn't
+ *     have to bound the whole barcode", and "for some types … represent the
+ *     area used by the scanner" rather than the code.
+ *   - `cornerPoints` "is not always available and may be empty"; on iOS it is
+ *     absent for `code39` and `pdf417`; and the **order differs per platform**
+ *     — Android gives topLeft/topRight/bottomRight/bottomLeft, iOS gives
+ *     bottomLeft/bottomRight/topLeft/topRight, Web a third order again.
+ *
+ * A centroid would survive the ordering difference, but neither field documents
+ * its coordinate space, and the failure mode of guessing wrong is the worst one
+ * available: every scan silently rejected as "off centre" on whichever platform
+ * was guessed wrong — on a device nobody here can test.
+ *
+ * So the frame is **honest guidance and nothing more**, and the copy never says
+ * that only what is inside it will be read. The stability rule carries the whole
+ * weight, exactly as `stabilizer.ts` describes.
+ *
+ * `withinGuide` and the bounds path in the stabilizer are written and tested
+ * and stay that way: when somebody can verify the coordinate space on both
+ * platforms, enabling this becomes returning a value from here.
+ */
+const boundsOf = (_result: BarcodeScanningResult): ScanBounds | undefined => undefined;
+
 const PROBLEM_KEY: Record<ResultProblem, string> = {
   checksum: 'scan.problem.checksum',
   length: 'scan.problem.length',
@@ -200,6 +248,22 @@ export function ScannerSheet({
    */
   const accepting = useRef(false);
 
+  /**
+   * The barcode currently being held, and how long it has been held.
+   *
+   * A ref for the same reason the lock is: the camera fires many times before
+   * React commits a render, so a candidate kept in state would be a frame
+   * behind every decision made about it.
+   *
+   * `holding` is the rendered shadow of it — it drives one label and nothing
+   * else. No acceptance is ever made from it.
+   */
+  const candidate = useRef<Candidate | null>(null);
+  const [holding, setHolding] = useState(false);
+
+  /** True once the camera is running: `cameraActive` is true in `scanning` alone. */
+  const live = cameraActive(machine);
+
   const handleResult = useCallback(
     (r: ScanResult) => {
       onResult(r);
@@ -261,6 +325,10 @@ export function ScannerSheet({
       dispatch({ type: 'open' });
       accepting.current = false;
       lookedUp.current = null;
+      // A new session aims from scratch: a window half-built when the sheet
+      // closed must never be completed by the next opening.
+      candidate.current = null;
+      setHolding(false);
     }
   }
 
@@ -279,17 +347,67 @@ export function ScannerSheet({
    * racing it.
    */
   const onBarcodeScanned = useCallback(
-    ({ data }: BarcodeScanningResult) => {
+    (result: BarcodeScanningResult) => {
       if (!acceptsDetection(machineRef.current)) return;
-      setMachine({ type: 'detected', raw: data });
 
-      const payload = classifyScan(data);
-      if (payload.kind === 'imei') haptics.success();
+      /*
+       * The device found this three times out of three: a barcode was accepted
+       * in well under a second, before anybody had finished aiming — often a
+       * neighbouring card, or one only half in shot. The decoder was not wrong;
+       * we were, for treating the FIRST thing seen as the thing MEANT.
+       *
+       * Nothing here acts on one sighting. `observe` requires the same payload
+       * to be decoded repeatedly across a full second of continuous visibility,
+       * and until it says `accept` the camera stays live, no haptic fires, no
+       * lookup starts and no result is shown.
+       *
+       * A ref, not state: the camera fires many times before React commits a
+       * render, so a candidate held in state would be a second behind every
+       * decision made about it — the same reason the accept lock is a ref.
+       */
+      const verdict = observe(candidate.current, {
+        raw: result.data,
+        at: monotonicNow(),
+        bounds: boundsOf(result),
+      });
+      candidate.current = verdict.action === 'accept' ? null : verdict.candidate;
+      setHolding(verdict.action === 'holding');
+
+      if (verdict.action !== 'accept') return;
+
+      setMachine({ type: 'detected', raw: result.data });
+      // ONE haptic, and only here — after the rule is satisfied, never on a
+      // sighting. Buzzing at every decode is what made a sweep feel like a scan.
+      if (verdict.payload.kind === 'imei') haptics.success();
       else haptics.warning();
-      setMachine({ type: 'validated', payload });
+      setMachine({ type: 'validated', payload: verdict.payload });
     },
     [setMachine],
   );
+
+  /**
+   * "Hold steady…" comes off the screen when the barcode leaves the frame.
+   *
+   * Callbacks only arrive while something is decodable, so a camera lifted away
+   * produces silence rather than an event — without this, the guidance would sit
+   * there implying a window is still building when nothing is being seen.
+   *
+   * This interval drives a LABEL. It can never accept anything: acceptance
+   * happens only inside `observe`, from an observation that actually arrived.
+   */
+  useEffect(() => {
+    if (!live) {
+      setHolding(false);
+      return;
+    }
+    const id = setInterval(() => {
+      if (hasLapsed(candidate.current, monotonicNow())) {
+        candidate.current = null;
+        setHolding(false);
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [live]);
 
   /**
    * "Use this IMEI" — once, completely, and then gone.
@@ -398,8 +516,6 @@ export function ScannerSheet({
   const canUseCamera = permission?.granted === true;
   // Web and simulators frequently have no usable camera; typing must still work.
   const cameraSupported = Platform.OS !== 'web';
-  const live = cameraActive(machine);
-
   return (
     <Modal visible transparent={false} statusBarTranslucent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
@@ -435,6 +551,33 @@ export function ScannerSheet({
           />
         ) : null}
 
+        {/*
+          The aiming frame.
+
+          Somewhere to put the barcode. The device test found the scanner
+          accepting whatever crossed the lens first — often a neighbouring card
+          on a sheet of them — and part of that is that nothing on screen ever
+          said where to point.
+
+          It is guidance, not a gate: `boundsOf` explains why the platform's
+          barcode coordinates cannot be trusted, so the copy says "position the
+          barcode inside the frame" and never claims that only what is inside it
+          will be read. What actually protects the scan is holding still.
+        */}
+        {live && canUseCamera && cameraSupported && !manual ? (
+          <View style={styles.guideLayer} pointerEvents="none">
+            <View style={[styles.guide, holding ? styles.guideHolding : null]} />
+            <Text variant="body" style={styles.guideHint}>
+              {/*
+                Two states, both in plain language. No "checksum", no "Luhn",
+                no "stabilizing" — the person holding the phone is being asked
+                to do one physical thing, and that is all this says.
+              */}
+              {holding ? t('scan.guide.holdSteady') : t('scan.guide.position')}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Top bar */}
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
           <IconButton
@@ -442,6 +585,8 @@ export function ScannerSheet({
             accessibilityLabel={t('scan.a11y.close')}
             variant="inverse"
             onPress={() => {
+              candidate.current = null;
+              setHolding(false);
               setMachine({ type: 'cancel' });
               onClose();
             }}
@@ -681,7 +826,12 @@ export function ScannerSheet({
                       variant="secondary"
                       icon={Plus}
                       fullWidth
-                      onPress={() => setMachine({ type: 'addSecond' })}
+                      onPress={() => {
+                        // Aiming at the OTHER SIM's label starts a new window.
+                        candidate.current = null;
+                        setHolding(false);
+                        setMachine({ type: 'addSecond' });
+                      }}
                     />
                   ) : null}
 
@@ -698,7 +848,11 @@ export function ScannerSheet({
                     title={t('scan.scanAgain')}
                     variant="secondary"
                     fullWidth
-                    onPress={() => setMachine({ type: 'scanAgain' })}
+                    onPress={() => {
+                      candidate.current = null;
+                      setHolding(false);
+                      setMachine({ type: 'scanAgain' });
+                    }}
                   />
                 </View>
               ) : null}
@@ -820,6 +974,35 @@ const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.surface.inverse,
+  },
+  guideLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.lg,
+  },
+  guide: {
+    // Wide and short: an IMEI barcode is a long strip, and a square frame
+    // invites people to hold the phone too close to fit it in.
+    width: '78%',
+    aspectRatio: 2.4,
+    borderWidth: 2,
+    borderColor: colors.border.inverse,
+    borderRadius: radius.lg,
+    backgroundColor: 'transparent',
+  },
+  guideHolding: {
+    // Confirmation that something has been found and is being held — paired
+    // with the words below, never carrying the meaning on its own.
+    // The semantic focus token, not a raw ramp step: this means "the app is
+    // attending to this", which is exactly what holding a candidate is.
+    borderColor: colors.border.focus,
+    borderWidth: 3,
+  },
+  guideHint: {
+    color: colors.text.inverse,
+    textAlign: 'center',
+    paddingHorizontal: space.xl,
   },
   topBar: {
     flexDirection: 'row',

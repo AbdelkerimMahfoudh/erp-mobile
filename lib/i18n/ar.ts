@@ -2002,6 +2002,8 @@ export const ar: Catalogue = {
   'scan.enterManually': 'إدخال يدوي',
   'scan.hint.barcode': 'وجّه الكاميرا نحو باركود أو رمز QR الخاص برقم IMEI',
   'scan.hint.notEveryPhone': 'ليست كل الهواتف تعرض رمزًا قابلًا للمسح. يمكنك دائمًا كتابته يدويًا.',
+  'scan.guide.position': 'ضع الباركود داخل الإطار',
+  'scan.guide.holdSteady': 'أمسك الهاتف ثابتًا…',
   'scan.problem.checksum': 'هذه الأرقام ليست رقم IMEI صحيحًا. تحقّق منها وامسح مرّة أخرى.',
   'scan.problem.length': 'رقم IMEI مكوّن من 15 رقمًا. هذا الرمز بطول مختلف.',
   'scan.problem.ambiguous': 'تم العثور على أكثر من رقمين. اكتب الرقمين الصحيحين بدلًا من ذلك.',

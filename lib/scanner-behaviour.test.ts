@@ -358,10 +358,21 @@ it('no camera view survives into the result — not even a frozen one', () => {
 
 it('the displayed identifier is the decoder payload, as selectable text', () => {
   const code = withoutComments(source(SHEET));
-  // Straight from `BarcodeScanningResult.data`, through the classifier.
-  assert.match(code, /\(\{ data \}: BarcodeScanningResult\)/);
-  assert.match(code, /setMachine\(\{ type: 'detected', raw: data \}\)/);
-  assert.match(code, /const payload = classifyScan\(data\)/);
+
+  /*
+   * The provenance chain, which now runs through the stabilizer:
+   *
+   *   BarcodeScanningResult.data → observe() → classifyScan() → payload
+   *
+   * Still nothing but the decoder's own bytes. The stabilizer decides WHEN a
+   * payload counts; it never invents or alters one.
+   */
+  assert.match(code, /\(result: BarcodeScanningResult\)/);
+  assert.match(code, /raw: result\.data,/);
+  assert.match(code, /setMachine\(\{ type: 'detected', raw: result\.data \}\)/);
+  assert.match(code, /setMachine\(\{ type: 'validated', payload: verdict\.payload \}\)/);
+  assert.match(withoutComments(source('lib/scan/stabilizer.ts')), /const payload = classifyScan\(obs\.raw\)/);
+
   // Rendered with the primitive that is selectable and forced LTR.
   assert.match(code, /<Identifier tone="inverse">\{primary\}<\/Identifier>/);
   assert.match(code, /<Identifier tone="inverse">\{secondary\}<\/Identifier>/);
@@ -616,16 +627,145 @@ it('the accepted result is handed to the parent before the sheet forgets it', ()
   );
 });
 
-it('detection is never delayed', () => {
-  /*
-   * The device report was explicit: fast detection is correct, and a frozen
-   * frame is the fault. Slowing the decoder down would have hidden the symptom
-   * and broken the feature.
-   */
-  const code = withoutComments(source(SHEET));
-  for (const stall of ['setTimeout', 'setInterval', 'await new Promise', 'requestAnimationFrame']) {
-    assert.ok(!code.includes(stall), `no artificial delay: ${stall}`);
+// ── 9 · acceptance is earned, not immediate ──────────────────────────────
+//
+// **This section replaces an assertion that was wrong.**
+//
+// It used to read "detection is never delayed", and banned `setTimeout`,
+// `setInterval`, `await new Promise` and `requestAnimationFrame` outright. It
+// was written when the fault was a frozen frame and speed was not the problem,
+// and I took "fast detection is acceptable" to mean "acceptance must never take
+// time". The third device test showed the cost: **3/3 attempts failed**, the
+// scanner taking whatever crossed the lens in under a second — frequently a
+// neighbouring card, or one half out of shot.
+//
+// The rule was too broad. What must never happen is a **blind** delay: a timer
+// that accepts whatever is current when it fires, which accepts the LAST thing
+// seen rather than the first and can fire while the camera points anywhere.
+// Taking a second to confirm the same code repeatedly is the opposite of that,
+// and it is now required.
+
+it('acceptance is never made by a timer', () => {
+  // The part of the old rule that was right, kept and narrowed. Nothing that
+  // fires on its own may accept anything: the decision belongs to `observe`,
+  // made from an observation that actually arrived.
+  const stab = withoutComments(source('lib/scan/stabilizer.ts'));
+  for (const scheduler of ['setTimeout', 'setInterval', 'requestAnimationFrame', 'Date.now']) {
+    assert.ok(!stab.includes(scheduler), `the decision must not depend on ${scheduler}`);
   }
+
+  // The sheet has exactly one interval, and it drives a LABEL.
+  const code = withoutComments(source(SHEET));
+  assert.equal((code.match(/setInterval/g) ?? []).length, 1);
+  const timer = code.slice(code.indexOf('const id = setInterval'), code.indexOf('}, 250)'));
+  assert.match(timer, /hasLapsed/);
+  assert.match(timer, /setHolding\(false\)/);
+  assert.ok(!timer.includes('accept'), 'the interval must not be able to accept anything');
+  assert.ok(!timer.includes('setMachine'), 'nor advance the machine');
+});
+
+it('the callback stabilizes instead of acting on the first sighting', () => {
+  const code = withoutComments(source(SHEET));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+
+  // Every path out of the callback goes through `observe`.
+  assert.match(cb, /const verdict = observe\(candidate\.current, \{/);
+  assert.match(cb, /if \(verdict\.action !== 'accept'\) return;/);
+  // The candidate lives in a ref — the camera fires before React re-renders.
+  assert.match(code, /const candidate = useRef<Candidate \| null>\(null\)/);
+});
+
+it('the haptic and the lookup wait for acceptance', () => {
+  const code = withoutComments(source(SHEET));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+
+  // One buzz, after the rule is satisfied. Buzzing on every decode is what made
+  // sweeping a sheet feel like a successful scan.
+  const guard = cb.indexOf("if (verdict.action !== 'accept') return;");
+  assert.ok(guard > 0);
+  assert.ok(cb.indexOf('haptics.success()') > guard, 'no haptic before acceptance');
+  assert.ok(cb.indexOf('haptics.warning()') > guard, 'no haptic before acceptance');
+  assert.ok(cb.indexOf("setMachine({ type: 'detected'") > guard, 'no result before acceptance');
+
+  // And the lookup hangs off `primary`, which only exists in `result` — so no
+  // network call can begin while a candidate is still being held.
+  assert.match(code, /const result = machine\.name === 'result' \? machine : null/);
+  assert.match(code, /const primary = result\?\.primary \?\? null/);
+  assert.match(code, /if \(!primary \|\| lookedUp\.current === primary\) return;/);
+});
+
+it('the camera stays live for the whole window', () => {
+  // `detected` is the first state that stops the camera, and it is now reached
+  // only from an accepted verdict — so everything before acceptance happens
+  // with the preview running.
+  let state = run([{ type: 'open' }]);
+  assert.equal(cameraActive(state), true);
+  state = scannerReducer(state, { type: 'detected', raw: IMEI });
+  assert.equal(cameraActive(state), false);
+
+  const code = withoutComments(source(SHEET));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+  assert.equal(
+    (cb.match(/setMachine\(\{ type: 'detected'/g) ?? []).length,
+    1,
+    'exactly one place can end the session, and it is past the accept guard',
+  );
+});
+
+it('the candidate is cleared by every reset the session has', () => {
+  const code = withoutComments(source(SHEET));
+
+  // A new session, an explicit cancel, "Scan again", and "Add second IMEI" —
+  // a window half-built when the sheet closed must never be completed later.
+  assert.equal(
+    (code.match(/candidate\.current = null/g) ?? []).length,
+    5,
+    'reset on: new session, cancel, scanAgain, addSecond, and on acceptance',
+  );
+  const reset = code.slice(code.indexOf('if (open !== wasOpen)'), code.indexOf('const reset'));
+  assert.match(reset, /candidate\.current = null/);
+  assert.match(reset, /setHolding\(false\)/);
+});
+
+it('the aiming frame guides and does not claim to gate', () => {
+  const code = withoutComments(source(SHEET));
+
+  // Two states, both plain language.
+  assert.match(code, /holding \? t\('scan\.guide\.holdSteady'\) : t\('scan\.guide\.position'\)/);
+  // Shown only while the camera is actually running.
+  assert.match(code, /\{live && canUseCamera && cameraSupported && !manual \?/);
+
+  // The platform's barcode coordinates are audited and not trusted, so the
+  // copy must not imply the frame constrains decoding.
+  for (const lang of ['en', 'fr', 'ar']) {
+    const file = source(`lib/i18n/${lang}.ts`);
+    for (const key of ['scan.guide.position', 'scan.guide.holdSteady']) {
+      assert.ok(file.includes(`'${key}'`), `${lang} is missing ${key}`);
+    }
+  }
+  const en = source('lib/i18n/en.ts');
+  const copy = en.slice(en.indexOf("'scan.guide.position'"), en.indexOf("'scan.problem.checksum'"));
+  for (const jargon of ['checksum', 'Luhn', 'stabiliz', 'candidate', 'payload']) {
+    assert.ok(!copy.toLowerCase().includes(jargon.toLowerCase()), `no jargon: ${jargon}`);
+  }
+});
+
+it('the bounds audit is recorded rather than assumed', () => {
+  // `expo-camera` documents both coordinate fields as unreliable, and neither
+  // documents its coordinate space. Guessing wrong would silently reject every
+  // scan on one platform, so the frame does not gate — and the reason is in the
+  // source rather than in somebody's memory.
+  const code = source(SHEET);
+  assert.match(code, /audited, and deliberately not used/);
+  assert.match(code, /const boundsOf = \(_result: BarcodeScanningResult\): ScanBounds \| undefined => undefined/);
+});
+
+it('typing needs no stabilization', () => {
+  // There is no camera to steady, and typing a number is already deliberate.
+  const code = withoutComments(source(SHEET));
+  const typedPath = code.slice(code.indexOf('const submitTyped'), code.indexOf('const canUseCamera'));
+  assert.match(typedPath, /classifyScan\(code\)/);
+  assert.ok(!typedPath.includes('observe('), 'the typed path must not wait for a window');
 });
 
 console.log(`scanner and keyboard behaviour: ${passed} passed`);

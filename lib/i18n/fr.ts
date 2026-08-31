@@ -2281,6 +2281,8 @@ export const fr: Catalogue = {
   'scan.hint.barcode': 'Visez le code-barres ou le QR code de l’IMEI',
   'scan.hint.notEveryPhone':
     'Tous les téléphones n’affichent pas un code scannable. Vous pouvez toujours le saisir.',
+  'scan.guide.position': 'Placez le code-barres dans le cadre',
+  'scan.guide.holdSteady': 'Ne bougez plus…',
   'scan.problem.checksum': 'Ces chiffres ne forment pas un IMEI valide. Vérifiez-les et rescannez.',
   'scan.problem.length': 'Un IMEI compte 15 chiffres. Ce code avait une autre longueur.',
   'scan.problem.ambiguous': 'Plus de deux IMEI ont été trouvés. Saisissez plutôt les bons.',
