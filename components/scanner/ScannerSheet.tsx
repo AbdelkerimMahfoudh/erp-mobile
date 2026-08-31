@@ -16,10 +16,10 @@ import { useScan } from './useScan';
 // is already a deliberate act, and there is no camera to steady.
 import { classifyScan, type ScanPayload } from '../../lib/scan/payload';
 import {
-  hasLapsed,
+  EMPTY_ACQUISITION,
   observe,
-  type Candidate,
-  type ScanBounds,
+  prune,
+  type Acquisition,
 } from '../../lib/scan/stabilizer';
 import {
   acceptsDetection,
@@ -131,32 +131,27 @@ const monotonicNow = (): number =>
     : Date.now();
 
 /**
- * Where the decoder saw the barcode — **audited, and deliberately not used.**
+ * Whether this platform's `cornerPoints` are in the preview's coordinate space.
  *
- * `expo-camera`'s own type documentation disqualifies both fields it offers:
+ * **Read from the native source in `node_modules/expo-camera`, not guessed.**
  *
- *   - `bounds` "in some case will be representing an empty rectangle", "doesn't
- *     have to bound the whole barcode", and "for some types … represent the
- *     area used by the scanner" rather than the code.
- *   - `cornerPoints` "is not always available and may be empty"; on iOS it is
- *     absent for `code39` and `pdf417`; and the **order differs per platform**
- *     — Android gives topLeft/topRight/bottomRight/bottomLeft, iOS gives
- *     bottomLeft/bottomRight/topLeft/topRight, Web a third order again.
+ *   - **iOS** (`MetaDataDelegate.swift`) passes barcodes through
+ *     `previewLayer.transformedMetadataObject`, so the points arrive in preview
+ *     points and the measured preview size is the right denominator. The Vision
+ *     path (`BarcodeScannerUtils.swift`) instead reports values already
+ *     normalised 0–1, which `centreOf` recognises on its own.
+ *   - **Android** (`BarcodeScannerResultSerializer.kt`) reports ML Kit *image*
+ *     pixels divided by display density, and the image dimensions are **never
+ *     put into the bundle sent to JS**. There is no denominator available, so
+ *     there is nothing honest to compute.
  *
- * A centroid would survive the ordering difference, but neither field documents
- * its coordinate space, and the failure mode of guessing wrong is the worst one
- * available: every scan silently rejected as "off centre" on whichever platform
- * was guessed wrong — on a device nobody here can test.
- *
- * So the frame is **honest guidance and nothing more**, and the copy never says
- * that only what is inside it will be read. The stability rule carries the whole
- * weight, exactly as `stabilizer.ts` describes.
- *
- * `withinGuide` and the bounds path in the stabilizer are written and tested
- * and stay that way: when somebody can verify the coordinate space on both
- * platforms, enabling this becomes returning a value from here.
+ * Android therefore ranks by stability alone, which is the whole reason the
+ * reticle is advisory: no scan is ever refused for want of a coordinate. Any
+ * attempt to infer Android's extent would be a speculative normalisation on
+ * hardware nobody here can test, and its failure mode is a scanner that rejects
+ * everything.
  */
-const boundsOf = (_result: BarcodeScanningResult): ScanBounds | undefined => undefined;
+const PREVIEW_SPACE_COORDS = Platform.OS === 'ios';
 
 const PROBLEM_KEY: Record<ResultProblem, string> = {
   checksum: 'scan.problem.checksum',
@@ -165,6 +160,20 @@ const PROBLEM_KEY: Record<ResultProblem, string> = {
   not_an_imei: 'scan.problem.notImei',
   same_as_primary: 'scan.problem.sameAsPrimary',
 };
+
+/**
+ * The existing explanation for a code that was aimed at and cannot be used.
+ *
+ * Reuses the strings the result panel already shows, so a barcode rejected
+ * while the camera keeps running is described in exactly the same words as one
+ * rejected after acceptance. Two vocabularies for one fact would be worse than
+ * either.
+ */
+function problemFor(payload: ScanPayload): string {
+  if (payload.kind === 'invalid') return PROBLEM_KEY[payload.reason];
+  if (payload.kind === 'ambiguous') return PROBLEM_KEY.ambiguous;
+  return PROBLEM_KEY.not_an_imei;
+}
 
 export function ScannerSheet({
   open,
@@ -258,8 +267,13 @@ export function ScannerSheet({
    * `holding` is the rendered shadow of it — it drives one label and nothing
    * else. No acceptance is ever made from it.
    */
-  const candidate = useRef<Candidate | null>(null);
-  const [holding, setHolding] = useState(false);
+  const acquisition = useRef<Acquisition>(EMPTY_ACQUISITION);
+  /** 0–1 for the reticle. A rendered shadow; nothing is decided from it. */
+  const [progress, setProgress] = useState(0);
+  /** A brief, non-blocking word about a code that cannot be used. */
+  const [notice, setNotice] = useState<string | null>(null);
+  /** The preview's measured size — the denominator for iOS preview points. */
+  const previewSize = useRef<{ width: number; height: number } | null>(null);
 
   /** True once the camera is running: `cameraActive` is true in `scanning` alone. */
   const live = cameraActive(machine);
@@ -327,8 +341,9 @@ export function ScannerSheet({
       lookedUp.current = null;
       // A new session aims from scratch: a window half-built when the sheet
       // closed must never be completed by the next opening.
-      candidate.current = null;
-      setHolding(false);
+      acquisition.current = EMPTY_ACQUISITION;
+      setProgress(0);
+              setNotice(null);
     }
   }
 
@@ -365,24 +380,48 @@ export function ScannerSheet({
        * render, so a candidate held in state would be a second behind every
        * decision made about it — the same reason the accept lock is a ref.
        */
-      const verdict = observe(candidate.current, {
+      const verdict = observe(acquisition.current, {
         raw: result.data,
         at: monotonicNow(),
-        bounds: boundsOf(result),
+        corners: result.cornerPoints,
+        preview: previewSize.current ?? undefined,
+        previewSpace: PREVIEW_SPACE_COORDS,
+        // This sheet is booking a phone in whenever the caller wants an IMEI,
+        // and a phone label's serial and model number decode just as readily.
+        prefer: onImeiAccepted ? 'imei' : undefined,
       });
-      candidate.current = verdict.action === 'accept' ? null : verdict.candidate;
-      setHolding(verdict.action === 'holding');
+      acquisition.current = verdict.state;
 
-      if (verdict.action !== 'accept') return;
+      if (verdict.action === 'holding') {
+        setProgress(verdict.progress);
+        // Aiming at something usable again clears the last complaint. The
+        // functional form so the callback never reads a stale closure value.
+        setNotice((n) => (n ? null : n));
+        return;
+      }
+      setProgress(0);
 
-      setMachine({ type: 'detected', raw: result.data });
+      if (verdict.action === 'idle') return;
+
+      if (verdict.action === 'reject') {
+        /*
+         * Held long enough, and unusable — a damaged label, or a barcode that
+         * is not an identifier at all. Say so briefly and KEEP SCANNING: the
+         * camera stays live, the sheet stays open, nothing is committed, and
+         * the code is on cooldown so it cannot repeat every frame.
+         */
+        haptics.warning();
+        setNotice(problemFor(verdict.target.payload));
+        return;
+      }
+
+      setMachine({ type: 'detected', raw: verdict.target.key });
       // ONE haptic, and only here — after the rule is satisfied, never on a
       // sighting. Buzzing at every decode is what made a sweep feel like a scan.
-      if (verdict.payload.kind === 'imei') haptics.success();
-      else haptics.warning();
+      haptics.success();
       setMachine({ type: 'validated', payload: verdict.payload });
     },
-    [setMachine],
+    [setMachine, onImeiAccepted],
   );
 
   /**
@@ -397,14 +436,14 @@ export function ScannerSheet({
    */
   useEffect(() => {
     if (!live) {
-      setHolding(false);
+      setProgress(0);
       return;
     }
     const id = setInterval(() => {
-      if (hasLapsed(candidate.current, monotonicNow())) {
-        candidate.current = null;
-        setHolding(false);
-      }
+      const now = monotonicNow();
+      const before = acquisition.current.candidates.length;
+      acquisition.current = prune(acquisition.current, now);
+      if (acquisition.current.candidates.length === 0 && before > 0) setProgress(0);
     }, 250);
     return () => clearInterval(id);
   }, [live]);
@@ -542,6 +581,15 @@ export function ScannerSheet({
              */
             key={sessionId}
             style={StyleSheet.absoluteFill}
+            /*
+             * The denominator for iOS preview points. Measured, never assumed:
+             * the sheet is full-screen but the preview is not the window, and a
+             * guessed size would bias every ranking toward one corner.
+             */
+            onLayout={(e) => {
+              const { width, height } = e.nativeEvent.layout;
+              previewSize.current = { width, height };
+            }}
             facing="back"
             enableTorch={torch}
             barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
@@ -559,22 +607,43 @@ export function ScannerSheet({
           on a sheet of them — and part of that is that nothing on screen ever
           said where to point.
 
-          It is guidance, not a gate: `boundsOf` explains why the platform's
-          barcode coordinates cannot be trusted, so the copy says "position the
-          barcode inside the frame" and never claims that only what is inside it
-          will be read. What actually protects the scan is holding still.
+          It is guidance, not a gate: `PREVIEW_SPACE_COORDS` explains why the
+          platform's barcode coordinates cannot always be trusted, so the copy
+          says "position the barcode inside the frame" and never claims that
+          only what is inside it will be read. What protects the scan on both
+          platforms is holding still.
         */}
         {live && canUseCamera && cameraSupported && !manual ? (
           <View style={styles.guideLayer} pointerEvents="none">
-            <View style={[styles.guide, holding ? styles.guideHolding : null]} />
+            <View style={[styles.guide, progress > 0 ? styles.guideHolding : null]}>
+              {/*
+                The acquisition, shown filling the frame from the bottom.
+
+                Without it the scanner looks frozen for a second — which is the
+                complaint that started all of this, from the other direction.
+                The bar says "seen, and being confirmed", so the second feels
+                like the app working rather than the app hanging.
+              */}
+              <View style={[styles.guideFill, { height: `${Math.round(progress * 100)}%` }]} />
+            </View>
             <Text variant="body" style={styles.guideHint}>
               {/*
-                Two states, both in plain language. No "checksum", no "Luhn",
-                no "stabilizing" — the person holding the phone is being asked
-                to do one physical thing, and that is all this says.
+                Plain language only. No "checksum", no "Luhn", no
+                "stabilizing" — the person holding the phone is being asked to
+                do one physical thing, and that is all this says.
               */}
-              {holding ? t('scan.guide.holdSteady') : t('scan.guide.position')}
+              {progress > 0 ? t('scan.guide.holdSteady') : t('scan.guide.position')}
             </Text>
+            {/*
+              A code that was aimed at and cannot be used. The camera is still
+              running underneath and the sheet has not closed: this is a note,
+              not a dead end, and the cooldown stops it repeating every frame.
+            */}
+            {notice ? (
+              <Text variant="caption" style={styles.guideNotice}>
+                {t(notice as never)}
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -585,8 +654,9 @@ export function ScannerSheet({
             accessibilityLabel={t('scan.a11y.close')}
             variant="inverse"
             onPress={() => {
-              candidate.current = null;
-              setHolding(false);
+              acquisition.current = EMPTY_ACQUISITION;
+              setProgress(0);
+              setNotice(null);
               setMachine({ type: 'cancel' });
               onClose();
             }}
@@ -828,8 +898,9 @@ export function ScannerSheet({
                       fullWidth
                       onPress={() => {
                         // Aiming at the OTHER SIM's label starts a new window.
-                        candidate.current = null;
-                        setHolding(false);
+                        acquisition.current = EMPTY_ACQUISITION;
+                        setProgress(0);
+              setNotice(null);
                         setMachine({ type: 'addSecond' });
                       }}
                     />
@@ -849,8 +920,9 @@ export function ScannerSheet({
                     variant="secondary"
                     fullWidth
                     onPress={() => {
-                      candidate.current = null;
-                      setHolding(false);
+                      acquisition.current = EMPTY_ACQUISITION;
+                      setProgress(0);
+              setNotice(null);
                       setMachine({ type: 'scanAgain' });
                     }}
                   />
@@ -982,6 +1054,7 @@ const useStyles = makeStyles((colors) => ({
     gap: space.lg,
   },
   guide: {
+    overflow: 'hidden',
     // Wide and short: an IMEI barcode is a long strip, and a square frame
     // invites people to hold the phone too close to fit it in.
     width: '78%',
@@ -999,10 +1072,25 @@ const useStyles = makeStyles((colors) => ({
     borderColor: colors.border.focus,
     borderWidth: 3,
   },
+  guideFill: {
+    // Anchored to the bottom so it reads as filling up, not sliding across.
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.border.focus,
+    opacity: 0.25,
+  },
   guideHint: {
     color: colors.text.inverse,
     textAlign: 'center',
     paddingHorizontal: space.xl,
+  },
+  guideNotice: {
+    color: colors.text.inverse,
+    textAlign: 'center',
+    paddingHorizontal: space.xl,
+    opacity: 0.9,
   },
   topBar: {
     flexDirection: 'row',

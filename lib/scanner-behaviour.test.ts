@@ -369,9 +369,21 @@ it('the displayed identifier is the decoder payload, as selectable text', () => 
    */
   assert.match(code, /\(result: BarcodeScanningResult\)/);
   assert.match(code, /raw: result\.data,/);
-  assert.match(code, /setMachine\(\{ type: 'detected', raw: result\.data \}\)/);
+
+  /*
+   * What is committed is the SELECTED candidate, not the callback that happened
+   * to arrive last. On a crowded label those are usually different codes: the
+   * callback carrying the final observation may be the serial number while the
+   * candidate that earned its window is the IMEI. Committing `result.data`
+   * there would hand the business flow the wrong barcode at the last instant.
+   */
+  assert.match(code, /setMachine\(\{ type: 'detected', raw: verdict\.target\.key \}\)/);
   assert.match(code, /setMachine\(\{ type: 'validated', payload: verdict\.payload \}\)/);
-  assert.match(withoutComments(source('lib/scan/stabilizer.ts')), /const payload = classifyScan\(obs\.raw\)/);
+
+  // And the key is the decoder's own bytes, normalised for comparison only.
+  const stab = withoutComments(source('lib/scan/stabilizer.ts'));
+  assert.match(stab, /const payload = classifyScan\(obs\.raw\)/);
+  assert.match(stab, /return raw\.trim\(\)\.replace\(\/\\s\+\/g, ' '\)\.toUpperCase\(\);/);
 
   // Rendered with the primitive that is selectable and forced LTR.
   assert.match(code, /<Identifier tone="inverse">\{primary\}<\/Identifier>/);
@@ -658,34 +670,39 @@ it('acceptance is never made by a timer', () => {
   const code = withoutComments(source(SHEET));
   assert.equal((code.match(/setInterval/g) ?? []).length, 1);
   const timer = code.slice(code.indexOf('const id = setInterval'), code.indexOf('}, 250)'));
-  assert.match(timer, /hasLapsed/);
-  assert.match(timer, /setHolding\(false\)/);
+  assert.match(timer, /prune\(acquisition\.current, now\)/);
+  assert.match(timer, /setProgress\(0\)/);
   assert.ok(!timer.includes('accept'), 'the interval must not be able to accept anything');
   assert.ok(!timer.includes('setMachine'), 'nor advance the machine');
 });
 
 it('the callback stabilizes instead of acting on the first sighting', () => {
   const code = withoutComments(source(SHEET));
-  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('useEffect', code.indexOf('const onBarcodeScanned')));
 
   // Every path out of the callback goes through `observe`.
-  assert.match(cb, /const verdict = observe\(candidate\.current, \{/);
-  assert.match(cb, /if \(verdict\.action !== 'accept'\) return;/);
-  // The candidate lives in a ref — the camera fires before React re-renders.
-  assert.match(code, /const candidate = useRef<Candidate \| null>\(null\)/);
+  assert.match(cb, /const verdict = observe\(acquisition\.current, \{/);
+  // Every non-accept verdict returns early; only `accept` reaches the machine.
+  assert.match(cb, /if \(verdict\.action === 'idle'\) return;/);
+  assert.match(cb, /if \(verdict\.action === 'reject'\)/);
+  // Candidates live in a ref — the camera fires before React re-renders.
+  assert.match(code, /const acquisition = useRef<Acquisition>\(EMPTY_ACQUISITION\)/);
 });
 
 it('the haptic and the lookup wait for acceptance', () => {
   const code = withoutComments(source(SHEET));
-  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('useEffect', code.indexOf('const onBarcodeScanned')));
 
   // One buzz, after the rule is satisfied. Buzzing on every decode is what made
   // sweeping a sheet feel like a successful scan.
-  const guard = cb.indexOf("if (verdict.action !== 'accept') return;");
+  const guard = cb.indexOf("if (verdict.action === 'idle') return;");
   assert.ok(guard > 0);
-  assert.ok(cb.indexOf('haptics.success()') > guard, 'no haptic before acceptance');
-  assert.ok(cb.indexOf('haptics.warning()') > guard, 'no haptic before acceptance');
+  assert.ok(cb.indexOf('haptics.success()') > guard, 'no success haptic before acceptance');
   assert.ok(cb.indexOf("setMachine({ type: 'detected'") > guard, 'no result before acceptance');
+  // The `holding` branch — every frame of the window — touches neither.
+  const holding = cb.slice(cb.indexOf("=== 'holding'"), guard);
+  assert.ok(!holding.includes('haptics'), 'no buzz while acquiring');
+  assert.ok(!holding.includes('setMachine'), 'nothing commits while acquiring');
 
   // And the lookup hangs off `primary`, which only exists in `result` — so no
   // network call can begin while a candidate is still being held.
@@ -704,7 +721,7 @@ it('the camera stays live for the whole window', () => {
   assert.equal(cameraActive(state), false);
 
   const code = withoutComments(source(SHEET));
-  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('"Hold steady…" comes off'));
+  const cb = code.slice(code.indexOf('const onBarcodeScanned'), code.indexOf('useEffect', code.indexOf('const onBarcodeScanned')));
   assert.equal(
     (cb.match(/setMachine\(\{ type: 'detected'/g) ?? []).length,
     1,
@@ -717,21 +734,26 @@ it('the candidate is cleared by every reset the session has', () => {
 
   // A new session, an explicit cancel, "Scan again", and "Add second IMEI" —
   // a window half-built when the sheet closed must never be completed later.
-  assert.equal(
-    (code.match(/candidate\.current = null/g) ?? []).length,
-    5,
-    'reset on: new session, cancel, scanAgain, addSecond, and on acceptance',
+  assert.ok(
+    (code.match(/acquisition\.current = EMPTY_ACQUISITION/g) ?? []).length >= 4,
+    'reset on: new session, cancel, scanAgain, addSecond',
   );
   const reset = code.slice(code.indexOf('if (open !== wasOpen)'), code.indexOf('const reset'));
-  assert.match(reset, /candidate\.current = null/);
-  assert.match(reset, /setHolding\(false\)/);
+  assert.match(reset, /acquisition\.current = EMPTY_ACQUISITION/);
+  assert.match(reset, /setProgress\(0\)/);
+  assert.match(reset, /setNotice\(null\)/);
 });
 
 it('the aiming frame guides and does not claim to gate', () => {
   const code = withoutComments(source(SHEET));
 
   // Two states, both plain language.
-  assert.match(code, /holding \? t\('scan\.guide\.holdSteady'\) : t\('scan\.guide\.position'\)/);
+  assert.match(code, /progress > 0 \? t\('scan\.guide\.holdSteady'\) : t\('scan\.guide\.position'\)/);
+  // The acquisition fills the frame as it builds, so a deliberate second never
+  // reads as the app having frozen — the complaint from the opposite direction.
+  assert.match(code, /Math\.round\(progress \* 100\)/);
+  // And an unusable code is a note over a live camera, not a dead end.
+  assert.match(code, /\{notice \? \(/);
   // Shown only while the camera is actually running.
   assert.match(code, /\{live && canUseCamera && cameraSupported && !manual \?/);
 
@@ -756,8 +778,12 @@ it('the bounds audit is recorded rather than assumed', () => {
   // scan on one platform, so the frame does not gate — and the reason is in the
   // source rather than in somebody's memory.
   const code = source(SHEET);
-  assert.match(code, /audited, and deliberately not used/);
-  assert.match(code, /const boundsOf = \(_result: BarcodeScanningResult\): ScanBounds \| undefined => undefined/);
+  assert.match(code, /Read from the native source in `node_modules\/expo-camera`, not guessed/);
+  assert.match(code, /const PREVIEW_SPACE_COORDS = Platform\.OS === 'ios'/);
+  // Advisory, never a gate: Android has no denominator, and must still scan.
+  const stab = withoutComments(source('lib/scan/stabilizer.ts'));
+  assert.match(stab, /if \(!obs\.previewSpace \|\| !obs\.preview\) return null;/);
+  assert.match(stab, /const pool = usable\.length > 0 \? usable : ready;/);
 });
 
 it('typing needs no stabilization', () => {
