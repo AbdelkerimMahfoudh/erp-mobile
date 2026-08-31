@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Cable, PackageSearch } from 'lucide-react-native';
 import {
   Button,
@@ -25,7 +25,7 @@ import { useTranslation } from '../../lib/i18n';
 import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
-import type { InventoryPage, InventoryRow, ScanResult, Unit } from '../../types/api';
+import type { InventoryPage, InventoryRow, ModelStockRow, ScanResult, Unit } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
@@ -58,6 +58,21 @@ export default function InventoryScreen() {
   // rather than guessing from its name, which two variants can share.
   const { productId } = useLocalSearchParams<{ productId?: string }>();
   const [status, setStatus] = useState<StatusFilter>('in_stock');
+  /**
+   * How the shelf is presented — by model, or one row per unit.
+   *
+   * By model is the default because it is the question that gets asked fifty
+   * times a day: "how many 17 Pro Max do I have?" A list of individual IMEIs
+   * answers a different question, and answering it first meant counting rows by
+   * eye. Nothing about the data changes between the two — every phone is still
+   * one Unit with its own IMEI, still searchable by either — only which of the
+   * two true answers is on top.
+   *
+   * Arriving from a product's detail screen goes straight to the units: that
+   * journey has already picked a model, so aggregating it again would show one
+   * line and hide what was asked for.
+   */
+  const [view, setView] = useState<'model' | 'unit'>(productId ? 'unit' : 'model');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
 
@@ -76,6 +91,20 @@ export default function InventoryScreen() {
       return api.get<InventoryPage>(`/inventory?${params.toString()}`);
     },
     getNextPageParam: (last) => last.nextCursor,
+  });
+
+  /**
+   * The shelf, counted by model.
+   *
+   * Not paginated, and not filtered by the search box: a shop has hundreds of
+   * units and a few dozen models, so the whole list is small, and a search over
+   * IMEIs is a question about one phone rather than about the shelf. Typing in
+   * the search box switches the view to units for that reason.
+   */
+  const byModel = useQuery({
+    queryKey: qk.inventoryByModel(branchId),
+    queryFn: () => api.get<ModelStockRow[]>('/inventory/by-model'),
+    enabled: view === 'model',
   });
 
   // ── Lookup by scan ────────────────────────────────────────────────────────
@@ -117,6 +146,21 @@ export default function InventoryScreen() {
   const isEmpty = !inventory.isLoading && rows.length === 0;
   const searching = debounced.length > 0;
 
+  /**
+   * Searching is a question about one phone, so it answers with phones.
+   *
+   * Somebody typing an IMEI wants that handset, not the line "iPhone 17 Pro
+   * Max — 4". The model view is restored the moment the box is cleared, so this
+   * costs nobody a tap.
+   */
+  const showing: 'model' | 'unit' = searching || productId ? 'unit' : view;
+
+  const models = byModel.data ?? [];
+  /** Phones and other individually-tracked devices, then bulk stock. */
+  const trackedModels = models.filter((m) => m.trackingType !== 'quantity');
+  const quantityModels = models.filter((m) => m.trackingType === 'quantity');
+  const modelsEmpty = showing === 'model' && !byModel.isLoading && models.length === 0;
+
   const onSearchChange = useCallback((value: string) => {
     setQuery(value);
   }, []);
@@ -124,7 +168,8 @@ export default function InventoryScreen() {
   /** Refetching from the first page — a cursor from the old filter is invalid. */
   const refresh = useCallback(() => {
     void inventory.refetch();
-  }, [inventory]);
+    void byModel.refetch();
+  }, [inventory, byModel]);
 
   return (
     <Screen
@@ -146,6 +191,24 @@ export default function InventoryScreen() {
             onSubmit={setDebounced}
             placeholder={t('inventory.search')}
           />
+          {/*
+            Two true answers about the same shelf, and a tap between them.
+            Hidden while searching, because a search has already chosen one.
+          */}
+          {searching || productId ? null : (
+            <View style={styles.filters}>
+              <FilterChip
+                label={t('inventory.view.byModel')}
+                selected={showing === 'model'}
+                onPress={() => setView('model')}
+              />
+              <FilterChip
+                label={t('inventory.view.byUnit')}
+                selected={showing === 'unit'}
+                onPress={() => setView('unit')}
+              />
+            </View>
+          )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filters}>
               {STATUS_FILTERS.map((value) => (
@@ -190,6 +253,24 @@ export default function InventoryScreen() {
         >
           {inventory.isLoading ? (
             <SkeletonList count={6} />
+          ) : showing === 'model' ? (
+            <ModelList
+              loading={byModel.isLoading}
+              empty={modelsEmpty}
+              tracked={trackedModels}
+              quantity={quantityModels}
+              /*
+                Tapping a model answers the next question: which four? It
+                switches to units AND filters to that model, because landing on
+                every unit in the branch would make the tap a step backwards.
+              */
+              onOpen={(m) => {
+                const term = `${m.brand} ${m.model}`.trim();
+                setView('unit');
+                setQuery(term);
+                setDebounced(term);
+              }}
+            />
           ) : isEmpty ? (
             <EmptyState
               icon={PackageSearch}
@@ -379,6 +460,103 @@ function SectionHeading({
         {count}
       </Text>
     </View>
+  );
+}
+
+/**
+ * The shelf as a shopkeeper counts it: "iPhone 17 Pro Max — 4 in stock".
+ *
+ * Every one of those four is still an individual `Unit` with its own IMEI, and
+ * still findable by either of its identifiers. This is a presentation of the
+ * same rows, not a different kind of record — which is why the storage and
+ * colour breakdown sits one level down rather than splitting the headline. A
+ * shopkeeper asked "how many 17 Pro Max"; "two black and two blue" is the
+ * answer to the next question, not this one.
+ *
+ * The count comes from the server on every load. Nothing here adds up rows or
+ * remembers a total.
+ */
+function ModelList({
+  loading,
+  empty,
+  tracked,
+  quantity,
+  onOpen,
+}: {
+  loading: boolean;
+  empty: boolean;
+  tracked: ModelStockRow[];
+  quantity: ModelStockRow[];
+  onOpen: (model: ModelStockRow) => void;
+}) {
+  const { t } = useTranslation();
+
+  if (loading) return <SkeletonList count={6} />;
+  if (empty) {
+    return (
+      <EmptyState
+        icon={PackageSearch}
+        title={t('inventory.empty.title')}
+        body={t('inventory.empty.body')}
+      />
+    );
+  }
+
+  const row = (m: ModelStockRow) => {
+    /*
+     * Shown only when it says something. One variant adds a line that repeats
+     * what the count already said; several is the reason somebody tapped.
+     */
+    const named = m.variants.filter((v) => v.variant);
+    const breakdown =
+      named.length > 1 ? named.map((v) => `${v.variant} · ${v.inStock}`).join('   ') : undefined;
+
+    return (
+      <ListRow
+        key={`${m.brand} ${m.model}`}
+        leading={m.trackingType === 'quantity' ? Cable : PackageSearch}
+        title={`${m.brand} ${m.model}`.trim()}
+        subtitle={breakdown}
+        // The number in words as well as as a figure, so "4" is never a bare
+        // digit somebody has to interpret.
+        value={<Text variant="title">{formatQuantity(m.inStock)}</Text>}
+        valueCaption={t('inventory.inStock')}
+        onPress={() => onOpen(m)}
+      />
+    );
+  };
+
+  return (
+    <>
+      {tracked.length > 0 ? (
+        <>
+          <SectionHeading
+            label={t('inventory.models')}
+            // Every unit in the branch is counted, so this is a total rather
+            // than a page — said plainly, unlike the paginated unit list.
+            count={t('inventory.count.models', {
+              models: tracked.length,
+              units: tracked.reduce((n, m) => n + m.inStock, 0),
+            })}
+          />
+          {tracked.map(row)}
+        </>
+      ) : null}
+
+      {quantity.length > 0 ? (
+        <>
+          <SectionHeading
+            label={t('inventory.accessories')}
+            count={t('inventory.count.models', {
+              models: quantity.length,
+              units: quantity.reduce((n, m) => n + m.inStock, 0),
+            })}
+            spaced={tracked.length > 0}
+          />
+          {quantity.map(row)}
+        </>
+      ) : null}
+    </>
   );
 }
 

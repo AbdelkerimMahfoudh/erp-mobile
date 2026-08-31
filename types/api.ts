@@ -289,6 +289,24 @@ export interface InventoryPage {
   totals: { units: number; stock: number };
 }
 
+/**
+ * One phone model, and how many are on the shelf.
+ *
+ * Server-calculated from the Unit rows on every request. There is deliberately
+ * no client-side counter: a number that is maintained rather than derived
+ * drifts the first time a sale or a transfer takes a path nobody updated.
+ */
+export interface ModelStockRow {
+  brand: string;
+  model: string;
+  trackingType: TrackingType;
+  inStock: number;
+  /** The product rows folded into this line — several is normal, not a fault. */
+  productIds: string[];
+  /** Storage and colour. Detail only; never splits the headline count. */
+  variants: { variant: string | null; inStock: number }[];
+}
+
 export interface DashboardHome {
   today: { revenue: number; grossProfit?: number; netProfit?: number; salesCount: number; qtySold: number };
   month: { revenue: number; grossProfit?: number; netProfit?: number };

@@ -6,6 +6,8 @@ export const qk = {
   products: (q?: string) => ['products', q ?? ''] as const,
   product: (id: string) => ['product', id] as const,
   categories: ['categories'] as const,
+  /** Reference data, not tenant data — safe to keep for the whole session. */
+  deviceBrands: ['device-brands'] as const,
   suppliers: ['suppliers'] as const,
   /** One supplier and its ledger. Keyed by id so a payment refreshes it alone. */
   supplier: (id: string) => ['supplier', id] as const,
@@ -64,6 +66,7 @@ export const qk = {
   analyticsProducts: (branchId: string | null) => ['analytics-products', branchId] as const,
   analyticsCategories: (branchId: string | null) => ['analytics-categories', branchId] as const,
   inventoryValue: (branchId: string | null) => ['inventory-value', branchId] as const,
+  inventoryByModel: (branchId: string | null) => ['inventory-by-model', branchId] as const,
   health: (branchId: string | null) => ['health', branchId] as const,
   expenses: (branchId: string | null, filters?: string) =>
     ['expenses', branchId, filters ?? ''] as const,
