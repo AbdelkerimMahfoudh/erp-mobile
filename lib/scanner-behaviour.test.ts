@@ -404,7 +404,15 @@ it('the lookup runs while the result is shown, not after acceptance', () => {
    */
   const code = withoutComments(source(SHEET));
   assert.match(code, /const \[lookup, setLookup\] = useState<ScanResult \| null>\(null\)/);
-  assert.match(code, /useScan\(\{\s*silent: true,\s*onResult: setLookup,\s*\}\)/);
+  /*
+   * `onResult` is no longer `setLookup` directly: it is guarded by the session
+   * token, so a lookup started before the sheet was closed cannot write into
+   * the session that reopened it. The guard is asserted properly below; here it
+   * is enough that the result still reaches `setLookup` at all, which is the
+   * regression this test was written for.
+   */
+  assert.match(code, /silent: true/);
+  assert.match(code, /setLookup\(r\)/);
   // Fired by the identifier, not by a render, so it cannot run twice.
   assert.match(code, /if \(!primary \|\| lookedUp\.current === primary\) return;/);
   assert.match(code, /void scanQuietly\(primary\)/);
@@ -476,6 +484,148 @@ it('nothing here creates a product or a unit', () => {
   }
   // The only call it makes is the recognition lookup.
   assert.match(withoutComments(source(USE_SCAN)), /api\.post<ScanResult>\('\/scan'/);
+});
+
+// ── 8 · every opening is a new session ───────────────────────────────────
+//
+// The second device test: the FIRST scan worked. Reopen the sheet and the old
+// result was on screen before the camera existed, frequently in under a second
+// — which reads as a frozen photograph of the last barcode.
+//
+// The cause was not the camera. `ScannerSheet` is permanently mounted by its
+// parents (`open` only gates `if (!open) return null`), so every piece of its
+// state survives a close: the machine, the lookup, the guards, and the
+// `CameraView` instance itself. The old reset ran in an effect, which is AFTER
+// the reopened sheet had already painted the previous session's result.
+
+it('reopening resets in the render pass, before anything can be painted', () => {
+  const code = withoutComments(source(SHEET));
+
+  // React's "adjust state during render" pattern: compare against the previous
+  // prop and reset in the same pass. An effect is one paint too late, and that
+  // one paint is the whole defect.
+  assert.match(code, /if \(open !== wasOpen\) \{/);
+  assert.match(code, /setWasOpen\(open\)/);
+  assert.ok(
+    code.indexOf('if (open !== wasOpen)') < code.indexOf('return ('),
+    'the reset must happen during render, not in an effect after it',
+  );
+});
+
+it('a new session clears every piece of the last one', () => {
+  const code = withoutComments(source(SHEET));
+  const reset = code.slice(code.indexOf('if (open !== wasOpen)'), code.indexOf('const reset'));
+
+  // The result, the typed fields, the recognised product…
+  assert.match(reset, /setTyped\(''\)/);
+  assert.match(reset, /setTypedSecond\(''\)/);
+  assert.match(reset, /setLookup\(null\)/);
+  assert.match(reset, /setManual\(false\)/);
+  assert.match(reset, /setTorch\(false\)/);
+  // …the machine, both in React state and in the ref the callback reads…
+  assert.match(reset, /machineRef\.current = scannerReducer\(initialScannerState, \{ type: 'open' \}\)/);
+  assert.match(reset, /dispatch\(\{ type: 'open' \}\)/);
+  // …the synchronous accept guard, and the "already looked this up" marker.
+  assert.match(reset, /accepting\.current = false/);
+  assert.match(reset, /lookedUp\.current = null/);
+});
+
+it('the camera itself is a new instance each session, not a reused one', () => {
+  const code = withoutComments(source(SHEET));
+
+  // A `key` that changes forces React to unmount the old `CameraView` and
+  // construct a new one. Without it React reconciles onto the SAME native view
+  // — which is the instance holding the last frame.
+  assert.match(code, /setSessionId\(\(n\) => n \+ 1\)/);
+  assert.match(code, /<CameraView[\s\S]*?key=\{sessionId\}/);
+});
+
+it('three consecutive sessions each start scanning from nothing', () => {
+  /*
+   * The state-machine half of the same guarantee, driven three times because
+   * the device report was specifically that the FIRST one worked.
+   */
+  for (let session = 1; session <= 3; session++) {
+    let state = run([{ type: 'open' }]);
+    assert.equal(state.name, 'scanning', `session ${session} must open scanning`);
+    assert.equal(cameraActive(state), true, `session ${session} must mount a camera`);
+    assert.equal(acceptsDetection(state), true, `session ${session} must accept a scan`);
+
+    state = scannerReducer(state, { type: 'detected', raw: IMEI });
+    state = scannerReducer(state, { type: 'validated', payload });
+    assert.equal(state.name, 'result');
+    state = scannerReducer(state, { type: 'accept' });
+    assert.equal(state.name, 'accepted');
+
+    // Closing and reopening: `open` is how the sheet restarts, and it must
+    // discard the accepted state rather than carrying it forward.
+    const reopened = scannerReducer(state, { type: 'open' });
+    assert.equal(reopened.name, 'scanning', `session ${session} must not reopen showing a result`);
+    assert.equal(cameraActive(reopened), true);
+  }
+});
+
+it('no result state can show a camera frame', () => {
+  /*
+   * Stated over the machine rather than the markup, so it holds for every state
+   * the sheet can be in rather than for the branches somebody remembered.
+   */
+  const states: ScannerState[] = [
+    run([{ type: 'open' }, { type: 'detected', raw: IMEI }]),
+    run([{ type: 'open' }, { type: 'detected', raw: IMEI }, { type: 'validated', payload }]),
+    run([{ type: 'open' }, { type: 'detected', raw: IMEI }, { type: 'validated', payload }, { type: 'accept' }]),
+  ];
+  for (const state of states) {
+    assert.equal(cameraActive(state), false, `${state.name} must not hold a camera`);
+  }
+  // And the markup mounts one only when `live`, so "no camera" means no view.
+  assert.match(withoutComments(source(SHEET)), /&& live \? \(\s*<CameraView/);
+});
+
+it('a lookup from a closed session cannot write into the next one', () => {
+  /*
+   * `/scan` is a network call. Close the sheet while one is in flight, reopen
+   * it, and the response lands in a session that never asked for it — the
+   * previous phone appearing under the new scan.
+   *
+   * A session token, compared at the moment the result arrives.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /const lookupSession = useRef\(0\)/);
+  assert.match(code, /lookupSession\.current = sessionId/);
+  assert.match(code, /if \(lookupSession\.current !== sessionId\) return;/);
+  // The guard must come before the write, or it guards nothing.
+  const handler = code.slice(code.indexOf('onResult: (r) =>'), code.indexOf('setLookup(r)'));
+  assert.match(handler, /lookupSession\.current !== sessionId/);
+});
+
+it('the accepted result is handed to the parent before the sheet forgets it', () => {
+  /*
+   * The sheet clears itself on every open, so the accepted IMEI cannot live
+   * here. It goes to the parent on accept — and it is the parent's state that
+   * survives reopening and `Next`.
+   */
+  const code = withoutComments(source(SHEET));
+  const accept = code.slice(code.indexOf('const acceptImei'), code.indexOf('const submitTyped'));
+  // Optional — an embedding screen that does not want the structured result
+  // still gets one through `onResult`.
+  assert.match(accept, /onImeiAccepted\?\.\(\{/);
+  assert.ok(
+    accept.indexOf('onImeiAccepted?.({') < accept.indexOf('onClose()'),
+    'the parent must be told before the sheet closes and resets',
+  );
+});
+
+it('detection is never delayed', () => {
+  /*
+   * The device report was explicit: fast detection is correct, and a frozen
+   * frame is the fault. Slowing the decoder down would have hidden the symptom
+   * and broken the feature.
+   */
+  const code = withoutComments(source(SHEET));
+  for (const stall of ['setTimeout', 'setInterval', 'await new Promise', 'requestAnimationFrame']) {
+    assert.ok(!code.includes(stall), `no artificial delay: ${stall}`);
+  }
 });
 
 console.log(`scanner and keyboard behaviour: ${passed} passed`);

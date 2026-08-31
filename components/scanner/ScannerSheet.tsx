@@ -137,6 +137,24 @@ export function ScannerSheet({
   const [typed, setTyped] = useState('');
   const [typedSecond, setTypedSecond] = useState('');
 
+  /**
+   * One scanner opening = one session.
+   *
+   * The sheet is MOUNTED for the whole life of its parent — `open` only decides
+   * whether it renders — so every piece of state below survives being closed
+   * and reopened. That is what made the second and third scan misbehave while
+   * the first was fine: the reopened sheet rendered the PREVIOUS session's
+   * accepted result for one frame, and React reused the previous `CameraView`
+   * instance, which comes back holding its last frame.
+   *
+   * The reset therefore happens during render, the moment `open` flips, rather
+   * than in an effect that runs after that first frame is already on screen.
+   * And `sessionId` keys the camera, so a genuinely new instance is created
+   * every time instead of an old one being revived.
+   */
+  const [sessionId, setSessionId] = useState(0);
+  const [wasOpen, setWasOpen] = useState(false);
+
   const [machine, dispatch] = useReducer(scannerReducer, initialScannerState);
   /**
    * The same state, readable synchronously.
@@ -174,6 +192,14 @@ export function ScannerSheet({
    */
   const lookedUp = useRef<string | null>(null);
 
+  /**
+   * Synchronous, like the camera lock, and reset per session.
+   *
+   * A double tap lands before React re-renders, and two accepts meant two
+   * `onClose` calls.
+   */
+  const accepting = useRef(false);
+
   const handleResult = useCallback(
     (r: ScanResult) => {
       onResult(r);
@@ -197,26 +223,51 @@ export function ScannerSheet({
    * only that it does not buzz.
    */
   const [lookup, setLookup] = useState<ScanResult | null>(null);
+
+  /**
+   * Which session a lookup belongs to.
+   *
+   * `/scan` is a network call, and a slow one can return after the user has
+   * closed the scanner and opened it again. Without this token that answer
+   * lands in the NEW session and shows the previous phone.
+   */
+  const lookupSession = useRef(0);
   const { scan: scanQuietly, loading: lookingUp } = useScan({
     silent: true,
-    onResult: setLookup,
+    onResult: (r) => {
+      if (lookupSession.current !== sessionId) return;
+      setLookup(r);
+    },
   });
 
-  // Fresh state each time it opens — a stale torch, a half-typed code or a
-  // result from the last phone has no business being here.
-  useEffect(() => {
+  /*
+   * Fresh state the instant it opens — before the first frame, not after it.
+   *
+   * Adjusting state during render in response to a changed prop is the
+   * documented React pattern for exactly this, and it is what an effect cannot
+   * do: an effect runs after the reopened sheet has already painted the last
+   * session's result.
+   */
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
+      setSessionId((n) => n + 1);
       setTorch(false);
       setManual(false);
       setTyped('');
       setTypedSecond('');
+      setLookup(null);
       machineRef.current = scannerReducer(initialScannerState, { type: 'open' });
       dispatch({ type: 'open' });
       accepting.current = false;
       lookedUp.current = null;
-      setLookup(null);
-      reset();
     }
+  }
+
+  // Clearing the duplicate window touches the shared hook, so it stays in an
+  // effect rather than running during render.
+  useEffect(() => {
+    if (open) reset();
   }, [open, reset]);
 
   /**
@@ -254,12 +305,12 @@ export function ScannerSheet({
    * `/scan` call still happens — recognition must still learn from the
    * identifier — but nothing on screen waits for it.
    */
-  const accepting = useRef(false);
   useEffect(() => {
     if (!primary || lookedUp.current === primary) return;
     lookedUp.current = primary;
+    lookupSession.current = sessionId;
     void scanQuietly(primary);
-  }, [primary, scanQuietly]);
+  }, [primary, scanQuietly, sessionId]);
 
   const acceptImei = useCallback(() => {
     // Synchronous, like the camera lock: a double tap lands before React
@@ -368,6 +419,12 @@ export function ScannerSheet({
         */}
         {canUseCamera && cameraSupported && !manual && live ? (
           <CameraView
+            /*
+             * A NEW instance every session. Without this React reuses the one
+             * from last time — same type, same position in the tree — and it
+             * comes back holding the frame it was showing when it went away.
+             */
+            key={sessionId}
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torch}
