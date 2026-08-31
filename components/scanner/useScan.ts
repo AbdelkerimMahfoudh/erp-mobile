@@ -43,6 +43,15 @@ export interface UseScanOptions {
   onCode?: (code: string) => void;
   /** Milliseconds the same code is ignored for. */
   duplicateWindowMs?: number;
+  /**
+   * Run the pipeline without haptics.
+   *
+   * For a scan the user has ALREADY felt. The scanner buzzes when it detects an
+   * identifier; sending the same identifier down `/scan` afterwards, so
+   * recognition learns from it, must not buzz a second time. The device test
+   * found exactly that — one physical scan, two haptics.
+   */
+  silent?: boolean;
 }
 
 export interface UseScanApi {
@@ -58,6 +67,7 @@ export function useScan({
   onError,
   onCode,
   duplicateWindowMs = DUPLICATE_WINDOW_MS,
+  silent = false,
 }: UseScanOptions = {}): UseScanApi {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,13 +104,15 @@ export function useScan({
         const result = await api.post<ScanResult>('/scan', { code });
         // Distinct feedback for "got it" vs "you'll have to help me" — the
         // employee knows which before looking at the screen.
-        if (result.recognized) haptics.success();
-        else haptics.warning();
+        if (!silent) {
+          if (result.recognized) haptics.success();
+          else haptics.warning();
+        }
         onResult?.(result);
         return result;
       } catch (e) {
         const message = toErrorMessage(e);
-        haptics.error();
+        if (!silent) haptics.error();
         setError(message);
         onError?.(message);
         // Let a failed code be retried immediately rather than sitting inside
@@ -112,7 +124,7 @@ export function useScan({
         setLoading(false);
       }
     },
-    [duplicateWindowMs, onCode, onError, onResult],
+    [duplicateWindowMs, onCode, onError, onResult, silent],
   );
 
   return { scan, loading, error, reset };

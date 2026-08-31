@@ -12,7 +12,7 @@ import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 import { EmptyState } from '../ui/EmptyState';
 import { useScan } from './useScan';
-import { classifyScan } from '../../lib/scan/payload';
+import { classifyScan, type ScanPayload } from '../../lib/scan/payload';
 import {
   acceptsDetection,
   cameraActive,
@@ -21,7 +21,7 @@ import {
   type ResultProblem,
   type ScannerState,
 } from '../../lib/scan/machine';
-import { reconcileTacs, useTacResolution } from '../../lib/tac';
+import { reconcileTacs, useTacResolution, type TacResolution } from '../../lib/tac';
 import type { ScanResult } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -67,6 +67,25 @@ const BARCODE_TYPES = [
   'pdf417',
 ] as const;
 
+/**
+ * Everything the parent needs about one accepted phone.
+ *
+ * The digits alone were not enough: the intake page had to repeat the
+ * classification and the TAC lookup to show what had just been scanned, and
+ * until it did, the user saw nothing. Handing the whole result over means the
+ * page can render immediately and the scanner can close.
+ */
+export interface AcceptedImei {
+  readonly primary: string;
+  readonly secondary: string | null;
+  /** What the raw payload was classified as. Null for a typed identifier. */
+  readonly payload: ScanPayload | null;
+  /** The generic brand/model suggestion, if a TAC resolved to one. */
+  readonly tac: TacResolution | null;
+  /** True when two identifiers disagreed — never present one as the answer. */
+  readonly tacConflict: boolean;
+}
+
 export interface ScannerSheetProps {
   open: boolean;
   onClose: () => void;
@@ -79,7 +98,7 @@ export interface ScannerSheetProps {
    * identifies a reusable model. Collapsing them is how an IMEI ends up in the
    * Product barcode box.
    */
-  onImeiAccepted?: (imei: { primary: string; secondary: string | null }) => void;
+  onImeiAccepted?: (accepted: AcceptedImei) => void;
   mode?: 'single' | 'continuous';
   hint?: string;
   /** Running tally shown in continuous mode, e.g. units added so far. */
@@ -153,6 +172,15 @@ export function ScannerSheet({
 
   const { scan, loading, error, reset } = useScan({ onResult: handleResult });
 
+  /*
+   * The same pipeline, without the feedback.
+   *
+   * The detection already gave a haptic and the result is already on screen;
+   * running the full `useScan` here gave a second buzz and a second attempt to
+   * close a sheet that had closed itself.
+   */
+  const { scan: scanSilently } = useScan({ silent: true });
+
   // Fresh state each time it opens — a stale torch, a half-typed code or a
   // result from the last phone has no business being here.
   useEffect(() => {
@@ -163,6 +191,7 @@ export function ScannerSheet({
       setTypedSecond('');
       machineRef.current = scannerReducer(initialScannerState, { type: 'open' });
       dispatch({ type: 'open' });
+      accepting.current = false;
       reset();
     }
   }, [open, reset]);
@@ -188,14 +217,57 @@ export function ScannerSheet({
     [setMachine],
   );
 
+  /**
+   * "Use this IMEI" — once, completely, and then gone.
+   *
+   * The device test found three faults here. The sheet stayed open until
+   * `/scan` returned, so the accepted result only appeared after the user
+   * closed the scanner by hand; `useScan` fired a SECOND haptic on top of the
+   * one the detection already gave; and because `accepted` had no render
+   * branch, the sheet fell back to the camera view and looked as though it had
+   * gone back to scanning.
+   *
+   * So: transition once, hand the parent everything it needs, close. The
+   * `/scan` call still happens — recognition must still learn from the
+   * identifier — but nothing on screen waits for it.
+   */
+  const accepting = useRef(false);
   const acceptImei = useCallback(() => {
-    if (!primary) return;
+    // Synchronous, like the camera lock: a double tap lands before React
+    // re-renders, and two `accept` events would fire two `onClose` calls.
+    if (accepting.current || !primary) return;
+    accepting.current = true;
+
     setMachine({ type: 'accept' });
-    onImeiAccepted?.({ primary, secondary });
-    // The identifier still goes down the same `/scan` pipeline, so recognition
-    // and the TAC overlay learn from it exactly as they do from a barcode.
-    void scan(primary);
-  }, [onImeiAccepted, primary, scan, secondary, setMachine]);
+    onImeiAccepted?.({
+      primary,
+      secondary,
+      /*
+       * The complete result, not just the digits. The parent needs the
+       * classified payload and the TAC suggestion to show what was scanned
+       * without repeating the work — and `conflict` matters, because two
+       * identifiers that disagree must not be presented as one answer.
+       */
+      payload: result?.payload ?? null,
+      tac: tacResolution ?? null,
+      tacConflict,
+    });
+
+    // Recognition still learns from it. Nothing on screen waits for this, and
+    // it must not produce a second haptic — see `silent` below.
+    void scanSilently(primary);
+    onClose();
+  }, [
+    onClose,
+    onImeiAccepted,
+    primary,
+    result,
+    scanSilently,
+    secondary,
+    setMachine,
+    tacConflict,
+    tacResolution,
+  ]);
 
   const submitTyped = () => {
     const code = typed.trim();
@@ -212,7 +284,15 @@ export function ScannerSheet({
           ? secondPayload.primary
           : payload.secondary;
       setMachine({ type: 'manual', primary: payload.primary, secondary: secondaryTyped ?? null });
-      onImeiAccepted({ primary: payload.primary, secondary: secondaryTyped ?? null });
+      // A typed identifier reaches the parent the same shape a scanned one
+      // does, so the intake page has one code path for both.
+      onImeiAccepted({
+        primary: payload.primary,
+        secondary: secondaryTyped ?? null,
+        payload,
+        tac: null,
+        tacConflict: false,
+      });
     }
 
     setTyped('');
@@ -236,11 +316,16 @@ export function ScannerSheet({
             facing="back"
             enableTorch={torch}
             barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
-            /**
-             * Detaching the handler is what actually pauses scanning. Leaving it
-             * attached and filtering inside would keep the camera pipeline
-             * running behind a result the user is still reading.
+            /*
+             * BOTH, and the first one is what the device test proved was
+             * missing. Detaching the handler stops us reacting; it does not
+             * stop the camera. On a real phone the preview stayed live behind
+             * the result, still decoding, which is what a user reads as "it is
+             * still scanning".
+             *
+             * `active` deactivates the capture session itself.
              */
+            active={live}
             onBarcodeScanned={live ? onBarcodeScanned : undefined}
           />
         ) : null}
@@ -482,16 +567,18 @@ export function ScannerSheet({
               ) : null}
 
               {/*
-                Always present, in every state. Typing is never taken away —
-                many manufacturers show the IMEI with no code beside it.
+                Manual entry is NOT here.
+
+                It used to sit in the scanner in every state, and the device
+                test showed why that is wrong: somebody who has opened the
+                camera has already chosen to scan, and a keyboard button under
+                a live viewfinder is a second decision in the way of the first.
+
+                It has not gone anywhere — it lives on the intake page, beside
+                the button that opens this sheet, which is where somebody
+                decides HOW to enter an identifier. Typing is never taken away;
+                many manufacturers print the IMEI with no code beside it.
               */}
-              <Button
-                title={t('scan.enterManually')}
-                variant="secondary"
-                icon={Keyboard}
-                fullWidth
-                onPress={() => setManual(true)}
-              />
               {!result ? (
                 <Text variant="caption" tone="inverse" align="center">
                   {t('scan.hint.notEveryPhone')}

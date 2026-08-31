@@ -8,5 +8,5 @@
  */
 
 export { ScanTarget, type ScanTargetProps } from './ScanTarget';
-export { ScannerSheet, type ScannerSheetProps } from './ScannerSheet';
+export { ScannerSheet, type ScannerSheetProps, type AcceptedImei } from './ScannerSheet';
 export { useScan, CONFIDENCE_HIGH, type UseScanApi } from './useScan';
