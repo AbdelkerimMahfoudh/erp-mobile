@@ -51,6 +51,27 @@ export interface CatalogueModel {
   displayRank: number;
 }
 
+/** One pickable storage capacity or colour. */
+export interface AttributeOption {
+  key: string;
+  label: string;
+}
+
+export interface DeviceAttributes {
+  storage: AttributeOption[];
+  colour: AttributeOption[];
+  /**
+   * What `variant` records — `['storage', 'colour']`.
+   *
+   * Carried in the payload rather than assumed here, because a client that
+   * guessed `variant` meant "region" would quietly file one phone under a
+   * product row per market.
+   */
+  describes: string[];
+  /** What joins the two halves inside the stored string. */
+  separator: string;
+}
+
 export interface CatalogueVersion {
   updatedAt: string | null;
   brands: number;
@@ -140,6 +161,38 @@ export function fetchModels(brandKey: string): Promise<CatalogueResult<Catalogue
     `/device-catalogue/brands/${encodeURIComponent(brandKey)}/models`,
     modelsFile(brandKey),
   );
+}
+
+const ATTRIBUTES_FILE = 'attributes.json';
+
+/**
+ * The storage and colour lists, from the server, with the last copy as backup.
+ *
+ * Same rule as brands and models: **the app holds no list of its own.** These
+ * two are short and stable enough that bundling them would have been tempting,
+ * and that is exactly how the second catalogue starts — one that cannot be
+ * corrected without shipping a release, sitting next to one that can.
+ *
+ * A shop with no signal and no cached copy gets empty lists, and the `Other`
+ * field is what carries them through: the selectors keep working with nothing
+ * to select from, because typing has never been the failure case.
+ */
+export async function fetchAttributes(): Promise<{
+  attributes: DeviceAttributes | null;
+  origin: CatalogueOrigin;
+  cachedAt: string | null;
+}> {
+  try {
+    const attributes = await api.get<DeviceAttributes>('/device-catalogue/attributes');
+    write(ATTRIBUTES_FILE, [attributes]);
+    return { attributes, origin: 'live', cachedAt: null };
+  } catch {
+    const cached = read<DeviceAttributes>(ATTRIBUTES_FILE);
+    if (cached?.items[0]) {
+      return { attributes: cached.items[0], origin: 'cached', cachedAt: cached.savedAt };
+    }
+    return { attributes: null, origin: 'unavailable', cachedAt: null };
+  }
 }
 
 export { normaliseSearch, matches, OTHER_BRAND_KEY } from './catalogue-search.ts';

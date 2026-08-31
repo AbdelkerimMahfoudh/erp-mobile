@@ -1201,6 +1201,11 @@ export const fr: Catalogue = {
   'inventory.filter.all': 'Tout',
   'inventory.units': 'Articles suivis',
   'inventory.accessories': 'Accessoires',
+  // Le stock compté par modèle — la question posée cinquante fois par jour.
+  'inventory.models': 'Modèles',
+  'inventory.view.byModel': 'Par modèle',
+  'inventory.view.byUnit': 'Un par un',
+  'inventory.count.models': '{models} modèles · {units} en stock',
   'inventory.cost': 'prix d’achat',
   'inventory.inStock': 'en stock',
   'inventory.empty.title': 'Aucun stock ici pour l’instant',
@@ -1654,6 +1659,20 @@ export const fr: Catalogue = {
   'catalog.form.variant': 'Variante',
   'catalog.form.variant.hint':
     'Exactement ce que vous vendez — 256 Go Bleu Sierra.',
+  // Le stockage et la couleur : deux listes à la place d’une zone de texte.
+  'catalog.form.storage': 'Stockage',
+  'catalog.form.storage.manual': 'Stockage absent de la liste',
+  'catalog.form.storage.manual.hint': 'Saisissez-le tel qu’il figure sur la boîte.',
+  'catalog.form.colour': 'Couleur',
+  'catalog.form.colour.manual': 'Couleur absente de la liste',
+  'catalog.form.colour.manual.hint': 'Saisissez la couleur telle que la boutique la nomme.',
+  'catalog.variant.other': 'Autre chose',
+  'catalog.select.searchStorage': 'Rechercher un stockage',
+  'catalog.select.searchColour': 'Rechercher une couleur',
+  'catalog.select.noMatch': 'Aucun résultat. Choisissez « Autre chose » pour le saisir.',
+  'catalog.select.unavailable': 'La liste n’a pas pu être chargée. Vous pouvez la saisir.',
+  'catalog.form.tracking.phone':
+    'Suivi individuellement par IMEI, et affiché en stock par modèle. Un téléphone n’est jamais compté comme une quantité.',
   'catalog.form.category.select': 'Choisir une catégorie',
   'catalog.form.category.none': 'Aucune catégorie',
   'catalog.form.category.sheet': 'Catégorie',

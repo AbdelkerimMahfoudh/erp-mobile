@@ -1083,6 +1083,13 @@ export const en = {
   'inventory.filter.all': 'All',
   'inventory.units': 'Tracked items',
   'inventory.accessories': 'Accessories',
+  // The shelf counted by model — the question asked fifty times a day.
+  // Every phone is still an individual unit; this is a presentation, not a
+  // different kind of record.
+  'inventory.models': 'Models',
+  'inventory.view.byModel': 'By model',
+  'inventory.view.byUnit': 'Each one',
+  'inventory.count.models': '{models} models · {units} in stock',
   'inventory.cost': 'cost',
   'inventory.inStock': 'in stock',
   'inventory.empty.title': 'No stock here yet',
@@ -1508,6 +1515,21 @@ export const en = {
   'catalog.select.brandChanged': 'The model was cleared because it belongs to the previous brand.',
   'catalog.form.variant': 'Variant',
   'catalog.form.variant.hint': 'Exactly what you sell — 256GB Sierra Blue.',
+  // Storage and colour: two lists where there was one text box. "Other" is an
+  // ordinary row, so a phone the lists have never heard of is still bookable.
+  'catalog.form.storage': 'Storage',
+  'catalog.form.storage.manual': 'Storage not in the list',
+  'catalog.form.storage.manual.hint': 'Type it as it is written on the box.',
+  'catalog.form.colour': 'Colour',
+  'catalog.form.colour.manual': 'Colour not in the list',
+  'catalog.form.colour.manual.hint': 'Type the colour as the shop calls it.',
+  'catalog.variant.other': 'Something else',
+  'catalog.select.searchStorage': 'Search storage',
+  'catalog.select.searchColour': 'Search colours',
+  'catalog.select.noMatch': 'Nothing matches. Choose "Something else" to type it.',
+  'catalog.select.unavailable': 'The list could not be loaded. You can still type it.',
+  'catalog.form.tracking.phone':
+    'Tracked individually by IMEI, and shown in stock by model. A phone is never counted as a quantity.',
   'catalog.form.category.select': 'Choose a category',
   'catalog.form.category.none': 'No category',
   'catalog.form.category.sheet': 'Category',

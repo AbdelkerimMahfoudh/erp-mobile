@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { BrandModelSelect } from './BrandModelSelect';
+import { VariantSelect } from './VariantSelect';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { usePreventRemove } from '@react-navigation/native';
@@ -25,6 +26,8 @@ import { usePermission } from '../../lib/permissions';
 import { qk } from '../../lib/query-keys';
 import { dialog } from '../../lib/dialog';
 import { toast } from '../../lib/toast';
+import { fetchBrands } from '../../lib/device-catalogue';
+import { isPhoneBrand } from '../../lib/phone-product.ts';
 import type { Category, ScanResult, TrackingType } from '../../types/api';
 
 /**
@@ -118,6 +121,26 @@ export function ProductForm({
   const selected = (categories.data ?? []).find((c) => c.id === values.categoryId) ?? null;
   const keepingInactive = selected !== null && !selected.isActive;
 
+  /**
+   * A phone cannot be counted as a quantity, so the option is not offered.
+   *
+   * The signal is the brand being in the device catalogue — a catalogue OF
+   * phones, server-owned, and not editable into being wrong from a handset. The
+   * category's `defaultTrackingType` answers a different question ("how does
+   * this shop usually count things like this") and a shop that set it wrongly
+   * would get exactly the outcome this prevents.
+   *
+   * Cached by the catalogue client, so this costs nothing on a shelf with no
+   * signal — and when it cannot tell, it says "not a phone" and the form
+   * behaves as it always did.
+   */
+  const brands = useQuery({
+    queryKey: qk.deviceBrands,
+    queryFn: () => fetchBrands().then((r) => r.items),
+    staleTime: 60 * 60 * 1000,
+  });
+  const isPhone = isPhoneBrand(values.brand, brands.data ?? []);
+
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(initial), [values, initial]);
 
   // Covers the back gesture, the header arrow and the hardware button alike.
@@ -210,13 +233,17 @@ export function ProductForm({
             brandError={shown.brand}
             modelError={shown.model}
           />
-          <TextField
-            label={t('catalog.form.variant')}
-            hint={t('catalog.form.variant.hint')}
+          {/*
+            Storage and colour were one free-text box, so a shelf held `128GB`,
+            `128 gb`, `128 Go` and `128` — four product rows for one phone.
+            Same disease as brand and model, same cure. `Other` keeps every
+            value a shop has ever typed, and changing one selector leaves the
+            other, and the rest of the form, alone.
+          */}
+          <VariantSelect
             value={values.variant}
-            error={shown.variant}
-            onChangeText={(v) => set('variant', v)}
-            maxLength={120}
+            onChange={(v) => set('variant', v)}
+            disabled={false}
           />
         </View>
       </Section>
@@ -235,16 +262,37 @@ export function ProductForm({
         <Card>
           <SegmentedControl
             value={values.trackingType}
-            onChange={(v) => canChangeTracking && set('trackingType', v as TrackingType)}
+            onChange={(v) =>
+              canChangeTracking && !isPhone && set('trackingType', v as TrackingType)
+            }
             options={[
               { value: 'imei', label: t('catalog.tracking.imei') },
               { value: 'serial', label: t('catalog.tracking.serial') },
-              { value: 'quantity', label: t('catalog.tracking.quantity') },
+              /*
+                A phone cannot be counted as a quantity, so the option is not
+                offered for one. "12 iPhone 15" with no IMEIs behind them cannot
+                be sold, warranted, traced after a theft, or told apart — and
+                the loss is silent and permanent, which is exactly the kind of
+                mistake this app exists to prevent rather than record.
+
+                Removed rather than disabled: a greyed-out control invites the
+                question "why can I not press that?", and the answer is that the
+                choice was never really available.
+              */
+              ...(isPhone ? [] : [{ value: 'quantity', label: t('catalog.tracking.quantity') }]),
             ]}
           />
           <Text variant="caption" tone={canChangeTracking ? 'secondary' : 'warning'} style={styles.hint}>
-            {/* When history froze it, say so instead of letting the save 409. */}
-            {canChangeTracking ? t('catalog.form.tracking.hint') : t('catalog.form.tracking.locked')}
+            {/*
+              Three different reasons, three different sentences. A frozen
+              tracking mode is a fact about history; a phone is a fact about
+              what the thing IS; anything else is ordinary guidance.
+            */}
+            {!canChangeTracking
+              ? t('catalog.form.tracking.locked')
+              : isPhone
+                ? t('catalog.form.tracking.phone')
+                : t('catalog.form.tracking.hint')}
           </Text>
         </Card>
       </Section>
