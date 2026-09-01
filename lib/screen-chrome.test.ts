@@ -158,14 +158,15 @@ it('a scan result does not raise the keyboard', () => {
 });
 
 it('opening the camera dismisses the keyboard first', () => {
+  /*
+   * The ordering used to be asserted by reading which call came first in an
+   * inline arrow. It now lives in `withDismiss`, and is PROVEN by calling it —
+   * see `lib/keyboard-dismiss.test.ts`, which records the order the two
+   * functions actually ran in. This is left as the wiring check.
+   */
   const target = withoutComments(source(SCAN_TARGET));
-  const press = target.slice(target.indexOf('onScanPress='), target.indexOf('placeholder='));
-  assert.match(press, /Keyboard\.dismiss\(\)/);
-  assert.match(press, /setCameraOpen\(true\)/);
-  assert.ok(
-    press.indexOf('Keyboard.dismiss()') < press.indexOf('setCameraOpen(true)'),
-    'dismiss before opening, not after',
-  );
+  assert.match(target, /const openCamera = withDismiss\(Keyboard, \(\) => setCameraOpen\(true\)\)/);
+  assert.match(target, /onScanPress=\{openCamera\}/);
 });
 
 it('blank space dismisses in the header and footer as well as the body', () => {
@@ -176,9 +177,16 @@ it('blank space dismisses in the header and footer as well as the body', () => {
    * place tapping did nothing.
    */
   const code = withoutComments(source(SCREEN));
-  const dismissals = code.match(/onPress=\{Keyboard\.dismiss\}/g) ?? [];
-  assert.equal(dismissals.length, 3, 'header, body and footer');
-  assert.match(code, /<Pressable accessible=\{false\} onPress=\{Keyboard\.dismiss\} style=\{styles\.header\}>/);
+  /*
+   * FOUR now, not three.
+   *
+   * The fourth is the NON-SCROLLING body — the branch every scan-entry page
+   * renders, and the one this assertion originally missed while counting three
+   * and passing. Counting was never the problem; counting the wrong three was.
+   */
+  const dismissals = code.match(/onPress=\{dismissBlank\}/g) ?? [];
+  assert.equal(dismissals.length, 4, 'scrolling body, non-scrolling body, header, footer');
+  assert.match(code, /<Pressable accessible=\{false\} onPress=\{dismissBlank\} style=\{styles\.header\}>/);
 });
 
 it('nothing blocks scrolling, buttons or the camera control', () => {
@@ -199,7 +207,8 @@ it('the dismissal surfaces stay out of the screen reader order', () => {
   // header would be worse than the problem it solves.
   const code = withoutComments(source(SCREEN));
   const surfaces = code.match(/<Pressable\s+accessible=\{false\}/g) ?? [];
-  assert.equal(surfaces.length, 3, 'every dismissal surface is silent');
+  // Four surfaces, matching the four dismissal regions.
+  assert.equal(surfaces.length, 4, 'every dismissal surface is silent');
 });
 
 it('the field keeps its value when the keyboard is dismissed', () => {

@@ -252,11 +252,11 @@ it('manual entry is present on the intake page, beside the scan action', () => {
   // The field IS the manual path, and the camera button sits inside it.
   assert.match(target, /<SearchInput/);
   assert.match(target, /onSubmit=\{submit\}/);
-  // The camera button now dismisses the keyboard before opening, so this is no
-  // longer a one-liner — but it still opens the camera, which is what this
-  // test is about.
-  assert.match(target, /onScanPress=\{\(\) => \{/);
-  assert.match(target, /setCameraOpen\(true\);/);
+  // The camera button goes through the shared `withDismiss` wrapper now, so the
+  // keyboard is put away before the viewfinder opens. It still opens the
+  // camera, which is what this test is about.
+  assert.match(target, /onScanPress=\{openCamera\}/);
+  assert.match(target, /withDismiss\(Keyboard, \(\) => setCameraOpen\(true\)\)/);
   // And the feature's translations are untouched in all three languages.
   for (const file of ['en.ts', 'ar.ts', 'fr.ts']) {
     const cat = source(`lib/i18n/${file}`);
@@ -297,7 +297,10 @@ it('the scroll area reserves the footer’s measured height', () => {
 
 it('a blank-area press dismisses the keyboard', () => {
   const code = withoutComments(source(SCREEN));
-  assert.match(code, /onPress=\{Keyboard\.dismiss\}/);
+  // Through the shared helper now, so the same function the UI calls is the one
+  // `lib/keyboard-dismiss.test.ts` invokes and observes.
+  assert.match(code, /onPress=\{dismissBlank\}/);
+  assert.match(code, /const dismissBlank = dismissing\(Keyboard\)/);
   assert.match(code, /import \{[\s\S]*?Keyboard,[\s\S]*?\} from 'react-native'/);
 });
 

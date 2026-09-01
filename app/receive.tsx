@@ -426,7 +426,14 @@ export default function ReceiveScreen() {
             body={t('receive.empty.body')}
           />
         ) : (
-          <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            // Dragging the list puts the keyboard away, the same as on Sell.
+            // Without it this was the one scrollable on a scan page where a
+            // scroll left the keyboard sitting over the content being scrolled.
+            keyboardDismissMode="on-drag"
+          >
             <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setSupplier(null); }} />
             <Text variant="label" tone="tertiary">
               {t('receive.session')}

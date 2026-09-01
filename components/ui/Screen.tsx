@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '@react-navigation/elements';
+import { dismissing } from '../../lib/keyboard-dismiss';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -108,6 +109,15 @@ export function Screen({
   const safeEdges = headerShown ? edges.filter((e) => e !== 'top') : edges;
 
   /**
+   * One dismissal handler for every region of the page.
+   *
+   * Built from the shared helper so a test can CALL the same function the UI
+   * calls, rather than searching this file for a string — which is exactly how
+   * the previous attempt passed while doing nothing on a device.
+   */
+  const dismissBlank = dismissing(Keyboard);
+
+  /**
    * Measured, never assumed.
    *
    * The footer is one button on some screens and three on others; a constant
@@ -124,6 +134,7 @@ export function Screen({
     <ScrollView
       className={className}
       contentContainerStyle={[
+        styles.grow,
         {
           padding: gutter,
           // The tab bar, the pinned footer and a comfortable overscroll, so the
@@ -166,19 +177,39 @@ export function Screen({
       */}
       <Pressable
         accessible={false}
-        onPress={Keyboard.dismiss}
-        style={gap ? { gap: space[gap] } : undefined}
+        onPress={dismissBlank}
+        // `flexGrow` so a short page still has a tappable surface all the way
+        // down. Without it the Pressable ends where the content ends, and the
+        // empty space below — the obvious place to tap — is outside it.
+        style={[styles.grow, gap ? { gap: space[gap] } : null]}
       >
         {children}
       </Pressable>
     </ScrollView>
   ) : (
-    <View
+    /*
+      THE DEFECT. This branch had no dismissal at all.
+
+      `Screen` renders its body two ways, and **every scan-entry page passes
+      `scroll={false}`** — so the one dismissal in the scrolling branch was in
+      code those pages never render. The header and footer strips had theirs,
+      which is why the fix looked present in the file and did nothing in the
+      hand: the large middle of the screen, the part somebody actually taps, was
+      the part with no handler.
+
+      `flex: 1` on the Pressable matters as much as the handler. A Pressable
+      sizes to its children, so with a short cart or an empty state it would
+      cover a strip at the top and leave the blank space below it — the most
+      obvious place to tap — outside itself.
+    */
+    <Pressable
+      accessible={false}
+      onPress={dismissBlank}
       className={className}
       style={[styles.body, { padding: gutter, gap: gap ? space[gap] : undefined }]}
     >
       {children}
-    </View>
+    </Pressable>
   );
 
   return (
@@ -206,7 +237,7 @@ export function Screen({
           out of the screen reader's order.
         */}
         {header ? (
-          <Pressable accessible={false} onPress={Keyboard.dismiss} style={styles.header}>
+          <Pressable accessible={false} onPress={dismissBlank} style={styles.header}>
             {header}
           </Pressable>
         ) : null}
@@ -214,7 +245,7 @@ export function Screen({
         {footer ? (
           <Pressable
             accessible={false}
-            onPress={Keyboard.dismiss}
+            onPress={dismissBlank}
             style={styles.footer}
             onLayout={measureFooter}
           >
@@ -236,6 +267,10 @@ const useStyles = makeStyles((colors) => ({
   },
   body: {
     flex: 1,
+  },
+  /** Lets a dismissal surface reach the bottom of a short page. */
+  grow: {
+    flexGrow: 1,
   },
   header: {
     backgroundColor: colors.surface.card,

@@ -5,6 +5,7 @@ import { toast } from '../../lib/toast';
 import { SearchInput } from '../ui/SearchInput';
 import { ScannerSheet, type AcceptedImei } from './ScannerSheet';
 import { useScan } from './useScan';
+import { withDismiss } from '../../lib/keyboard-dismiss';
 import type { ScanResult } from '../../types/api';
 
 /**
@@ -81,6 +82,9 @@ export function ScanTarget({
     onError: (message) => toast.error(message),
   });
 
+  /** Dismiss, then open. The order is the point — see the call site. */
+  const openCamera = withDismiss(Keyboard, () => setCameraOpen(true));
+
   const submit = async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return;
@@ -95,18 +99,16 @@ export function ScanTarget({
         value={code}
         onChangeText={setCode}
         onSubmit={submit}
-        onScanPress={() => {
-          /*
-           * The keyboard goes first, then the camera.
-           *
-           * Opening a full-screen camera over a raised keyboard leaves the
-           * viewfinder squeezed into whatever is left, and on Android the
-           * window resize fights the modal as it animates in. Dismissing first
-           * is one line and removes both.
-           */
-          Keyboard.dismiss();
-          setCameraOpen(true);
-        }}
+        /*
+         * The keyboard goes first, then the camera — and in that order.
+         *
+         * Opening a full-screen viewfinder over a raised keyboard leaves the
+         * preview squeezed into what is left, and on Android the window resize
+         * fights the modal as it animates in. `withDismiss` fixes the ordering
+         * in one place and, being an ordinary function, lets a test call it and
+         * watch what happened rather than read the source and hope.
+         */
+        onScanPress={openCamera}
         placeholder={placeholder ?? t('scanner.manual.placeholder')}
         identifier
       />
