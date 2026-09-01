@@ -96,6 +96,14 @@ export const AMBIGUITY_GRACE_MS = 600;
  * Oldest-seen are dropped first, so the codes actually being aimed at survive.
  */
 export const MAX_CANDIDATES = 12;
+/**
+ * The most IMEIs one selection can produce.
+ *
+ * A phone has one IMEI per SIM slot, and the intake model carries a primary and
+ * a secondary — so two is not a UI limit, it is what a `Unit` can hold. A third
+ * selected identifier would have nowhere to go.
+ */
+export const MAX_SELECTION = 2;
 
 /*
  * ## On tuning these
@@ -150,6 +158,16 @@ export interface Observation {
    * barcodes and must keep working for them.
    */
   prefer?: 'imei';
+  /**
+   * An identifier already confirmed on an earlier pass.
+   *
+   * While scanning for IMEI 2, IMEI 1 is usually still on the label and still
+   * decoding. It must not appear as something to choose — it is already chosen
+   * — and it must not make a single remaining candidate look like two.
+   * Excluded from collection entirely, which is also what makes "the same
+   * number twice" impossible rather than merely discouraged.
+   */
+  exclude?: string | null;
 }
 
 export interface Candidate {
@@ -174,13 +192,23 @@ export interface Acquisition {
 export const EMPTY_ACQUISITION: Acquisition = { candidates: [], cooldowns: {} };
 
 export type AcquisitionVerdict =
-  /** Nothing usable in frame. "Place the IMEI inside the frame". */
+  /** Nothing usable in frame. "Place one barcode inside the frame". */
   | { action: 'idle'; state: Acquisition }
   /** A candidate is building. `progress` (0–1) drives the reticle. */
   | { action: 'holding'; state: Acquisition; target: Candidate; progress: number }
   /** Held long enough, and unusable. Say so once, then leave it alone. */
   | { action: 'reject'; state: Acquisition; target: Candidate }
-  /** Held long enough, and usable. Lock, buzz once, look up — in that order. */
+  /**
+   * Collection ended with more than one plausible IMEI on the table.
+   *
+   * The scanner does not guess. On a device, three visible IMEIs made it
+   * alternate between them, sometimes wait indefinitely, and sometimes pick one
+   * nobody meant — and no timing constant can fix that, because **stability
+   * says a barcode is being held still, never that it is the wanted one.**
+   * A person is asked instead.
+   */
+  | { action: 'choose'; state: Acquisition; candidates: Candidate[] }
+  /** Exactly one, clearly dominant. Lock, buzz once, look up — in that order. */
   | { action: 'accept'; state: Acquisition; target: Candidate; payload: ScanPayload };
 
 /**
@@ -288,6 +316,28 @@ function isReady(candidate: Candidate): boolean {
  * held, then the key, so the answer never flickers between two equal
  * candidates from one frame to the next.
  */
+/**
+ * Order candidates for the selection panel: best-aimed first.
+ *
+ * Position when it can be trusted, then longest held, then the value itself so
+ * the list never reshuffles between two equals while somebody is reading it.
+ * **This is presentation only.** Nothing is selected by being first, and on
+ * Android — where no coordinate can be normalised — the order carries no
+ * positional information at all and the person simply chooses.
+ */
+export function rankCandidates(candidates: Candidate[]): Candidate[] {
+  return [...candidates].sort((a, b) => {
+    const da = offCentre(a.centre);
+    const db = offCentre(b.centre);
+    if (Number.isFinite(da) || Number.isFinite(db)) {
+      if (Math.abs(da - db) > 0.05) return da - db;
+    }
+    const held = b.lastAt - b.firstAt - (a.lastAt - a.firstAt);
+    if (held !== 0) return held;
+    return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+  });
+}
+
 export function selectTarget(candidates: Candidate[], prefer?: 'imei'): Candidate | null {
   if (candidates.length === 0) return null;
 
@@ -377,8 +427,20 @@ export function observe(state: Acquisition, obs: Observation): AcquisitionVerdic
   if (!key) return { action: 'idle', state: prune(state, obs.at) };
 
   const payload = classifyScan(obs.raw);
-  const centre = centreOf(obs);
 
+  /*
+   * The IMEI already confirmed on pass 1 is not a candidate for pass 2.
+   *
+   * It is still printed on the label and still decoding, so without this it
+   * would compete with the one being looked for — and would make a single real
+   * candidate look like an ambiguous pair. Dropped here rather than filtered
+   * later, so it can never be selected, counted, or offered.
+   */
+  if (obs.exclude && payload.kind === 'imei' && payload.primary === obs.exclude) {
+    return { action: 'idle', state: prune(state, obs.at) };
+  }
+
+  const centre = centreOf(obs);
   const pruned = prune(state, obs.at);
   const existing = pruned.candidates.find((c) => c.key === key);
 
@@ -417,9 +479,47 @@ export function observe(state: Acquisition, obs: Observation): AcquisitionVerdic
   }
 
   /*
-   * Two codes and no clear winner: keep acquiring rather than tossing a coin.
-   * Bounded by `AMBIGUITY_GRACE_MS` so it cannot hang — after that the ordering
-   * decides, arbitrarily but stably.
+   * Collection has ended. What is on the table?
+   *
+   * `plausible` is every live candidate that is a VALID IMEI and has been seen
+   * repeatedly — a genuine sighting, not one stray decode. That set is the
+   * question the person is being asked, and the count decides everything:
+   *
+   *   one   → it was unambiguous; continue automatically as before;
+   *   two+  → ask, and never guess.
+   *
+   * Judged against LIVE candidates rather than only eligible ones, because
+   * callbacks arrive one barcode at a time: two IMEIs on one label cross the
+   * window microseconds apart, and looking only at whoever crossed first would
+   * hide the ambiguity behind decoder emission order.
+   *
+   * This is what replaced the old "keep acquiring until one dominates" rule.
+   * On a device that rule was the hang: two IMEIs held side by side never
+   * separated, so the scanner waited, and when the grace ran out it picked one
+   * arbitrarily. Waiting longer was never going to identify intent.
+   */
+  const plausible = candidates.filter(
+    (c) => c.payload.kind === 'imei' && c.count >= MIN_OBSERVATIONS,
+  );
+
+  if (plausible.length > 1) {
+    return {
+      action: 'choose',
+      state: next,
+      // Best-aimed first when position is trustworthy, so the panel opens with
+      // the likely one at the top. It is an ordering, never a decision.
+      candidates: rankCandidates(plausible),
+    };
+  }
+
+  /*
+   * Not an IMEI question. Ordinary barcodes keep the older rule: two that
+   * cannot be told apart go on acquiring rather than being picked at random,
+   * bounded by `AMBIGUITY_GRACE_MS` so it cannot hang.
+   *
+   * They are not escalated to a selection panel because the panel says
+   * "Multiple IMEIs detected", and a shelf edge showing two product barcodes is
+   * a different situation with a different answer — move the camera.
    */
   if (candidates.length > 1 && !isDominant(target, candidates, obs.at, obs.prefer)) {
     return { action: 'holding', state: next, target, progress: 1 };

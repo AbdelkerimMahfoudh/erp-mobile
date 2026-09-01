@@ -61,6 +61,26 @@ export type ScannerState =
       readonly payload: ScanPayload;
       readonly problem: ResultProblem | null;
     }
+  /**
+   * Several valid IMEIs were visible, and a person must say which.
+   *
+   * A phone label can carry IMEI 1, IMEI 2 and an eSIM identifier side by side,
+   * and on a device the scanner alternated between them, occasionally waited
+   * forever, and occasionally picked one nobody meant. No amount of timing
+   * fixes that: **stability tells you a barcode is being held still, never that
+   * it is the one somebody wanted.** When more than one valid candidate is on
+   * the table the only correct answer is to ask.
+   *
+   * The camera is off here. Candidates are already collected, and leaving it
+   * running would keep changing the list underneath the person reading it.
+   */
+  | {
+      readonly name: 'choosing';
+      readonly pass: 1 | 2;
+      /** Confirmed on an earlier pass. Never discarded by a second scan. */
+      readonly primary: string | null;
+      readonly candidates: readonly string[];
+    }
   | { readonly name: 'accepted'; readonly primary: string; readonly secondary: string | null }
   | { readonly name: 'cancelled' };
 
@@ -75,6 +95,10 @@ export type ScannerEvent =
   | { readonly type: 'removeSecond' }
   | { readonly type: 'scanAgain' }
   | { readonly type: 'manual'; readonly primary: string; readonly secondary: string | null }
+  /** Collection ended with more than one plausible IMEI. Ask. */
+  | { readonly type: 'candidates'; readonly candidates: readonly string[] }
+  /** What the person picked. `secondary` set only for "both — one phone". */
+  | { readonly type: 'chose'; readonly primary: string; readonly secondary: string | null }
   | { readonly type: 'cancel' };
 
 export const initialScannerState: ScannerState = { name: 'idle' };
@@ -134,6 +158,39 @@ export function scannerReducer(state: ScannerState, event: ScannerEvent): Scanne
       if (state.name !== 'scanning') return state;
       return { name: 'validating', pass: state.pass, primary: state.primary, raw: event.raw };
 
+    case 'candidates': {
+      /*
+       * Collection ended with more than one plausible IMEI, so nothing is
+       * chosen automatically. Reached from `scanning` only — the camera has to
+       * have been running to have collected anything.
+       */
+      if (state.name !== 'scanning') return state;
+      if (event.candidates.length < 2) return state;
+      return {
+        name: 'choosing',
+        pass: state.pass,
+        primary: state.primary,
+        candidates: event.candidates,
+      };
+    }
+
+    case 'chose': {
+      /*
+       * A person answered. It becomes an ordinary result from here, so the
+       * panel, the lookup and acceptance all behave exactly as they do after a
+       * single unambiguous scan — one path, not two.
+       */
+      if (state.name !== 'choosing') return state;
+      return {
+        name: 'result',
+        pass: state.pass,
+        primary: event.primary,
+        secondary: event.secondary,
+        payload: { kind: 'imei', primary: event.primary, secondary: event.secondary },
+        problem: null,
+      };
+    }
+
     case 'validated': {
       if (state.name !== 'validating') return state;
       const { payload } = event;
@@ -168,7 +225,10 @@ export function scannerReducer(state: ScannerState, event: ScannerEvent): Scanne
     case 'scanAgain':
       // Explicitly clears a rejected result and releases the lock. Nothing else
       // does — a result never times out back into scanning on its own.
-      if (state.name !== 'result') return state;
+      //
+      // Also the way out of the selection panel: "none of these" is a real
+      // answer, and it must not cost an IMEI already confirmed on pass 1.
+      if (state.name !== 'result' && state.name !== 'choosing') return state;
       return {
         name: 'scanning',
         pass: state.pass,

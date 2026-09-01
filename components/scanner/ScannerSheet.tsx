@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keyboard, Flashlight, FlashlightOff, Plus, X } from 'lucide-react-native';
@@ -17,6 +17,7 @@ import { useScan } from './useScan';
 import { classifyScan, type ScanPayload } from '../../lib/scan/payload';
 import {
   EMPTY_ACQUISITION,
+  MAX_SELECTION,
   observe,
   prune,
   type Acquisition,
@@ -170,9 +171,13 @@ const PROBLEM_KEY: Record<ResultProblem, string> = {
  * either.
  */
 function problemFor(payload: ScanPayload): string {
+  // A fifteen-digit code whose checksum fails is a MISREAD or a damaged label,
+  // and saying so is useful. A code that was never an IMEI is a different fact.
   if (payload.kind === 'invalid') return PROBLEM_KEY[payload.reason];
   if (payload.kind === 'ambiguous') return PROBLEM_KEY.ambiguous;
-  return PROBLEM_KEY.not_an_imei;
+  // Nothing here was an IMEI at all — said plainly, and never confused with a
+  // valid IMEI whose product happens to be unknown.
+  return 'scan.result.none';
 }
 
 export function ScannerSheet({
@@ -227,6 +232,7 @@ export function ScannerSheet({
   }, []);
 
   const result = machine.name === 'result' ? machine : null;
+  const choosing = machine.name === 'choosing' ? machine : null;
   const primary = result?.primary ?? null;
   const secondary = result?.secondary ?? null;
 
@@ -272,6 +278,8 @@ export function ScannerSheet({
   const [progress, setProgress] = useState(0);
   /** A brief, non-blocking word about a code that cannot be used. */
   const [notice, setNotice] = useState<string | null>(null);
+  /** What the person has ticked in the selection panel. At most two. */
+  const [selected, setSelected] = useState<string[]>([]);
   /** The preview's measured size — the denominator for iOS preview points. */
   const previewSize = useRef<{ width: number; height: number } | null>(null);
 
@@ -343,7 +351,9 @@ export function ScannerSheet({
       // closed must never be completed by the next opening.
       acquisition.current = EMPTY_ACQUISITION;
       setProgress(0);
-              setNotice(null);
+      setNotice(null);
+      // A reopened sheet asks nothing about the last one.
+      setSelected([]);
     }
   }
 
@@ -389,6 +399,10 @@ export function ScannerSheet({
         // This sheet is booking a phone in whenever the caller wants an IMEI,
         // and a phone label's serial and model number decode just as readily.
         prefer: onImeiAccepted ? 'imei' : undefined,
+        // On pass 2, IMEI 1 is still on the label and still decoding. It is
+        // already confirmed, so it must not be offered again or counted as a
+        // rival to the one being looked for.
+        exclude: machineRef.current.name === 'scanning' ? machineRef.current.primary : null,
       });
       acquisition.current = verdict.state;
 
@@ -412,6 +426,21 @@ export function ScannerSheet({
          */
         haptics.warning();
         setNotice(problemFor(verdict.target.payload));
+        return;
+      }
+
+      if (verdict.action === 'choose') {
+        /*
+         * Several valid IMEIs. The scanner does not pick one.
+         *
+         * No haptic here: nothing has succeeded yet, and buzzing would say it
+         * had. The camera stops because the machine leaves `scanning`, so the
+         * list cannot keep changing under somebody reading it — and no lookup
+         * starts, because `/scan` is driven by a confirmed identifier and there
+         * is not one yet.
+         */
+        setSelected([]);
+        setMachine({ type: 'candidates', candidates: verdict.candidates.map((c) => c.key) });
         return;
       }
 
@@ -468,6 +497,36 @@ export function ScannerSheet({
     lookupSession.current = sessionId;
     void scanQuietly(primary);
   }, [primary, scanQuietly, sessionId]);
+
+  /**
+   * The person answered the "which of these?" question.
+   *
+   * Two rules the pass decides, and both matter:
+   *
+   *   - **Pass 1** — one tick means that IMEI alone; two means "both, one
+   *     phone", primary first in the order they were shown.
+   *   - **Pass 2** — an IMEI is already confirmed and is **never discarded**.
+   *     Whatever is chosen here becomes the secondary, and only one may be, so
+   *     the panel is limited to a single tick on that pass.
+   *
+   * The success haptic fires here rather than at collection: this is the moment
+   * something was actually decided.
+   */
+  const confirmChoice = useCallback(() => {
+    if (!choosing || selected.length === 0) return;
+    const picked = selected.slice(0, MAX_SELECTION);
+
+    const primary = choosing.pass === 2 && choosing.primary ? choosing.primary : picked[0];
+    const secondary = choosing.pass === 2 ? picked[0] : (picked[1] ?? null);
+
+    // Belt and braces: the same number cannot occupy both slots. `exclude`
+    // already keeps IMEI 1 out of collection, so this should be unreachable.
+    if (secondary === primary) return;
+
+    haptics.success();
+    setSelected([]);
+    setMachine({ type: 'chose', primary, secondary });
+  }, [choosing, selected, setMachine]);
 
   const acceptImei = useCallback(() => {
     // Synchronous, like the camera lock: a double tap lands before React
@@ -656,7 +715,7 @@ export function ScannerSheet({
             onPress={() => {
               acquisition.current = EMPTY_ACQUISITION;
               setProgress(0);
-              setNotice(null);
+                      setNotice(null);
               setMachine({ type: 'cancel' });
               onClose();
             }}
@@ -775,7 +834,105 @@ export function ScannerSheet({
                 The result, shown here and now. Nothing waits for the sheet to be
                 closed, and the camera is already detached above.
               */}
-              {result ? (
+              {/*
+                Several valid IMEIs, and a question rather than a guess.
+
+                A phone label can carry IMEI 1, IMEI 2 and an eSIM identifier
+                together. On a device the scanner alternated between them, hung,
+                or chose one nobody meant — so it asks. The camera is already
+                stopped: the machine has left `scanning`, and a list that kept
+                changing while somebody read it would be unusable.
+              */}
+              {choosing ? (
+                <View style={styles.readingBox}>
+                  <Text variant="bodyStrong" tone="inverse">
+                    {t('scan.choose.title')}
+                  </Text>
+                  <Text variant="caption" tone="inverse">
+                    {t('scan.choose.body')}
+                  </Text>
+
+                  {choosing.candidates.map((value, i) => {
+                    const picked = selected.includes(value);
+                    const limit = choosing.pass === 2 ? 1 : MAX_SELECTION;
+                    const full = selected.length >= limit && !picked;
+                    return (
+                      <Pressable
+                        key={value}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: picked, disabled: full }}
+                        // Read out as a position rather than as digits: a screen
+                        // reader saying fifteen numbers is not a usable label.
+                        accessibilityLabel={t('scan.choose.option', { index: i + 1 })}
+                        onPress={() =>
+                          setSelected((s) =>
+                            s.includes(value)
+                              ? s.filter((v) => v !== value)
+                              : s.length >= limit
+                                ? s
+                                : [...s, value],
+                          )
+                        }
+                        style={[styles.candidateRow, picked ? styles.candidatePicked : null]}
+                      >
+                        {/* Ticked AND outlined — never colour on its own. */}
+                        <Text variant="bodyStrong" tone="inverse">
+                          {picked ? '✓' : '○'}
+                        </Text>
+                        <Identifier tone="inverse">{value}</Identifier>
+                      </Pressable>
+                    );
+                  })}
+
+                  {/*
+                    Said before it is done, not after. Two IMEIs sitting near
+                    each other on a bench are not evidence of one phone, and
+                    filing two handsets as one is not correctable later.
+                  */}
+                  {choosing.pass !== 2 && selected.length === MAX_SELECTION ? (
+                    <Text variant="caption" tone="inverse">
+                      {t('scan.choose.bothWarning')}
+                    </Text>
+                  ) : null}
+
+                  <Button
+                    title={
+                      choosing.pass !== 2 && selected.length === MAX_SELECTION
+                        ? t('scan.choose.useBoth')
+                        : t('scan.choose.use')
+                    }
+                    onPress={confirmChoice}
+                    disabled={selected.length === 0}
+                    fullWidth
+                  />
+                  {/*
+                    "None of these" is a real answer. It releases the camera and
+                    starts collection over — and on pass 2 it keeps the IMEI
+                    already confirmed, which the reducer guarantees.
+                  */}
+                  <Button
+                    title={t('scan.scanAgain')}
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => {
+                      acquisition.current = EMPTY_ACQUISITION;
+                      setProgress(0);
+                      setNotice(null);
+                      setSelected([]);
+                      setMachine({ type: 'scanAgain' });
+                    }}
+                  />
+                  <Button
+                    title={t('action.cancel')}
+                    variant="ghost"
+                    fullWidth
+                    onPress={() => {
+                      setMachine({ type: 'cancel' });
+                      onClose();
+                    }}
+                  />
+                </View>
+              ) : result ? (
                 <View style={styles.readingBox}>
                   {result.problem ? (
                     <Text variant="bodyStrong" tone="inverse">
@@ -812,7 +969,21 @@ export function ScannerSheet({
 
                   {primary ? (
                     <Text variant="caption" tone="inverse">
-                      {secondary ? t('scan.bothOnePhone') : t('scanner.imei.single')}
+                      {/*
+                        Three separate meanings, kept separate.
+
+                        A valid IMEI whose TAC nobody recognises is a SUCCESSFUL
+                        scan of a phone this shop has not catalogued — the
+                        identifier is real and usable. Letting that read as
+                        "nothing found" told people the scan had failed when it
+                        had worked, and sent them back to rescan a code that was
+                        already correct.
+                      */}
+                      {secondary
+                        ? t('scan.bothOnePhone')
+                        : lookingUp || lookup?.suggestion || tacResolution
+                          ? t('scanner.imei.single')
+                          : t('scan.result.imeiOnly')}
                     </Text>
                   ) : null}
 
@@ -900,7 +1071,7 @@ export function ScannerSheet({
                         // Aiming at the OTHER SIM's label starts a new window.
                         acquisition.current = EMPTY_ACQUISITION;
                         setProgress(0);
-              setNotice(null);
+                      setNotice(null);
                         setMachine({ type: 'addSecond' });
                       }}
                     />
@@ -922,7 +1093,7 @@ export function ScannerSheet({
                     onPress={() => {
                       acquisition.current = EMPTY_ACQUISITION;
                       setProgress(0);
-              setNotice(null);
+                      setNotice(null);
                       setMachine({ type: 'scanAgain' });
                     }}
                   />
@@ -1091,6 +1262,23 @@ const useStyles = makeStyles((colors) => ({
     textAlign: 'center',
     paddingHorizontal: space.xl,
     opacity: 0.9,
+  },
+  candidateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.base,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border.inverse,
+    // Comfortably past the minimum: these are pressed while holding a phone in
+    // the other hand, and picking the wrong IMEI is not a small mistake.
+    minHeight: touch.min,
+  },
+  candidatePicked: {
+    borderColor: colors.border.focus,
+    borderWidth: 2,
   },
   topBar: {
     flexDirection: 'row',

@@ -27,8 +27,10 @@ import {
   MAX_CANDIDATES,
   MAX_GAP_MS,
   MIN_OBSERVATIONS,
+  MAX_SELECTION,
   MIN_WINDOW_MS,
   centreOf,
+  rankCandidates,
   isAcceptable,
   normalisePayload,
   observe,
@@ -81,6 +83,8 @@ function camera() {
   let state: Acquisition = EMPTY_ACQUISITION;
   const accepted: string[] = [];
   const rejected: string[] = [];
+  /** Each time the scanner asked rather than guessed, and what it offered. */
+  const chosen: string[][] = [];
   /*
    * The success lock, modelled honestly.
    *
@@ -104,6 +108,9 @@ function camera() {
     },
     get rejected() {
       return rejected;
+    },
+    get chosen() {
+      return chosen;
     },
     tick(ms: number) {
       now += ms;
@@ -134,6 +141,11 @@ function camera() {
         locked = true;
       }
       if (v.action === 'reject') rejected.push(v.target.key);
+      if (v.action === 'choose') {
+        chosen.push(v.candidates.map((c) => c.key));
+        // The machine leaves `scanning`, so the camera stops feeding.
+        locked = true;
+      }
       return v;
     },
     /** One frame of a label: every visible barcode, back to back. */
@@ -251,24 +263,6 @@ it('4b · a gap just inside the limit keeps the window', () => {
 
 // ── 5 · a crowded label ───────────────────────────────────────────────────
 
-it('5 · a four-barcode label can be scanned at all', () => {
-  /*
-   * THE regression this suite exists for, in the exact shape it was measured.
-   *
-   * A B C D / A B C D / A B C D … over several seconds, camera stationary. The
-   * previous implementation accepted NOTHING in 4 950 ms, because seeing B
-   * erased A's history, and seeing A erased B's, forever.
-   *
-   * The assertion that matters is not "something was accepted" — it is that
-   * interleaved sightings of B, C and D do not reset A's own acquisition.
-   */
-  const cam = camera();
-  cam.hold([IMEI_A, IMEI_B, SERIAL, MODEL], 5_000, 33);
-
-  assert.equal(cam.accepted.length, 1, 'exactly one code is accepted');
-  assert.equal(cam.accepted[0], IMEI_A, 'and it is one the business flow can use');
-});
-
 it('5a · interleaving does not reset any candidate’s history', () => {
   // The mechanism, asserted directly rather than through an outcome. Every one
   // of the four keeps accumulating while the other three are also being seen.
@@ -307,22 +301,6 @@ it('5a2 · a usable code is never blocked by an unusable one beside it', () => {
   assert.deepEqual(cam.accepted, [IMEI_A]);
 });
 
-it('5b · with coordinates, the code nearest the reticle wins', () => {
-  const cam = camera();
-  // IMEI B sits in the middle of the preview; the others are at the edges.
-  cam.hold(
-    [
-      [IMEI_A, at(60, 100)],
-      [IMEI_B, at(200, 400)],
-      [SERIAL, at(340, 700)],
-    ],
-    1_500,
-    33,
-  );
-
-  assert.deepEqual(cam.accepted, [IMEI_B], 'the centred code is the aimed-at one');
-});
-
 it('5c · position ranks, and never shortens anybody’s window', () => {
   // Being best-centred makes a candidate preferred, never faster.
   const cam = camera();
@@ -341,41 +319,12 @@ it('5d · an off-centre code is still accepted when it is the only one', () => {
   assert.deepEqual(cam.accepted, [IMEI_A]);
 });
 
-it('5e · with no usable coordinates it falls back to stability alone', () => {
-  /*
-   * Android: corner points are image pixels over display density and the image
-   * size is never sent to JS, so there is no denominator. Scanning must still
-   * work — nothing is ever rejected for want of a coordinate.
-   *
-   * Two equally-held IMEIs and no way to tell them apart is the genuinely
-   * ambiguous case, so acquisition deliberately CONTINUES rather than tossing a
-   * coin. It is bounded: after the grace period a stable answer is taken.
-   */
-  const cam = camera();
-  cam.hold([IMEI_A, IMEI_B], 1_500, 33);
-  assert.deepEqual(cam.accepted, [], 'no arbitrary pick while they are level');
-
-  cam.hold([IMEI_A, IMEI_B], AMBIGUITY_GRACE_MS + 200, 33);
-  assert.equal(cam.accepted.length, 1, 'and it does not hang');
-  assert.ok([IMEI_A, IMEI_B].includes(cam.accepted[0]));
-});
-
 it('5e2 · one code with no coordinates at all is accepted normally', () => {
   // The case that matters most on Android: nothing positional is known, one
   // code is being aimed at, and it must simply work.
   const cam = camera();
   cam.hold([IMEI_A], 1_200, 100);
   assert.deepEqual(cam.accepted, [IMEI_A]);
-});
-
-it('5f · selection is deterministic — it does not flicker between equals', () => {
-  const seen = new Set<string>();
-  for (let run = 0; run < 8; run++) {
-    const cam = camera();
-    cam.hold([IMEI_A, IMEI_B, IMEI_C], 1_500, 33);
-    seen.add(cam.accepted[0]);
-  }
-  assert.equal(seen.size, 1, 'the same label must always resolve the same way');
 });
 
 // ── 6 · an invalid code never reaches the business flow ───────────────────
@@ -593,18 +542,6 @@ it('an isolated sighting never becomes stable just because time passed', () => {
   assert.equal(cam.state.candidates[0].count, 1, 'each sighting stood alone');
 });
 
-it('two indistinguishable candidates keep acquiring rather than tossing a coin', () => {
-  // Both usable, both perfectly interleaved, neither positioned. Continuing
-  // briefly beats committing to whichever sorted first.
-  const cam = camera();
-  cam.hold([IMEI_A, IMEI_B], 1_100, 33);
-  assert.deepEqual(cam.accepted, [], 'no arbitrary pick at the moment both qualify');
-
-  // …but it must not hang. The grace period bounds the indecision.
-  cam.hold([IMEI_A, IMEI_B], AMBIGUITY_GRACE_MS + 200, 33);
-  assert.equal(cam.accepted.length, 1, 'a stable answer is taken in the end');
-});
-
 it('candidate tracking stays bounded however many codes go past', () => {
   const cam = camera();
   // A camera carried along a shelf: fifty different codes inside one window.
@@ -674,6 +611,234 @@ it('detection is never throttled — only commitment is delayed', () => {
     cam.tick(16);
   }
   assert.equal(cam.state.candidates[0].count, 30, 'every callback counted');
+});
+
+// ── several valid IMEIs: ask, never guess ─────────────────────────────────
+//
+// The device found the previous build alternating between three visible IMEIs,
+// sometimes waiting indefinitely, and sometimes choosing one nobody meant.
+//
+// No timing constant fixes that. **Stability says a barcode is being held
+// still; it never says it is the wanted one.** When more than one valid IMEI is
+// on the table the only correct answer is to ask, and these tests pin that.
+
+it('one stable valid candidate still continues on its own', () => {
+  // Asking is for ambiguity. One answer is not ambiguous, and making somebody
+  // confirm it would tax the common case to fix the rare one.
+  const cam = camera();
+  cam.hold([IMEI_A], 1_200, 100);
+
+  assert.deepEqual(cam.accepted, [IMEI_A]);
+  assert.deepEqual(cam.chosen, [], 'nothing to ask about');
+});
+
+it('one IMEI among other barcode types is still unambiguous', () => {
+  // A serial and a model number are not IMEIs, so they are not alternatives.
+  const cam = camera();
+  cam.hold([IMEI_A, SERIAL, MODEL], 1_500, 33);
+
+  assert.deepEqual(cam.accepted, [IMEI_A]);
+  assert.deepEqual(cam.chosen, []);
+});
+
+it('alternating A/B callbacks reach a question instead of hanging', () => {
+  /*
+   * THE defect. Two IMEIs side by side never separated, so the old rule waited
+   * for a dominance that could not arrive — and then picked one arbitrarily
+   * when the grace ran out.
+   */
+  const cam = camera();
+  cam.hold([IMEI_A, IMEI_B], 1_500, 33);
+
+  assert.equal(cam.chosen.length, 1, 'it asked');
+  assert.deepEqual([...cam.chosen[0]].sort(), [IMEI_A, IMEI_B].sort());
+  assert.deepEqual(cam.accepted, [], 'and chose nothing by itself');
+});
+
+it('three valid IMEIs are never auto-selected', () => {
+  const cam = camera();
+  cam.hold([IMEI_A, IMEI_B, IMEI_C], 2_000, 33);
+
+  assert.deepEqual(cam.accepted, []);
+  assert.equal(cam.chosen.length, 1);
+  assert.equal(cam.chosen[0].length, 3, 'all three are offered');
+});
+
+it('the question is asked once, not once per callback', () => {
+  // The camera stops when the machine leaves `scanning`, so the list cannot
+  // keep changing under somebody reading it.
+  const cam = camera();
+  cam.hold([IMEI_A, IMEI_B, IMEI_C], 5_000, 33);
+  assert.equal(cam.chosen.length, 1);
+});
+
+it('a candidate seen once is not offered as an alternative', () => {
+  /*
+   * A single stray decode from a neighbouring label is not a plausible target,
+   * and offering it would turn every ordinary scan into a multiple-choice
+   * question. `MIN_OBSERVATIONS` is the same bar the accept path uses.
+   */
+  const cam = camera();
+  cam.hold([IMEI_A], 800, 100);
+  cam.feed(IMEI_B); // one glimpse, never again
+  cam.hold([IMEI_A], 500, 100);
+
+  assert.deepEqual(cam.accepted, [IMEI_A]);
+  assert.deepEqual(cam.chosen, []);
+});
+
+it('invalid candidates never displace valid ones', () => {
+  // A damaged label beside a good one must not turn a clean scan into a
+  // question, and must never appear among the things to choose from.
+  const cam = camera();
+  cam.hold([IMEI_A, BAD_CHECKSUM], 1_500, 33);
+
+  assert.deepEqual(cam.accepted, [IMEI_A]);
+  assert.deepEqual(cam.chosen, []);
+});
+
+it('two valid IMEIs are offered even when one is dead centre', () => {
+  /*
+   * Position ranks the list; it does not answer the question. A centred IMEI is
+   * the likely one, not the certain one — the phone may simply have been held
+   * at an angle.
+   */
+  const cam = camera();
+  cam.hold(
+    [
+      [IMEI_A, at(200, 400)],
+      [IMEI_B, at(200, 620)],
+    ],
+    1_500,
+    33,
+  );
+
+  assert.equal(cam.chosen.length, 1, 'still a question');
+  assert.equal(cam.chosen[0][0], IMEI_A, 'best-aimed listed first');
+  assert.deepEqual(cam.accepted, []);
+});
+
+it('Android — no coordinates at all — asks rather than guessing', () => {
+  /*
+   * The required fallback. Android reports ML Kit image pixels over display
+   * density and never forwards the image size, so no coordinate can be
+   * normalised. The answer is explicit selection, NOT a stability-only guess.
+   */
+  const noCoords = camera();
+  noCoords.hold([IMEI_A, IMEI_B], 2_000, 33);
+
+  assert.deepEqual(noCoords.accepted, []);
+  assert.equal(noCoords.chosen.length, 1);
+  assert.equal(noCoords.chosen[0].length, 2);
+});
+
+it('ranking is presentation only and never selects', () => {
+  const withCentre = {
+    key: IMEI_A, payload: classifyScan(IMEI_A), firstAt: 0, lastAt: 1_000, count: 9,
+    centre: { x: 0.5, y: 0.5 },
+  };
+  const edge = {
+    key: IMEI_B, payload: classifyScan(IMEI_B), firstAt: 0, lastAt: 5_000, count: 40,
+    centre: { x: 0.95, y: 0.9 },
+  };
+  // Centred first…
+  assert.equal(rankCandidates([edge, withCentre])[0].key, IMEI_A);
+  // …and the set is unchanged: ordering never removes an option.
+  assert.equal(rankCandidates([edge, withCentre]).length, 2);
+  // Stable across repetition, so the list cannot reshuffle while being read.
+  const once = rankCandidates([edge, withCentre]).map((c) => c.key);
+  const twice = rankCandidates([withCentre, edge]).map((c) => c.key);
+  assert.deepEqual(once, twice);
+});
+
+it('at most two IMEIs can ever be selected', () => {
+  // Not a UI limit: a `Unit` carries a primary and a secondary, so a third
+  // chosen identifier would have nowhere to go.
+  assert.equal(MAX_SELECTION, 2);
+});
+
+// ── adding IMEI 2 ─────────────────────────────────────────────────────────
+
+it('IMEI 1 is excluded from the candidates while scanning for IMEI 2', () => {
+  /*
+   * On pass 2 the first IMEI is still printed on the label and still decoding.
+   * Left in, it would compete with the one being looked for and would make a
+   * single real candidate look like an ambiguous pair.
+   */
+  let state = EMPTY_ACQUISITION;
+  let now = 0;
+  let asked: string[][] = [];
+  let took: string[] = [];
+
+  for (let f = 0; f < 60; f++) {
+    for (const raw of [IMEI_A, IMEI_B]) {
+      const v = observe(state, { raw, at: now, prefer: 'imei', exclude: IMEI_A });
+      state = v.state;
+      if (v.action === 'choose') asked.push(v.candidates.map((c) => c.key));
+      if (v.action === 'accept') took.push(v.target.key);
+    }
+    now += 33;
+    if (took.length) break;
+  }
+
+  assert.deepEqual(asked, [], 'one real candidate is not a question');
+  assert.deepEqual(took, [IMEI_B], 'and it is the NEW identifier');
+  assert.ok(!state.candidates.some((c) => c.key === IMEI_A), 'IMEI 1 never entered');
+});
+
+it('the excluded IMEI cannot be re-offered however long it is held', () => {
+  let state = EMPTY_ACQUISITION;
+  let now = 0;
+  for (let f = 0; f < 90; f++) {
+    const v = observe(state, { raw: IMEI_A, at: now, prefer: 'imei', exclude: IMEI_A });
+    state = v.state;
+    assert.equal(v.action, 'idle', 'the same number is refused outright');
+    now += 33;
+  }
+  assert.equal(state.candidates.length, 0);
+});
+
+it('a genuine second IMEI still has to earn its window', () => {
+  let state = EMPTY_ACQUISITION;
+  let now = 0;
+  let took: string[] = [];
+  for (let f = 0; f < 8; f++) {
+    const v = observe(state, { raw: IMEI_B, at: now, prefer: 'imei', exclude: IMEI_A });
+    state = v.state;
+    if (v.action === 'accept') took.push(v.target.key);
+    now += 100;
+  }
+  assert.deepEqual(took, [], 'under a second is still under a second');
+});
+
+// ── the collection window is per candidate ────────────────────────────────
+
+it('alternating sightings do not reset each other’s history', () => {
+  // The mechanism behind all of the above, asserted directly. Three IMEIs seen
+  // in rotation each keep their own count and span.
+  const cam = camera();
+  for (let i = 0; i < 6; i++) {
+    cam.frame([IMEI_A, IMEI_B, IMEI_C]);
+    cam.tick(100);
+  }
+  assert.equal(cam.state.candidates.length, 3);
+  for (const c of cam.state.candidates) {
+    assert.ok(c.count >= 6, `${c.key} kept its count`);
+  }
+});
+
+it('candidates expire individually, not as a group', () => {
+  const cam = camera();
+  cam.hold([IMEI_A, IMEI_B], 400, 100);
+  assert.equal(cam.state.candidates.length, 2);
+
+  // Only A stays in frame from here.
+  for (let i = 0; i < 8; i++) {
+    cam.tick(100);
+    cam.feed(IMEI_A);
+  }
+  const keys = cam.state.candidates.map((c) => c.key);
+  assert.ok(!keys.includes(IMEI_B), 'B aged out on its own');
 });
 
 console.log(`target acquisition: ${passed} passed`);

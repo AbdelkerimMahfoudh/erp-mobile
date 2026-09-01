@@ -794,4 +794,188 @@ it('typing needs no stabilization', () => {
   assert.ok(!typedPath.includes('observe('), 'the typed path must not wait for a window');
 });
 
+// ── 10 · several valid IMEIs are a question, not a guess ─────────────────
+
+it('a choose verdict asks and commits nothing', () => {
+  const code = withoutComments(source(SHEET));
+  const cb = code.slice(
+    code.indexOf('const onBarcodeScanned'),
+    code.indexOf('useEffect', code.indexOf('const onBarcodeScanned')),
+  );
+
+  assert.match(cb, /if \(verdict\.action === 'choose'\)/);
+  const choose = cb.slice(cb.indexOf("=== 'choose'"), cb.indexOf("setMachine({ type: 'detected'"));
+  // No buzz: nothing has succeeded, and a haptic would say it had.
+  assert.ok(!choose.includes('haptics'), 'no success signal for an unanswered question');
+  assert.match(choose, /setMachine\(\{ type: 'candidates', candidates:/);
+});
+
+it('recognition is not requested until a candidate is confirmed', () => {
+  /*
+   * `/scan` hangs off `primary`, and `primary` exists only in `result`. The
+   * `choosing` state has none, so no lookup can start for a candidate nobody
+   * picked — which is also what stops a response for an unintended IMEI
+   * arriving later and replacing what is on screen.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /const result = machine\.name === 'result' \? machine : null/);
+  assert.match(code, /const primary = result\?\.primary \?\? null/);
+  assert.match(code, /if \(!primary \|\| lookedUp\.current === primary\) return;/);
+
+  // And the machine has no `primary` to offer while choosing.
+  const machine = withoutComments(source('lib/scan/machine.ts'));
+  const choosing = machine.slice(machine.indexOf("name: 'choosing'"), machine.indexOf("name: 'accepted'"));
+  assert.ok(!choosing.includes('payload'), 'a question carries no classified result');
+});
+
+it('a stale recognition response cannot replace the chosen candidate', () => {
+  // The session token: a `/scan` started before the sheet was closed or
+  // re-opened must not write into the session that replaced it.
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /if \(lookupSession\.current !== sessionId\) return;/);
+  assert.match(code, /lookupSession\.current = sessionId/);
+});
+
+it('the panel offers every candidate and never preselects one', () => {
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /choosing\.candidates\.map\(\(value, i\) => \{/);
+  // Opens with nothing ticked — an option highlighted on arrival is a default,
+  // and a default is a guess wearing a tick.
+  assert.match(code, /setSelected\(\[\]\);/);
+  assert.match(code, /disabled=\{selected\.length === 0\}/);
+});
+
+it('at most two can be ticked, and only one on the second pass', () => {
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /const limit = choosing\.pass === 2 \? 1 : MAX_SELECTION;/);
+  assert.match(code, /s\.length >= limit/);
+  assert.match(withoutComments(source('lib/scan/stabilizer.ts')), /export const MAX_SELECTION = 2;/);
+});
+
+it('"both" states that it means one phone, before it is done', () => {
+  /*
+   * Two IMEIs near each other on a bench are not evidence of one handset, and
+   * filing two phones as one is not correctable afterwards. The sentence
+   * appears with the choice, not in a confirmation nobody reads.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /t\('scan\.choose\.bothWarning'\)/);
+  const en = source('lib/i18n/en.ts');
+  const line = en.slice(en.indexOf("'scan.choose.bothWarning'"));
+  assert.match(line.slice(0, 120), /Both IMEIs belong to one phone/);
+});
+
+it('IMEI 1 is preserved and excluded while choosing IMEI 2', () => {
+  const code = withoutComments(source(SHEET));
+  // Excluded from collection entirely, so it cannot be offered or re-picked.
+  assert.match(code, /exclude: machineRef\.current\.name === 'scanning' \? machineRef\.current\.primary : null/);
+  // And the confirmed identifier is what stays primary on pass 2.
+  assert.match(code, /const primary = choosing\.pass === 2 && choosing\.primary \? choosing\.primary : picked\[0\]/);
+  assert.match(code, /const secondary = choosing\.pass === 2 \? picked\[0\] : \(picked\[1\] \?\? null\)/);
+  assert.match(code, /if \(secondary === primary\) return;/);
+});
+
+it('the success haptic fires once, when the choice is made', () => {
+  const code = withoutComments(source(SHEET));
+  const confirm = code.slice(code.indexOf('const confirmChoice'), code.indexOf('const acceptImei'));
+  assert.equal((confirm.match(/haptics\.success\(\)/g) ?? []).length, 1);
+  // Guarded, so a double tap cannot fire two.
+  assert.match(confirm, /if \(!choosing \|\| selected\.length === 0\) return;/);
+});
+
+it('a valid IMEI with an unknown product is not "nothing found"', () => {
+  /*
+   * Three separate meanings, kept separate. An IMEI whose TAC nobody
+   * recognises is a SUCCESSFUL scan of an uncatalogued phone — the identifier
+   * is real and usable. Reporting that as a failure sent people back to rescan
+   * a code that was already correct.
+   */
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /t\('scan\.result\.imeiOnly'\)/);
+  assert.match(code, /t\('scan\.productUnknown'\)/);
+  // "No IMEI found" belongs to the case where nothing was an IMEI at all.
+  assert.match(code, /return 'scan\.result\.none';/);
+
+  for (const lang of ['en', 'fr', 'ar']) {
+    const file = source(`lib/i18n/${lang}.ts`);
+    for (const key of [
+      'scan.choose.title',
+      'scan.choose.body',
+      'scan.choose.option',
+      'scan.choose.use',
+      'scan.choose.useBoth',
+      'scan.choose.bothWarning',
+      'scan.result.imeiOnly',
+      'scan.result.unknownProduct',
+      'scan.result.none',
+    ]) {
+      assert.ok(file.includes(`'${key}'`), `${lang} is missing ${key}`);
+    }
+  }
+});
+
+it('the Arabic copy is Arabic, not English left in place', () => {
+  const ar = source('lib/i18n/ar.ts');
+  for (const key of ['scan.choose.title', 'scan.choose.useBoth', 'scan.result.none']) {
+    const at = ar.indexOf(`'${key}'`);
+    const value = ar.slice(at, ar.indexOf('\n', at + key.length + 20) + 1);
+    assert.match(value, /[؀-ۿ]/, `${key} was not translated`);
+  }
+});
+
+it('the identifiers in the panel stay selectable and LTR', () => {
+  // The same primitive the result panel uses. An IMEI reversed by RTL layout
+  // is a different number, and one that cannot be copied is one that cannot be
+  // checked against the box.
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /<Identifier tone="inverse">\{value\}<\/Identifier>/);
+});
+
+it('the rows are reachable and announced', () => {
+  const code = withoutComments(source(SHEET));
+  assert.match(code, /accessibilityRole="checkbox"/);
+  assert.match(code, /accessibilityState=\{\{ checked: picked, disabled: full \}\}/);
+  // Announced by position, because a screen reader saying fifteen digits is
+  // not a usable label.
+  assert.match(code, /accessibilityLabel=\{t\('scan\.choose\.option', \{ index: i \+ 1 \}\)\}/);
+  // Ticked AND outlined — never colour alone.
+  assert.match(code, /picked \? '✓' : '○'/);
+  assert.match(code, /minHeight: touch\.min/);
+});
+
+it('the question is cleared by every session reset', () => {
+  /*
+   * Sliced to the render-phase reset BLOCK, not to a marker further down the
+   * file. The first version of this anchored on `const reset` and swallowed the
+   * whole component — it passed because `setSelected([])` appears somewhere in
+   * 25 000 characters, which is not what it claimed to be checking.
+   */
+  const code = withoutComments(source(SHEET));
+  const start = code.indexOf('if (open !== wasOpen)');
+  const reset = code.slice(start, code.indexOf('useEffect', start));
+  assert.ok(reset.length < 1_200, `the reset block should be small, got ${reset.length}`);
+
+  assert.match(reset, /setSelected\(\[\]\)/, 'a reopened sheet asks nothing about the last one');
+  assert.match(reset, /acquisition\.current = EMPTY_ACQUISITION/);
+  assert.match(reset, /setProgress\(0\)/);
+  assert.match(reset, /setNotice\(null\)/);
+});
+
+it('no OCR, photo or frame-capture route is introduced', () => {
+  // Milestone O retired reading a `*#06#` screen, and none of this brings it
+  // back: candidates come from decoder payloads and nothing else.
+  const code = source(SHEET) + source('lib/scan/stabilizer.ts') + source('lib/scan/machine.ts');
+  for (const api of [
+    'takePictureAsync',
+    'recognizeText',
+    'TextRecognition',
+    'captureRef',
+    'ImageManipulator',
+    'MediaLibrary',
+    'toDataURL',
+  ]) {
+    assert.ok(!code.includes(api), `no image path: ${api}`);
+  }
+});
+
 console.log(`scanner and keyboard behaviour: ${passed} passed`);
