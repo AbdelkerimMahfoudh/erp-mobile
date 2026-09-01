@@ -1526,7 +1526,9 @@ export const en = {
   'catalog.variant.other': 'Something else',
   'catalog.select.searchStorage': 'Search storage',
   'catalog.select.searchColour': 'Search colours',
-  'catalog.select.noMatch': 'Nothing matches. Choose "Something else" to type it.',
+  'catalog.select.noMatch': 'No matches for “{query}”. Clear the search, or choose "Something else".',
+  'catalog.select.loading': 'Loading the list…',
+  'catalog.select.empty': 'The list is empty. Choose "Something else" to type it.',
   'catalog.select.unavailable': 'The list could not be loaded. You can still type it.',
   'catalog.form.tracking.phone':
     'Tracked individually by IMEI, and shown in stock by model. A phone is never counted as a quantity.',

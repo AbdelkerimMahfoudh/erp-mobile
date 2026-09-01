@@ -1492,7 +1492,9 @@ export const ar: Catalogue = {
   'catalog.variant.other': 'شيء آخر',
   'catalog.select.searchStorage': 'ابحث عن سعة',
   'catalog.select.searchColour': 'ابحث عن لون',
-  'catalog.select.noMatch': 'لا توجد نتائج. اختر «شيء آخر» لكتابتها.',
+  'catalog.select.noMatch': 'لا نتائج لـ «{query}». امسح البحث أو اختر «شيء آخر».',
+  'catalog.select.loading': 'جارٍ تحميل القائمة…',
+  'catalog.select.empty': 'القائمة فارغة. اختر «شيء آخر» لكتابتها.',
   'catalog.select.unavailable': 'تعذر تحميل القائمة. لا يزال بإمكانك كتابتها.',
   'catalog.form.tracking.phone':
     'يُتابَع فرديًا برقم IMEI، ويظهر في المخزون حسب الموديل. الهاتف لا يُعدّ أبدًا ككمية.',

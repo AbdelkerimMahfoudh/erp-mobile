@@ -1669,7 +1669,9 @@ export const fr: Catalogue = {
   'catalog.variant.other': 'Autre chose',
   'catalog.select.searchStorage': 'Rechercher un stockage',
   'catalog.select.searchColour': 'Rechercher une couleur',
-  'catalog.select.noMatch': 'Aucun résultat. Choisissez « Autre chose » pour le saisir.',
+  'catalog.select.noMatch': 'Aucun résultat pour « {query} ». Effacez la recherche ou choisissez « Autre chose ».',
+  'catalog.select.loading': 'Chargement de la liste…',
+  'catalog.select.empty': 'La liste est vide. Choisissez « Autre chose » pour la saisir.',
   'catalog.select.unavailable': 'La liste n’a pas pu être chargée. Vous pouvez la saisir.',
   'catalog.form.tracking.phone':
     'Suivi individuellement par IMEI, et affiché en stock par modèle. Un téléphone n’est jamais compté comme une quantité.',

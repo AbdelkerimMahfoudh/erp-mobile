@@ -68,6 +68,23 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
   const [separator, setSeparator] = useState(' · ');
   const [origin, setOrigin] = useState<CatalogueOrigin>('live');
 
+  /**
+   * Four states, kept apart, because collapsing them is what produced the
+   * defect a device found.
+   *
+   * The list was fetched into an array and nothing recorded WHY the array might
+   * be empty. An empty array from a failed request looked exactly like an empty
+   * array from a search that matched nothing — so a request failure rendered
+   * "Nothing matches" and "The list could not be loaded" at the same time, and
+   * offered no way to try again.
+   *
+   * `loading` is the initial state on purpose: showing an empty chooser while
+   * a request is in flight is the same lie in a smaller font.
+   */
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  /** Bumped by Retry, which is all Retry has to do. */
+  const [attempt, setAttempt] = useState(0);
+
   const [storageOpen, setStorageOpen] = useState(false);
   const [colourOpen, setColourOpen] = useState(false);
   const [storageQuery, setStorageQuery] = useState('');
@@ -75,20 +92,28 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
 
   useEffect(() => {
     let cancelled = false;
+    setStatus('loading');
     void fetchAttributes().then((r) => {
-      if (cancelled || !r.attributes) {
-        if (!cancelled) setOrigin(r.origin);
+      if (cancelled) return;
+      if (!r.attributes) {
+        // Nothing came back and no cached copy exists. That is an ERROR, not an
+        // empty list, and the two must never read the same on screen.
+        setOrigin(r.origin);
+        setStatus('error');
         return;
       }
       setStorage(r.attributes.storage);
       setColour(r.attributes.colour);
       setSeparator(r.attributes.separator);
       setOrigin(r.origin);
+      setStatus('ready');
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
+
+  const retry = () => setAttempt((n) => n + 1);
 
   /**
    * Derived from the stored string every render, never held separately.
@@ -124,6 +149,86 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
   const visibleStorage = storage.filter((o) => matches(o.label + ' ' + o.key, storageQuery));
   const visibleColour = colour.filter((o) => matches(o.label + ' ' + o.key, colourQuery));
 
+  /**
+   * One chooser body, used by both selectors.
+   *
+   * Written once so Storage and Colour cannot drift apart — the defect report
+   * described both behaving identically wrongly, and two copies of this would
+   * eventually mean two behaviours.
+   *
+   * The states are mutually exclusive and rendered in order of what the person
+   * needs to know. Nothing here can produce "Nothing matches" and "could not be
+   * loaded" together, because a failure returns before the filter is consulted.
+   */
+  const chooserBody = (
+    options: AttributeOption[],
+    visible: AttributeOption[],
+    query: string,
+    selectedKey: string | null,
+    onChoose: (o: AttributeOption) => void,
+  ) => {
+    if (status === 'loading') {
+      return (
+        <Text variant="caption" tone="secondary" style={styles.empty}>
+          {t('catalog.select.loading')}
+        </Text>
+      );
+    }
+
+    if (status === 'error') {
+      /*
+       * A real failure: say so, and offer the way out of it. Manual entry stays
+       * available underneath — an unreachable list must never block booking a
+       * phone in — but it is a fallback, not the answer.
+       */
+      return (
+        <View style={styles.list}>
+          <Text variant="caption" tone="warning" style={styles.empty}>
+            {t('catalog.select.unavailable')}
+          </Text>
+          <ListRow title={t('action.retry')} onPress={retry} />
+        </View>
+      );
+    }
+
+    // Loaded, and genuinely nothing in it. Different from a failure, and from
+    // a search that matched nothing.
+    if (options.length === 0) {
+      return (
+        <Text variant="caption" tone="secondary" style={styles.empty}>
+          {t('catalog.select.empty')}
+        </Text>
+      );
+    }
+
+    // Loaded, populated, and the SEARCH excluded everything. The list is fine;
+    // the query is the problem, and saying "could not be loaded" here would be
+    // a lie about a working list.
+    if (visible.length === 0) {
+      return (
+        <Text variant="caption" tone="secondary" style={styles.empty}>
+          {t('catalog.select.noMatch', { query })}
+        </Text>
+      );
+    }
+
+    return (
+      <>
+        {visible.map((o) => (
+          <ListRow
+            key={o.key}
+            title={o.key === OTHER_KEY ? t('catalog.variant.other') : o.label}
+            // Marked with a tick AND the row's own label — never colour alone.
+            accessory={
+              selectedKey === o.key ? <Check size={18} color={colors.brand[600]} /> : undefined
+            }
+            onPress={() => onChoose(o)}
+          />
+        ))}
+      </>
+    );
+  };
+
   return (
     <View style={styles.wrap}>
       {/* ── Storage ───────────────────────────────────────────────────────── */}
@@ -142,22 +247,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
               onChangeText={setStorageQuery}
               placeholder={t('catalog.select.searchStorage')}
             />
-            {visibleStorage.map((o) => (
-              <ListRow
-                key={o.key}
-                title={o.key === OTHER_KEY ? t('catalog.variant.other') : o.label}
-                // Marked with a tick AND the row's own label — never colour alone.
-                accessory={
-                  parts.storageKey === o.key ? <Check size={18} color={colors.brand[600]} /> : undefined
-                }
-                onPress={() => chooseStorage(o)}
-              />
-            ))}
-            {visibleStorage.length === 0 ? (
-              <Text variant="caption" tone="secondary" style={styles.empty}>
-                {t('catalog.select.noMatch')}
-              </Text>
-            ) : null}
+            {chooserBody(storage, visibleStorage, storageQuery, parts.storageKey, chooseStorage)}
           </View>
         ) : null}
 
@@ -193,21 +283,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
               onChangeText={setColourQuery}
               placeholder={t('catalog.select.searchColour')}
             />
-            {visibleColour.map((o) => (
-              <ListRow
-                key={o.key}
-                title={o.key === OTHER_KEY ? t('catalog.variant.other') : o.label}
-                accessory={
-                  parts.colourKey === o.key ? <Check size={18} color={colors.brand[600]} /> : undefined
-                }
-                onPress={() => chooseColour(o)}
-              />
-            ))}
-            {visibleColour.length === 0 ? (
-              <Text variant="caption" tone="secondary" style={styles.empty}>
-                {t('catalog.select.noMatch')}
-              </Text>
-            ) : null}
+            {chooserBody(colour, visibleColour, colourQuery, parts.colourKey, chooseColour)}
           </View>
         ) : null}
 
@@ -227,9 +303,14 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
         Said in words when the lists came from a stored copy or not at all —
         never left to be inferred from a short list.
       */}
-      {origin !== 'live' ? (
+      {/*
+        Only the CACHED case is reported here now. A failure belongs inside the
+        chooser next to its Retry — reporting it out here as well is what put
+        two contradictory messages on screen at once.
+      */}
+      {status === 'ready' && origin === 'cached' ? (
         <Text variant="caption" tone="secondary">
-          {origin === 'cached' ? t('catalog.select.offline') : t('catalog.select.unavailable')}
+          {t('catalog.select.offline')}
         </Text>
       ) : null}
     </View>
