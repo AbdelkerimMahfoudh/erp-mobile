@@ -374,7 +374,6 @@ export default function ReceiveScreen() {
               placeholder={t('receive.scan.placeholder')}
               mode="continuous"
               scannedCount={unitTotal}
-              autoFocus
             />
           </>
         }

@@ -480,7 +480,6 @@ export default function SellScreen() {
               onResult={onScanResult}
               onCodeCaptured={onCodeCaptured}
               placeholder={t('sell.scan.placeholder')}
-              autoFocus
             />
           </>
         }
@@ -561,13 +560,20 @@ export default function SellScreen() {
               onConfirm={confirmPending}
               onScanAgain={() => setPending(null)}
             >
+              {/*
+                No `autoFocus` on the price. This card appears in response to a
+                SCAN, and a scan result must not raise the keyboard on its own —
+                the confirmation is the thing to read first, and it is exactly
+                what a keyboard would cover. The field is one tap away, and the
+                price is required, so nothing can be confirmed by accident for
+                want of it.
+              */}
               {pending.needsPrice ? (
                 <MoneyField
                   label={t('receipt.price')}
                   hint={t('sell.priceRequired')}
                   value={pendingPrice}
                   onChangeText={setPendingPrice}
-                  autoFocus
                   required
                 />
               ) : null}

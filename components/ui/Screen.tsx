@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -14,6 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { HeaderShownContext } from '@react-navigation/elements';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -83,6 +84,28 @@ export function Screen({
   const styles = useStyles();
   const colors = useColors();
   const gutter = padded ? space.base : 0;
+
+  /**
+   * The top safe area is the NATIVE HEADER'S job when there is one.
+   *
+   * Every screen opened from More shows a native header, and this component
+   * also applied `edges: ['top']` — so the status-bar inset was reserved twice:
+   * once by the header sitting under it, and again by the safe area below the
+   * header. On a notched phone that is roughly fifty points of dead space
+   * between the title and the first line of content, which is what the "Ventes
+   * et retours" screenshot shows.
+   *
+   * `HeaderShownContext` is React Navigation's own answer to "is a header shown
+   * for this screen", set by the native stack to `headerShown !== false`. Read
+   * as context rather than through `useHeaderHeight()`, which throws when there
+   * is no header — and a hook that throws cannot be called unconditionally.
+   *
+   * Tab screens are unaffected: the root stack and the tab navigator both set
+   * `headerShown: false`, so the context is false there and they keep the inset
+   * they genuinely need.
+   */
+  const headerShown = useContext(HeaderShownContext);
+  const safeEdges = headerShown ? edges.filter((e) => e !== 'top') : edges;
 
   /**
    * Measured, never assumed.
@@ -159,7 +182,7 @@ export function Screen({
   );
 
   return (
-    <SafeAreaView style={[styles.safe, style]} edges={edges}>
+    <SafeAreaView style={[styles.safe, style]} edges={safeEdges}>
       <KeyboardAvoidingView
         style={styles.fill}
         /*
@@ -168,12 +191,35 @@ export function Screen({
          */
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {header ? <View style={styles.header}>{header}</View> : null}
+        {/*
+          The header and footer get the same blank-space dismissal as the body.
+
+          They sit OUTSIDE the scroll view, so `keyboardShouldPersistTaps` does
+          not reach them — and on a scan-first page the search field lives in
+          the header, which means the area immediately around the input was the
+          one place tapping did nothing.
+
+          `Pressable` and not a full-screen overlay: a real control inside wins
+          the touch because the deepest responder handles it, so buttons, the
+          camera icon and the input itself all behave normally and only genuine
+          blank space dismisses. `accessible={false}` keeps a gesture surface
+          out of the screen reader's order.
+        */}
+        {header ? (
+          <Pressable accessible={false} onPress={Keyboard.dismiss} style={styles.header}>
+            {header}
+          </Pressable>
+        ) : null}
         {body}
         {footer ? (
-          <View style={styles.footer} onLayout={measureFooter}>
+          <Pressable
+            accessible={false}
+            onPress={Keyboard.dismiss}
+            style={styles.footer}
+            onLayout={measureFooter}
+          >
             {footer}
-          </View>
+          </Pressable>
         ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle, Keyboard } from 'react-native';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
 import { SearchInput } from '../ui/SearchInput';
@@ -46,9 +46,19 @@ export interface ScanTargetProps {
   mode?: 'single' | 'continuous';
   /** Tally shown inside the camera in continuous mode. */
   scannedCount?: number;
-  autoFocus?: boolean;
   style?: StyleProp<ViewStyle>;
 }
+
+/*
+ * There is deliberately no `autoFocus` prop any more.
+ *
+ * It used to exist and two pages passed it, so opening Sell or Receive put the
+ * keyboard over most of the screen before anybody had asked to type. On a
+ * scan-first page that is backwards: the camera and the list are what somebody
+ * came for, and the keypad is the fallback. Removing the prop rather than
+ * defaulting it to false means a future page cannot reintroduce the behaviour
+ * by passing one word.
+ */
 
 export function ScanTarget({
   onResult,
@@ -57,7 +67,6 @@ export function ScanTarget({
   placeholder,
   mode = 'single',
   scannedCount,
-  autoFocus = false,
   style,
 }: ScanTargetProps) {
   const { t } = useTranslation();
@@ -86,10 +95,20 @@ export function ScanTarget({
         value={code}
         onChangeText={setCode}
         onSubmit={submit}
-        onScanPress={() => setCameraOpen(true)}
+        onScanPress={() => {
+          /*
+           * The keyboard goes first, then the camera.
+           *
+           * Opening a full-screen camera over a raised keyboard leaves the
+           * viewfinder squeezed into whatever is left, and on Android the
+           * window resize fights the modal as it animates in. Dismissing first
+           * is one line and removes both.
+           */
+          Keyboard.dismiss();
+          setCameraOpen(true);
+        }}
         placeholder={placeholder ?? t('scanner.manual.placeholder')}
         identifier
-        autoFocus={autoFocus}
       />
 
       <ScannerSheet

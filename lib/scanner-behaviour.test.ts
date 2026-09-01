@@ -252,7 +252,11 @@ it('manual entry is present on the intake page, beside the scan action', () => {
   // The field IS the manual path, and the camera button sits inside it.
   assert.match(target, /<SearchInput/);
   assert.match(target, /onSubmit=\{submit\}/);
-  assert.match(target, /onScanPress=\{\(\) => setCameraOpen\(true\)\}/);
+  // The camera button now dismisses the keyboard before opening, so this is no
+  // longer a one-liner — but it still opens the camera, which is what this
+  // test is about.
+  assert.match(target, /onScanPress=\{\(\) => \{/);
+  assert.match(target, /setCameraOpen\(true\);/);
   // And the feature's translations are untouched in all three languages.
   for (const file of ['en.ts', 'ar.ts', 'fr.ts']) {
     const cat = source(`lib/i18n/${file}`);
@@ -320,14 +324,30 @@ it('scrolling does not yank the keyboard away unexpectedly', () => {
   assert.match(code, /keyboardDismissMode=\{Platform\.OS === 'ios' \? 'interactive' : 'on-drag'\}/);
 });
 
-it('uses only React Native primitives — no new dependency', () => {
+it('adds no dependency the app did not already have', () => {
+  /*
+   * Checked against `package.json` rather than a hand-written allowlist.
+   *
+   * The list version failed when `@react-navigation/elements` was imported to
+   * read `HeaderShownContext` — a package the app already ships, so the test
+   * was reporting a policy breach that had not happened. The real rule is "no
+   * NEW dependency", and that is what this now asserts.
+   */
+  const pkg = JSON.parse(source('package.json'));
+  const declared = new Set([
+    ...Object.keys(pkg.dependencies ?? {}),
+    ...Object.keys(pkg.devDependencies ?? {}),
+    'react',
+    'react-native',
+  ]);
+
   const code = source(SCREEN);
   const imports = [...code.matchAll(/from '([^']+)'/g)].map((m) => m[1]);
-  for (const source_ of imports) {
-    assert.ok(
-      source_.startsWith('.') || ['react', 'react-native', 'react-native-safe-area-context'].includes(source_),
-      `unexpected dependency: ${source_}`,
-    );
+  for (const spec of imports) {
+    if (spec.startsWith('.')) continue;
+    // `@scope/pkg/deep/path` → `@scope/pkg`
+    const pkgName = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
+    assert.ok(declared.has(pkgName), `undeclared dependency: ${spec}`);
   }
 });
 

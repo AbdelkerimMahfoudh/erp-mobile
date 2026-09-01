@@ -1274,12 +1274,20 @@ function Fallback({
             {body}
           </Text>
         ) : null}
+        {/*
+          No `autoFocus` here either.
+
+          This panel is reached two ways, and only one of them is somebody
+          asking to type. The other is a denied camera permission, where the
+          keyboard would spring up over the explanation of what went wrong.
+          One tap on the field costs nothing; a keyboard covering a permission
+          message costs somebody the answer.
+        */}
         <TextField
           variant="identifier"
           placeholder={t('scanner.manual.placeholder')}
           value={typed}
           onChangeText={setTyped}
-          autoFocus
           error={error ?? undefined}
           returnKeyType="search"
           onSubmitEditing={onSubmit}
