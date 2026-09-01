@@ -30,26 +30,25 @@
  * It also loops over **all** `metadataObjects`, so every barcode in frame is
  * reported and each can be judged on its own geometry.
  *
- * ### Android — no, and not by any amount of arithmetic here
+ * ### Android — yes, but only in a patched binary
  *
- * `BarcodeAnalyzer.kt` hands ML Kit's `barcode.cornerPoints` on, which are
- * pixels in the **rotated InputImage**. `BarcodeScannerResultSerializer.kt`
- * then divides them by display density and builds the bundle sent to JS:
+ * **This corrects an earlier reading of mine.** I first reported that Android
+ * sends nothing usable. The code path actually in use is not the serializer I
+ * had read: `ExpoCameraView.kt` maps corners itself. It just maps them wrongly
+ * — scale with no translation, so an aspect-fill crop is off by the crop
+ * offset; rotation ignored; and the emitter reads the points back **transposed**
+ * (corners are written `[x, y, …]` and read as `y = points[i]`). It also
+ * reported `barcodes.first()` only, so it could not see the neighbours it would
+ * need to reject.
  *
- *     data · raw · type · extra · cornerPoints · bounds
+ * `patches/expo-camera+17.0.10.patch` replaces that arithmetic with CameraX's
+ * own `CoordinateTransform` — built from `ImageProxyTransformFactory` and
+ * `PreviewView.outputTransform`, which handle crop, rotation and scale together
+ * — and forwards every detected barcode instead of the first.
  *
- * The image dimensions are captured in Kotlin — `BarCodeScannerResult` carries
- * `width` and `height` — and are **never put into that bundle**. Without them
- * there is no denominator, so image pixels cannot be mapped to preview points:
- * the preview is an aspect-fill crop of an image whose size is unknown, at a
- * rotation JS is not told either.
- *
- * Inferring the extent by watching values arrive would be a guess whose failure
- * mode is a scanner that silently rejects every scan, on hardware that cannot
- * be tested from here. It is not attempted. See `ROI_ENFORCEABLE`.
- *
- * (Android also reports `barcodes.first()` only — one barcode per frame, chosen
- * by ML Kit — so it cannot see the neighbours it would need to reject anyway.)
+ * Because a binary may or may not carry that patch, and because
+ * `PreviewView.outputTransform` is null until the preview is laid out, the
+ * answer is **per callback**, not per platform. See `enforceForCallback`.
  *
  * ## `bounds` is not a substitute
  *
@@ -96,6 +95,46 @@ export const ROI_TOLERANCE_PT = 2;
  */
 export function roiEnforceable(platformOS: string): boolean {
   return platformOS === 'ios';
+}
+
+/**
+ * What space a single callback's corner points are in.
+ *
+ * `view` means they were mapped into the preview's coordinates and may be
+ * compared with a rectangle measured by `onLayout`. Anything else — including
+ * the field being absent — means they may not.
+ */
+export type CoordinateSpace = 'view' | 'analysis';
+
+/**
+ * Should the hard region be enforced for THIS callback?
+ *
+ * Decided per callback rather than once per platform, and that distinction is
+ * the whole design:
+ *
+ *   - **iOS** always maps, because `previewLayer.transformedMetadataObject`
+ *     does it before the payload ever leaves native code.
+ *   - **Android** maps only in a binary carrying the committed `expo-camera`
+ *     patch, and only once the preview is laid out — CameraX's
+ *     `PreviewView.outputTransform` is null until then, so the first frames
+ *     after opening the camera genuinely have no answer.
+ *
+ * An **unpatched** Android binary, or Expo Go, never sends `view`. The strict
+ * path then stays off and the existing stability and chooser rules carry the
+ * scan, which is the honest degradation: a scanner that silently rejected every
+ * barcode because it could not verify geometry would be worse than the defect
+ * it was trying to fix, and one that pretended untrusted coordinates were
+ * trustworthy would be worse still.
+ *
+ * The marker is read from the payload rather than inferred from a version
+ * number, so a patch that failed to apply cannot be mistaken for one that did.
+ */
+export function enforceForCallback(
+  platformOS: string,
+  space: string | undefined,
+): boolean {
+  if (roiEnforceable(platformOS)) return true;
+  return space === 'view';
 }
 
 export type RoiVerdict =

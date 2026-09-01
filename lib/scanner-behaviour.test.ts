@@ -778,17 +778,34 @@ it('the frame is the scan region on iOS, and guidance on Android', () => {
   }
 });
 
-it('the bounds audit is recorded rather than assumed', () => {
-  // `expo-camera` documents both coordinate fields as unreliable, and neither
-  // documents its coordinate space. Guessing wrong would silently reject every
-  // scan on one platform, so the frame does not gate — and the reason is in the
-  // source rather than in somebody's memory.
+it('the coordinate audit is recorded rather than assumed', () => {
+  /*
+   * The audit lives in `lib/scan/roi.ts` beside the predicate it justifies,
+   * and it records a correction: the first reading of the Android path was
+   * wrong. `ExpoCameraView` does map corners — it maps them with scale and no
+   * translation, ignores rotation, and reads them back transposed.
+   */
+  const roi = source('lib/scan/roi.ts');
+  assert.match(roi, /Read from the native source shipped in `node_modules\/expo-camera@17\.0\.10`/);
+  assert.match(roi, /This corrects an earlier reading of mine/);
+  assert.match(roi, /transformedMetadataObject/);
+  assert.match(roi, /patches\/expo-camera\+17\.0\.10\.patch/);
+
   const code = source(SHEET);
-  assert.match(code, /Read from the native source in `node_modules\/expo-camera`, not guessed/);
   assert.match(code, /const PREVIEW_SPACE_COORDS = roiEnforceable\(Platform\.OS\);/);
   // One predicate decides both the ranking hint and the hard gate, so the
   // drawing and the enforcement can never disagree about which platform.
-  assert.match(code, /const ROI_ENFORCEABLE = roiEnforceable\(Platform\.OS\);/);
+  /*
+   * Enforcement is now decided PER CALLBACK rather than once per platform.
+   *
+   * Android can enforce the region in a binary carrying the committed
+   * `expo-camera` patch, and cannot in one without it — and the same build can
+   * be in both states, because `PreviewView.outputTransform` is null until the
+   * preview is laid out. A single platform-wide constant could not express
+   * that, so it was replaced rather than kept alongside.
+   */
+  assert.match(code, /if \(enforceForCallback\(Platform\.OS, space\)\) \{/);
+  assert.ok(!code.includes('const ROI_ENFORCEABLE'), 'the platform-wide constant is gone');
   // Advisory, never a gate: Android has no denominator, and must still scan.
   const stab = withoutComments(source('lib/scan/stabilizer.ts'));
   assert.match(stab, /if \(!obs\.previewSpace \|\| !obs\.preview\) return null;/);

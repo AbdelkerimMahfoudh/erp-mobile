@@ -20,6 +20,7 @@ import {
   ROI_TOLERANCE_PT,
   ROI_WIDTH_FRACTION,
   containment,
+  enforceForCallback,
   roiEnforceable,
   roiFor,
   traceOf,
@@ -263,13 +264,22 @@ it('7, 8 · a refused callback never reaches stabilization, haptics or lookup', 
 
 it('the gate is honest about which platform it can enforce on', () => {
   const roi = source('lib/scan/roi.ts');
-  // The audit, recorded from the native source rather than the docs.
+  // The audit, recorded from the native source rather than the docs — including
+  // the correction, because the first reading of the Android path was wrong.
   assert.match(roi, /transformedMetadataObject/);
-  assert.match(roi, /BarcodeScannerResultSerializer\.kt/);
-  assert.match(roi, /never put into that bundle/);
+  assert.match(roi, /This corrects an earlier reading of mine/);
+  assert.match(roi, /patches\/expo-camera\+17\.0\.10\.patch/);
+
+  /*
+   * `roiEnforceable` is now the IOS-ALWAYS half of the answer only. Android is
+   * decided per callback by `enforceForCallback`, from the marker the patch
+   * sends — a platform-wide constant could not express "this build has the
+   * patch and the preview is laid out".
+   */
   assert.equal(roiEnforceable('ios'), true);
-  assert.equal(roiEnforceable('android'), false, 'no denominator exists on Android');
+  assert.equal(roiEnforceable('android'), false, 'not unconditionally');
   assert.equal(roiEnforceable('web'), false);
+  assert.equal(enforceForCallback('android', 'view'), true, 'but yes when mapped');
 
   /*
    * The predicate is pure and takes the platform as an argument rather than
@@ -278,8 +288,10 @@ it('the gate is honest about which platform it can enforce on', () => {
    * untestable without a bundler, which is how these rules stop being checked.
    */
   assert.ok(!roi.includes("from 'react-native'"), 'lib/scan stays dependency-free');
+  // The platform reaches the predicate as an argument, at the one call site
+  // that knows it.
   assert.match(withoutComments(source('components/scanner/ScannerSheet.tsx')),
-    /const ROI_ENFORCEABLE = roiEnforceable\(Platform\.OS\);/);
+    /enforceForCallback\(Platform\.OS, space\)/);
 
   // `bounds` is documented as unsuitable for exactly this, and is not used.
   assert.match(roi, /`bounds` is not a substitute/);
@@ -355,14 +367,184 @@ it('the geometry overlay reports coordinates, never an identifier', () => {
 
   const code_ = withoutComments(source('components/scanner/ScannerSheet.tsx'));
   // Guarded by the established development flag, and never logged or persisted.
-  assert.match(code_, /if \(__DEV__\) setTrace\(traceOf\(/);
-  assert.match(code_, /\{__DEV__ && trace \?/);
+  assert.match(code_, /if \(SHOW_GEOMETRY\) setTrace\(traceOf\(/);
+  assert.match(code_, /\{SHOW_GEOMETRY && trace \?/);
   assert.ok(!code_.includes('console.log'), 'nothing is logged');
 });
 
 it('the trace rounds coordinates rather than inventing precision', () => {
   const t = traceOf('x', [{ x: 1.4, y: 2.6 }, { x: 3.5, y: 4.5 }, { x: 5, y: 6 }], 'inside');
   assert.deepEqual(t.corners, [{ x: 1, y: 3 }, { x: 4, y: 5 }, { x: 5, y: 6 }]);
+});
+
+// ── the native capability marker ──────────────────────────────────────────
+//
+// Android can now enforce the region, but only in a binary carrying the
+// committed `expo-camera` patch. The decision is made per callback from a
+// marker the patch sends, never from a version number — a patch that failed to
+// apply must not be mistaken for one that did.
+
+it('iOS enforces unconditionally', () => {
+  // `previewLayer.transformedMetadataObject` maps in native code before the
+  // payload leaves, so there is nothing to negotiate.
+  assert.equal(enforceForCallback('ios', 'view'), true);
+  assert.equal(enforceForCallback('ios', 'analysis'), true);
+  assert.equal(enforceForCallback('ios', undefined), true);
+});
+
+it('a patched Android binary enforces; an unpatched one does not', () => {
+  assert.equal(enforceForCallback('android', 'view'), true, 'patch present');
+  assert.equal(enforceForCallback('android', 'analysis'), false, 'transform unavailable');
+  assert.equal(enforceForCallback('android', undefined), false, 'unpatched binary or Expo Go');
+});
+
+it('the fallback is the existing workflow, not a rejected scan', () => {
+  /*
+   * The honest degradation. A scanner that silently refused every barcode
+   * because it could not verify geometry would be worse than the defect it was
+   * fixing; one that treated untrusted coordinates as trustworthy would be
+   * worse still. So an unpatched build simply does not enforce, and the
+   * stability and chooser rules carry the scan.
+   */
+  const sheet = withoutComments(source('components/scanner/ScannerSheet.tsx'));
+  assert.match(sheet, /if \(enforceForCallback\(Platform\.OS, space\)\) \{/);
+  // The strict branch is entered only when enforcing; there is no `else` that
+  // rejects.
+  const gate = sheet.slice(sheet.indexOf('enforceForCallback(Platform.OS, space)'));
+  const elseBranch = gate.slice(gate.indexOf('} else if'), gate.indexOf('const verdict = observe'));
+  assert.ok(!elseBranch.includes('return;'), 'an unenforced callback must not be dropped');
+});
+
+it('the marker is read from the payload, not inferred', () => {
+  const sheet = withoutComments(source('components/scanner/ScannerSheet.tsx'));
+  assert.match(sheet, /const space = \(result as \{ coordinateSpace\?: string \}\)\.coordinateSpace;/);
+});
+
+// ── the native patch ──────────────────────────────────────────────────────
+
+const PATCH = 'patches/expo-camera+17.0.10.patch';
+
+it('the patch uses CameraX transforms, not a scaling formula', () => {
+  /*
+   * Requirement, and also the reason the old Android mapping was wrong: it
+   * applied scale with no translation (so an aspect-fill crop was off by the
+   * crop offset), ignored rotation, and was read back transposed.
+   */
+  const patch = source(PATCH);
+  assert.match(patch, /CoordinateTransform/);
+  assert.match(patch, /ImageProxyTransformFactory/);
+  assert.match(patch, /previewViewProvider\(\)\?\.outputTransform/);
+
+  // ML Kit is handed a ROTATED InputImage, so the factory must account for the
+  // same rotation or the two spaces disagree by 90 degrees.
+  assert.match(patch, /isUsingRotationDegrees = true/);
+
+  // No hand-rolled arithmetic reintroduced.
+  assert.ok(!patch.includes('previewWidth / imageWidth'), 'no guessed scale formula');
+});
+
+it('the patch forwards every barcode, non-coalescing', () => {
+  const patch = source(PATCH);
+  // `.first()` is gone…
+  assert.match(patch, /-\s*val barcode = barcodes\.first\(\)/);
+  // …replaced by one emission per barcode, with enough context to tell several
+  // codes seen at once from one code seen repeatedly.
+  assert.match(patch, /\+\s*barcodes\.forEachIndexed \{ index, barcode ->/);
+  assert.match(patch, /frameId/);
+  assert.match(patch, /indexInFrame/);
+  assert.match(patch, /countInFrame/);
+});
+
+it('the patch fixes the transposed corner points', () => {
+  // Corners are written `[x, y, …]` and were read back as `y = points[i]`.
+  // Unnoticeable while nothing compares them to anything; fatal once a
+  // rectangle does.
+  const patch = source(PATCH);
+  assert.match(patch, /-\s*val y = cornerPoints\[i\]\.toFloat\(\) \/ density/);
+  assert.match(patch, /\+\s*val x = cornerPoints\[i\]\.toFloat\(\) \/ density/);
+});
+
+it('the added event fields are additive, so existing consumers keep working', () => {
+  const patch = source(PATCH);
+  // Defaults on every new field: a consumer that ignores them is unaffected.
+  assert.match(patch, /val coordinateSpace: String = "analysis"/);
+  assert.match(patch, /val frameId: Double = 0\.0/);
+  assert.match(patch, /val countInFrame: Int = 1/);
+});
+
+it('the patch contains no logging of scanned values', () => {
+  /*
+   * A native log line carrying a payload would put complete IMEIs into logcat
+   * and into any crash report that scooped it up.
+   */
+  const patch = source(PATCH);
+  const added = patch.split('\n').filter((l) => l.startsWith('+'));
+  for (const line of added) {
+    if (!/Log\.[dview]/.test(line)) continue;
+    for (const forbidden of ['displayValue', 'rawValue', 'barcode.value', '$raw', 'cornerPoints']) {
+      assert.ok(!line.includes(forbidden), `native log must not carry ${forbidden}: ${line.trim()}`);
+    }
+  }
+});
+
+it('10 · the patch is verified after install, and cannot fail silently', () => {
+  /*
+   * `patch-package` refuses to apply a stale patch, but it is only as loud as
+   * whoever reads the log. A patch that quietly did not apply is the worst
+   * outcome available: the scanner keeps working, every test keeps passing, and
+   * the frame silently stops being the boundary.
+   */
+  const pkg = JSON.parse(source('package.json'));
+  assert.equal(pkg.scripts.postinstall, 'patch-package && node scripts/verify-native-patch.js');
+  assert.ok(pkg.devDependencies['patch-package'], 'patch-package is a devDependency');
+  assert.ok(!pkg.dependencies?.['expo-dev-client'], 'no dev-client was added');
+
+  const verifier = source('scripts/verify-native-patch.js');
+  // Checks the RESULT in node_modules, not merely that the step ran.
+  assert.match(verifier, /const PATCHED_VERSION = '17\.0\.10'/);
+  assert.match(verifier, /process\.exit\(1\)/);
+  for (const anchor of [
+    'CoordinateTransform(transformFactory.getOutputTransform(imageProxy), target)',
+    'barcodes.forEachIndexed',
+    'isUsingRotationDegrees = true',
+    'val coordinateSpace: String = "analysis"',
+  ]) {
+    assert.ok(verifier.includes(anchor), `verifier checks: ${anchor}`);
+  }
+});
+
+it('the geometry overlay works in a compiled internal build', () => {
+  /*
+   * `__DEV__` alone would be useless here: the thing being checked is whether
+   * emitted corners land where the frame is drawn, which needs a compiled
+   * native binary — and that is release mode, where `__DEV__` is false.
+   */
+  const sheet = withoutComments(source('components/scanner/ScannerSheet.tsx'));
+  assert.match(sheet, /const SHOW_GEOMETRY =\s*__DEV__ \|\| process\.env\.EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY === '1';/);
+  assert.match(sheet, /\{SHOW_GEOMETRY && trace \?/);
+  // An unpatched build is visible on the device rather than looking like a
+  // working one.
+  assert.match(sheet, /\} else if \(SHOW_GEOMETRY\) \{/);
+});
+
+it('12 · no complete identifier reaches the overlay or a log', () => {
+  const t = traceOf('010000041000041', code(10, 20, 4, 4), 'outside');
+  assert.equal(t.tail, '0041');
+  assert.ok(!JSON.stringify(t).includes('010000041000041'));
+
+  const sheet = source('components/scanner/ScannerSheet.tsx');
+  assert.ok(!sheet.includes('console.log'), 'nothing is logged from the sheet');
+  // And the native side logs no payload either — asserted above.
+});
+
+it('android/ and ios/ stay generated and uncommitted', () => {
+  // CNG: the native projects are produced by `expo prebuild` and are not part
+  // of the repository. The patch is what makes the native change durable.
+  const ignore = source('.gitignore');
+  assert.match(ignore, /^\/?android\/?$/m);
+  assert.match(ignore, /^\/?ios\/?$/m);
+  // The patch itself must be committed, so it is NOT ignored.
+  assert.ok(!/^\/?patches\/?$/m.test(ignore), 'patches/ must be committed');
 });
 
 console.log(`scan region: ${passed} passed`);

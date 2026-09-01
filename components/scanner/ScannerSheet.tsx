@@ -24,6 +24,7 @@ import {
 } from '../../lib/scan/stabilizer';
 import {
   containment,
+  enforceForCallback,
   roiEnforceable,
   roiFor,
   traceOf,
@@ -140,36 +141,34 @@ const monotonicNow = (): number =>
     : Date.now();
 
 /**
- * Whether this platform's `cornerPoints` are in the preview's coordinate space.
+ * Whether to draw the geometry overlay.
  *
- * **Read from the native source in `node_modules/expo-camera`, not guessed.**
+ * `__DEV__` alone is not enough: the thing that has to be checked on a device
+ * is whether the emitted corners land where the frame is drawn, and that can
+ * only be seen in a **compiled native binary** — which is a release-mode
+ * internal build, where `__DEV__` is false.
  *
- *   - **iOS** (`MetaDataDelegate.swift`) passes barcodes through
- *     `previewLayer.transformedMetadataObject`, so the points arrive in preview
- *     points and the measured preview size is the right denominator. The Vision
- *     path (`BarcodeScannerUtils.swift`) instead reports values already
- *     normalised 0–1, which `centreOf` recognises on its own.
- *   - **Android** (`BarcodeScannerResultSerializer.kt`) reports ML Kit *image*
- *     pixels divided by display density, and the image dimensions are **never
- *     put into the bundle sent to JS**. There is no denominator available, so
- *     there is nothing honest to compute.
- *
- * Android therefore ranks by stability alone, which is the whole reason the
- * reticle is advisory: no scan is ever refused for want of a coordinate. Any
- * attempt to infer Android's extent would be a speculative normalisation on
- * hardware nobody here can test, and its failure mode is a scanner that rejects
- * everything.
+ * So an explicit environment flag as well, set for internal builds only. It is
+ * read at build time by the bundler, so a production build has the branch
+ * removed rather than merely skipped.
  */
-const PREVIEW_SPACE_COORDS = roiEnforceable(Platform.OS);
+const SHOW_GEOMETRY =
+  __DEV__ || process.env.EXPO_PUBLIC_SCAN_GEOMETRY_OVERLAY === '1';
 
 /**
- * Whether full containment can be ENFORCED here, not merely drawn.
+ * Whether corner points can be trusted as PREVIEW coordinates.
  *
- * The same audit decides both: iOS reports corners already converted into
- * preview points, Android reports image pixels whose denominator JS is never
- * given. One constant, so the drawing and the gate cannot disagree.
+ * True on iOS unconditionally: `previewLayer.transformedMetadataObject` maps
+ * them in native code before the payload leaves. On Android it depends on the
+ * binary — the committed `expo-camera` patch maps them with CameraX's
+ * `CoordinateTransform`, and an unpatched build does not — so Android is
+ * decided per callback by `enforceForCallback`, from the marker the patch
+ * sends, rather than by this constant.
+ *
+ * Used only as the positional-ranking hint, where being wrong reorders a list
+ * and nothing more.
  */
-const ROI_ENFORCEABLE = roiEnforceable(Platform.OS);
+const PREVIEW_SPACE_COORDS = roiEnforceable(Platform.OS);
 
 const PROBLEM_KEY: Record<ResultProblem, string> = {
   checksum: 'scan.problem.checksum',
@@ -438,12 +437,28 @@ export function ScannerSheet({
        * guidance there, and the copy says so rather than implying a guarantee
        * the platform cannot give.
        */
-      if (ROI_ENFORCEABLE) {
+      /*
+       * Decided per callback, not once per platform.
+       *
+       * iOS always maps, in native code, before the payload leaves. Android
+       * maps only in a binary carrying the committed `expo-camera` patch AND
+       * only once the preview is laid out — `PreviewView.outputTransform` is
+       * null until then, so the first frames genuinely have no answer.
+       *
+       * The marker comes from the payload rather than from a version number, so
+       * a patch that failed to apply cannot be mistaken for one that did.
+       */
+      const space = (result as { coordinateSpace?: string }).coordinateSpace;
+      if (enforceForCallback(Platform.OS, space)) {
         const verdictRoi = containment(result.cornerPoints, roiRef.current);
-        if (__DEV__) setTrace(traceOf(result.data, result.cornerPoints, verdictRoi));
+        if (SHOW_GEOMETRY) setTrace(traceOf(result.data, result.cornerPoints, verdictRoi));
         // `no-geometry` is NOT `inside`. Collapsing them is how a hard region
         // becomes decorative while still being described as hard.
         if (verdictRoi !== 'inside') return;
+      } else if (SHOW_GEOMETRY) {
+        // Visible in the overlay so an unpatched build is obvious on the device
+        // rather than looking like a working one.
+        setTrace(traceOf(result.data, result.cornerPoints, 'no-geometry'));
       }
 
       const verdict = observe(acquisition.current, {
@@ -792,7 +807,7 @@ export function ScannerSheet({
               captured it; four digits distinguish two candidates and are not an
               identifier.
             */}
-            {__DEV__ && trace ? (
+            {SHOW_GEOMETRY && trace ? (
               <View style={styles.trace}>
                 <Text variant="caption" style={styles.guideNotice}>
                   {`roi ${roi.x},${roi.y} ${roi.width}×${roi.height} · ${trace.verdict} · …${trace.tail}`}
