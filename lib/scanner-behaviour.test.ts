@@ -744,7 +744,7 @@ it('the candidate is cleared by every reset the session has', () => {
   assert.match(reset, /setNotice\(null\)/);
 });
 
-it('the aiming frame guides and does not claim to gate', () => {
+it('the frame is the scan region on iOS, and guidance on Android', () => {
   const code = withoutComments(source(SHEET));
 
   // Two states, both plain language.
@@ -754,11 +754,17 @@ it('the aiming frame guides and does not claim to gate', () => {
   assert.match(code, /Math\.round\(progress \* 100\)/);
   // And an unusable code is a note over a live camera, not a dead end.
   assert.match(code, /\{notice \? \(/);
-  // Shown only while the camera is actually running.
-  assert.match(code, /\{live && canUseCamera && cameraSupported && !manual \?/);
+  // Shown only while the camera runs AND the frame has actually been measured;
+  // drawing it from a zero rectangle would put a boundary on screen that the
+  // gate is not yet testing against.
+  assert.match(code, /\{live && canUseCamera && cameraSupported && !manual && roi\.width > 0 \?/);
 
-  // The platform's barcode coordinates are audited and not trusted, so the
-  // copy must not imply the frame constrains decoding.
+  /*
+   * The copy asks for one physical thing and claims nothing about mechanism.
+   * That wording has to serve both platforms: on iOS the frame really is the
+   * boundary, on Android nothing can be enforced from JS, and a sentence that
+   * promised enforcement would be false on half the fleet.
+   */
   for (const lang of ['en', 'fr', 'ar']) {
     const file = source(`lib/i18n/${lang}.ts`);
     for (const key of ['scan.guide.position', 'scan.guide.holdSteady']) {
@@ -779,7 +785,10 @@ it('the bounds audit is recorded rather than assumed', () => {
   // source rather than in somebody's memory.
   const code = source(SHEET);
   assert.match(code, /Read from the native source in `node_modules\/expo-camera`, not guessed/);
-  assert.match(code, /const PREVIEW_SPACE_COORDS = Platform\.OS === 'ios'/);
+  assert.match(code, /const PREVIEW_SPACE_COORDS = roiEnforceable\(Platform\.OS\);/);
+  // One predicate decides both the ranking hint and the hard gate, so the
+  // drawing and the enforcement can never disagree about which platform.
+  assert.match(code, /const ROI_ENFORCEABLE = roiEnforceable\(Platform\.OS\);/);
   // Advisory, never a gate: Android has no denominator, and must still scan.
   const stab = withoutComments(source('lib/scan/stabilizer.ts'));
   assert.match(stab, /if \(!obs\.previewSpace \|\| !obs\.preview\) return null;/);

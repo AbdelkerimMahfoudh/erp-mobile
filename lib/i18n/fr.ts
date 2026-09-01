@@ -2281,7 +2281,7 @@ export const fr: Catalogue = {
   'scan.hint.barcode': 'Visez le code-barres ou le QR code de l’IMEI',
   'scan.hint.notEveryPhone':
     'Tous les téléphones n’affichent pas un code scannable. Vous pouvez toujours le saisir.',
-  'scan.guide.position': 'Placez un seul code-barres dans le cadre',
+  'scan.guide.position': 'Placez un seul code-barres entier dans le cadre.',
   'scan.choose.title': 'Plusieurs IMEI détectés',
   'scan.choose.body': 'Sélectionnez un ou deux IMEI',
   'scan.choose.option': 'IMEI {index}',

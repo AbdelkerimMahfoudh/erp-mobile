@@ -2060,7 +2060,7 @@ export const en = {
   // manufacturers show the number without a code beside it.
   'scan.hint.notEveryPhone': 'Not every phone shows a scannable code. You can always type it instead.',
   // Refusals. No jargon — nobody at a counter needs the word "Luhn".
-  'scan.guide.position': 'Place one barcode inside the frame',
+  'scan.guide.position': 'Place one complete barcode inside the frame.',
   'scan.choose.title': 'Multiple IMEIs detected',
   'scan.choose.body': 'Select one or two IMEIs',
   'scan.choose.option': 'IMEI {index}',

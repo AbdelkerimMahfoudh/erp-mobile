@@ -23,6 +23,14 @@ import {
   type Acquisition,
 } from '../../lib/scan/stabilizer';
 import {
+  containment,
+  roiEnforceable,
+  roiFor,
+  traceOf,
+  type Rect,
+  type RoiTrace,
+} from '../../lib/scan/roi';
+import {
   acceptsDetection,
   cameraActive,
   initialScannerState,
@@ -152,7 +160,16 @@ const monotonicNow = (): number =>
  * hardware nobody here can test, and its failure mode is a scanner that rejects
  * everything.
  */
-const PREVIEW_SPACE_COORDS = Platform.OS === 'ios';
+const PREVIEW_SPACE_COORDS = roiEnforceable(Platform.OS);
+
+/**
+ * Whether full containment can be ENFORCED here, not merely drawn.
+ *
+ * The same audit decides both: iOS reports corners already converted into
+ * preview points, Android reports image pixels whose denominator JS is never
+ * given. One constant, so the drawing and the gate cannot disagree.
+ */
+const ROI_ENFORCEABLE = roiEnforceable(Platform.OS);
 
 const PROBLEM_KEY: Record<ResultProblem, string> = {
   checksum: 'scan.problem.checksum',
@@ -282,6 +299,17 @@ export function ScannerSheet({
   const [selected, setSelected] = useState<string[]>([]);
   /** The preview's measured size — the denominator for iOS preview points. */
   const previewSize = useRef<{ width: number; height: number } | null>(null);
+  /**
+   * The active rectangle, in the camera container's own coordinate space.
+   *
+   * Measured rather than assumed, and held in a ref as well as state: the
+   * camera callback needs it synchronously, and a value read from state would
+   * be a frame stale exactly while the frame is being resized.
+   */
+  const roiRef = useRef<Rect>({ x: 0, y: 0, width: 0, height: 0 });
+  const [roi, setRoi] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
+  /** Development only: the last callback and what the gate did with it. */
+  const [trace, setTrace] = useState<RoiTrace | null>(null);
 
   /** True once the camera is running: `cameraActive` is true in `scanning` alone. */
   const live = cameraActive(machine);
@@ -390,6 +418,34 @@ export function ScannerSheet({
        * render, so a candidate held in state would be a second behind every
        * decision made about it — the same reason the accept lock is a ref.
        */
+      /*
+       * THE SCAN REGION. Judged first, before anything else happens.
+       *
+       * A phone label carries several barcodes millimetres apart, so a frame
+       * that only suggests where to aim does not stop the decoder reading a
+       * neighbour. Every corner must be inside the rectangle; a barcode
+       * straddling an edge has its centre inside while half of it is out of
+       * shot, which is exactly the read that produces a wrong digit.
+       *
+       * A rejected callback is dropped HERE — no candidate, no progress, no
+       * classification, no haptic, no recognition, no message. It never
+       * happened.
+       *
+       * `ROI_ENFORCEABLE` is false on Android, where `cornerPoints` are image
+       * pixels over a display density with the image size never forwarded to
+       * JS. There is no denominator, so there is nothing to test against and
+       * nothing honest to compute — see `lib/scan/roi.ts`. The frame stays
+       * guidance there, and the copy says so rather than implying a guarantee
+       * the platform cannot give.
+       */
+      if (ROI_ENFORCEABLE) {
+        const verdictRoi = containment(result.cornerPoints, roiRef.current);
+        if (__DEV__) setTrace(traceOf(result.data, result.cornerPoints, verdictRoi));
+        // `no-geometry` is NOT `inside`. Collapsing them is how a hard region
+        // becomes decorative while still being described as hard.
+        if (verdictRoi !== 'inside') return;
+      }
+
       const verdict = observe(acquisition.current, {
         raw: result.data,
         at: monotonicNow(),
@@ -646,8 +702,17 @@ export function ScannerSheet({
              * guessed size would bias every ranking toward one corner.
              */
             onLayout={(e) => {
+              /*
+               * The camera container's own box, which on iOS is the space
+               * `transformedMetadataObject` reports corners in. Measuring the
+               * VIEW rather than the window is what keeps the two in the same
+               * coordinate system across notches, split screen and rotation.
+               */
               const { width, height } = e.nativeEvent.layout;
               previewSize.current = { width, height };
+              const next = roiFor({ width, height });
+              roiRef.current = next;
+              setRoi(next);
             }}
             facing="back"
             enableTorch={torch}
@@ -659,49 +724,83 @@ export function ScannerSheet({
         ) : null}
 
         {/*
-          The aiming frame.
+          ONE frame, and it is the scan region.
 
-          Somewhere to put the barcode. The device test found the scanner
-          accepting whatever crossed the lens first — often a neighbouring card
-          on a sheet of them — and part of that is that nothing on screen ever
-          said where to point.
+          There used to be two overlapping shapes here — large white corner
+          brackets and a smaller rounded rectangle — so the active area was
+          whichever one you happened to read. Two frames on a scanner is worse
+          than none: it tells somebody there is a boundary and then leaves them
+          to guess which.
 
-          It is guidance, not a gate: `PREVIEW_SPACE_COORDS` explains why the
-          platform's barcode coordinates cannot always be trusted, so the copy
-          says "position the barcode inside the frame" and never claims that
-          only what is inside it will be read. What protects the scan on both
-          platforms is holding still.
+          Wide and shallow, sized for ONE horizontal barcode. A taller region
+          comfortably holds two stacked codes, which is the situation this frame
+          exists to prevent.
+
+          The darkened surround is drawn as four panels around the rectangle
+          rather than as one overlay with a hole, because a real cutout needs a
+          mask layer and this needs none. Inside stays clear glass.
+
+          The mask is GUIDANCE. On iOS it happens to coincide exactly with the
+          hard region; on Android nothing can be enforced from JS, and the copy
+          below never claims otherwise.
         */}
-        {live && canUseCamera && cameraSupported && !manual ? (
-          <View style={styles.guideLayer} pointerEvents="none">
-            <View style={[styles.guide, progress > 0 ? styles.guideHolding : null]}>
-              {/*
-                The acquisition, shown filling the frame from the bottom.
-
-                Without it the scanner looks frozen for a second — which is the
-                complaint that started all of this, from the other direction.
-                The bar says "seen, and being confirmed", so the second feels
-                like the app working rather than the app hanging.
-              */}
-              <View style={[styles.guideFill, { height: `${Math.round(progress * 100)}%` }]} />
+        {live && canUseCamera && cameraSupported && !manual && roi.width > 0 ? (
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <View style={[styles.mask, { height: roi.y }]} />
+            <View style={{ flexDirection: 'row', height: roi.height }}>
+              <View style={[styles.mask, { width: roi.x }]} />
+              <View style={[styles.frame, { width: roi.width, height: roi.height }]}>
+                {/* Accents on the frame itself, so they cannot drift from it. */}
+                <Corner style={styles.tl} />
+                <Corner style={styles.tr} />
+                <Corner style={styles.bl} />
+                <Corner style={styles.br} />
+                {/*
+                  The acquisition, filling from the bottom. Without it a
+                  deliberate second looks like the app having frozen.
+                */}
+                <View style={[styles.guideFill, { height: `${Math.round(progress * 100)}%` }]} />
+              </View>
+              <View style={[styles.mask, { flex: 1 }]} />
             </View>
-            <Text variant="body" style={styles.guideHint}>
-              {/*
-                Plain language only. No "checksum", no "Luhn", no
-                "stabilizing" — the person holding the phone is being asked to
-                do one physical thing, and that is all this says.
-              */}
-              {progress > 0 ? t('scan.guide.holdSteady') : t('scan.guide.position')}
-            </Text>
+            <View style={[styles.mask, { flex: 1 }]}>
+              <View style={styles.guideText}>
+                <Text variant="body" style={styles.guideHint}>
+                  {/*
+                    Plain language, and one physical instruction. No "checksum",
+                    no "Luhn", no "region of interest".
+                  */}
+                  {progress > 0 ? t('scan.guide.holdSteady') : t('scan.guide.position')}
+                </Text>
+                {notice ? (
+                  <Text variant="caption" style={styles.guideNotice}>
+                    {t(notice as never)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+
             {/*
-              A code that was aimed at and cannot be used. The camera is still
-              running underneath and the sheet has not closed: this is a note,
-              not a dead end, and the cooldown stops it repeating every frame.
+              Development only: what the gate actually saw.
+
+              Camera scaling, aspect-fill cropping and rotation are exactly the
+              things that look right in a simulator and are wrong in a hand, and
+              this is how they get checked on a real device.
+
+              Coordinates and a verdict — never the payload. An overlay printing
+              identifiers would put complete IMEIs on screen and into whatever
+              captured it; four digits distinguish two candidates and are not an
+              identifier.
             */}
-            {notice ? (
-              <Text variant="caption" style={styles.guideNotice}>
-                {t(notice as never)}
-              </Text>
+            {__DEV__ && trace ? (
+              <View style={styles.trace}>
+                <Text variant="caption" style={styles.guideNotice}>
+                  {`roi ${roi.x},${roi.y} ${roi.width}×${roi.height} · ${trace.verdict} · …${trace.tail}`}
+                </Text>
+                <Text variant="caption" style={styles.guideNotice}>
+                  {trace.corners.map((c) => `${c.x},${c.y}`).join('  ')}
+                </Text>
+              </View>
             ) : null}
           </View>
         ) : null}
@@ -789,12 +888,6 @@ export function ScannerSheet({
         ) : (
           <>
             <View style={styles.viewfinderArea} pointerEvents="none">
-              <View style={styles.viewfinder}>
-                <Corner style={styles.tl} />
-                <Corner style={styles.tr} />
-                <Corner style={styles.bl} />
-                <Corner style={styles.br} />
-              </View>
               <View style={styles.hintBox}>
                 {loading || machine.name === 'validating' ? (
                   <View style={styles.loadingRow}>
@@ -1218,30 +1311,43 @@ const useStyles = makeStyles((colors) => ({
     flex: 1,
     backgroundColor: colors.surface.inverse,
   },
-  guideLayer: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.lg,
+  /**
+   * The darkened surround.
+   *
+   * Four panels around the rectangle rather than one overlay with a hole: a
+   * real cutout needs a mask layer, and this needs none. Inside stays clear
+   * glass, which matters — a barcode read through a tint is a barcode read
+   * worse.
+   *
+   * No blur. `expo-blur` is not installed, and the brief is explicit that a
+   * dependency must not be added for it.
+   */
+  mask: {
+    backgroundColor: colors.surface.scrim,
   },
-  guide: {
+  /**
+   * The one frame. Its size comes from `roiFor`, so the shape on screen and
+   * the rectangle the gate tests are the same rectangle by construction rather
+   * than by two constants agreeing.
+   */
+  frame: {
     overflow: 'hidden',
-    // Wide and short: an IMEI barcode is a long strip, and a square frame
-    // invites people to hold the phone too close to fit it in.
-    width: '78%',
-    aspectRatio: 2.4,
     borderWidth: 2,
     borderColor: colors.border.inverse,
     borderRadius: radius.lg,
     backgroundColor: 'transparent',
   },
-  guideHolding: {
-    // Confirmation that something has been found and is being held — paired
-    // with the words below, never carrying the meaning on its own.
-    // The semantic focus token, not a raw ramp step: this means "the app is
-    // attending to this", which is exactly what holding a candidate is.
-    borderColor: colors.border.focus,
-    borderWidth: 3,
+  guideText: {
+    alignItems: 'center',
+    paddingTop: space.lg,
+    gap: space.xs,
+  },
+  trace: {
+    position: 'absolute',
+    left: space.base,
+    right: space.base,
+    bottom: space.base,
+    gap: 2,
   },
   guideFill: {
     // Anchored to the bottom so it reads as filling up, not sliding across.
@@ -1307,11 +1413,6 @@ const useStyles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.lg,
-  },
-  viewfinder: {
-    width: '78%',
-    aspectRatio: 1.35,
-    maxWidth: 340,
   },
   corner: {
     position: 'absolute',

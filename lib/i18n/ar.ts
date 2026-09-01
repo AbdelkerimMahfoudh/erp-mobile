@@ -2002,7 +2002,7 @@ export const ar: Catalogue = {
   'scan.enterManually': 'إدخال يدوي',
   'scan.hint.barcode': 'وجّه الكاميرا نحو باركود أو رمز QR الخاص برقم IMEI',
   'scan.hint.notEveryPhone': 'ليست كل الهواتف تعرض رمزًا قابلًا للمسح. يمكنك دائمًا كتابته يدويًا.',
-  'scan.guide.position': 'ضع باركود واحدًا داخل الإطار',
+  'scan.guide.position': 'ضع باركود واحدًا كاملًا داخل الإطار.',
   'scan.choose.title': 'تم اكتشاف عدة أرقام IMEI',
   'scan.choose.body': 'اختر رقم IMEI واحدًا أو رقمين',
   'scan.choose.option': 'IMEI {index}',
