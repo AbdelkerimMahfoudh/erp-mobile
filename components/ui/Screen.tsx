@@ -14,7 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
-import { HeaderShownContext } from '@react-navigation/elements';
+import { HeaderShownContext } from '../../lib/navigation/router-internals';
 import { dismissing } from '../../lib/keyboard-dismiss';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';

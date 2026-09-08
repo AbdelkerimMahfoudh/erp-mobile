@@ -3,7 +3,7 @@ import { BrandModelSelect } from './BrandModelSelect';
 import { VariantSelect } from './VariantSelect';
 import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from '@react-navigation/native';
+import { usePreventRemove } from '../../lib/navigation/router-internals';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, ScanLine, Trash2 } from 'lucide-react-native';
 import {

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from '@react-navigation/native';
+import { usePreventRemove } from '../lib/navigation/router-internals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
 import {
