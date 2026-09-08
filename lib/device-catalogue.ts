@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { api } from './api-client';
 import { isDurable } from './offline/durable-storage.ts';
+import { fallbackAttributes } from './device-attributes-fallback';
 
 /**
  * The phone brand and model catalogue, on the device.
@@ -80,8 +81,15 @@ export interface CatalogueVersion {
   complete: boolean;
 }
 
-/** Where a list came from, so a screen can be honest about it. */
-export type CatalogueOrigin = 'live' | 'cached' | 'unavailable';
+/**
+ * Where a list came from, so a screen can be honest about it.
+ *
+ * `fallback` is the bundled offline-safe baseline, used only when the request
+ * genuinely failed AND nothing was cached. It is deliberately its own value:
+ * folding it into `live` would hide a failure, and folding it into
+ * `unavailable` would go back to showing nothing at all.
+ */
+export type CatalogueOrigin = 'live' | 'cached' | 'fallback' | 'unavailable';
 
 export interface CatalogueResult<T> {
   items: T[];
@@ -166,16 +174,18 @@ export function fetchModels(brandKey: string): Promise<CatalogueResult<Catalogue
 const ATTRIBUTES_FILE = 'attributes.json';
 
 /**
- * The storage and colour lists, from the server, with the last copy as backup.
+ * The storage and colour lists: server first, then the last saved copy, then a
+ * bundled floor.
  *
- * Same rule as brands and models: **the app holds no list of its own.** These
- * two are short and stable enough that bundling them would have been tempting,
- * and that is exactly how the second catalogue starts — one that cannot be
- * corrected without shipping a release, sitting next to one that can.
+ * Brands and models keep the strict rule — **the app holds no list of its
+ * own** — because they change constantly and a stale bundled copy would be
+ * worse than none. Storage and colour are the exception, and narrowly:
+ * capacities and basic colour names do not change, and emptying both selectors
+ * on a failed request pushed the shopkeeper into typing at the counter. That
+ * was the reported iPhone symptom.
  *
- * A shop with no signal and no cached copy gets empty lists, and the `Other`
- * field is what carries them through: the selectors keep working with nothing
- * to select from, because typing has never been the failure case.
+ * So the order is server, cache, {@link fallbackAttributes} — and the origin
+ * says which, so the screen never presents a failure as a normal result.
  */
 export async function fetchAttributes(): Promise<{
   attributes: DeviceAttributes | null;
@@ -191,7 +201,21 @@ export async function fetchAttributes(): Promise<{
     if (cached?.items[0]) {
       return { attributes: cached.items[0], origin: 'cached', cachedAt: cached.savedAt };
     }
-    return { attributes: null, origin: 'unavailable', cachedAt: null };
+    /*
+     * The request failed and there is no saved copy — a first run with no
+     * signal, or a server that is down.
+     *
+     * This used to return nothing, which emptied both selectors and pushed the
+     * shopkeeper into typing. Storage capacities and basic colour names are the
+     * two parts of the catalogue that do not change, so a bundled floor is safe
+     * here in a way that bundling models would not be.
+     *
+     * The origin stays `fallback`, distinct from `live` and from `cached`, so
+     * the screen can say plainly that the newest options could not be fetched.
+     * It is NOT reported as success: a failure that reads as a normal empty
+     * list is the bug this whole area already had once.
+     */
+    return { attributes: fallbackAttributes(), origin: 'fallback', cachedAt: null };
   }
 }
 

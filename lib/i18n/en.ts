@@ -1530,6 +1530,7 @@ export const en = {
   'catalog.select.loading': 'Loading the list…',
   'catalog.select.empty': 'The list is empty. Choose "Something else" to type it.',
   'catalog.select.unavailable': 'The list could not be loaded. You can still type it.',
+  'catalog.select.fallback': 'Showing the standard list — we could not fetch the latest options.',
   'catalog.form.tracking.phone':
     'Tracked individually by IMEI, and shown in stock by model. A phone is never counted as a quantity.',
   'catalog.form.category.select': 'Choose a category',

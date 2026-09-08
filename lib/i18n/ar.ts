@@ -1496,6 +1496,7 @@ export const ar: Catalogue = {
   'catalog.select.loading': 'جارٍ تحميل القائمة…',
   'catalog.select.empty': 'القائمة فارغة. اختر «شيء آخر» لكتابتها.',
   'catalog.select.unavailable': 'تعذر تحميل القائمة. لا يزال بإمكانك كتابتها.',
+  'catalog.select.fallback': 'نعرض القائمة القياسية — تعذّر جلب أحدث الخيارات.',
   'catalog.form.tracking.phone':
     'يُتابَع فرديًا برقم IMEI، ويظهر في المخزون حسب الموديل. الهاتف لا يُعدّ أبدًا ككمية.',
   'catalog.form.category.select': 'اختر فئة',

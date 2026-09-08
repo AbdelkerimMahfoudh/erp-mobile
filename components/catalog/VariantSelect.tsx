@@ -313,6 +313,24 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
           {t('catalog.select.offline')}
         </Text>
       ) : null}
+
+      {/*
+        The bundled baseline is in use.
+
+        Non-blocking on purpose: the options below are real and selectable, so
+        this is a note, not an error. It is still a WARNING tone rather than a
+        quiet aside, because the newest options genuinely could not be fetched
+        and the shopkeeper should know before they conclude a capacity is
+        missing. Retry sits with it, so acting on the note takes one tap.
+      */}
+      {status === 'ready' && origin === 'fallback' ? (
+        <View style={styles.list}>
+          <Text variant="caption" tone="warning">
+            {t('catalog.select.fallback')}
+          </Text>
+          <ListRow title={t('action.retry')} onPress={retry} />
+        </View>
+      ) : null}
     </View>
   );
 }
