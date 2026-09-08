@@ -202,10 +202,35 @@ function CategorySheet({
             onChange={(v) => setTracking(v as TrackingType)}
             options={[
               { value: 'imei', label: t('catalog.tracking.imei') },
-              { value: 'serial', label: t('catalog.tracking.serial') },
+              /*
+                `serial` is deliberately absent.
+
+                The approved rule is that only phones are tracked individually;
+                everything else is counted. A third option here is how a shelf
+                of accessories ends up being registered one piece at a time,
+                which is the exact workflow this is meant to prevent — and the
+                server refuses it now, so offering it could only produce a
+                rejection the employee cannot act on.
+
+                A category ALREADY stored as `serial` keeps working and keeps
+                its stock: the option reappears below only for that category, so
+                editing its name does not silently retype it.
+              */
+              ...(existing?.defaultTrackingType === 'serial'
+                ? [{ value: 'serial', label: t('catalog.tracking.serial') }]
+                : []),
               { value: 'quantity', label: t('catalog.tracking.quantity') },
             ]}
           />
+          {/*
+            Stated rather than enforced here, because the client does not know
+            how many products use this category and must not guess. The server
+            refuses the change and says how many are affected; this makes that
+            refusal unsurprising instead of a wall the employee walks into.
+          */}
+          <Text variant="caption" tone="secondary" style={styles.note}>
+            {existing ? t('categories.tracking.locked') : t('categories.tracking.hint')}
+          </Text>
         </View>
 
         {/* Deactivating is the only "removal" — history must stay readable. */}

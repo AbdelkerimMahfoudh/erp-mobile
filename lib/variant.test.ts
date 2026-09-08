@@ -236,23 +236,67 @@ it('anything the catalogue does not know is not treated as a phone', () => {
   assert.equal(isPhoneBrand('Apple', []), false, 'no catalogue means no claim');
 });
 
-it('the quantity option is not offered for a phone', () => {
+/**
+ * The tracking mode is no longer a choice on the product form.
+ *
+ * It used to be a segmented control, filtered so a phone could not be offered
+ * "quantity". That guard is gone because the QUESTION is gone: the category
+ * decides, the server enforces it, and the form only reports the consequence.
+ * These assertions pin that down, because reintroducing a picker here would
+ * quietly recreate a form that can contradict the server.
+ */
+it('the product form offers no tracking picker at all', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
-  // Removed from the list rather than disabled: a greyed-out control invites
-  // "why can I not press that?", and the answer is that it was never a choice.
-  assert.match(code, /\.\.\.\(isPhone \? \[\] : \[\{ value: 'quantity'/);
-  assert.match(code, /canChangeTracking && !isPhone && set\('trackingType'/);
+  assert.ok(!code.includes('SegmentedControl'), 'the tracking mode must not be selectable here');
+  assert.ok(!/set\('trackingType'/.test(code), 'nothing may set the tracking mode from this form');
 });
 
-it('the tracking answer for a phone says both halves', () => {
+it('the form derives the mode from the selected category', () => {
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  assert.match(code, /derivedTracking[^\n]*selected\?\.defaultTrackingType/);
+});
+
+it('the form does not send a tracking mode the server would have to referee', () => {
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  const payload = code.slice(code.indexOf('export function toProductPayload'));
+  assert.ok(!payload.includes('trackingType'), 'the payload must state no opinion on tracking');
+});
+
+it('the derived copy answers both halves of "how will this be received?"', () => {
   const en = source('lib/i18n/en.ts');
-  const line = en.slice(en.indexOf("'catalog.form.tracking.phone'"));
-  const value = line.slice(0, line.indexOf('\n', line.indexOf(':') + 1) + 120);
-  // Individually by IMEI, AND shown by model. Saying only the first would leave
-  // "then why does the list say 4?" unanswered.
-  assert.match(value, /individually by IMEI/i);
-  assert.match(value, /by model/i);
-  assert.match(value, /never counted as a quantity/i);
+  const at = (key: string) => {
+    const i = en.indexOf(`'${key}'`);
+    return en.slice(i, en.indexOf('\n', i) + 1);
+  };
+  // One says the goods are individual and why; the other says they are not, so
+  // an employee reading either knows whether to reach for the scanner.
+  assert.match(at('catalog.form.tracking.derived.imei'), /one by one/i);
+  assert.match(at('catalog.form.tracking.derived.imei'), /IMEI/);
+  assert.match(at('catalog.form.tracking.derived.quantity'), /quantity/i);
+  assert.match(at('catalog.form.tracking.derived.quantity'), /no IMEI/i);
+});
+
+/**
+ * The free-form "Details" rows are gone, but the column behind them is not.
+ * Removing the input must never turn into removing the data.
+ */
+it('the free-form Details editor is gone from the product form', () => {
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  assert.ok(!code.includes('specifications'), 'the form no longer edits specifications');
+  assert.ok(!code.includes('MAX_SPECS'), 'its bound went with it');
+});
+
+it('the payload omits specifications, so historical values survive a PATCH', () => {
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  const payload = code.slice(code.indexOf('export function toProductPayload'));
+  assert.ok(!payload.includes('specifications'));
+});
+
+it('structured storage and colour are untouched by that removal', () => {
+  const code = source('components/catalog/ProductForm.tsx');
+  // They were never in `specifications` — they live in `variant`, via their own
+  // component, which is exactly why removing Details could not take them out.
+  assert.match(code, /VariantSelect/);
 });
 
 it('all three languages carry every new key', () => {
@@ -268,7 +312,10 @@ it('all three languages carry every new key', () => {
     'catalog.select.searchColour',
     'catalog.select.noMatch',
     'catalog.select.unavailable',
-    'catalog.form.tracking.phone',
+    'catalog.form.tracking.derived.imei',
+    'catalog.form.tracking.derived.quantity',
+    'catalog.form.tracking.derived.from',
+    'catalog.form.tracking.derived.noCategory',
   ];
   for (const lang of ['en', 'fr', 'ar']) {
     const file = source(`lib/i18n/${lang}.ts`);
@@ -280,7 +327,7 @@ it('all three languages carry every new key', () => {
 
 it('the Arabic copy is Arabic, not English left in place', () => {
   const ar = source('lib/i18n/ar.ts');
-  for (const key of ['catalog.form.storage', 'catalog.form.colour', 'catalog.form.tracking.phone']) {
+  for (const key of ['catalog.form.storage', 'catalog.form.colour', 'catalog.form.tracking.derived.quantity']) {
     const at = ar.indexOf(`'${key}'`);
     const value = ar.slice(at, ar.indexOf('\n', at + key.length + 40) + 1);
     assert.match(value, /[؀-ۿ]/, `${key} was not translated`);

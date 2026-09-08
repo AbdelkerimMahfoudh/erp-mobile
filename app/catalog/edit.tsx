@@ -83,8 +83,16 @@ export default function EditProductScreen() {
         return;
       }
       if (error instanceof ApiError && error.status === 400) {
-        // Backend validation is authoritative; surface its words.
-        setErrors({ specifications: error.message });
+        /*
+         * Backend validation is authoritative; surface its words.
+         *
+         * This used to land on the free-form Details field, which no longer
+         * exists. A 400 here is now almost always about identity — the brand
+         * and model are the only free text left — so it goes there, where the
+         * employee can actually act on it, rather than under a field they
+         * cannot see.
+         */
+        setErrors({ brand: error.message });
         return;
       }
       toast.error(error instanceof ApiError ? error.message : t('state.error.body'));

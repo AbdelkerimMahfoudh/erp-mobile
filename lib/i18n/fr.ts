@@ -1638,7 +1638,6 @@ export const fr: Catalogue = {
   'catalog.form.section.category': 'Catégorie',
   'catalog.form.section.tracking': 'Comment est-il compté ?',
   'catalog.form.section.barcode': 'Code-barres',
-  'catalog.form.section.specs': 'Détails',
   'catalog.form.section.review': 'Vérification',
   'catalog.form.brand': 'Marque',
   'catalog.form.brand.hint': 'Apple, Samsung, Anker…',
@@ -1674,15 +1673,21 @@ export const fr: Catalogue = {
   'catalog.select.empty': 'La liste est vide. Choisissez « Autre chose » pour la saisir.',
   'catalog.select.unavailable': 'La liste n’a pas pu être chargée. Vous pouvez la saisir.',
   'catalog.select.fallback': 'Liste standard affichée — les dernières options n’ont pas pu être récupérées.',
-  'catalog.form.tracking.phone':
-    'Suivi individuellement par IMEI, et affiché en stock par modèle. Un téléphone n’est jamais compté comme une quantité.',
   'catalog.form.category.select': 'Choisir une catégorie',
   'catalog.form.category.none': 'Aucune catégorie',
   'catalog.form.category.sheet': 'Catégorie',
   'catalog.form.category.inactiveKept':
     'Cette catégorie est inactive. Elle est conservée jusqu’à ce que vous en choisissiez une autre.',
-  'catalog.form.tracking.hint':
-    'Les téléphones et tout ce qui porte un numéro de série sont comptés un par un.',
+  'catalog.form.tracking.derived.imei':
+    'Enregistré un par un, chacun avec son propre IMEI',
+  'catalog.form.tracking.derived.quantity': 'Reçu par quantité — aucun IMEI nécessaire',
+  'catalog.form.tracking.derived.from': 'Parce qu’il est classé dans {{category}}',
+  'catalog.form.tracking.derived.noCategory':
+    'Choisissez une catégorie pour définir le mode de réception',
+  'categories.tracking.hint':
+    'Les téléphones sont enregistrés un par un. Tout le reste est compté.',
+  'categories.tracking.locked':
+    'Impossible de changer une fois que des produits utilisent la catégorie.',
   'catalog.form.tracking.locked':
     'Le mode de suivi ne peut pas changer — ce produit a déjà du stock ou un historique.',
   'catalog.form.barcode': 'Code-barres',
@@ -1693,13 +1698,6 @@ export const fr: Catalogue = {
     'Prix de départ facultatif. Vous pourrez le changer à la réception du stock.',
   'catalog.form.price.locked':
     'Seule une personne autorisée sur les prix peut en définir un.',
-  'catalog.form.specs.add': 'Ajouter un détail',
-  'catalog.form.specs.name': 'Nom',
-  'catalog.form.specs.value': 'Valeur',
-  'catalog.form.specs.empty':
-    'Aucun détail pour l’instant. Stockage, couleur, taille…',
-  'catalog.form.specs.limit':
-    'C’est le nombre maximal de détails pour un produit.',
   'catalog.form.save': 'Enregistrer le produit',
   'catalog.form.saveChanges': 'Enregistrer les modifications',
   'catalog.form.created': 'Produit ajouté',

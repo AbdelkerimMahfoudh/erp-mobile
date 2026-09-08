@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { usePreventRemove } from '../../lib/navigation/router-internals';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, ScanLine, Trash2 } from 'lucide-react-native';
+import { ScanLine } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -13,7 +13,6 @@ import {
   ListRow,
   Screen,
   Section,
-  SegmentedControl,
   Text,
   TextField,
 } from '../ui';
@@ -26,8 +25,6 @@ import { usePermission } from '../../lib/permissions';
 import { qk } from '../../lib/query-keys';
 import { dialog } from '../../lib/dialog';
 import { toast } from '../../lib/toast';
-import { fetchBrands } from '../../lib/device-catalogue';
-import { isPhoneBrand } from '../../lib/phone-product.ts';
 import type { Category, ScanResult, TrackingType } from '../../types/api';
 
 /**
@@ -44,9 +41,6 @@ import type { Category, ScanResult, TrackingType } from '../../types/api';
  * `catalog.manage` must never imply pricing authority.
  */
 
-/** Mirrors the backend bound so the UI stops before the server has to. */
-const MAX_SPECS = 40;
-
 export interface ProductFormValues {
   brand: string;
   model: string;
@@ -54,7 +48,6 @@ export interface ProductFormValues {
   categoryId: string | null;
   trackingType: TrackingType;
   barcode: string;
-  specifications: { key: string; value: string }[];
   /** Create-only, and only when `price.edit` is held. */
   defaultPrice: string;
 }
@@ -81,7 +74,6 @@ export const emptyProductForm: ProductFormValues = {
   categoryId: null,
   trackingType: 'imei',
   barcode: '',
-  specifications: [],
   defaultPrice: '',
 };
 
@@ -122,24 +114,20 @@ export function ProductForm({
   const keepingInactive = selected !== null && !selected.isActive;
 
   /**
-   * A phone cannot be counted as a quantity, so the option is not offered.
+   * How this product will be received, derived rather than asked.
    *
-   * The signal is the brand being in the device catalogue — a catalogue OF
-   * phones, server-owned, and not editable into being wrong from a handset. The
-   * category's `defaultTrackingType` answers a different question ("how does
-   * this shop usually count things like this") and a shop that set it wrongly
-   * would get exactly the outcome this prevents.
+   * The selected category is the authority — it is what the server derives from
+   * too, so what the form shows and what the server does cannot drift apart.
+   * With no category chosen there is nothing to derive from, and the backend's
+   * own default for an uncategorised product is individual tracking, so that is
+   * what is shown.
    *
-   * Cached by the catalogue client, so this costs nothing on a shelf with no
-   * signal — and when it cannot tell, it says "not a phone" and the form
-   * behaves as it always did.
+   * This replaced a device-catalogue brand lookup that existed to stop a phone
+   * being counted as a quantity. That guard is no longer needed HERE: the mode
+   * is not a choice on this screen any more, so there is no wrong choice to
+   * prevent, and one fewer network dependency sits in the create path.
    */
-  const brands = useQuery({
-    queryKey: qk.deviceBrands,
-    queryFn: () => fetchBrands().then((r) => r.items),
-    staleTime: 60 * 60 * 1000,
-  });
-  const isPhone = isPhoneBrand(values.brand, brands.data ?? []);
+  const derivedTracking: TrackingType = selected?.defaultTrackingType ?? 'imei';
 
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(initial), [values, initial]);
 
@@ -257,43 +245,39 @@ export function ProductForm({
         />
       </Section>
 
-      {/* 3 ── Tracking ─────────────────────────────────────────────────────── */}
+      {/* 3 ── How it is received (derived from the category, never chosen) ─── */}
       <Section title={t('catalog.form.section.tracking')}>
         <Card>
-          <SegmentedControl
-            value={values.trackingType}
-            onChange={(v) =>
-              canChangeTracking && !isPhone && set('trackingType', v as TrackingType)
-            }
-            options={[
-              { value: 'imei', label: t('catalog.tracking.imei') },
-              { value: 'serial', label: t('catalog.tracking.serial') },
-              /*
-                A phone cannot be counted as a quantity, so the option is not
-                offered for one. "12 iPhone 15" with no IMEIs behind them cannot
-                be sold, warranted, traced after a theft, or told apart — and
-                the loss is silent and permanent, which is exactly the kind of
-                mistake this app exists to prevent rather than record.
+          {/*
+            Not a control any more.
 
-                Removed rather than disabled: a greyed-out control invites the
-                question "why can I not press that?", and the answer is that the
-                choice was never really available.
-              */
-              ...(isPhone ? [] : [{ value: 'quantity', label: t('catalog.tracking.quantity') }]),
-            ]}
+            The category decides how its products are received and the server
+            enforces it, so a form that let the two disagree could only produce
+            a rejection the employee did not cause and cannot fix. This reports
+            the consequence of the category chosen above instead of asking a
+            question whose answer was never really the user's.
+
+            It also takes the decision out of the daily path entirely: picking
+            "Smartphones" is something a shopkeeper already knows, while picking
+            "imei" is something they have to be taught.
+          */}
+          <ListRow
+            title={
+              derivedTracking === 'quantity'
+                ? t('catalog.form.tracking.derived.quantity')
+                : t('catalog.form.tracking.derived.imei')
+            }
+            subtitle={
+              selected
+                ? t('catalog.form.tracking.derived.from', { category: selected.name })
+                : t('catalog.form.tracking.derived.noCategory')
+            }
           />
-          <Text variant="caption" tone={canChangeTracking ? 'secondary' : 'warning'} style={styles.hint}>
-            {/*
-              Three different reasons, three different sentences. A frozen
-              tracking mode is a fact about history; a phone is a fact about
-              what the thing IS; anything else is ordinary guidance.
-            */}
-            {!canChangeTracking
-              ? t('catalog.form.tracking.locked')
-              : isPhone
-                ? t('catalog.form.tracking.phone')
-                : t('catalog.form.tracking.hint')}
-          </Text>
+          {!canChangeTracking ? (
+            <Text variant="caption" tone="warning" style={styles.hint}>
+              {t('catalog.form.tracking.locked')}
+            </Text>
+          ) : null}
         </Card>
       </Section>
 
@@ -315,69 +299,7 @@ export function ProductForm({
         />
       </Section>
 
-      {/* 5 ── Specifications ───────────────────────────────────────────────── */}
-      <Section title={t('catalog.form.section.specs')}>
-        {values.specifications.length === 0 ? (
-          <Card>
-            <Text variant="caption" tone="secondary">
-              {t('catalog.form.specs.empty')}
-            </Text>
-          </Card>
-        ) : (
-          <View style={styles.fields}>
-            {values.specifications.map((row, i) => (
-              <View key={i} style={styles.specRow}>
-                <View style={styles.specField}>
-                  <TextField
-                    label={t('catalog.form.specs.name')}
-                    value={row.key}
-                    onChangeText={(v) =>
-                      set(
-                        'specifications',
-                        values.specifications.map((r, j) => (i === j ? { ...r, key: v } : r)),
-                      )
-                    }
-                    maxLength={60}
-                  />
-                </View>
-                <View style={styles.specField}>
-                  <TextField
-                    label={t('catalog.form.specs.value')}
-                    value={row.value}
-                    onChangeText={(v) =>
-                      set(
-                        'specifications',
-                        values.specifications.map((r, j) => (i === j ? { ...r, value: v } : r)),
-                      )
-                    }
-                    maxLength={200}
-                  />
-                </View>
-                <IconButton
-                  icon={Trash2}
-                  accessibilityLabel={t('action.remove')}
-                  onPress={() => set('specifications', values.specifications.filter((_, j) => j !== i))}
-                />
-              </View>
-            ))}
-          </View>
-        )}
-        {shown.specifications ? (
-          <Text variant="caption" tone="danger" style={styles.hint}>
-            {shown.specifications}
-          </Text>
-        ) : null}
-        <Button
-          title={t('catalog.form.specs.add')}
-          variant="secondary"
-          icon={Plus}
-          style={styles.hint}
-          disabled={values.specifications.length >= MAX_SPECS}
-          onPress={() => set('specifications', [...values.specifications, { key: '', value: '' }])}
-        />
-      </Section>
-
-      {/* 6 ── Price (create only, and only with real pricing authority) ────── */}
+      {/* 5 ── Price (create only, and only with real pricing authority) ────── */}
       {mode === 'create' ? (
         <Section title={t('catalog.detail.pricing')}>
           {canSetPrice ? (
@@ -423,13 +345,22 @@ export function ProductForm({
   );
 }
 
-/** Turn form values into the exact create/patch payload the backend accepts. */
+/**
+ * Turn form values into the exact create/patch payload the backend accepts.
+ *
+ * Two fields are deliberately absent.
+ *
+ * `trackingType` is not sent at all. The category determines it server-side,
+ * and sending a second opinion can only agree redundantly or contradict and be
+ * refused — so the form states no opinion and cannot be the thing that is wrong.
+ *
+ * `specifications` is not sent either, now that the free-form Details rows are
+ * gone. Omitting the key means "leave it alone" on a PATCH, so every historical
+ * value a product already carries survives untouched, stays searchable, and
+ * keeps showing on the detail screen. Structured attributes — storage and
+ * colour — were never in this object; they live in `variant`.
+ */
 export function toProductPayload(v: ProductFormValues, opts: { includePrice: boolean }) {
-  const specifications: Record<string, string> = {};
-  for (const { key, value } of v.specifications) {
-    const k = key.trim();
-    if (k) specifications[k] = value.trim();
-  }
   const price = Number(v.defaultPrice);
   return {
     brand: v.brand.trim(),
@@ -437,9 +368,7 @@ export function toProductPayload(v: ProductFormValues, opts: { includePrice: boo
     // Empty optional values are normalized the same way everywhere: omitted.
     ...(v.variant.trim() ? { variant: v.variant.trim() } : {}),
     ...(v.categoryId ? { categoryId: v.categoryId } : {}),
-    trackingType: v.trackingType,
     ...(v.barcode.trim() ? { barcode: v.barcode.trim() } : {}),
-    ...(Object.keys(specifications).length ? { specifications } : {}),
     ...(opts.includePrice && v.defaultPrice.trim() && Number.isFinite(price) ? { defaultPrice: price } : {}),
   };
 }
