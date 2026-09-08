@@ -6,14 +6,12 @@
     "orientation": "portrait",
     "scheme": "retailerp",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "mr.retailerp.app"
     },
     "android": {
       "package": "mr.retailerp.app",
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#4f46e5"
       },
@@ -43,7 +41,10 @@
           "cameraPermission": "Retail ERP uses the camera to scan IMEIs, serial numbers and barcodes so you do not have to type them.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true
