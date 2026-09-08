@@ -1,50 +1,34 @@
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
-index fc56526..86774aa 100644
+index 999a22c..6959333 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
-@@ -496,7 +496,10 @@ class ExpoCameraView(
+@@ -554,7 +554,10 @@ class ExpoCameraView(
            try {
              analyzer.setAnalyzer(
                ContextCompat.getMainExecutor(context),
--              BarcodeAnalyzer(lensFacing, barcodeFormats) {
+-              BarcodeAnalyzer(barcodeFormats) {
 +              // PATCHED (PhoneStoreERP): the analyzer needs the PreviewView to
 +              // build CameraX's CoordinateTransform. A provider, because
 +              // `outputTransform` is null until the preview is laid out.
-+              BarcodeAnalyzer(lensFacing, barcodeFormats, { previewView }) {
++              BarcodeAnalyzer(barcodeFormats, { previewView }) {
                  onBarcodeScanned(it)
                }
              )
-@@ -707,8 +710,16 @@ class ExpoCameraView(
-     val density = previewView.resources.displayMetrics.density
-     val convertedCornerPoints = ArrayList<Bundle>()
-     for (i in cornerPoints.indices step 2) {
--      val y = cornerPoints[i].toFloat() / density
--      val x = cornerPoints[i + 1].toFloat() / density
-+      /*
-+       * PATCHED (PhoneStoreERP): x and y were swapped here.
-+       *
-+       * The analyzer writes `[x, y, x, y, …]` and this read `y = points[i]`,
-+       * `x = points[i + 1]`. Every corner arrived in JavaScript transposed,
-+       * which is unnoticeable while nothing compares them to anything and
-+       * fatal the moment a rectangle does.
-+       */
-+      val x = cornerPoints[i].toFloat() / density
-+      val y = cornerPoints[i + 1].toFloat() / density
-       convertedCornerPoints.add(
-         Bundle().apply {
-           putFloat("x", x)
-@@ -737,7 +748,19 @@ class ExpoCameraView(
+@@ -798,8 +801,21 @@ class ExpoCameraView(
  
    private fun onBarcodeScanned(barcode: BarCodeScannerResult) {
      if (shouldScanBarcodes) {
 -      transformBarcodeScannerResultToViewCoordinates(barcode)
+-
 +      /*
 +       * PATCHED (PhoneStoreERP). `transformBarcodeScannerResultToViewCoordinates`
 +       * is NOT called any more.
 +       *
-+       * It applied scale with no translation, so an aspect-fill crop was off by
-+       * the crop offset; it ignored rotation; and the emitter below read the
-+       * points back transposed. The analyzer now maps them with CameraX's
++       * Upstream has improved it since this patch was first written — it now
++       * computes a centre offset per scale type, and the transposed read in the
++       * emitter below is fixed. **But it still ignores rotation entirely**, and
++       * a scale-and-offset model cannot express rotation without becoming a
++       * matrix. The analyzer now maps the points with CameraX's
 +       * `CoordinateTransform`, which handles crop, rotation and scale together.
 +       *
 +       * The old function is left in place, unused, so this patch stays a small
@@ -54,7 +38,7 @@ index fc56526..86774aa 100644
        val (cornerPoints, boundingBox) = getCornerPointsAndBoundingBox(
          barcode.cornerPoints,
          barcode.boundingBox
-@@ -750,7 +773,14 @@ class ExpoCameraView(
+@@ -813,7 +829,14 @@ class ExpoCameraView(
            type = BarcodeType.mapFormatToString(barcode.type),
            cornerPoints = cornerPoints,
            bounds = boundingBox,
@@ -71,10 +55,10 @@ index fc56526..86774aa 100644
        )
      }
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
-index 5167a59..5152694 100644
+index 00a70f6..dae00c7 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
-@@ -5,6 +5,10 @@ import androidx.annotation.OptIn
+@@ -5,14 +5,53 @@ import androidx.annotation.OptIn
  import androidx.camera.core.ExperimentalGetImage
  import androidx.camera.core.ImageAnalysis
  import androidx.camera.core.ImageProxy
@@ -85,36 +69,37 @@ index 5167a59..5152694 100644
  import com.google.mlkit.vision.barcode.BarcodeScannerOptions
  import com.google.mlkit.vision.barcode.BarcodeScanning
  import com.google.mlkit.vision.common.InputImage
-@@ -13,8 +17,41 @@ import expo.modules.camera.records.BarcodeType
- import expo.modules.camera.records.CameraType
+ import expo.modules.camera.records.BarcodeType
  import expo.modules.camera.utils.BarCodeScannerResult
  
 +/**
 + * PATCHED (PhoneStoreERP). Two changes, both required for a strict scan region.
 + *
 + * 1. `barcodes.first()` is gone. Every barcode ML Kit found in the frame is
-+ *    forwarded, each as its own result, so JavaScript can tell "one inside" from
-+ *    "several inside" from "one inside and two outside". Dropping all but the
-+ *    first made those indistinguishable.
++ *    forwarded, each as its own result, so JavaScript can tell "one inside"
++ *    from "several inside" from "one inside and two outside". Dropping all but
++ *    the first made those indistinguishable — and on a phone box, where IMEI 1
++ *    and IMEI 2 are two separate barcodes, it meant one of them arrived and
++ *    which one was arbitrary.
 + *
 + * 2. Corner points are mapped into PreviewView coordinates using CameraX's own
 + *    `CoordinateTransform`, rather than by a scale formula.
 + *
-+ * The formula that used to do this lived in `ExpoCameraView` and was wrong in
-+ * three ways at once: it applied scale with no translation (so an aspect-fill
-+ * crop was off by the crop offset), it ignored rotation, and the emitter read
-+ * the points back transposed — corners are written `[x, y, …]` and were read as
-+ * `y = points[i]`. `CoordinateTransform` handles crop, rotation and scale
-+ * authoritatively, which is what it exists for.
++ * On the second point: upstream's `transformBarcodeScannerResultToViewCoordinates`
++ * has improved since this patch was first written — as of 57.0.4 it computes a
++ * centre offset per scale type, and the transposed read in the emitter is
++ * fixed. **But it still ignores rotation entirely**, and there is no rotation
++ * term anywhere in that path. A scale-and-offset model cannot express rotation
++ * without becoming a matrix, at which point it is a worse `CoordinateTransform`.
++ * So the mapping still belongs here.
 + *
 + * Every emitted result carries `coordinateSpace`, so JavaScript can tell a
 + * patched binary from an unpatched one and only enforce a hard region when the
 + * coordinates are actually trustworthy.
 + */
  @OptIn(ExperimentalGetImage::class)
--class BarcodeAnalyzer(private val lensFacing: CameraType, formats: List<BarcodeType>, val onComplete: (BarCodeScannerResult) -> Unit) : ImageAnalysis.Analyzer {
+-class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScannerResult) -> Unit) : ImageAnalysis.Analyzer {
 +class BarcodeAnalyzer(
-+  private val lensFacing: CameraType,
 +  formats: List<BarcodeType>,
 +  /**
 +   * The view the coordinates must end up in.
@@ -128,7 +113,7 @@ index 5167a59..5152694 100644
    private val barcodeFormats = if (formats.isEmpty()) {
      0
    } else {
-@@ -28,6 +65,27 @@ class BarcodeAnalyzer(private val lensFacing: CameraType, formats: List<BarcodeT
+@@ -26,6 +65,27 @@ class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScanne
        .build()
    private var barcodeScanner = BarcodeScanning.getClient(barcodeScannerOptions)
  
@@ -156,19 +141,20 @@ index 5167a59..5152694 100644
    override fun analyze(imageProxy: ImageProxy) {
      val mediaImage = imageProxy.image
  
-@@ -40,31 +98,61 @@ class BarcodeAnalyzer(private val lensFacing: CameraType, formats: List<BarcodeT
+@@ -44,31 +104,65 @@ class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScanne
            if (barcodes.isEmpty()) {
              return@addOnSuccessListener
            }
 -          val barcode = barcodes.first()
 -          val raw = barcode.rawValue ?: barcode.rawBytes?.let { String(it) }
- 
+-
 -          val cornerPoints = barcode.cornerPoints?.let { points ->
 -            // Pre-allocate array
 -            IntArray(points.size * 2).apply {
 -              points.forEachIndexed { index, point ->
 -                this[index * 2] = point.x
 -                this[index * 2 + 1] = point.y
++
 +          /*
 +           * Built here, while the ImageProxy is still open. The success
 +           * listener runs before the completion listener that closes it.
@@ -188,6 +174,7 @@ index 5167a59..5152694 100644
 +
 +          frameCounter += 1
 +          val frameId = frameCounter
++          val countInFrame = barcodes.size
 +
 +          barcodes.forEachIndexed { index, barcode ->
 +            val raw = barcode.rawValue ?: barcode.rawBytes?.let { String(it) }
@@ -200,11 +187,7 @@ index 5167a59..5152694 100644
                }
 -            }.toMutableList()
 -          } ?: mutableListOf()
-+              // In place: analysis space in, PreviewView space out.
-+              transform?.mapPoints(mapped)
-+              IntArray(mapped.size) { mapped[it].toInt() }.toMutableList()
-+            } ?: mutableListOf()
- 
+-
 -          val extra = BarCodeScannerResultSerializer.parseExtraDate(barcode)
 -          onComplete(
 -            BarCodeScannerResult(
@@ -213,8 +196,13 @@ index 5167a59..5152694 100644
 -              raw,
 -              extra,
 -              cornerPoints,
--              imageProxy.width,
--              imageProxy.height
+-              effectiveHeight,
+-              effectiveWidth
++              // In place: analysis space in, PreviewView space out.
++              transform?.mapPoints(mapped)
++              IntArray(mapped.size) { mapped[it].toInt() }.toMutableList()
++            } ?: mutableListOf()
++
 +            val extra = BarCodeScannerResultSerializer.parseExtraDate(barcode)
 +            onComplete(
 +              BarCodeScannerResult(
@@ -223,15 +211,18 @@ index 5167a59..5152694 100644
 +                raw,
 +                extra,
 +                cornerPoints,
-+                imageProxy.width,
-+                imageProxy.height,
-+                // `view` only when the mapping actually happened. `analysis`
-+                // means these are raw analyzer coordinates and nothing may be
-+                // concluded from them about the visible rectangle.
++                effectiveHeight,
++                effectiveWidth,
++                /*
++                 * The capability marker. `view` only when CameraX actually
++                 * produced a transform — otherwise the points are still in
++                 * analysis space and nothing may be concluded from them about
++                 * the visible frame.
++                 */
 +                if (transform != null) "view" else "analysis",
 +                frameId,
 +                index,
-+                barcodes.size
++                countInFrame
 +              )
              )
 -          )
@@ -240,10 +231,10 @@ index 5167a59..5152694 100644
          .addOnFailureListener {
            Log.d("SCANNER", it.cause?.message ?: "Barcode scanning failed")
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
-index ce7c212..de82aa3 100644
+index f31d513..fb8432d 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
-@@ -11,7 +11,26 @@ class BarcodeScannedEvent(
+@@ -13,7 +13,26 @@ class BarcodeScannedEvent(
    @Field val type: String,
    @Field val cornerPoints: ArrayList<Bundle>,
    @Field val bounds: Bundle,
@@ -260,9 +251,9 @@ index ce7c212..de82aa3 100644
 +   * never sends it, and the strict path stays off rather than acting on
 +   * coordinates it cannot trust.
 +   *
-+   * `frameId`/`indexInFrame`/`countInFrame` make the stream non-coalescing:
-+   * one event per barcode, with enough context to tell several codes seen at
-+   * once from one code seen repeatedly.
++   * `frameId`/`indexInFrame`/`countInFrame` make the stream non-coalescing: one
++   * event per barcode, with enough context to tell several codes seen at once
++   * from one code seen repeatedly.
 +   */
 +  @Field val coordinateSpace: String = "analysis",
 +  @Field val frameId: Double = 0.0,
@@ -270,12 +261,12 @@ index ce7c212..de82aa3 100644
 +  @Field val countInFrame: Int = 1
  ) : Record
  
- class CameraMountErrorEvent(
+ @OptimizedRecord
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/utils/BarCodeScannerResult.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/utils/BarCodeScannerResult.kt
-index 05a5cbf..e9c551c 100644
+index 05a5cbf..a868c32 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/utils/BarCodeScannerResult.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/utils/BarCodeScannerResult.kt
-@@ -9,7 +9,29 @@ class BarCodeScannerResult(
+@@ -9,7 +9,25 @@ class BarCodeScannerResult(
    val extra: Bundle,
    var cornerPoints: MutableList<Int>,
    var height: Int,
@@ -289,20 +280,16 @@ index 05a5cbf..e9c551c 100644
 +   * mapping was unavailable and nothing may be concluded from them about the
 +   * visible frame.
 +   *
-+   * Carried per result rather than assumed once for the session, because the
-+   * transform is null until the preview is ready — the first frames after
-+   * opening the camera genuinely have no answer.
++   * Defaulted, so an unpatched call site still compiles and still reports the
++   * honest answer.
 +   */
-+  var coordinateSpace: String = "analysis",
-+  /**
-+   * Same frame, same id.
-+   *
-+   * Distinguishes "three barcodes at once" from "one barcode, three times",
-+   * which are the two situations the chooser has to tell apart.
-+   */
-+  var frameId: Long = 0L,
-+  var indexInFrame: Int = 0,
-+  var countInFrame: Int = 1
++  val coordinateSpace: String = "analysis",
++  /** Which frame this came from. Distinguishes several codes at once from one seen repeatedly. */
++  val frameId: Long = 0L,
++  /** Position within that frame. */
++  val indexInFrame: Int = 0,
++  /** How many codes that frame contained. */
++  val countInFrame: Int = 1
  ) {
    data class BoundingBox(val x: Int, val y: Int, val width: Int, val height: Int)
  

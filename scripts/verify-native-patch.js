@@ -21,7 +21,7 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const PKG = 'expo-camera';
 /** The version this patch was cut against. Bump only after re-cutting it. */
-const PATCHED_VERSION = '17.0.10';
+const PATCHED_VERSION = '57.0.4';
 
 const red = (s) => `[31m${s}[0m`;
 const problems = [];
@@ -85,13 +85,13 @@ const ANCHORS = [
   ],
   [
     'android/src/main/java/expo/modules/camera/ExpoCameraView.kt',
-    'BarcodeAnalyzer(lensFacing, barcodeFormats, { previewView })',
+    'BarcodeAnalyzer(barcodeFormats, { previewView })',
     'the PreviewView reaches the analyzer',
   ],
   [
     'android/src/main/java/expo/modules/camera/ExpoCameraView.kt',
     'val x = cornerPoints[i].toFloat() / density',
-    'the x/y transposition is fixed',
+    'the x/y transposition is correct (upstream fixes this as of 57; kept as a guard against regression)',
   ],
 ];
 

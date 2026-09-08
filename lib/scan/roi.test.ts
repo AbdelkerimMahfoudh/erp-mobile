@@ -422,7 +422,7 @@ it('the marker is read from the payload, not inferred', () => {
 
 // ── the native patch ──────────────────────────────────────────────────────
 
-const PATCH = 'patches/expo-camera+17.0.10.patch';
+const PATCH = 'patches/expo-camera+57.0.4.patch';
 
 it('the patch uses CameraX transforms, not a scaling formula', () => {
   /*
@@ -455,13 +455,22 @@ it('the patch forwards every barcode, non-coalescing', () => {
   assert.match(patch, /countInFrame/);
 });
 
-it('the patch fixes the transposed corner points', () => {
-  // Corners are written `[x, y, …]` and were read back as `y = points[i]`.
-  // Unnoticeable while nothing compares them to anything; fatal once a
-  // rectangle does.
-  const patch = source(PATCH);
-  assert.match(patch, /-\s*val y = cornerPoints\[i\]\.toFloat\(\) \/ density/);
-  assert.match(patch, /\+\s*val x = cornerPoints\[i\]\.toFloat\(\) \/ density/);
+it('the corner points are not transposed', () => {
+  /*
+   * Corners are written `[x, y, …]`. Upstream used to read them back as
+   * `y = points[i]`, which is unnoticeable while nothing compares them to
+   * anything and fatal the moment a rectangle does.
+   *
+   * As of expo-camera 57 this is fixed UPSTREAM, so the patch no longer carries
+   * the hunk — carrying it would mean re-applying a fix that is already there.
+   * The property still matters, so it is asserted against the installed source
+   * instead: if upstream ever regresses it, this fails.
+   */
+  const view = source(
+    'node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt',
+  );
+  assert.match(view, /val x = cornerPoints\[i\]\.toFloat\(\) \/ density/);
+  assert.match(view, /val y = cornerPoints\[i \+ 1\]\.toFloat\(\) \/ density/);
 });
 
 it('the added event fields are additive, so existing consumers keep working', () => {
@@ -501,7 +510,7 @@ it('10 · the patch is verified after install, and cannot fail silently', () => 
 
   const verifier = source('scripts/verify-native-patch.js');
   // Checks the RESULT in node_modules, not merely that the step ran.
-  assert.match(verifier, /const PATCHED_VERSION = '17\.0\.10'/);
+  assert.match(verifier, /const PATCHED_VERSION = '57\.0\.4'/);
   assert.match(verifier, /process\.exit\(1\)/);
   for (const anchor of [
     'CoordinateTransform(transformFactory.getOutputTransform(imageProxy), target)',
