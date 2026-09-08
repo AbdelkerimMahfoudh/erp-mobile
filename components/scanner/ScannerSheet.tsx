@@ -3,7 +3,9 @@ import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, View } from 
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Keyboard, Flashlight, FlashlightOff, Plus, X } from 'lucide-react-native';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { radius, space, touch } from '../../lib/design/tokens';
+import { motionPlan } from '../../lib/design/motion';
 import { useTranslation } from '../../lib/i18n';
 import { haptics } from '../../lib/haptics';
 import { Button } from '../ui/Button';
@@ -248,6 +250,20 @@ export function ScannerSheet({
   }, []);
 
   const result = machine.name === 'result' ? machine : null;
+
+  /**
+   * How the result surface arrives.
+   *
+   * Opacity only, and built from the shared motion tokens so it cannot drift
+   * from the rest of the app. Under Reduce Motion it simply runs shorter — a
+   * fade has nothing to remove, which is why it was chosen over anything that
+   * travels.
+   *
+   * Nothing waits on it. See the comment at the render site for why that is a
+   * property of the structure rather than of care.
+   */
+  const reduceMotion = useReducedMotion();
+  const resultReveal = FadeIn.duration(motionPlan('reveal', reduceMotion).duration);
   const choosing = machine.name === 'choosing' ? machine : null;
   const primary = result?.primary ?? null;
   const secondary = result?.secondary ?? null;
@@ -1041,7 +1057,25 @@ export function ScannerSheet({
                   />
                 </View>
               ) : result ? (
-                <View style={styles.readingBox}>
+                /*
+                 * The result reveal — and the one place in this file where an
+                 * animation is allowed at all.
+                 *
+                 * It is safe here for a structural reason, not a careful one:
+                 * this branch only renders when the machine is ALREADY in
+                 * `result`. By the time React mounts it, `acceptsDetection` has
+                 * been false for some time, the camera callback is being
+                 * dropped, the haptic has fired and the camera has stopped —
+                 * all synchronously, inside `onBarcodeScanned`. The fade
+                 * therefore reports a decision that was made before it started
+                 * and cannot postpone, reorder or reopen any of it.
+                 *
+                 * Opacity only. No translate, no scale: text that slides while
+                 * somebody is reading a 15-digit number back off a box is worse
+                 * than no animation at all. That also makes it correct under
+                 * Reduce Motion, where it simply runs shorter.
+                 */
+                <Animated.View entering={resultReveal} style={styles.readingBox}>
                   {result.problem ? (
                     <Text variant="bodyStrong" tone="inverse">
                       {t(PROBLEM_KEY[result.problem] as never)}
@@ -1205,7 +1239,7 @@ export function ScannerSheet({
                       setMachine({ type: 'scanAgain' });
                     }}
                   />
-                </View>
+                </Animated.View>
               ) : null}
 
               {/*
@@ -1441,7 +1475,20 @@ const useStyles = makeStyles((colors) => ({
     position: 'absolute',
     width: CORNER,
     height: CORNER,
-    borderColor: colors.text.inverse,
+    /**
+     * The reticle is the accent, not plain white.
+     *
+     * A LIGHT step of the ramp rather than the primary: these corners are drawn
+     * over a live camera feed, which can be anything from a dark stockroom to a
+     * glossy white phone box under a strip light. `brand[600]` is legible on
+     * paper and disappears against a dark shelf; `brand[300]` holds up against
+     * both, and still reads unmistakably as the app's indigo rather than as a
+     * generic viewfinder.
+     *
+     * The contrast that matters here is against an unknown photograph, so it
+     * cannot be computed — it is on the device checklist.
+     */
+    borderColor: colors.border.reticle,
   },
   tl: { top: 0, left: 0, borderTopWidth: CORNER_WIDTH, borderLeftWidth: CORNER_WIDTH, borderTopLeftRadius: radius.md },
   tr: { top: 0, right: 0, borderTopWidth: CORNER_WIDTH, borderRightWidth: CORNER_WIDTH, borderTopRightRadius: radius.md },

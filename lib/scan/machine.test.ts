@@ -337,4 +337,63 @@ it('reopening clears the question entirely', () => {
   assert.equal(reopened.name === 'scanning' && reopened.pass, 1);
 });
 
+// ── the result reveal cannot weaken any of the above ─────────────────────────
+//
+// A short fade was added to the result surface. These pin the property that
+// makes it safe: the lock is the STATE, so it is already held before the
+// animation can begin, and no number of camera callbacks during the fade can
+// change that. If someone later moves the reveal earlier — animating during
+// `validating`, say — these are what should fail.
+
+it('the whole result phase refuses detections, for as long as it lasts', () => {
+  /*
+   * The reveal is ~200ms. A camera can deliver a dozen callbacks in that time,
+   * and this simulates a burst far larger than any real one.
+   */
+  let state = scanOnce(IMEI_A);
+  const before = JSON.stringify(state);
+
+  for (let i = 0; i < 100; i++) {
+    state = scannerReducer(state, { type: 'detected', raw: IMEI_B });
+    assert.equal(acceptsDetection(state), false, `accepted a detection on callback ${i}`);
+    assert.equal(cameraActive(state), false, `camera resumed on callback ${i}`);
+  }
+
+  assert.equal(JSON.stringify(state), before, 'a burst during the reveal changed the result');
+});
+
+it('the camera is already paused before a result can be rendered at all', () => {
+  /*
+   * The ordering the animation depends on. `validating` — the state entered
+   * synchronously inside the camera callback — has already stopped the camera,
+   * so by the time `result` exists and the fade mounts, there is nothing left
+   * to race with.
+   */
+  const validating = run(initialScannerState, { type: 'open' }, { type: 'detected', raw: IMEI_A });
+  assert.equal(validating.name, 'validating');
+  assert.equal(cameraActive(validating), false);
+
+  const result = scannerReducer(validating, { type: 'validated', payload: classifyScan(IMEI_A) });
+  assert.equal(result.name, 'result');
+  assert.equal(cameraActive(result), false, 'the camera never came back between the two');
+});
+
+it('one accepted result stays one result, however long the reveal runs', () => {
+  // The haptic fires once, at the transition — not per callback, and not per
+  // frame of the animation. The state reaching `result` exactly once is what
+  // guarantees that, so it is asserted here rather than by counting buzzes.
+  let state = run(initialScannerState, { type: 'open' });
+  let arrivals = 0;
+
+  for (const raw of [IMEI_A, IMEI_B, IMEI_A, IMEI_B]) {
+    const next = scannerReducer(state, { type: 'detected', raw });
+    if (next.name === 'validating' && state.name !== 'validating') arrivals++;
+    state = next;
+  }
+  state = scannerReducer(state, { type: 'validated', payload: classifyScan(IMEI_A) });
+
+  assert.equal(arrivals, 1, 'more than one detection was accepted');
+  assert.equal(state.name, 'result');
+});
+
 console.log('\n' + passed + ' passed');

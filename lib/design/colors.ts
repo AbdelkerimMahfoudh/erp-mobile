@@ -115,6 +115,17 @@ export interface Palette {
     strong: string;
     focus: string;
     inverse: string;
+    /**
+     * The scanner reticle, drawn over a live camera feed.
+     *
+     * Its own name because it is the one border whose background is a
+     * photograph rather than a surface — it has to hold up against a dark
+     * stockroom and a glossy white box under a strip light, so it cannot be
+     * derived from either theme's palette. Identical in both themes for the
+     * same reason `surface.inverseRaised` is: the camera view is dark whatever
+     * the app is set to.
+     */
+    reticle: string;
   };
   text: {
     primary: string;
@@ -217,6 +228,8 @@ export const lightColors: Palette = {
     focus: brand[500],
     /** Border on the inverse surface. */
     inverse: 'rgba(255, 255, 255, 0.16)',
+    /** A light step of the accent — legible on both dark and bright scenes. */
+    reticle: brand[300],
   },
 
   text: {
@@ -370,6 +383,8 @@ export const darkColors: Palette = {
     /** A brighter step than light mode — brand[500] is muddy on near-black. */
     focus: brand[400],
     inverse: 'rgba(0, 0, 0, 0.20)',
+    /** Identical to light: the camera view is dark whatever the app is set to. */
+    reticle: brand[300],
   },
 
   text: {

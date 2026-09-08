@@ -10,15 +10,17 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  Easing,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { duration, elevation, radius, space } from '../../lib/design/tokens';
+import { elevation, radius, space } from '../../lib/design/tokens';
+import { motionPlan } from '../../lib/design/motion';
+import { easing } from '../../lib/design/motion-easing';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
 import { useTranslation } from '../../lib/i18n';
 import { IconButton } from '../ui/IconButton';
@@ -90,25 +92,40 @@ export function BottomSheet({
     onClose();
   }, [onClose]);
 
+  /**
+   * Reduce Motion keeps the sheet still.
+   *
+   * A panel travelling the full height of the screen is the largest movement in
+   * the app, so it is the one most worth removing for somebody who asked for
+   * less of it. The backdrop still fades, and that is what actually says "a
+   * layer opened above this" — the travel only ever said where it came from.
+   *
+   * With movement off, the sheet's resting offset is 0 in both states, so it
+   * cross-fades in place instead of sliding.
+   */
+  const reduceMotion = useReducedMotion();
+  const plan = motionPlan('sheet', reduceMotion);
+  const offscreen = plan.movement ? screenHeight : 0;
+
   const animateOut = useCallback(() => {
-    backdrop.value = withTiming(0, { duration: duration.fast });
+    backdrop.value = withTiming(0, { duration: plan.duration });
     translateY.value = withTiming(
-      screenHeight,
-      { duration: duration.base, easing: Easing.in(Easing.cubic) },
+      offscreen,
+      { duration: plan.duration, easing: easing.exit },
       (finished) => {
         if (finished) runOnJS(finishClose)();
       },
     );
-  }, [backdrop, translateY, screenHeight, finishClose]);
+  }, [backdrop, translateY, offscreen, plan.duration, finishClose]);
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      translateY.value = screenHeight;
-      backdrop.value = withTiming(1, { duration: duration.base });
+      translateY.value = offscreen;
+      backdrop.value = withTiming(1, { duration: plan.duration });
       translateY.value = withTiming(0, {
-        duration: duration.base,
-        easing: Easing.out(Easing.cubic),
+        duration: plan.duration,
+        easing: easing.enter,
       });
     } else if (mounted) {
       animateOut();
@@ -129,7 +146,7 @@ export function BottomSheet({
       if (shouldDismiss && dismissible) {
         runOnJS(animateOut)();
       } else {
-        translateY.value = withTiming(0, { duration: duration.fast });
+        translateY.value = withTiming(0, { duration: plan.duration, easing: easing.standard });
       }
     });
 

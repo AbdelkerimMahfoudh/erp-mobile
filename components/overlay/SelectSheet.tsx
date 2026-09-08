@@ -8,6 +8,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ErrorState } from '../ui/ErrorState';
 import { ListRow } from '../ui/ListRow';
 import { SearchInput } from '../ui/SearchInput';
+import { visibleOptions } from './select-filter';
 import { SkeletonList } from '../ui/Skeleton';
 import { Text } from '../ui/Text';
 import { BottomSheet } from './BottomSheet';
@@ -105,23 +106,18 @@ export function SelectSheet<T>({
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>(selectedKeys);
 
-  // Server-side search returns pre-filtered items; only filter locally when we
-  // own the query.
-  const visible = useMemo(() => {
-    if (onSearchChange || !query.trim()) return items;
-    const needle = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const haystack = [
-        labelExtractor(item),
-        descriptionExtractor?.(item),
-        identifierExtractor?.(item),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(needle);
-    });
-  }, [items, query, onSearchChange, labelExtractor, descriptionExtractor, identifierExtractor]);
+  const visible = useMemo(
+    () =>
+      visibleOptions({
+        items,
+        query,
+        serverFiltered: Boolean(onSearchChange),
+        label: labelExtractor,
+        description: descriptionExtractor,
+        identifier: identifierExtractor,
+      }),
+    [items, query, onSearchChange, labelExtractor, descriptionExtractor, identifierExtractor],
+  );
 
   const selection = multi ? picked : selectedKeys;
 
