@@ -9,7 +9,14 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  withTiming,
+} from 'react-native-reanimated';
 import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
+import { motion, pressScale } from '../../lib/design/motion';
+import { easing } from '../../lib/design/motion-easing';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
@@ -122,6 +129,8 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   className?: string;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function Button({
   title,
   variant = 'primary',
@@ -166,8 +175,47 @@ export function Button({
   const { pressed, pressHandlers } = usePressed();
   const isPressed = pressed && !inactive;
 
+  /**
+   * The press response.
+   *
+   * Two deliberate exclusions:
+   *
+   *  - **Destructive buttons do not scale.** A delete or a refund is supposed
+   *    to feel like a decision, and a control that springs pleasantly under the
+   *    thumb makes it feel like a tap. The friction is the feature.
+   *  - **Reduce Motion removes it entirely.** The press is already reported by
+   *    the colour change and the haptic, so nothing is lost by holding still.
+   *
+   * It is presentation only: `handlePress` has already run by the time this
+   * finishes, and `inactive` — not the animation — is what stops a second press
+   * landing while an action is in flight.
+   */
+  const reduceMotion = useReducedMotion();
+  const scalable = variant !== 'danger' && !inactive;
+
+  /**
+   * Derived from the press state rather than written imperatively.
+   *
+   * `isPressed` already exists for the background colour, so the scale can
+   * simply follow it — no shared value, no handler wrapping, and nothing that
+   * can leave a button stuck at 0.98 if a press is cancelled: when the state
+   * goes back to false, so does the target. It also keeps the component free of
+   * mutation, which the React Compiler rules flag and which is genuinely harder
+   * to reason about here.
+   */
+  const pressAnimation = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: withTiming(isPressed && scalable ? pressScale(reduceMotion) : 1, {
+          duration: motion.press,
+          easing: easing.standard,
+        }),
+      },
+    ],
+  }));
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
       accessibilityLabel={title}
@@ -189,6 +237,7 @@ export function Button({
         v.border ? { borderWidth: StyleSheet.hairlineWidth, borderColor: v.border } : null,
         fullWidth ? styles.fullWidth : null,
         style,
+        pressAnimation,
       ]}
       {...rest}
     >
@@ -202,7 +251,7 @@ export function Button({
       {iconPosition === 'end' ? (
         <Leading loading={loading} Icon={Icon} color={v.foreground} size={s.icon} />
       ) : null}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

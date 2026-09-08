@@ -13,25 +13,44 @@
  *     reads it the same way they did that morning.
  */
 
-/** The one accent. Indigo, matching the existing brand, splash and app icon. */
+/**
+ * The one accent. Indigo, matching the existing brand, splash and app icon.
+ *
+ * Re-anchored to the approved refresh: `600` is the primary `#5146D9` and `50`
+ * is the selected-row wash `#EEECFC`. Both are slightly deeper and a touch more
+ * violet than the steps they replace, which is what makes a pale selected row
+ * read as *selected* rather than as a rendering artefact.
+ *
+ * Every step between them was re-cut to keep the ramp even, rather than pinning
+ * the two approved values into an otherwise unchanged scale — a ramp with two
+ * transplanted steps produces visible banding exactly where the accent is used
+ * most. Measured, not eyeballed:
+ *
+ *   white on 600 ......... 6.51:1
+ *   600 on white ......... 6.51:1
+ *   600 on 50 ............ 5.59:1   (the checkmark on a selected row)
+ *   600 on canvas ........ 6.13:1
+ *   700 on white ......... 8.44:1   (pressed)
+ */
 const brand = {
-  50: '#EEF1FE',
-  100: '#E0E5FD',
-  200: '#C6CEFB',
-  300: '#A3AEF7',
-  400: '#818CF8',
-  500: '#6366F1',
-  600: '#4F46E5',
-  700: '#4338CA',
-  800: '#3730A3',
-  900: '#2E2A7D',
+  50: '#EEECFC',
+  100: '#DEDBF8',
+  200: '#C3BEF2',
+  300: '#A29BEA',
+  400: '#8B82EF',
+  500: '#6358DE',
+  600: '#5146D9',
+  700: '#4238B8',
+  800: '#362E95',
+  900: '#2B2575',
 } as const;
 
 /** Neutrals — very slightly cool, which reads as "software" rather than "paper". */
 const neutral = {
   0: '#FFFFFF',
   25: '#FBFCFD',
-  50: '#F7F8FA',
+  /** The app background behind everything (approved refresh). */
+  50: '#F7F8FB',
   100: '#F1F3F6',
   200: '#E7EAEF',
   300: '#D8DDE5',
@@ -111,6 +130,51 @@ export interface Palette {
   brand: typeof brand;
   neutral: typeof neutral;
   intent: Record<'neutral' | 'info' | 'success' | 'warning' | 'danger', IntentColor>;
+  /**
+   * Flat names for the handful of roles that get referenced constantly.
+   *
+   * These are **aliases, not a second palette**. Every value below points at
+   * something already defined above, so there is still exactly one place a
+   * colour is decided. The reason they exist is that `intent.info.solid` is an
+   * awkward way to say "the primary action colour", and an awkward name is how
+   * a raw hex ends up in a screen instead.
+   *
+   * A component may use either vocabulary. What it may not do is invent a third.
+   */
+  semantic: {
+    /** Primary action, selection, focus, navigation emphasis. */
+    primary: string;
+    /** The same, held down. Darker in both themes, never lighter. */
+    primaryPressed: string;
+    /** The pale wash behind a selected row or chip. */
+    primarySoft: string;
+    /** Text and icons that sit on `primary`. */
+    onPrimary: string;
+    /** The app background behind everything. */
+    background: string;
+    /** Cards, sheets, rows — the reading surface. */
+    surface: string;
+    /** A surface lifted above another surface. */
+    surfaceRaised: string;
+    /** Outlines that need to be seen. */
+    border: string;
+    /** Hairlines between list rows. Quieter than `border` on purpose. */
+    divider: string;
+    /** Primary reading text. */
+    text: string;
+    /** Supporting text. */
+    textMuted: string;
+    /** Completed or confirmed. Never "probably worked". */
+    success: string;
+    /** Pending, low stock, needs attention. */
+    warning: string;
+    /** Errors, destructive actions, invalid data. */
+    danger: string;
+    /** Informational. */
+    info: string;
+    /** Unavailable controls and their text. */
+    disabled: string;
+  };
 }
 
 export const lightColors: Palette = {
@@ -156,8 +220,15 @@ export const lightColors: Palette = {
   },
 
   text: {
-    /** Headings and the numbers that matter. */
-    primary: neutral[900],
+    /**
+     * Headings and the numbers that matter.
+     *
+     * Its own value rather than `neutral[900]`: the approved text colour is a
+     * touch cooler and deeper than that step, and `neutral[900]` is also the
+     * DARK card surface — moving it would have repainted dark mode as a side
+     * effect. 16.27:1 on a card, 15.32:1 on the canvas.
+     */
+    primary: '#172033',
     /** Supporting copy, list subtitles. */
     secondary: neutral[600],
     /**
@@ -233,6 +304,32 @@ export const lightColors: Palette = {
       solidPressed: '#A32C23',
       onSolid: neutral[0],
     },
+  },
+
+  /** Aliases onto the values above — see `Palette['semantic']`. */
+  semantic: {
+    primary: brand[600],
+    primaryPressed: brand[700],
+    primarySoft: brand[50],
+    onPrimary: neutral[0],
+    background: neutral[50],
+    surface: neutral[0],
+    /**
+     * On white, "raised" cannot be a lighter fill — there is nothing lighter.
+     * It stays white and is lifted by the elevation tokens instead, which is
+     * why this is not simply `neutral[25]`.
+     */
+    surfaceRaised: neutral[0],
+    border: neutral[300],
+    /** A step quieter than `border`: 200 rows separated by 300 reads as a grid. */
+    divider: neutral[200],
+    text: '#172033',
+    textMuted: neutral[600],
+    success: '#1F7A5A',
+    warning: '#9A5B00',
+    danger: '#C0362C',
+    info: brand[600],
+    disabled: neutral[400],
   },
 };
 
@@ -343,6 +440,39 @@ export const darkColors: Palette = {
       solidPressed: '#A32C23',
       onSolid: neutral[0],
     },
+  },
+
+  /**
+   * Aliases again — and the easiest place to check that "dark mode is not an
+   * inversion" is actually true.
+   *
+   * `primary` is a LIGHT indigo here, because the readable accent has to sit on
+   * near-black; `primarySoft` is a deep indigo, not the light theme's `#EEECFC`
+   * placed over a dark card. Success stays green, warning amber, danger red —
+   * the meanings do not move, only the lightness relationship does.
+   *
+   *   primary on surface ... 6.91:1
+   *   primary on soft ...... 6.60:1
+   *   white on solid ....... 6.51:1
+   */
+  semantic: {
+    primary: brand[300],
+    primaryPressed: brand[400],
+    primarySoft: '#191C3D',
+    onPrimary: neutral[0],
+    background: dark.canvas,
+    surface: dark.card,
+    /** Lighter than the card, because after dark, lift IS lightness. */
+    surfaceRaised: dark.hover,
+    border: dark.borderDefault,
+    divider: dark.border,
+    text: neutral[100],
+    textMuted: neutral[400],
+    success: '#6EE7B7',
+    warning: '#F0B357',
+    danger: '#F2A49B',
+    info: brand[300],
+    disabled: neutral[600],
   },
 };
 

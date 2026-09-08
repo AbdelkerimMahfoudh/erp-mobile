@@ -362,4 +362,111 @@ it('theme and language are independent settings', () => {
   assert.notEqual(themeKey, langKey);
 });
 
+// ── the refresh vocabulary ────────────────────────────────────────────────
+//
+// These names are aliases onto the palette above, which is exactly why they
+// need pinning: an alias can quietly drift into being a second opinion.
+
+const SEMANTIC_KEYS = [
+  'primary', 'primaryPressed', 'primarySoft', 'onPrimary',
+  'background', 'surface', 'surfaceRaised',
+  'border', 'divider',
+  'text', 'textMuted',
+  'success', 'warning', 'danger', 'info', 'disabled',
+] as const;
+
+it('both themes define every semantic token', () => {
+  for (const [name, p] of Object.entries(PALETTES)) {
+    for (const key of SEMANTIC_KEYS) {
+      const value = (p.semantic as Record<string, string>)[key];
+      assert.ok(value, `${name} is missing semantic.${key}`);
+      assert.match(value, /^#|^rgba?\(/, `${name}.semantic.${key} is not a colour`);
+    }
+  }
+});
+
+it('the approved indigo is what light mode actually uses', () => {
+  assert.equal(lightColors.semantic.primary, '#5146D9');
+  assert.equal(lightColors.semantic.primarySoft, '#EEECFC');
+  assert.equal(lightColors.semantic.background, '#F7F8FB');
+  assert.equal(lightColors.semantic.text, '#172033');
+  assert.equal(lightColors.semantic.surface, '#FFFFFF');
+});
+
+it('dark mode is not the light palette on a dark background', () => {
+  // The specific failure this catches: copying `primarySoft` across, which
+  // would paint a near-white wash behind a selected row at night.
+  for (const key of SEMANTIC_KEYS) {
+    if (key === 'onPrimary') continue; // white on a solid fill in both themes
+    assert.notEqual(
+      darkColors.semantic[key],
+      lightColors.semantic[key],
+      `dark reuses the light value for ${key}`,
+    );
+  }
+});
+
+it('a primary action is readable in both themes', () => {
+  for (const [name, p] of Object.entries(PALETTES)) {
+    assert.ok(
+      contrast(p.semantic.primary, p.semantic.surface) >= 4.5,
+      `${name}: primary on surface is ${contrast(p.semantic.primary, p.semantic.surface).toFixed(2)}:1`,
+    );
+    assert.ok(
+      contrast(p.semantic.primary, p.semantic.background) >= 4.5,
+      `${name}: primary on background is ${contrast(p.semantic.primary, p.semantic.background).toFixed(2)}:1`,
+    );
+  }
+});
+
+it('a selected row reads as selected, in both themes', () => {
+  // The checkmark and label sit on the pale wash. If this fails, "selected"
+  // becomes a colour you have to look for rather than one you see.
+  for (const [name, p] of Object.entries(PALETTES)) {
+    const c = contrast(p.semantic.primary, p.semantic.primarySoft);
+    assert.ok(c >= 4.5, `${name}: primary on primarySoft is ${c.toFixed(2)}:1`);
+  }
+});
+
+it('pressed is darker than resting, in both themes', () => {
+  // Never lighter. A button that brightens under the thumb reads as releasing.
+  for (const [name, p] of Object.entries(PALETTES)) {
+    const rest = luminance(p.intent.info.solid);
+    const pressed = luminance(p.intent.info.solidPressed);
+    assert.ok(pressed < rest, `${name}: pressed fill is not darker than resting`);
+  }
+});
+
+it('body text and muted text stay readable on every semantic surface', () => {
+  for (const [name, p] of Object.entries(PALETTES)) {
+    for (const surface of [p.semantic.background, p.semantic.surface, p.semantic.surfaceRaised]) {
+      assert.ok(contrast(p.semantic.text, surface) >= 7, `${name}: text on ${surface}`);
+      assert.ok(contrast(p.semantic.textMuted, surface) >= 4.5, `${name}: textMuted on ${surface}`);
+    }
+  }
+});
+
+it('status colours keep their meaning across themes', () => {
+  // Success must never become the accent, and danger must never become warning.
+  for (const [name, p] of Object.entries(PALETTES)) {
+    const { success, warning, danger, primary } = p.semantic;
+    assert.notEqual(success, primary, `${name}: success collided with primary`);
+    assert.notEqual(warning, danger, `${name}: warning collided with danger`);
+    assert.notEqual(success, warning, `${name}: success collided with warning`);
+  }
+});
+
+it('a divider is quieter than a border', () => {
+  // Rows separated by full-strength borders read as a spreadsheet grid, which
+  // is the look the flatter list direction exists to get away from.
+  for (const [name, p] of Object.entries(PALETTES)) {
+    const onSurface = (c: string) => Math.abs(luminance(c) - luminance(p.semantic.surface));
+    assert.ok(
+      onSurface(p.semantic.divider) < onSurface(p.semantic.border),
+      `${name}: divider is not quieter than border`,
+    );
+  }
+});
+
+
 console.log(`theme, contrast and preferences: ${passed} passed`);
