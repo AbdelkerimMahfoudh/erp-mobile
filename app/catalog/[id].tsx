@@ -3,7 +3,18 @@ import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, Package, PencilLine, RotateCcw } from 'lucide-react-native';
-import { Button, Card, Chip, ErrorState, ListRow, Screen, Section, SkeletonList, Text } from '../../components/ui';
+import {
+  Button,
+  Card,
+  Chip,
+  ErrorState,
+  ListRow,
+  RowGroup,
+  Screen,
+  Section,
+  SkeletonList,
+  Text,
+} from '../../components/ui';
 import { ApiError, api } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
@@ -160,10 +171,11 @@ export default function ProductDetailScreen() {
             </Text>
           </Card>
         ) : (
-          <View style={styles.list}>
+          <RowGroup>
             {p.stockByBranch.map((s) => (
               <ListRow
                 key={s.branchId}
+                flat
                 title={s.branchName}
                 subtitle={
                   // Quantity stock carries its own per-branch price; serialized
@@ -174,7 +186,7 @@ export default function ProductDetailScreen() {
                 chevron={false}
               />
             ))}
-          </View>
+          </RowGroup>
         )}
         {p.totalStock > 0 ? (
           <Button

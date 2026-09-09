@@ -19,6 +19,7 @@ import {
   Card,
   ListRow,
   MoneyValue,
+  RowGroup,
   Screen,
   Section,
   SkeletonStat,
@@ -152,6 +153,13 @@ export default function HomeScreen() {
           First, deliberately. This is why a manager opens the app. */}
       {hasPendingWork ? (
         <Section title={t('home.pending.title')}>
+          {/*
+            One surface, not three floating boxes. These are three answers to
+            the same question — what is waiting on you — so they read as a list
+            of outstanding work rather than as unrelated cards that happen to be
+            stacked.
+          */}
+          <RowGroup>
           {pendingTransferCount > 0 ? (
             <PendingRow
               icon={Truck}
@@ -176,6 +184,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/returns' as Href)}
             />
           ) : null}
+          </RowGroup>
         </Section>
       ) : null}
 
@@ -289,12 +298,15 @@ export default function HomeScreen() {
       {/* ── Stock ──────────────────────────────────────────────────────────*/}
       {canViewReports && home.data ? (
         <Section title={t('home.stock.title')}>
+          <RowGroup>
           <ListRow
+            flat
             leading={Boxes}
             title={t('home.stock.value')}
             accessory={<MoneyValue value={home.data.inventory.inventoryValue} size="small" />}
           />
           <ListRow
+            flat
             leading={PackagePlus}
             title={t('home.stock.low')}
             subtitle={t('home.stock.low.hint')}
@@ -302,6 +314,7 @@ export default function HomeScreen() {
             valueTone="warning"
             onPress={() => router.push('/(tabs)/inventory')}
           />
+          </RowGroup>
         </Section>
       ) : null}
 
@@ -309,8 +322,14 @@ export default function HomeScreen() {
           Suppliers is here because until this pilot the whole payables
           workflow shipped with no way to reach it. */}
       <Section title={t('home.more.title')}>
+        {/*
+          Destinations, not cards. Five bordered boxes read as five decisions;
+          one grouped list reads as a menu, which is what it is.
+        */}
+        <RowGroup>
         {canViewSales ? (
           <ListRow
+            flat
             leading={ReceiptText}
             title={t('nav.sales')}
             onPress={() => router.push('/sales' as Href)}
@@ -318,6 +337,7 @@ export default function HomeScreen() {
         ) : null}
         {canViewReturns ? (
           <ListRow
+            flat
             leading={Undo2}
             title={t('nav.returns')}
             onPress={() => router.push('/returns' as Href)}
@@ -325,6 +345,7 @@ export default function HomeScreen() {
         ) : null}
         {canViewSuppliers ? (
           <ListRow
+            flat
             leading={Wallet}
             title={t('nav.suppliers')}
             subtitle={t('nav.suppliers.hint')}
@@ -333,6 +354,7 @@ export default function HomeScreen() {
         ) : null}
         {canViewTransfers ? (
           <ListRow
+            flat
             leading={ArrowLeftRight}
             title={t('nav.transfers')}
             onPress={() => router.push('/transfers' as Href)}
@@ -340,11 +362,13 @@ export default function HomeScreen() {
         ) : null}
         {canViewReports ? (
           <ListRow
+            flat
             leading={ClipboardCheck}
             title={t('nav.closing')}
             onPress={() => router.push('/closing')}
           />
         ) : null}
+        </RowGroup>
       </Section>
     </Screen>
   );
@@ -366,7 +390,9 @@ function PendingRow({
   count: string;
   onPress: () => void;
 }) {
-  return <ListRow leading={icon} title={label} value={count} valueTone="warning" onPress={onPress} />;
+  return (
+    <ListRow flat leading={icon} title={label} value={count} valueTone="warning" onPress={onPress} />
+  );
 }
 
 /**
