@@ -25,6 +25,14 @@ export interface ListRowProps {
   subtitle?: string;
   /** IMEI / serial / barcode. Rendered LTR and monospaced. */
   identifier?: string;
+  /**
+   * Drop the card box: no border, no radius.
+   *
+   * For long operational lists where rows are separated by a hairline and the
+   * surface runs straight through. See the `flat` style below for why this is a
+   * mode rather than a second component.
+   */
+  flat?: boolean;
   /** Icon shown in a tinted square, or any custom leading node (a thumbnail). */
   leading?: IconComponent | React.ReactElement;
   /**
@@ -65,6 +73,7 @@ export function ListRow({
   chevron,
   disabled = false,
   selected = false,
+  flat = false,
   style,
 }: ListRowProps) {
   const styles = useStyles();
@@ -85,6 +94,7 @@ export function ListRow({
               : colors.surface.card,
           borderColor: selected ? colors.intent.info.border : colors.border.subtle,
         },
+        flat ? styles.flat : null,
         disabled ? styles.disabled : null,
         style,
       ]}
@@ -176,6 +186,31 @@ const useStyles = makeStyles((colors) => ({
     padding: space.md,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  /**
+   * The same row without its box, for long operational lists.
+   *
+   * A card is right when rows are things to consider one at a time — a picker
+   * with a handful of options, a summary. It is wrong when there are forty of
+   * them and the job is to scan down a column for one name: the eye crosses a
+   * border, a corner and a gap on every line, and the list reads as a pile.
+   *
+   * A mode on the one row rather than a second row component, so a stock list
+   * and a picker cannot drift into having different padding, different touch
+   * targets or different selected states.
+   */
+  flat: {
+    borderRadius: 0,
+    borderWidth: 0,
+    /*
+     * A hairline underneath instead of a box around.
+     *
+     * Flat rows are meant to ABUT — no gap between them — so the separation has
+     * to come from somewhere or the list becomes floating blocks of text with
+     * nothing telling the eye where one row ends. One shared edge per boundary,
+     * drawn by the row above.
+     */
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   body: {
     flex: 1,

@@ -334,4 +334,40 @@ it('the Arabic copy is Arabic, not English left in place', () => {
   }
 });
 
+// ── the form is led by the category ───────────────────────────────────────
+
+it('the category is asked for before anything else', () => {
+  /*
+   * Order matters here in a way it usually does not. The category decides how
+   * the product is received, so asking for it last means the answer to "how
+   * will this arrive?" changes under a form the user has already filled in.
+   */
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  const at = (key: string) => code.indexOf(`t('${key}')`);
+  const category = at('catalog.form.section.category');
+  const tracking = at('catalog.form.section.tracking');
+  const identity = at('catalog.form.section.identity');
+  const barcode = at('catalog.form.section.barcode');
+
+  assert.ok(category > 0 && tracking > 0 && identity > 0 && barcode > 0, 'a section is missing');
+  assert.ok(category < tracking, 'the derived mode must come after the category it derives from');
+  assert.ok(tracking < identity, 'brand and model come after the category');
+  assert.ok(identity < barcode, 'the optional barcode comes last of the inputs');
+});
+
+it('an IMEI can never populate the product barcode', () => {
+  /*
+   * A barcode identifies the reusable PRODUCT; an IMEI identifies one physical
+   * handset. Letting a scanned IMEI fill this box would make every unit of that
+   * model recognise as that one phone.
+   */
+  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
+  const handler = code.slice(code.indexOf('const handleScan'), code.indexOf('const submit'));
+  const imeiGuard = handler.indexOf("result.kind === 'imei'");
+  const fill = handler.indexOf("set('barcode'");
+  assert.ok(imeiGuard > 0, 'the scan handler no longer checks for an IMEI');
+  assert.ok(fill > imeiGuard, 'the barcode is filled before the IMEI is rejected');
+  assert.match(handler.slice(imeiGuard, fill), /return;/, 'the IMEI branch must return');
+});
+
 console.log(`variant selectors and phone tracking: ${passed} passed`);

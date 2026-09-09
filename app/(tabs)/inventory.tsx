@@ -305,6 +305,7 @@ export default function InventoryScreen() {
                   {units.map((row) => (
                     <ListRow
                       key={row.id}
+                      flat
                       leading={PackageSearch}
                       title={productTitle(row.product, row.identifier)}
                       subtitle={variantSummary(row.product) || undefined}
@@ -347,6 +348,7 @@ export default function InventoryScreen() {
                   {stock.map((row) => (
                     <ListRow
                       key={row.id}
+                      flat
                       leading={Cable}
                       title={productTitle(row.product)}
                       subtitle={variantSummary(row.product) || undefined}
@@ -567,17 +569,23 @@ const useStyles = makeStyles((colors) => ({
   },
   list: {
     padding: space.base,
-    gap: space.sm,
+    /*
+     * No gap: flat rows abut and are separated by their own hairline, which is
+     * what turns a run of rows into one continuous surface instead of a stack
+     * of cards. Section headings carry their own spacing (`sectionSpaced`).
+     */
+    gap: 0,
     paddingBottom: space['3xl'],
   },
   sectionHeading: {
+    marginBottom: space.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.sm,
   },
   sectionSpaced: {
-    marginTop: space.md,
+    marginTop: space.lg,
   },
   footer: {
     alignItems: 'center',

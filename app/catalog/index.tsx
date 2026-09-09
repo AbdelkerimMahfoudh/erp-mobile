@@ -1,10 +1,21 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Search, Plus, Tag, FolderTree } from 'lucide-react-native';
-import { Badge, EmptyState } from '../../components/ui';
+import { Badge, EmptyState, Text as AppText } from '../../components/ui';
+import { usePressed } from '../../components/ui/use-pressed';
+import { radius, space, touch } from '../../lib/design/tokens';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { usePermission } from '../../lib/permissions';
@@ -153,13 +164,38 @@ export default function CatalogScreen() {
         <FlatList
           data={rows}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
+          /*
+           * No horizontal padding on the container: the rows are full-bleed so
+           * their hairlines run edge to edge, which is what makes the list read
+           * as one surface instead of a stack. Each row carries its own inset.
+           */
+          contentContainerStyle={{ paddingBottom: 90 }}
+          ItemSeparatorComponent={() => (
+            <View
+              style={{
+                height: StyleSheet.hairlineWidth,
+                backgroundColor: colors.semantic.divider,
+                // Indented past the icon, so the separator groups the text
+                // rather than cutting the row in half.
+                marginStart: space.base + 36 + space.md,
+              }}
+            />
+          )}
           refreshControl={
             <RefreshControl refreshing={page.isRefetching} onRefresh={() => page.refetch()} tintColor={colors.brand[600]} />
           }
           ListHeaderComponent={
             rows.length > 0 ? (
-              <Text className="mb-2 text-xs" style={{ color: colors.text.secondary }}>
+              // Carries its own inset now that the list is full-bleed.
+              <Text
+                className="text-xs"
+                style={{
+                  color: colors.text.secondary,
+                  paddingHorizontal: space.base,
+                  paddingTop: space.md,
+                  paddingBottom: space.sm,
+                }}
+              >
                 {total === 1 ? t('catalog.count.one') : t('catalog.count', { count: total })}
               </Text>
             ) : null
@@ -204,6 +240,18 @@ export default function CatalogScreen() {
   );
 }
 
+/**
+ * One product, as a flat row.
+ *
+ * This used to be a bordered, rounded card with a margin under it, so a screen
+ * of forty products was forty boxes — the eye has to cross a border, a corner
+ * and a gap between every line, and the list reads as a pile of things rather
+ * than as a list. Stock work is scanning down a column looking for one name.
+ *
+ * So: no border, no radius, no gap. A hairline between rows and the surface
+ * carrying straight through. The name is the strongest thing on the line
+ * because the name is what is being looked for; everything else is support.
+ */
 function ProductRow({
   row,
   archivedLabel,
@@ -216,24 +264,48 @@ function ProductRow({
   onPress: () => void;
 }) {
   const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
   return (
     <Pressable
       onPress={onPress}
-      className="mb-2 flex-row items-center justify-between rounded-2xl border p-3" style={{ borderColor: colors.border.subtle, backgroundColor: colors.surface.card }}
+      accessibilityRole="button"
+      {...pressHandlers}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        minHeight: touch.comfortable,
+        paddingHorizontal: space.base,
+        paddingVertical: space.md,
+        backgroundColor: pressed ? colors.surface.hover : colors.semantic.surface,
+      }}
     >
+      {/*
+        A category mark, not a photograph. There is no product image in the API
+        or the model, and inventing one would mean a storage feature nobody
+        asked for — so this is a consistent icon that never lies about what it
+        is showing.
+      */}
       <View
-        className="h-10 w-10 items-center justify-center rounded-xl"
-        style={{ backgroundColor: colors.intent.info.bg }}
+        style={{
+          height: 36,
+          width: 36,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: radius.md,
+          backgroundColor: colors.semantic.primarySoft,
+        }}
       >
-        <Tag size={18} color={colors.brand[600]} />
+        <Tag size={18} color={colors.semantic.primary} />
       </View>
-      <View className="ml-3 flex-1">
+      <View style={{ marginStart: space.md, flex: 1, gap: 2 }}>
         {/* The exact-variant label the server assembled — one name everywhere. */}
-        <Text className="font-medium" style={{ color: colors.text.primary }} numberOfLines={1}>
+        <AppText variant="bodyStrong" numberOfLines={1}>
           {row.label}
-        </Text>
-        <View className="mt-1 flex-row items-center gap-2">
-          <Text className="text-xs" style={{ color: colors.text.secondary }}>{trackingText}</Text>
+        </AppText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <AppText variant="caption" tone="secondary">
+            {trackingText}
+          </AppText>
           {/* Status by colour AND words, never colour alone. */}
           {!row.isActive ? <Badge label={archivedLabel} tone="slate" /> : null}
         </View>

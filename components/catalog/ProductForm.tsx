@@ -198,7 +198,53 @@ export function ProductForm({
         </View>
       }
     >
-      {/* 1 ── Identity ─────────────────────────────────────────────────────── */}
+      {/* 1 ── Category — chosen first, because it decides everything below ── */}
+      <Section title={t('catalog.form.section.category')}>
+        <ListRow
+          title={selected ? selected.name : t('catalog.form.category.none')}
+          subtitle={keepingInactive ? t('catalog.form.category.inactiveKept') : undefined}
+          onPress={() => setCategorySheet(true)}
+        />
+      </Section>
+
+      {/* 2 ── How it is received (derived from the category, never chosen) ─── */}
+      <Section title={t('catalog.form.section.tracking')}>
+        <Card>
+          {/*
+            Not a control any more.
+
+            The category decides how its products are received and the server
+            enforces it, so a form that let the two disagree could only produce
+            a rejection the employee did not cause and cannot fix. This reports
+            the consequence of the category chosen above instead of asking a
+            question whose answer was never really the user's.
+
+            It also takes the decision out of the daily path entirely: picking
+            "Smartphones" is something a shopkeeper already knows, while picking
+            "imei" is something they have to be taught.
+          */}
+          <ListRow
+            title={
+              derivedTracking === 'quantity'
+                ? t('catalog.form.tracking.derived.quantity')
+                : t('catalog.form.tracking.derived.imei')
+            }
+            subtitle={
+              selected
+                ? t('catalog.form.tracking.derived.from', { category: selected.name })
+                : t('catalog.form.tracking.derived.noCategory')
+            }
+          />
+          {!canChangeTracking ? (
+            <Text variant="caption" tone="warning" style={styles.hint}>
+              {t('catalog.form.tracking.locked')}
+            </Text>
+          ) : null}
+        </Card>
+      </Section>
+
+
+      {/* 3 ── Identity ──────────────────────────────────────────────────────── */}
       <Section title={t('catalog.form.section.identity')}>
         <View style={styles.fields}>
           {/*
@@ -234,51 +280,6 @@ export function ProductForm({
             disabled={false}
           />
         </View>
-      </Section>
-
-      {/* 2 ── Category ─────────────────────────────────────────────────────── */}
-      <Section title={t('catalog.form.section.category')}>
-        <ListRow
-          title={selected ? selected.name : t('catalog.form.category.none')}
-          subtitle={keepingInactive ? t('catalog.form.category.inactiveKept') : undefined}
-          onPress={() => setCategorySheet(true)}
-        />
-      </Section>
-
-      {/* 3 ── How it is received (derived from the category, never chosen) ─── */}
-      <Section title={t('catalog.form.section.tracking')}>
-        <Card>
-          {/*
-            Not a control any more.
-
-            The category decides how its products are received and the server
-            enforces it, so a form that let the two disagree could only produce
-            a rejection the employee did not cause and cannot fix. This reports
-            the consequence of the category chosen above instead of asking a
-            question whose answer was never really the user's.
-
-            It also takes the decision out of the daily path entirely: picking
-            "Smartphones" is something a shopkeeper already knows, while picking
-            "imei" is something they have to be taught.
-          */}
-          <ListRow
-            title={
-              derivedTracking === 'quantity'
-                ? t('catalog.form.tracking.derived.quantity')
-                : t('catalog.form.tracking.derived.imei')
-            }
-            subtitle={
-              selected
-                ? t('catalog.form.tracking.derived.from', { category: selected.name })
-                : t('catalog.form.tracking.derived.noCategory')
-            }
-          />
-          {!canChangeTracking ? (
-            <Text variant="caption" tone="warning" style={styles.hint}>
-              {t('catalog.form.tracking.locked')}
-            </Text>
-          ) : null}
-        </Card>
       </Section>
 
       {/* 4 ── Barcode ──────────────────────────────────────────────────────── */}
