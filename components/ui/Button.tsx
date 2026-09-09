@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +12,7 @@ import {
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
+  useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
@@ -194,24 +195,40 @@ export function Button({
   const scalable = variant !== 'danger' && !inactive;
 
   /**
-   * Derived from the press state rather than written imperatively.
+   * The animation is decided on the JS thread; the worklet only READS it.
    *
-   * `isPressed` already exists for the background colour, so the scale can
-   * simply follow it — no shared value, no handler wrapping, and nothing that
-   * can leave a button stuck at 0.98 if a press is cancelled: when the state
-   * goes back to false, so does the target. It also keeps the component free of
-   * mutation, which the React Compiler rules flag and which is genuinely harder
-   * to reason about here.
+   * This crashed the app on a device, and the shape of the mistake is worth
+   * keeping written down.
+   *
+   * The first version called `withTiming` *inside* `useAnimatedStyle`. That
+   * body is a worklet — it runs on the UI thread, in a separate runtime — and
+   * it referenced `pressScale(…)` and a module-scope `Easing.bezier` object.
+   * Neither is a worklet, so the UI runtime had to be handed plain JS functions
+   * from another module. On this stack that does not throw a catchable error:
+   * it takes the process down, which is why Expo Go simply vanished and no
+   * redbox, no unhandled rejection and no HTTP request ever appeared.
+   *
+   * It was also the only place in the app doing it — every other animation here
+   * (sheet, toast, dialog, skeleton) already drives a shared value from JS and
+   * lets the worklet do nothing but read. This now matches that, because the
+   * pattern that already works on this exact stack beats a second opinion.
+   *
+   * The target is computed in an effect rather than during render: writing a
+   * shared value while rendering is a side effect in the render phase, and
+   * `onPressOut` fires on cancellation too, so the scale always returns and no
+   * button is left sitting at 0.98.
    */
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withTiming(isPressed && scalable ? pressScale(reduceMotion) : 1, {
+      duration: motion.press,
+      easing: easing.standard,
+    });
+  }, [isPressed, scalable, reduceMotion, scale]);
+
   const pressAnimation = useAnimatedStyle(() => ({
-    transform: [
-      {
-        scale: withTiming(isPressed && scalable ? pressScale(reduceMotion) : 1, {
-          duration: motion.press,
-          easing: easing.standard,
-        }),
-      },
-    ],
+    transform: [{ scale: scale.value }],
   }));
 
   return (
