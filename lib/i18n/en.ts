@@ -1388,7 +1388,15 @@ export const en = {
   'sub.manage': 'Manage your account',
   'sub.recheck': 'Check again',
   // Non-enumerating: never reveals which field was wrong.
-  'auth.error.failed': 'We could not sign you in. Check your details and try again.',
+  /*
+   * Names what can be wrong, never WHICH one is wrong.
+   *
+   * "We could not sign you in. Check your details" was vague in the unhelpful
+   * direction: two fields, and no hint which to look at. This names both, and
+   * still refuses to say whether the account exists — confirming that is how an
+   * attacker enumerates who banks here.
+   */
+  'auth.error.failed': 'Incorrect email, number or password. Please try again.',
   'auth.error.network': 'No connection. Check your network and try again.',
   'auth.error.unknown': 'Something went wrong. Please try again.',
   'auth.device.title': 'This device needs verification',

@@ -1528,7 +1528,7 @@ export const fr: Catalogue = {
   'sub.recheck': 'Vérifier à nouveau',
   // Non-enumerating: never reveals which field was wrong.
   'auth.error.failed':
-    'Connexion impossible. Vérifiez vos informations et réessayez.',
+    'E-mail, numéro ou mot de passe incorrect. Veuillez réessayer.',
   'auth.error.network': 'Pas de connexion. Vérifiez votre réseau et réessayez.',
   'auth.error.unknown': 'Un problème est survenu. Veuillez réessayer.',
   'auth.device.title': 'Cet appareil doit être vérifié',
