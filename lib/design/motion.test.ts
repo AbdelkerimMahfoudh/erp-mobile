@@ -126,4 +126,59 @@ it('the motion tokens import nothing, so they stay testable', () => {
   assert.ok(!/^import /m.test(src), 'motion.ts must not import anything');
 });
 
+// ── overlay motion obeys the same system ──────────────────────────────────
+
+it('no overlay hardcodes a duration', () => {
+  /*
+   * Dialogs and toasts each carried their own millisecond literals — 160, 120,
+   * 180, 220 — so "change the motion system" meant finding every file that had
+   * quietly opted out of it. Durations come from the tokens or they are not
+   * durations.
+   */
+  const strip = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  for (const file of [
+    'components/overlay/DialogHost.tsx',
+    'components/overlay/ToastHost.tsx',
+    'components/overlay/BottomSheet.tsx',
+    'components/ui/Button.tsx',
+  ]) {
+    const src = strip(readFileSync(file, 'utf8'));
+    const literals = src.match(/\.duration\(\s*\d+\s*\)|duration:\s*\d+/g) ?? [];
+    assert.deepEqual(literals, [], `${file} hardcodes a duration: ${literals.join(', ')}`);
+  }
+});
+
+it('every entering/exiting animation defers to the OS Reduce Motion setting', () => {
+  // A layout animation that moves has to be able to stop moving. These are the
+  // ones the user never asked for and cannot turn off from inside the app.
+  const strip = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  for (const file of ['components/overlay/DialogHost.tsx', 'components/overlay/ToastHost.tsx']) {
+    const src = strip(readFileSync(file, 'utf8'));
+    const animations = src.match(/(entering|exiting|layout)=\{[^}]*\}/g) ?? [];
+    assert.ok(animations.length > 0, `${file}: expected layout animations`);
+    for (const a of animations) {
+      assert.match(a, /reduceMotion\(ReduceMotion\.System\)/, `${file}: ${a}`);
+    }
+  }
+});
+
+it('nothing springs, overshoots or bounces', () => {
+  // The approved system rules these out. A dialog that wobbles into place is
+  // unreadable while it wobbles, and it reads as playful exactly where the app
+  // is asking whether to move money.
+  const strip = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  for (const file of [
+    'components/overlay/DialogHost.tsx',
+    'components/overlay/ToastHost.tsx',
+    'components/overlay/BottomSheet.tsx',
+    'components/ui/Button.tsx',
+    'components/scanner/ScannerSheet.tsx',
+  ]) {
+    const src = strip(readFileSync(file, 'utf8'));
+    for (const banned of ['springify', 'withSpring', 'withBounce', 'Bounce']) {
+      assert.ok(!src.includes(banned), `${file} uses ${banned}`);
+    }
+  }
+});
+
 console.log(`motion: ${passed} passed`);

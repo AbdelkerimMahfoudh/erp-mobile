@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeOutUp, LinearTransition, ReduceMotion } from 'react-native-reanimated';
+import { motion } from '../../lib/design/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CircleAlert, CircleCheck, Info, TriangleAlert } from 'lucide-react-native';
 import { type Intent } from '../../lib/design/colors';
@@ -63,9 +64,9 @@ function ToastCard({ toast }: { toast: Toast }) {
 
   return (
     <Animated.View
-      entering={FadeInUp.duration(220)}
-      exiting={FadeOutUp.duration(160)}
-      layout={LinearTransition.duration(180)}
+      entering={FadeInUp.duration(motion.reveal).reduceMotion(ReduceMotion.System)}
+      exiting={FadeOutUp.duration(motion.selection).reduceMotion(ReduceMotion.System)}
+      layout={LinearTransition.duration(motion.reveal).reduceMotion(ReduceMotion.System)}
       style={[styles.card, { borderColor: palette.border, backgroundColor: palette.bg }]}
     >
       <Pressable

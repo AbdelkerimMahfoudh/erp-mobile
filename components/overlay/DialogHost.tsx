@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, ReduceMotion, ZoomIn } from 'react-native-reanimated';
+import { motion } from '../../lib/design/motion';
 import { elevation, radius, space } from '../../lib/design/tokens';
 import { useDialogStore } from '../../lib/dialog';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
@@ -43,13 +44,25 @@ export function DialogHost() {
   return (
     <Modal visible transparent statusBarTranslucent animationType="none" onRequestClose={cancel}>
       <Animated.View
-        entering={FadeIn.duration(160)}
-        exiting={FadeOut.duration(120)}
+        entering={FadeIn.duration(motion.reveal).reduceMotion(ReduceMotion.System)}
+        exiting={FadeOut.duration(motion.press).reduceMotion(ReduceMotion.System)}
         style={[styles.backdrop, keyboardHeight > 0 ? { paddingBottom: keyboardHeight } : null]}
       >
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" onPress={cancel} />
 
-        <Animated.View entering={ZoomIn.duration(180).springify().damping(18)} style={styles.card}>
+        {/*
+          No spring, and Reduce Motion takes the scale away entirely.
+
+          This used to be `.springify().damping(18)` — the card overshot and
+          settled. A dialog is where the app asks "are you sure you want to
+          refund this?", and a control that bounces cheerfully into view reads
+          as playful exactly where the answer matters most. It also made the
+          text unreadable for the length of the wobble.
+        */}
+        <Animated.View
+          entering={ZoomIn.duration(motion.reveal).reduceMotion(ReduceMotion.System)}
+          style={styles.card}
+        >
           <View style={styles.copy}>
             <Text variant="heading" align="center">
               {active.title}
