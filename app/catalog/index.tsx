@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   View,
-  Text,
-  TextInput,
   Pressable,
   FlatList,
   RefreshControl,
@@ -12,16 +10,24 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Search, Plus, Tag, FolderTree } from 'lucide-react-native';
-import { Badge, EmptyState, Text as AppText } from '../../components/ui';
+import { Plus, Tag } from 'lucide-react-native';
+import {
+  Badge,
+  DEFAULT_SEPARATOR_INSET,
+  EmptyState,
+  ErrorState,
+  FilterChip,
+  SearchInput,
+  Text as AppText,
+} from '../../components/ui';
 import { usePressed } from '../../components/ui/use-pressed';
-import { radius, space, touch } from '../../lib/design/tokens';
+import { elevation, radius, space, touch } from '../../lib/design/tokens';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { usePermission } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
 import type { ProductListRow, ProductPage, TrackingType } from '../../types/api';
-import { useColors } from '../../lib/design/theme';
+import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
  * Catalog (G1).
@@ -43,6 +49,7 @@ const TRACKING_FILTERS: { value: TrackingType | 'all'; key: string }[] = [
 ];
 
 export default function CatalogScreen() {
+  const styles = useStyles();
   const colors = useColors();
   const router = useRouter();
   const { t } = useTranslation();
@@ -77,89 +84,57 @@ export default function CatalogScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
       <Stack.Screen options={{ headerShown: true, title: t('catalog.title') }} />
 
-      <View className="border-b px-4 py-3" style={{ borderColor: colors.border.subtle, backgroundColor: colors.surface.card }}>
-        <View className="flex-row items-center gap-2 rounded-xl border px-3" style={{ borderColor: colors.border.default }}>
-          <Search size={18} color={colors.brand[600]} />
-          <TextInput
-            value={q}
-            onChangeText={setQ}
-            placeholder={t('catalog.search')}
-            placeholderTextColor={colors.text.tertiary}
-            className="flex-1 py-3 text-base" style={{ color: colors.text.primary }}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
+      {/*
+        The search and filter band.
 
-        <View className="mt-3 flex-row flex-wrap gap-2">
+        This used to hand-roll its own search box and its own filter pills out
+        of NativeWind classes — a second search input and a second chip that
+        looked almost like the shared ones and drifted from them independently.
+        Both are now the shared primitives, so the catalog searches and filters
+        the way every other list in the app does, and the selection wash comes
+        from the palette rather than from a class name.
+      */}
+      <View style={styles.filterBar}>
+        <SearchInput
+          value={q}
+          onChangeText={setQ}
+          placeholder={t('catalog.search')}
+        />
+
+        <View style={styles.filters}>
           {TRACKING_FILTERS.map((f) => (
-            <Pressable
+            <FilterChip
               key={f.value}
+              label={t(f.key as never)}
+              selected={tracking === f.value}
               onPress={() => setTracking(f.value)}
-              className="rounded-full border px-3 py-1"
-              style={{
-                borderColor:
-                  tracking === f.value ? colors.intent.info.solid : colors.border.default,
-                backgroundColor:
-                  tracking === f.value ? colors.intent.info.bg : colors.surface.card,
-              }}
-            >
-              <Text
-                className="text-sm"
-                style={{
-                  color: tracking === f.value ? colors.intent.info.fg : colors.text.secondary,
-                }}
-              >
-                {t(f.key as never)}
-              </Text>
-            </Pressable>
+            />
           ))}
           {/* Categories management — managers only, same gate as create/edit. */}
           {canManage ? (
-            <Pressable
+            <FilterChip
+              label={t('categories.title')}
+              selected={false}
               onPress={() => router.push('/catalog/categories' as never)}
-              className="flex-row items-center gap-1 rounded-full border px-3 py-1" style={{ borderColor: colors.border.default, backgroundColor: colors.surface.card }}
-            >
-              <FolderTree size={14} color={colors.brand[600]} />
-              <Text className="text-sm" style={{ color: colors.text.secondary }}>{t('categories.title')}</Text>
-            </Pressable>
+            />
           ) : null}
           {/* Archived products are a manager concern; employees never need the toggle. */}
           {canManage ? (
-            <Pressable
+            <FilterChip
+              label={t(active === 'active' ? 'catalog.filter.activeOnly' : 'catalog.filter.includingArchived')}
+              selected={active !== 'active'}
               onPress={() => setActive(active === 'active' ? 'all' : 'active')}
-              className="rounded-full border px-3 py-1"
-              style={{
-                borderColor:
-                  active === 'active' ? colors.border.default : colors.intent.info.solid,
-                backgroundColor:
-                  active === 'active' ? colors.surface.card : colors.intent.info.bg,
-              }}
-            >
-              <Text
-                className="text-sm"
-                style={{
-                  color: active === 'active' ? colors.text.secondary : colors.intent.info.fg,
-                }}
-              >
-                {t(active === 'active' ? 'catalog.filter.activeOnly' : 'catalog.filter.includingArchived')}
-              </Text>
-            </Pressable>
+            />
           ) : null}
         </View>
       </View>
 
       {page.isError ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center" style={{ color: colors.text.secondary }}>{t('catalog.error')}</Text>
-          <Pressable
-            onPress={() => page.refetch()}
-            className="mt-3 rounded-xl px-4 py-2"
-            style={{ backgroundColor: colors.intent.info.solid }}
-          >
-            <Text className="font-medium" style={{ color: colors.text.inverse }}>{t('catalog.retry')}</Text>
-          </Pressable>
-        </View>
+        // The shared error state, which already reads the thrown value: a 403
+        // renders "not available to you" with no retry, because retrying a role
+        // boundary never succeeds. The hand-rolled version here offered a retry
+        // button unconditionally.
+        <ErrorState error={page.error} onRetry={() => page.refetch()} />
       ) : (
         <FlatList
           data={rows}
@@ -177,7 +152,7 @@ export default function CatalogScreen() {
                 backgroundColor: colors.semantic.divider,
                 // Indented past the icon, so the separator groups the text
                 // rather than cutting the row in half.
-                marginStart: space.base + 36 + space.md,
+                marginStart: space.base + DEFAULT_SEPARATOR_INSET - space.md,
               }}
             />
           )}
@@ -187,17 +162,9 @@ export default function CatalogScreen() {
           ListHeaderComponent={
             rows.length > 0 ? (
               // Carries its own inset now that the list is full-bleed.
-              <Text
-                className="text-xs"
-                style={{
-                  color: colors.text.secondary,
-                  paddingHorizontal: space.base,
-                  paddingTop: space.md,
-                  paddingBottom: space.sm,
-                }}
-              >
+              <AppText variant="caption" tone="secondary" style={styles.count}>
                 {total === 1 ? t('catalog.count.one') : t('catalog.count', { count: total })}
-              </Text>
+              </AppText>
             ) : null
           }
           ListEmptyComponent={
@@ -229,11 +196,11 @@ export default function CatalogScreen() {
       {canManage ? (
         <Pressable
           onPress={() => router.push('/catalog/new' as never)}
-          className="absolute bottom-6 right-6 h-14 w-14 items-center justify-center rounded-full shadow-lg"
-          style={{ backgroundColor: colors.intent.info.solid }}
+          style={styles.fab}
+          accessibilityRole="button"
           accessibilityLabel={t('catalog.add')}
         >
-          <Plus size={26} color={colors.text.inverse} />
+          <Plus size={26} color={colors.semantic.onPrimary} />
         </Pressable>
       ) : null}
     </SafeAreaView>
@@ -313,3 +280,41 @@ function ProductRow({
     </Pressable>
   );
 }
+
+const useStyles = makeStyles((colors) => ({
+  filterBar: {
+    paddingHorizontal: space.base,
+    paddingVertical: space.md,
+    gap: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.semantic.divider,
+    backgroundColor: colors.semantic.surface,
+  },
+  filters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  count: {
+    paddingHorizontal: space.base,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+  },
+  /**
+   * The create button floats above the list, so it needs the elevation token
+   * rather than a shadow class — and `end` rather than `right`, so it sits by
+   * the thumb in Arabic too.
+   */
+  fab: {
+    position: 'absolute',
+    bottom: space.xl,
+    end: space.xl,
+    height: 56,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    backgroundColor: colors.semantic.primary,
+    ...elevation.lg,
+  },
+}));

@@ -10,6 +10,7 @@ import {
   FilterChip,
   ListRow,
   MoneyValue,
+  RowGroup,
   Screen,
   SearchInput,
   SkeletonList,
@@ -302,6 +303,7 @@ export default function InventoryScreen() {
                       total: totals.units,
                     })}
                   />
+                  <RowGroup>
                   {units.map((row) => (
                     <ListRow
                       key={row.id}
@@ -332,6 +334,7 @@ export default function InventoryScreen() {
                       }
                     />
                   ))}
+                  </RowGroup>
                 </>
               ) : null}
 
@@ -345,6 +348,7 @@ export default function InventoryScreen() {
                     })}
                     spaced={units.length > 0}
                   />
+                  <RowGroup>
                   {stock.map((row) => (
                     <ListRow
                       key={row.id}
@@ -371,6 +375,7 @@ export default function InventoryScreen() {
                       chevron={false}
                     />
                   ))}
+                  </RowGroup>
                 </>
               ) : null}
 

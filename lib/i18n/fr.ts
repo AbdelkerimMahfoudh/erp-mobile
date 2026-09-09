@@ -372,6 +372,7 @@ export const fr: Catalogue = {
   'analytics.worstPerforming': 'Les moins performants',
   'analytics.deadStock': 'Ne bouge pas',
   'analytics.deadStock.none': 'Tout se vend',
+  'analytics.none': 'Rien à afficher pour l’instant',
   'analytics.branches': 'Comparaison des sites',
   'analytics.employees': 'Performance de l’équipe',
   'analytics.sold': '{n} vendus',

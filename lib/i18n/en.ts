@@ -340,6 +340,7 @@ export const en = {
   'analytics.worstPerforming': 'Worst performing',
   'analytics.deadStock': 'Not moving',
   'analytics.deadStock.none': 'Everything is selling',
+  'analytics.none': 'Nothing to show yet',
   'analytics.branches': 'Branch comparison',
   'analytics.employees': 'Employee performance',
   'analytics.sold': '{n} sold',

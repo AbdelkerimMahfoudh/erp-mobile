@@ -195,22 +195,16 @@ const useStyles = makeStyles((colors) => ({
    * them and the job is to scan down a column for one name: the eye crosses a
    * border, a corner and a gap on every line, and the list reads as a pile.
    *
-   * A mode on the one row rather than a second row component, so a stock list
-   * and a picker cannot drift into having different padding, different touch
-   * targets or different selected states.
+   * **The row draws no separator of its own.** The container does — a
+   * `FlatList`'s `ItemSeparatorComponent`, or `RowGroup`. That is what keeps the
+   * first and last rows correct: a row that drew its own bottom hairline left a
+   * stray rule under the final item, and doubled up wherever a container
+   * already separated them. Separation is a fact about the gap BETWEEN two
+   * rows, so it belongs to whatever owns both.
    */
   flat: {
     borderRadius: 0,
     borderWidth: 0,
-    /*
-     * A hairline underneath instead of a box around.
-     *
-     * Flat rows are meant to ABUT — no gap between them — so the separation has
-     * to come from somewhere or the list becomes floating blocks of text with
-     * nothing telling the eye where one row ends. One shared edge per boundary,
-     * drawn by the row above.
-     */
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   body: {
     flex: 1,

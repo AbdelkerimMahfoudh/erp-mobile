@@ -63,6 +63,15 @@ export interface SectionProps extends ViewProps {
   subtitle?: string;
   /** Rendered opposite the title — usually a "See all" affordance. */
   action?: React.ReactNode;
+  /**
+   * A glyph before the title.
+   *
+   * Decoration is not the point: on a screen of six similarly-shaped groups it
+   * is what lets somebody find "worst performing" without reading every
+   * heading. The title still says it in words, so the icon never carries the
+   * meaning alone.
+   */
+  icon?: React.ReactNode;
   gap?: keyof typeof space;
   children?: React.ReactNode;
 }
@@ -71,12 +80,13 @@ export interface SectionProps extends ViewProps {
  * A titled group of content. Screens are built from stacked Sections, which is
  * what keeps vertical rhythm identical everywhere.
  */
-export function Section({ title, subtitle, action, gap = 'md', style, children, ...rest }: SectionProps) {
+export function Section({ title, subtitle, action, icon, gap = 'md', style, children, ...rest }: SectionProps) {
   const styles = useStyles();
   return (
     <View style={[{ gap: space[gap] }, style]} {...rest}>
-      {title || action ? (
+      {title || action || icon ? (
         <View style={styles.header}>
+          {icon}
           <View style={styles.headerText}>
             {title ? <Text variant="heading">{title}</Text> : null}
             {subtitle ? (

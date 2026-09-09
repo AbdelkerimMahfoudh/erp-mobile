@@ -335,6 +335,7 @@ export const ar: Catalogue = {
   'analytics.worstPerforming': 'الأضعف أداءً',
   'analytics.deadStock': 'بضاعة راكدة',
   'analytics.deadStock.none': 'كل شيء يُباع',
+  'analytics.none': 'لا يوجد ما يُعرض بعد',
   'analytics.branches': 'مقارنة الفروع',
   'analytics.employees': 'أداء الموظفين',
   'analytics.sold': 'بيع {n}',
