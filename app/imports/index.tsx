@@ -11,6 +11,7 @@ import {
   ErrorState,
   InlineNotice,
   ListRow,
+  RowGroup,
   Screen,
   Section,
   SkeletonList,
@@ -102,9 +103,11 @@ export default function ImportsScreen() {
           <EmptyState icon={FileSpreadsheet} title={t('imports.empty.title')} body={t('imports.empty.body')} />
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {rows.map((r) => (
-              <Row key={r.id} row={r} onPress={() => router.push(`/imports/${r.id}` as never)} />
-            ))}
+            <RowGroup>
+              {rows.map((r) => (
+                <Row key={r.id} row={r} onPress={() => router.push(`/imports/${r.id}` as never)} />
+              ))}
+            </RowGroup>
           </ScrollView>
         )}
       </Section>
@@ -118,6 +121,7 @@ function Row({ row, onPress }: { row: ImportSummary; onPress: () => void }) {
     row.status === 'committed' ? 'success' : row.status === 'failed' ? 'danger' : 'warning';
   return (
     <ListRow
+      flat
       leading={FileSpreadsheet}
       title={row.filename ?? t('imports.untitled')}
       subtitle={

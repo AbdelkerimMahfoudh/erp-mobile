@@ -2052,6 +2052,7 @@ export const en = {
 
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'IMEI detected',
+  'scan.paused': 'Scanner paused',
   'scan.imei1': 'IMEI',
   'scan.knownProduct': 'In your stock',
   'scan.maybeProduct': 'Might be',

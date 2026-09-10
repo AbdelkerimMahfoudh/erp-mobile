@@ -2268,6 +2268,7 @@ export const fr: Catalogue = {
 
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'IMEI détecté',
+  'scan.paused': 'Scanner en pause',
   'scan.imei1': 'IMEI',
   'scan.knownProduct': 'Dans votre stock',
   'scan.maybeProduct': 'Peut-être',

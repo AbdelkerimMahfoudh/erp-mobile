@@ -1989,6 +1989,7 @@ export const ar: Catalogue = {
 
   // ── O: what the scanner shows after a valid read ──────────────────────────
   'scan.detected': 'تم التعرّف على رقم IMEI',
+  'scan.paused': 'الماسح متوقف مؤقتًا',
   'scan.imei1': 'رقم IMEI',
   'scan.knownProduct': 'في مخزونك',
   'scan.maybeProduct': 'قد يكون',

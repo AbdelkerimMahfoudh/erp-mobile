@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useReducer, useRef, useState } from 'rea
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Keyboard, Flashlight, FlashlightOff, Plus, X } from 'lucide-react-native';
+import { Keyboard, Flashlight, FlashlightOff, Plus, ScanLine, X } from 'lucide-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { motionPlan } from '../../lib/design/motion';
@@ -1081,9 +1081,30 @@ export function ScannerSheet({
                       {t(PROBLEM_KEY[result.problem] as never)}
                     </Text>
                   ) : (
-                    <Text variant="bodyStrong" tone="inverse">
-                      {t('scan.detected')}
-                    </Text>
+                    <View style={styles.resultHead}>
+                      {/*
+                        Indigo, never green.
+
+                        Green is reserved for a completed business outcome. A
+                        detected IMEI is a READING — the phone has been
+                        identified, not added to stock, and it can still be
+                        rejected on the next screen. Colouring it green here is
+                        how somebody walks away believing the intake is done.
+                      */}
+                      <ScanLine size={18} color={colors.border.reticle} />
+                      <Text variant="bodyStrong" tone="inverse">
+                        {t('scan.detected')}
+                      </Text>
+                      {/*
+                        Said out loud, because the camera going still is
+                        ambiguous — it looks equally like a frozen app. The
+                        machine has already left `scanning` by the time this
+                        renders; this only reports it.
+                      */}
+                      <Text variant="caption" tone="inverse" style={styles.paused}>
+                        {t('scan.paused')}
+                      </Text>
+                    </View>
                   )}
 
                   {primary ? (
@@ -1504,6 +1525,17 @@ const useStyles = makeStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+  },
+  resultHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    flexWrap: 'wrap',
+  },
+  /** Pushed to the end of the row, so it reads as a state rather than a title. */
+  paused: {
+    marginStart: 'auto',
+    opacity: 0.85,
   },
   readingBox: { gap: space.xs, paddingBottom: space.sm },
   readingRow: { gap: 2 },
