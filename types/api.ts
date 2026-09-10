@@ -187,7 +187,38 @@ export interface ScanResult {
   confidence: number;
   recognitionKey: { codeType: string; code: string } | null;
   suggestion: ProductSuggestion | null;
+  /**
+   * Whether this identifier is ALREADY a phone in stock.
+   *
+   * Kept apart from `recognized` deliberately: that says the server knows what
+   * product the TAC belongs to, which is true for every iPhone 15 ever made.
+   * Only this says the shop already holds **this handset**. The client used to
+   * have to guess from `recognized`, and guessing either way is wrong — as a
+   * duplicate check it refuses the second phone of every model, and as a
+   * product hint it offers to create a unit that already exists.
+   *
+   * Null for a barcode: a barcode names a reusable product, not a physical
+   * thing, so the question does not apply to it.
+   */
+  inventory: ScanInventoryMatch | null;
   hint?: string;
+}
+
+/** What the server will say about an identifier it has seen before. */
+export interface ScanInventoryMatch {
+  alreadyInInventory: boolean;
+  matchedIdentifierPosition: 'primary' | 'secondary' | null;
+  /** Populated only for a unit this user may actually see. */
+  unit: { productLabel: string; branchName: string; status: string } | null;
+  /**
+   * Taken by a unit outside this company or this user's branches.
+   *
+   * Intake is still refused — IMEI uniqueness is global — but nothing may be
+   * shown about whose it is. The screen says "already in inventory" and stops.
+   */
+  elsewhere: boolean;
+  /** Two identifiers matched two different units — never one phone. */
+  conflictingUnits: boolean;
 }
 
 export interface Supplier {

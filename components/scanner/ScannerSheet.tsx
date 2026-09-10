@@ -354,6 +354,16 @@ export function ScannerSheet({
   const [lookup, setLookup] = useState<ScanResult | null>(null);
 
   /**
+   * The server's answer to "do we already hold this handset?".
+   *
+   * Read from the lookup rather than inferred from `recognized`: recognition is
+   * a fact about the PRODUCT (every iPhone 15 shares a TAC) and says nothing
+   * about whether this particular phone is on the shelf.
+   */
+  const inventory = lookup?.inventory ?? null;
+  const alreadyHeld = inventory?.alreadyInInventory === true;
+
+  /**
    * Which session a lookup belongs to.
    *
    * `/scan` is a network call, and a slow one can return after the user has
@@ -1210,6 +1220,30 @@ export function ScannerSheet({
                     </Text>
                   ) : null}
 
+                  {/*
+                    Already ours, or already somebody's.
+
+                    Shown before the cost is typed, which is the whole point:
+                    global IMEI uniqueness means intake would have failed at the
+                    database anyway, just later and with a worse message.
+
+                    `elsewhere` deliberately shows only the sentence. The unit
+                    is real but not this user's to know about, so there is no
+                    branch, no product and no owner to name.
+                  */}
+                  {alreadyHeld ? (
+                    <View style={styles.duplicateBox}>
+                      <Text variant="bodyStrong" tone="inverse">
+                        {t('scan.alreadyInInventory')}
+                      </Text>
+                      {inventory?.unit ? (
+                        <Text variant="caption" tone="inverse">
+                          {inventory.unit.productLabel} · {inventory.unit.branchName}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+
                   {primary && !result.problem ? (
                     <Button
                       title={t('scanner.imei.use')}
@@ -1217,8 +1251,14 @@ export function ScannerSheet({
                        * Blocked on a dual-SIM conflict. Two TACs naming
                        * different products is a question for a human, not
                        * something to resolve by picking one.
+                       *
+                       * Blocked again when the handset is already in stock:
+                       * accepting it would build an intake the server must
+                       * refuse, so the refusal happens here instead — with the
+                       * reason on screen rather than as a failure two forms
+                       * later. `Scan again`, manual entry and Cancel all remain.
                        */
-                      disabled={tacConflict}
+                      disabled={tacConflict || alreadyHeld}
                       fullWidth
                       onPress={acceptImei}
                     />
@@ -1536,6 +1576,15 @@ const useStyles = makeStyles((colors) => ({
   paused: {
     marginStart: 'auto',
     opacity: 0.85,
+  },
+  /** The duplicate warning, on the dark result surface. */
+  duplicateBox: {
+    gap: 2,
+    padding: space.md,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.intent.warning.solid,
+    backgroundColor: colors.surface.inverseRaised,
   },
   readingBox: { gap: space.xs, paddingBottom: space.sm },
   readingRow: { gap: 2 },
