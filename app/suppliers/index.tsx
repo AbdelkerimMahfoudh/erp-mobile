@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  ListSeparator,
   MoneyValue,
   Screen,
   SearchInput,
@@ -75,6 +76,7 @@ export default function SuppliersScreen() {
           data={rows}
           keyExtractor={(s) => s.id}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={ListSeparator}
           onEndReached={() => {
             if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
           }}
@@ -108,6 +110,7 @@ function SupplierCard({ row, onPress }: { row: SupplierRow; onPress: () => void 
   const { t } = useTranslation();
   return (
     <ListRow
+      flat
       title={row.name}
       subtitle={row.phone ?? undefined}
       leading={Truck}
@@ -134,7 +137,7 @@ function SupplierCard({ row, onPress }: { row: SupplierRow; onPress: () => void 
 
 const styles = StyleSheet.create({
   controls: { gap: space.sm, paddingBottom: space.sm },
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   body: { flex: 1, gap: space.xs },
   right: { alignItems: 'flex-end', gap: space.xs },

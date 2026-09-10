@@ -41,6 +41,7 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { ListRow, type ListRowProps } from './ListRow';
 export { RowGroup, DEFAULT_SEPARATOR_INSET, type RowGroupProps } from './RowGroup';
+export { ListSeparator } from './ListSeparator';
 export { MoneyValue, type MoneyValueProps, type MoneySize, type MoneyTone } from './MoneyValue';
 export { InlineNotice, type InlineNoticeProps } from './InlineNotice';
 export { PermissionNotice, type PermissionNoticeProps } from './PermissionNotice';

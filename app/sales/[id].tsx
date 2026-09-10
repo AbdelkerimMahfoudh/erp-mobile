@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   Identifier,
+  RowGroup,
   Screen,
   Section,
   SkeletonList,
@@ -126,25 +127,33 @@ function Body({ sale }: { sale: SaleDetail }) {
 
       {sale.customer ? (
         <Section title={t('sales.detail.customer')}>
-          <Card>
-            <Text variant="bodyStrong">{sale.customer.name ?? ''}</Text>
-            {sale.customer.phone ? (
-              <Text variant="caption" tone="secondary">
-                {sale.customer.phone}
-              </Text>
-            ) : null}
-          </Card>
+          <RowGroup separatorInset={space.md}>
+            <View style={styles.groupedRow}>
+              <Text variant="bodyStrong">{sale.customer.name ?? ''}</Text>
+              {sale.customer.phone ? (
+                <Text variant="caption" tone="secondary">
+                  {sale.customer.phone}
+                </Text>
+              ) : null}
+            </View>
+          </RowGroup>
         </Section>
       ) : null}
 
+      {/*
+        The sold items — repeated records of the same kind, so one grouped
+        surface with hairlines between them. They previously shared a single
+        card and were separated by a margin, which read as one long block of
+        text with no boundary between one phone and the next.
+      */}
       <Section title={t('sales.detail.lines')}>
-        <Card>
-          {sale.lines.map((line, i) => (
-            <View key={line.id} style={i > 0 ? styles.lineSpaced : undefined}>
+        <RowGroup separatorInset={space.md}>
+          {sale.lines.map((line) => (
+            <View key={line.id} style={styles.groupedRow}>
               <Line line={line} />
             </View>
           ))}
-        </Card>
+        </RowGroup>
       </Section>
 
       <Section title={t('sales.detail.totals')}>
@@ -169,14 +178,20 @@ function Body({ sale }: { sale: SaleDetail }) {
         </Card>
       </Section>
 
+      {/*
+        Payments are records too — one per tender — so they group the same way.
+        Kept apart from the totals above on purpose: what was RECEIVED and what
+        is OWED are different questions, and a counter that conflates them
+        eventually hands back the wrong change.
+      */}
       <Section title={t('sales.detail.payments')}>
-        <Card>
-          {sale.payments.map((p, i) => (
-            <View key={p.id} style={i > 0 ? styles.lineSpaced : undefined}>
+        <RowGroup separatorInset={space.md}>
+          {sale.payments.map((p) => (
+            <View key={p.id} style={styles.groupedRow}>
               <Amount label={t(`payment.${p.method}` as never)} value={p.amount} />
             </View>
           ))}
-        </Card>
+        </RowGroup>
       </Section>
     </ScrollView>
   );
@@ -251,6 +266,8 @@ function Amount({ label, value, strong }: { label: string; value: number; strong
 
 const styles = StyleSheet.create({
   padded: { padding: space.base },
+  /** Padding for a bespoke row placed inside a RowGroup, which has none. */
+  groupedRow: { padding: space.md, gap: 2 },
   content: { padding: space.base, paddingBottom: space['3xl'], gap: space.base },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   notice: { marginTop: space.xs },
@@ -261,7 +278,6 @@ const styles = StyleSheet.create({
     marginBottom: space.xs,
     gap: space.sm,
   },
-  lineSpaced: { marginTop: space.sm },
   lineHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   lineName: { flexShrink: 1 },
   hiddenAnchor: { height: 0 },

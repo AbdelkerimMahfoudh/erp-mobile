@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  ListSeparator,
   MoneyValue,
   Screen,
   SegmentedControl,
@@ -65,6 +66,7 @@ export default function LoansScreen() {
           data={rows}
           keyExtractor={(l) => l.id}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={({ item }) => (
             <Row row={item} onPress={() => router.push(`/loans/${item.id}` as never)} />
           )}
@@ -96,6 +98,7 @@ function Row({ row, onPress }: { row: LoanSummary; onPress: () => void }) {
 
   return (
     <ListRow
+      flat
       leading={HandCoins}
       title={row.otherParty}
       subtitle={[
@@ -112,6 +115,6 @@ function Row({ row, onPress }: { row: LoanSummary; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   controls: { paddingBottom: space.sm },
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

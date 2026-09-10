@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  ListSeparator,
   MoneyValue,
   Screen,
   SegmentedControl,
@@ -69,6 +70,7 @@ export default function ExpensesScreen() {
           data={rows}
           keyExtractor={(e) => e.id}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={({ item }) => (
             <ExpenseRow expense={item} onPress={() => router.push(`/expenses/${item.id}` as never)} />
           )}
@@ -100,6 +102,7 @@ function ExpenseRow({ expense, onPress }: { expense: Expense; onPress: () => voi
 
   return (
     <ListRow
+      flat
       leading={Wallet}
       title={expense.category}
       subtitle={[
@@ -118,6 +121,6 @@ function ExpenseRow({ expense, onPress }: { expense: Expense; onPress: () => voi
 
 const styles = StyleSheet.create({
   controls: { paddingBottom: space.sm },
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

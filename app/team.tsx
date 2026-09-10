@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  RowGroup,
   Screen,
   SkeletonList,
   StatusChip,
@@ -124,9 +125,10 @@ export default function TeamScreen() {
       {users.length === 0 ? (
         <EmptyState icon={Users} title={t('team.empty')} body={t('team.emptyBody')} />
       ) : (
-        <View style={styles.list}>
+        <RowGroup>
           {users.map((u) => (
             <ListRow
+              flat
               key={u.id}
               title={u.name}
               subtitle={branchSummary(u)}
@@ -134,7 +136,7 @@ export default function TeamScreen() {
               onPress={() => setEditing(u)}
             />
           ))}
-        </View>
+        </RowGroup>
       )}
 
       <EditSheet user={editing} onClose={() => setEditing(null)} roleLabel={roleLabel} />
@@ -429,7 +431,7 @@ function PriceEditDelegation({ user }: { user: TeamUser }) {
 
 const styles = StyleSheet.create({
   subtitle: { marginTop: space.xs },
-  list: { gap: space.sm },
+  list: {},
   sheet: { gap: space.base },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   readValue: { marginTop: space.xs },

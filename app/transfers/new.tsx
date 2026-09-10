@@ -8,6 +8,7 @@ import {
   Card,
   EmptyState,
   Identifier,
+  RowGroup,
   Screen,
   SearchInput,
   Section,
@@ -361,9 +362,18 @@ export default function NewTransferScreen() {
             body={t('transfers.new.noItemsBody')}
           />
         ) : (
-          <View style={styles.items}>
+          /*
+           * The review list: repeated records, so one grouped surface with
+           * hairlines. Each selected phone used to be its own bordered card,
+           * which made a transfer of fifteen handsets read as fifteen unrelated
+           * decisions rather than as one list to check before sending.
+           *
+           * The form STEPS above keep their own surfaces — one per step, not
+           * one per input — because they are stages of a task, not records.
+           */
+          <RowGroup separatorInset={space.md}>
             {lines.filter(isUnitLine).map((item) => (
-              <Card key={item.identifier}>
+              <View key={item.identifier} style={styles.groupedRow}>
                 <View style={styles.item}>
                   <View style={styles.itemBody}>
                     {/* The exact thing, shown before it is sent anywhere. */}
@@ -378,11 +388,11 @@ export default function NewTransferScreen() {
                     onPress={() => setLines(removeUnitFromDraft(lines, item.identifier))}
                   />
                 </View>
-              </Card>
+              </View>
             ))}
 
             {lines.filter(isStockLine).map((line) => (
-              <Card key={line.productId}>
+              <View key={line.productId} style={styles.groupedRow}>
                 <View style={styles.itemBody}>
                   <Text variant="bodyStrong">{line.product}</Text>
                   <Text variant="caption" tone="secondary">
@@ -417,9 +427,9 @@ export default function NewTransferScreen() {
                     onPress={() => setLines(removeStockFromDraft(lines, line.productId))}
                   />
                 </View>
-              </Card>
+              </View>
             ))}
-          </View>
+          </RowGroup>
         )}
       </Section>
 
@@ -483,6 +493,7 @@ function productLabel(row: InventoryStockRow): string {
 
 const styles = StyleSheet.create({
   gapTop: { marginTop: space.sm },
+  groupedRow: { padding: space.md },
   items: { gap: space.sm },
   item: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   itemBody: { flex: 1, gap: space.xs },

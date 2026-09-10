@@ -7,6 +7,7 @@ import {
   Chip,
   EmptyState,
   ErrorState,
+  RowGroup,
   Screen,
   Section,
   MoneyValue,
@@ -217,12 +218,21 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
               </Card>
             </Section>
 
+            {/*
+              Deliveries and payments are repeated records, so each list is one
+              grouped surface with hairlines. They stay in SEPARATE sections:
+              what was delivered and what was paid are different questions, and
+              a supplier page that merges them is how a shop loses track of what
+              it still owes.
+            */}
             <Section title={t('suppliers.detail.purchases')}>
-              <Card>
-                {ledger.purchases.length === 0 ? (
+              {ledger.purchases.length === 0 ? (
+                <Card>
                   <Text variant="caption" tone="tertiary">{t('suppliers.detail.noPurchases')}</Text>
-                ) : (
-                  ledger.purchases.map((p) => (
+                </Card>
+              ) : (
+                <RowGroup separatorInset={space.md}>
+                  {ledger.purchases.map((p) => (
                     <View key={p.purchaseId} style={styles.ledgerRow}>
                       <View style={styles.body}>
                         <Text variant="body">
@@ -247,14 +257,14 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
                         />
                       </View>
                     </View>
-                  ))
-                )}
-              </Card>
+                  ))}
+                </RowGroup>
+              )}
             </Section>
 
             {pending.length > 0 ? (
               <Section title={t('suppliers.detail.pending')}>
-                <Card>
+                <RowGroup separatorInset={space.md}>
                   {pending.map((s) => (
                     <View key={s.id} style={styles.settlement}>
                       <SettlementLines s={s} />
@@ -274,13 +284,13 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
                       )}
                     </View>
                   ))}
-                </Card>
+                </RowGroup>
               </Section>
             ) : null}
 
             {confirmed.length > 0 ? (
               <Section title={t('suppliers.detail.payments')}>
-                <Card>
+                <RowGroup separatorInset={space.md}>
                   {confirmed.map((s) => (
                     <View key={s.id} style={styles.settlement}>
                       <SettlementLines s={s} />
@@ -311,7 +321,7 @@ function Body({ supplier, refetch }: { supplier: SupplierDetail; refetch: () => 
                       />
                     </View>
                   ))}
-                </Card>
+                </RowGroup>
               </Section>
             ) : null}
           </>

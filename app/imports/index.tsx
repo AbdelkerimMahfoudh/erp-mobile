@@ -133,5 +133,5 @@ function Row({ row, onPress }: { row: ImportSummary; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   intro: { gap: space.base },
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
 });

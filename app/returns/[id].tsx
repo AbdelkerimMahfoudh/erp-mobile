@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   Identifier,
+  RowGroup,
   Screen,
   Section,
   SkeletonList,
@@ -315,25 +316,36 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
           ) : null}
         </Card>
 
+        {/*
+          The returned item and the sale it came from: facts about one object
+          each, so grouped surfaces rather than cards. The refund summary and
+          the payout sections below stay CARDS deliberately — they are money,
+          and flattening them until they stop standing out is the mistake in the
+          other direction.
+        */}
         <Section title={t('returns.detail.phone')}>
-          <Card>
-            <Text variant="bodyStrong">{detail.phone.product}</Text>
-            {detail.phone.imei ?? detail.phone.serialNo ? (
-              <Identifier>{detail.phone.imei ?? detail.phone.serialNo}</Identifier>
-            ) : null}
-            <View style={styles.inlineChips}>
-              <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" />
+          <RowGroup separatorInset={space.md}>
+            <View style={styles.groupedRow}>
+              <Text variant="bodyStrong">{detail.phone.product}</Text>
+              {detail.phone.imei ?? detail.phone.serialNo ? (
+                <Identifier>{detail.phone.imei ?? detail.phone.serialNo}</Identifier>
+              ) : null}
+              <View style={styles.inlineChips}>
+                <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" />
+              </View>
             </View>
-          </Card>
+          </RowGroup>
         </Section>
 
         <Section title={t('returns.detail.sale')}>
-          <Card>
-            <Text variant="body">{t('sales.invoice', { no: detail.sale.invoiceNo })}</Text>
-            <Text variant="caption" tone="secondary">
-              {formatDateTime(new Date(detail.sale.soldAt))}
-            </Text>
-          </Card>
+          <RowGroup separatorInset={space.md}>
+            <View style={styles.groupedRow}>
+              <Text variant="body">{t('sales.invoice', { no: detail.sale.invoiceNo })}</Text>
+              <Text variant="caption" tone="secondary">
+                {formatDateTime(new Date(detail.sale.soldAt))}
+              </Text>
+            </View>
+          </RowGroup>
         </Section>
 
         <Section title={t('returns.detail.policy')}>
@@ -592,6 +604,8 @@ const styles = StyleSheet.create({
   content: { padding: space.base, paddingBottom: space['5xl'], gap: space.base },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   notice: { marginTop: space.sm, gap: space.xs },
+  /** Padding for a bespoke row inside a RowGroup, which supplies none. */
+  groupedRow: { padding: space.md, gap: space.xs },
   inlineChips: { flexDirection: 'row', gap: space.xs, marginTop: space.sm, flexWrap: 'wrap' },
   chipTop: { marginTop: space.sm },
   amountRow: {

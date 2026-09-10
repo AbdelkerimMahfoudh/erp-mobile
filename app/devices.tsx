@@ -7,6 +7,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  RowGroup,
   Screen,
   SkeletonList,
   Text,
@@ -121,9 +122,11 @@ export default function DevicesScreen() {
         {others.length === 0 ? (
           <EmptyState icon={Smartphone} title={t('devices.empty')} body={t('devices.emptyBody')} />
         ) : (
-          others.map((d) => (
-            <DeviceRow key={d.id} device={d} onRevoke={() => void onRevoke(d)} />
-          ))
+          <RowGroup>
+            {others.map((d) => (
+              <DeviceRow key={d.id} device={d} onRevoke={() => void onRevoke(d)} />
+            ))}
+          </RowGroup>
         )}
       </View>
 
@@ -133,9 +136,11 @@ export default function DevicesScreen() {
           <Text variant="caption" tone="tertiary">
             {t('devices.removedHint')}
           </Text>
-          {removed.map((d) => (
-            <DeviceRow key={d.id} device={d} />
-          ))}
+          <RowGroup>
+            {removed.map((d) => (
+              <DeviceRow key={d.id} device={d} />
+            ))}
+          </RowGroup>
         </View>
       ) : null}
 
@@ -167,6 +172,7 @@ function DeviceRow({ device, onRevoke }: { device: UserDeviceView; onRevoke?: ()
 
   return (
     <ListRow
+      flat
       title={device.label ?? trust}
       subtitle={subtitle}
       leading={Smartphone}
@@ -187,5 +193,5 @@ function DeviceRow({ device, onRevoke }: { device: UserDeviceView; onRevoke?: ()
 
 const styles = StyleSheet.create({
   subtitle: { marginTop: space.xs },
-  list: { gap: space.sm },
+  list: {},
 });

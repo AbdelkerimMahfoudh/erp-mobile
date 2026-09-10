@@ -2,7 +2,7 @@ import React from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Chip, EmptyState, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
+import { Chip, EmptyState, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { formatSmartDateTime } from '../lib/format';
@@ -10,6 +10,7 @@ import { haptics } from '../lib/haptics';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
 import type { AppNotification, NotificationPage, TransferEvent } from '../types/api';
+import { makeStyles } from '../lib/design/theme';
 
 /**
  * In-app notifications.
@@ -24,6 +25,7 @@ import type { AppNotification, NotificationPage, TransferEvent } from '../types/
  * moment it happened — and, by CP3's design, carries no cost or margin.
  */
 export default function NotificationsScreen() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -51,7 +53,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <Stack.Screen options={{ headerShown: true, title: t('notifications.title') }} />
 
       {page.isLoading ? (
@@ -63,7 +65,7 @@ export default function NotificationsScreen() {
           data={rows}
           keyExtractor={(n) => n.id}
           contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={styles.gap} />}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <EmptyState title={t('notifications.empty')} body={t('notifications.emptyBody')} />
           }
@@ -118,6 +120,7 @@ function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t
 }
 
 function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
   const { title, body } = localised(row, t);
 
@@ -136,13 +139,22 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
       : null;
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      <Card>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      /*
+       * The wash says "unread" to somebody looking. This says it to somebody
+       * listening — and the chip below says it in words, so the state survives
+       * a screen reader, colour blindness and a monochrome screenshot alike.
+       */
+      accessibilityLabel={row.isRead ? title : `${t('notifications.unread')}. ${title}`}
+      style={[styles.row, !row.isRead ? styles.rowUnread : null]}
+    >
       <View style={styles.head}>
         <View style={styles.chips}>
           {typeLabel ? <Chip label={typeLabel} tone="info" size="sm" /> : null}
           {/* Unread is words plus tone, never a bare coloured dot. */}
-          {!row.isRead ? <Chip label={t('notifications.unread')} tone="warning" size="sm" /> : null}
+          {!row.isRead ? <Chip label={t('notifications.unread')} tone="info" size="sm" /> : null}
         </View>
         <Text variant="caption" tone="tertiary">
           {formatSmartDateTime(row.createdAt)}
@@ -153,20 +165,32 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
         {title}
       </Text>
       {body ? (
-        <Text variant="caption" tone="secondary" style={styles.body}>
+        <Text variant="caption" tone="secondary" style={styles.body} numberOfLines={2}>
           {body}
         </Text>
       ) : null}
-      </Card>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  list: { padding: space.base, paddingBottom: space['2xl'] },
-  gap: { height: space.sm },
+const useStyles = makeStyles((colors) => ({
+  list: { paddingBottom: space['2xl'] },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.semantic.divider,
+  },
+  row: {
+    paddingHorizontal: space.base,
+    paddingVertical: space.md,
+    gap: space.xs,
+    backgroundColor: colors.semantic.surface,
+  },
+  /** The pale indigo selection wash, reused as "not read yet". */
+  rowUnread: {
+    backgroundColor: colors.semantic.primarySoft,
+  },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chips: { flexDirection: 'row', gap: space.xs, flexShrink: 1 },
   title: { marginTop: space.sm },
   body: { marginTop: space.xs, lineHeight: 18 },
-});
+}));

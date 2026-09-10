@@ -8,6 +8,7 @@ import {
   IconButton,
   InlineNotice,
   ListRow,
+  RowGroup,
   Screen,
   Text,
 } from '../../components/ui';
@@ -76,45 +77,60 @@ export default function MoreScreen() {
       {business.length > 0 ? (
         <>
           <SectionLabel>{t('more.manage')}</SectionLabel>
-          <View style={styles.hubs}>
+          {/*
+            One grouped list, not one card per destination.
+
+            A menu of six bordered boxes reads as six decisions of equal weight;
+            a grouped list reads as a menu, which is what it is. The grouping
+            itself still comes from `lib/navigation/registry.ts` — this file
+            decides nothing about who sees what, so the completed navigation
+            organisation is unchanged and only its presentation moved.
+          */}
+          <RowGroup>
             {business.map(({ hub }) => (
-              <Card key={hub.id} style={styles.hubCard}>
-                <ListRow
-                  title={t(hub.titleKey)}
-                  subtitle={t(hub.descriptionKey)}
-                  leading={HUB_ICONS[hub.icon]}
-                  onPress={() => router.push(`/hub/${hub.id}` as Href)}
-                  style={styles.hubRow}
-                />
-              </Card>
+              <ListRow
+                key={hub.id}
+                flat
+                title={t(hub.titleKey)}
+                subtitle={t(hub.descriptionKey)}
+                leading={HUB_ICONS[hub.icon]}
+                onPress={() => router.push(`/hub/${hub.id}` as Href)}
+              />
             ))}
-          </View>
+          </RowGroup>
         </>
       ) : null}
 
       <SectionLabel>{t('more.account')}</SectionLabel>
-      <View style={styles.account}>
+      <RowGroup>
         {account.map(({ hub }) => (
-          <Card key={hub.id} style={styles.hubCard}>
-            <ListRow
-              title={t(hub.titleKey)}
-              subtitle={t(hub.descriptionKey)}
-              leading={HUB_ICONS[hub.icon]}
-              onPress={() => router.push(`/hub/${hub.id}` as Href)}
-            />
-          </Card>
+          <ListRow
+            key={hub.id}
+            flat
+            title={t(hub.titleKey)}
+            subtitle={t(hub.descriptionKey)}
+            leading={HUB_ICONS[hub.icon]}
+            onPress={() => router.push(`/hub/${hub.id}` as Href)}
+          />
         ))}
+      </RowGroup>
 
-        {/* Kept apart from everything else, and the only destructive tone here. */}
-        <Pressable onPress={signOut} accessibilityRole="button">
-          <Card style={styles.signOut}>
-            <LogOut size={20} color={colors.intent.danger.fg} />
-            <Text variant="bodyStrong" tone="danger">
-              {t('action.signOut')}
-            </Text>
-          </Card>
-        </Pressable>
-      </View>
+      {/*
+        Sign out is deliberately NOT in the group above.
+
+        It is not a destination — it ends the session — and a row that looks
+        like "Devices" or "Language" is a row somebody taps by accident while
+        scanning a menu. Its own surface, its own tone, and a gap before it, so
+        reaching it takes a deliberate movement rather than a continued scroll.
+      */}
+      <Pressable onPress={signOut} accessibilityRole="button" style={styles.signOutWrap}>
+        <Card style={styles.signOut}>
+          <LogOut size={20} color={colors.semantic.danger} />
+          <Text variant="bodyStrong" tone="danger">
+            {t('action.signOut')}
+          </Text>
+        </Card>
+      </Pressable>
     </Screen>
   );
 }
@@ -291,6 +307,9 @@ const useStyles = makeStyles((colors) => ({
   // Compact, but a floor rather than a fixed height, so larger text still fits.
   hubRow: { minHeight: touch.large + space.md },
   account: { gap: space.sm },
+  signOutWrap: {
+    marginTop: space.lg,
+  },
   signOut: {
     flexDirection: 'row',
     alignItems: 'center',

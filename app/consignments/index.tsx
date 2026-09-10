@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  ListSeparator,
   MoneyValue,
   Screen,
   SegmentedControl,
@@ -72,6 +73,7 @@ export default function ConsignmentsScreen() {
           data={rows}
           keyExtractor={(c) => c.id}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={({ item }) => (
             <Row row={item} onPress={() => router.push(`/consignments/${item.id}` as never)} />
           )}
@@ -100,6 +102,7 @@ function Row({ row, onPress }: { row: ConsignmentSummary; onPress: () => void })
 
   return (
     <ListRow
+      flat
       leading={Handshake}
       /* Always the other party, whichever side we are on. */
       title={row.otherParty}
@@ -117,6 +120,6 @@ function Row({ row, onPress }: { row: ConsignmentSummary; onPress: () => void })
 
 const styles = StyleSheet.create({
   controls: { paddingBottom: space.sm },
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

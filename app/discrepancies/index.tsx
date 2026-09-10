@@ -7,6 +7,7 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  ListSeparator,
   MoneyValue,
   Screen,
   SkeletonList,
@@ -43,6 +44,7 @@ export default function DiscrepanciesScreen() {
           data={rows}
           keyExtractor={(r) => r.id}
           contentContainerStyle={styles.list}
+          ItemSeparatorComponent={ListSeparator}
           renderItem={({ item }) => (
             <Row row={item} onPress={() => router.push(`/discrepancies/${item.id}` as never)} />
           )}
@@ -56,6 +58,7 @@ function Row({ row, onPress }: { row: Discrepancy; onPress: () => void }) {
   const { t } = useTranslation();
   return (
     <ListRow
+      flat
       leading={Scale}
       title={row.channel ? row.channel.label : t('closing.channel.cash')}
       subtitle={`${row.date} · ${t(`discrepancy.kind.${row.kind}`)}`}
@@ -69,5 +72,5 @@ function Row({ row, onPress }: { row: Discrepancy; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  list: { paddingBottom: space['3xl'] },
 });
