@@ -119,6 +119,23 @@ export const returnResponsibility = {
   other: { tone: 'neutral', labelKey: 'status.responsibility.other' },
 } as const satisfies Record<string, StatusMeta>;
 
+/**
+ * `DiscountApprovalStatus` — one Owner-approved exception to the set price.
+ *
+ * Six values, kept apart on purpose. "Rejected" is an answer, "expired" is
+ * nobody answering, and "voided" is the world moving underneath — a seller told
+ * only "not approved" would go and ask again in the one case where the Owner
+ * has already said no. `consumed` is the success state and reads as one.
+ */
+export const discountApprovalStatus = {
+  pending: { tone: 'warning', labelKey: 'status.approval.pending' },
+  approved: { tone: 'success', labelKey: 'status.approval.approved' },
+  rejected: { tone: 'danger', labelKey: 'status.approval.rejected' },
+  expired: { tone: 'neutral', labelKey: 'status.approval.expired' },
+  voided: { tone: 'neutral', labelKey: 'status.approval.voided' },
+  consumed: { tone: 'success', labelKey: 'status.approval.consumed' },
+} as const satisfies Record<string, StatusMeta>;
+
 export const statusRegistry = {
   unit: unitStatus,
   transfer: transferStatus,
@@ -130,6 +147,7 @@ export const statusRegistry = {
   return: returnStatus,
   custody: returnCustody,
   responsibility: returnResponsibility,
+  approval: discountApprovalStatus,
 } as const;
 
 export type StatusDomain = keyof typeof statusRegistry;

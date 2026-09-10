@@ -591,9 +591,27 @@ export interface AppNotification {
    * composes the sentence from these in the reader's language; `title`/`body`
    * remain the fallback for any type this build does not recognise.
    */
-  payload: TransferNotificationPayload | null;
+  payload: TransferNotificationPayload | DiscountApprovalNotificationPayload | null;
   isRead: boolean;
   createdAt: string;
+}
+
+/**
+ * What an approval notification carries, so the sentence can be built in the
+ * reader's language rather than shipped from the server in English.
+ *
+ * Prices only. No cost and no margin: a notification is read outside the
+ * request that authorised it, by whoever happens to pick the phone up.
+ * `belowCost` is a flag and discloses no amount.
+ */
+export interface DiscountApprovalNotificationPayload {
+  event: 'requested' | 'approved' | 'rejected';
+  configuredPrice?: number;
+  requestedPrice?: number;
+  discountAmount?: number;
+  approvedPrice?: number | null;
+  belowCost?: boolean;
+  note?: string | null;
 }
 
 /** Keyset-paginated and bounded by the server (default 25, hard max 50). */

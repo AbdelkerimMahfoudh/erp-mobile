@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   BadgeCheck,
+  BadgePercent,
   BarChart3,
   Building2,
   ClipboardCheck,
@@ -39,6 +40,7 @@ import type { IconComponent } from '../ui/Button';
 export const HUB_ICONS: Record<IconName, IconComponent> = {
   ArrowLeftRight,
   BadgeCheck,
+  BadgePercent,
   BarChart3,
   Building2,
   ClipboardCheck,

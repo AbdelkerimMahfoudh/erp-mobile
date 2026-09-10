@@ -68,6 +68,12 @@ export const OPERATIONS: readonly OperationSpec[] = [
   spec('price.set', 'online_only', 'A price change is authority, and a stale replayed one silently undersells'),
   spec('price.remove', 'online_only', 'Dropping back to the default price is a live pricing decision, and a replayed one could undo a newer deliberate price'),
   spec('sale.belowCostOverride', 'online_only', 'A manager granting an exception must be a live decision, not one replayed an hour later'),
+  spec('discount.approval.request', 'online_only',
+    'The request is answered against prices, stock and cost as they are NOW. Queued, it would reach an Owner describing a sale that no longer exists — and the seller would be standing at the counter believing they had asked'),
+  spec('discount.approval.decide', 'online_only',
+    'A grant is authority. Replayed an hour later it authorises a sale in a world that moved, which is the one thing an approval must never do'),
+  spec('discount.approval.cancel', 'online_only',
+    'Withdrawing must beat the decision or lose to it, and only the server knows which happened first'),
 
   // ── Transfers: every step moves stock ─────────────────────────────────────
   spec('transfer.create', 'online_only', 'Reserves units, and a reservation that is not the server\'s is not a reservation'),

@@ -9,7 +9,13 @@ import { formatSmartDateTime } from '../lib/format';
 import { haptics } from '../lib/haptics';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
-import type { AppNotification, NotificationPage, TransferEvent } from '../types/api';
+import { formatMoney } from '../lib/format';
+import type {
+  AppNotification,
+  DiscountApprovalNotificationPayload,
+  NotificationPage,
+  TransferEvent,
+} from '../types/api';
 import { makeStyles } from '../lib/design/theme';
 
 /**
@@ -101,21 +107,68 @@ const TRANSFER_EVENTS = new Set<TransferEvent>([
  */
 function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t']) {
   const p = row.payload;
-  if (!p || !row.type.startsWith('transfer.') || !TRANSFER_EVENTS.has(p.event)) {
+
+  /*
+   * A price approval (A2). Written by the server as English title and body,
+   * and rebuilt here from the fields — an Owner running the app in Arabic must
+   * not be told about a discount in English. Older rows without a payload still
+   * render, because the stored text stays the fallback.
+   */
+  if (p && row.type.startsWith('discount_approval.')) {
+    const approval = p as DiscountApprovalNotificationPayload;
+    switch (approval.event) {
+      case 'requested':
+        return {
+          title: t('notifications.approval.requested.title'),
+          body:
+            approval.requestedPrice === undefined || approval.configuredPrice === undefined
+              ? row.body
+              : t('notifications.approval.requested.body', {
+                  requested: formatMoney(approval.requestedPrice),
+                  configured: formatMoney(approval.configuredPrice),
+                }),
+        };
+      case 'approved':
+        return {
+          title: t('notifications.approval.approved.title'),
+          body:
+            approval.approvedPrice == null
+              ? row.body
+              : t('notifications.approval.approved.body', {
+                  price: formatMoney(approval.approvedPrice),
+                }),
+        };
+      case 'rejected':
+        return {
+          title: t('notifications.approval.rejected.title'),
+          // The Owner's note is the part worth reading, exactly as a transfer
+          // refusal's reason is.
+          body: approval.note ? approval.note : t('notifications.approval.rejected.body'),
+        };
+      default:
+        return { title: row.title, body: row.body };
+    }
+  }
+
+  if (!p || !row.type.startsWith('transfer.') || !TRANSFER_EVENTS.has(p.event as TransferEvent)) {
     return { title: row.title, body: row.body };
   }
+  const transfer = p as Extract<AppNotification['payload'], { transferNo: string }>;
   const values = {
-    ref: p.transferNo,
-    actor: p.actor,
-    from: p.fromBranch,
-    to: p.toBranch,
-    count: p.units === 1 ? t('transfers.items.one') : t('transfers.items', { count: p.units }),
+    ref: transfer.transferNo,
+    actor: transfer.actor,
+    from: transfer.fromBranch,
+    to: transfer.toBranch,
+    count:
+      transfer.units === 1
+        ? t('transfers.items.one')
+        : t('transfers.items', { count: transfer.units }),
   };
-  const body = t(`notifications.transfer.${p.event}.body` as never, values);
+  const body = t(`notifications.transfer.${transfer.event}.body` as never, values);
   return {
-    title: t(`notifications.transfer.${p.event}.title` as never, values),
+    title: t(`notifications.transfer.${transfer.event}.title` as never, values),
     // A refusal or cancellation carries why, and that is the part worth reading.
-    body: p.reason ? `${body} ${p.reason}` : body,
+    body: transfer.reason ? `${body} ${transfer.reason}` : body,
   };
 }
 
@@ -129,12 +182,15 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
    * title rather than showing a raw key. A new backend notification type must
    * never render as `notification.some.type` on a shop counter.
    */
-  const typeKey = `notifications.type.${row.type}`;
+  const typeKey = row.type.startsWith('discount_approval.')
+    ? 'notifications.type.discountApproval'
+    : `notifications.type.${row.type}`;
   const typeLabel =
+    row.type.startsWith('discount_approval.') ||
     row.type === 'price.changed' ||
     row.type === 'transfer.incoming' ||
     row.type === 'transfer.received' ||
-    (row.payload && TRANSFER_EVENTS.has(row.payload.event))
+    (row.payload && TRANSFER_EVENTS.has(row.payload.event as TransferEvent))
       ? t(typeKey as never)
       : null;
 

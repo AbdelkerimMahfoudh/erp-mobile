@@ -50,6 +50,7 @@ export type IconName =
   | 'Target'
   | 'Users'
   | 'BadgeCheck'
+  | 'BadgePercent'
   | 'SlidersHorizontal'
   | 'ShieldCheck'
   | 'Smartphone'
@@ -116,6 +117,13 @@ export const HUBS: readonly Hub[] = [
     children: [
       { id: 'sales', route: '/sales', titleKey: 'nav.sales', icon: 'ReceiptText', perm: 'sale.view' },
       { id: 'returns', route: '/returns', titleKey: 'nav.returns', icon: 'Undo2', perm: 'return.view' },
+      /*
+       * Price approvals (A2). Gated on `sale.create` rather than
+       * `discount.override`, because everyone who may sell may also ASK — and
+       * the server returns each of them only their own requests. An Owner
+       * reaches the same row and receives the queue.
+       */
+      { id: 'approvals', route: '/approvals', titleKey: 'nav.approvals', icon: 'BadgePercent', perm: 'sale.create' },
     ],
   },
   {
@@ -252,6 +260,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/discrepancies': 'Opened from the daily closing that raised the difference.',
   '/dev/gallery': 'Development-only design gallery, never linked from navigation.',
   '/hub/[id]': 'The hub container itself, generated from this registry.',
+  '/approvals/[id]': 'One price approval, opened from the list or from the notification about it.',
 };
 
 /** Whether a destination should be offered, given what the server granted. */

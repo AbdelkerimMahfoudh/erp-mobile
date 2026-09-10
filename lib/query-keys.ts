@@ -129,4 +129,22 @@ export const qk = {
     ['pricing', 'unit', branchId, identifier] as const,
   priceHistory: (branchId: string | null, productId?: string) =>
     ['pricing', 'history', branchId, productId ?? ''] as const,
+
+  /**
+   * Owner approvals for a price below the set one (A2).
+   *
+   * Branch-scoped, because an approval is for one unit in one shop and the
+   * server refuses one raised elsewhere — a list cached under the wrong branch
+   * would offer a seller an approval they cannot use. `scope` separates the
+   * Owner's queue from a requester's own history: the server returns different
+   * rows to each, so they must not share a cache entry when the same person
+   * gains or loses the permission mid-session.
+   */
+  discountApprovals: (branchId: string | null, scope: string, status?: string) =>
+    ['discount-approvals', branchId, scope, status ?? ''] as const,
+  discountApproval: (branchId: string | null, id: string) =>
+    ['discount-approval', branchId, id] as const,
+  /** What this exact unit already has outstanding, for the sale in progress. */
+  discountApprovalsForUnit: (branchId: string | null, unitId: string) =>
+    ['discount-approvals', 'unit', branchId, unitId] as const,
 };

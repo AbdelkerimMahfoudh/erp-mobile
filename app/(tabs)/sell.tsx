@@ -17,6 +17,10 @@ import { BottomSheet } from '../../components/overlay';
 import { CartLineRow } from '../../components/sell/CartLineRow';
 import { PaymentSheet } from '../../components/sell/PaymentSheet';
 import { SaleSuccess } from '../../components/sell/SaleSuccess';
+import {
+  ApprovalRequestSheet,
+  type ApprovalRequest,
+} from '../../components/sell/ApprovalRequestSheet';
 import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../components/sell/types';
 import { api, ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
@@ -34,6 +38,13 @@ import { useDraft } from '../../lib/offline/use-draft';
 import { useCompanyReturnWindow } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
+import { refusalOf } from '../../lib/discount-approval-state';
+import {
+  isWarningsPending,
+  orderWarnings,
+  referenceKey,
+  type WarningsPending,
+} from '../../lib/warnings';
 import { useAuth } from '../../hooks/useAuth';
 import type { ProductSuggestion, ScanResult, Unit } from '../../types/api';
 
@@ -125,6 +136,17 @@ export default function SellScreen() {
   const clientUuid = useRef(uuidv4());
   /** Unit lookups started the moment a code is captured, keyed by code. */
   const unitLookups = useRef(new Map<string, Promise<Unit | null>>());
+
+  /**
+   * The Owner approval this sale is waiting on, if the server asked for one.
+   *
+   * Set only from the server's own `approval_required` refusal — the phone never
+   * decides that a price is below the floor, because the floor is the pricing
+   * ladder's answer and only the server resolves it.
+   */
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+  /** The payments the sale was about to be charged with, held across the ask. */
+  const heldPayments = useRef<PaymentEntry[] | null>(null);
 
   const subtotal = cartSubtotal(lines);
   const total = Math.max(0, subtotal - discount);
@@ -361,9 +383,26 @@ export default function SellScreen() {
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
   };
 
-  const attempt = async (payments: PaymentEntry[], overrideReason?: string): Promise<void> => {
+  /**
+   * Ask the server to make the sale, and answer whatever it says back.
+   *
+   * Three outcomes, and only one of them is an error:
+   *
+   * - **A sale.** Done.
+   * - **`warnings_pending`.** The server changed nothing and wants the person
+   *   to confirm what they typed. The same request goes back carrying the token
+   *   it issued — bound to this exact payload and these exact warnings, so a
+   *   changed price cannot reuse an old confirmation.
+   * - **A refusal with a code.** Every branch below reads `e.code`, never the
+   *   message. The app runs in three languages and a regular expression over an
+   *   English sentence works in exactly one of them.
+   */
+  const attempt = async (
+    payments: PaymentEntry[],
+    options: { overrideReason?: string; acknowledgementToken?: string } = {},
+  ): Promise<void> => {
     try {
-      const sale = await api.post<SaleResponse>('/sales', {
+      const response = await api.post<SaleResponse | WarningsPending>('/sales', {
         clientUuid: clientUuid.current,
         lines: lines.map((line) =>
           line.kind === 'unit'
@@ -372,28 +411,101 @@ export default function SellScreen() {
         ),
         payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
         ...(discount > 0 ? { saleDiscount: discount } : {}),
-        ...(overrideReason ? { overrideReason } : {}),
+        ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         // Omitted for an ordinary sale: re-stating the default is not an
         // override, and sending a value the shop may have changed since this
         // screen loaded would look like one.
         ...(effectiveWindowHours !== companyDefaultHours
           ? { returnWindowHours: effectiveWindowHours, returnPolicyReason: returnPolicyReason.trim() }
           : {}),
+        ...(options.acknowledgementToken
+          ? { acknowledgementToken: options.acknowledgementToken }
+          : {}),
       });
-      finalize(sale, payments);
+
+      if (isWarningsPending(response)) {
+        /*
+         * Nothing was saved. The server found something worth a second look and
+         * is asking once — it is advisory, so answering yes lets it straight
+         * through, and answering no leaves the sale exactly as it was.
+         */
+        const confirmed = await confirmWarnings(response);
+        if (!confirmed) return;
+        await attempt(payments, {
+          ...options,
+          acknowledgementToken: response.acknowledgementToken,
+        });
+        return;
+      }
+
+      finalize(response, payments);
     } catch (e) {
       if (e instanceof ApiError) {
-        // This role cannot authorise a below-cost sale at all. Say so plainly:
-        // there is no in-app approval flow, so a manager has to do it.
-        if (e.status === 403 && /discount\.override/i.test(e.message)) {
-          await dialog.alert({
-            title: t('sell.belowCost.title'),
-            message: t('sell.belowCost.needsManager'),
-          });
-          return;
+        switch (refusalOf(e.code)) {
+          case 'approval_required': {
+            /*
+             * Below the set price. The refusal names the line, the unit and the
+             * price the shop actually set, so the sheet can ask about the right
+             * phone instead of making the seller work out which one.
+             */
+            const body = (e.body ?? {}) as {
+              belowCost?: boolean;
+              configuredPrice?: number | null;
+              lineIndex?: number | null;
+              unitId?: string | null;
+              identifier?: string | null;
+            };
+            const line =
+              typeof body.lineIndex === 'number' ? lines[body.lineIndex] : undefined;
+            if (!body.unitId) {
+              // A quantity line has no single thing to hold an approval, so
+              // there is nothing to ask for. Say what the server said.
+              toast.error(toErrorMessage(e));
+              return;
+            }
+            heldPayments.current = payments;
+            setApprovalRequest({
+              unitId: body.unitId,
+              label: line?.label ?? body.identifier ?? t('approvals.item'),
+              identifier: body.identifier ?? line?.identifier ?? null,
+              configuredPrice: body.configuredPrice ?? null,
+              proposedPrice: line?.price ?? 0,
+              belowCost: Boolean(body.belowCost),
+            });
+            return;
+          }
+          case 'approval_price_changed':
+            toast.warning(t('sell.approval.priceChanged'));
+            return;
+          case 'approval_expired':
+            toast.warning(t('sell.approval.expired'));
+            return;
+          case 'approval_already_used':
+            toast.warning(t('sell.approval.alreadyUsed'));
+            return;
+          case 'approval_unit_sold':
+            toast.error(t('approval.void.unitSold'));
+            return;
+          case 'approval_unit_transferred':
+            toast.error(t('approval.void.unitTransferred'));
+            return;
+          case 'approval_cost_changed':
+            toast.warning(t('approval.void.costChanged'));
+            return;
+          case 'acknowledgement_rejected':
+            /*
+             * Not slowness. A confirmation that belongs to another person,
+             * another shop or another operation — re-issuing one would launder
+             * it, so the server refused and so does this.
+             */
+            toast.error(t('warning.rejectedConfirmation'));
+            return;
+          default:
+            break;
         }
+
         // The server saw below-cost that we could not (cost hidden from us).
-        if (e.status === 400 && /reason/i.test(e.message) && !overrideReason) {
+        if (e.status === 400 && /reason/i.test(e.message) && !options.overrideReason) {
           const { confirmed, reason } = await dialog.confirmWithReason({
             title: t('sell.belowCost.title'),
             message: e.message,
@@ -402,12 +514,67 @@ export default function SellScreen() {
             reasonPlaceholder: t('sell.belowCost.reasonPlaceholder'),
             tone: 'danger',
           });
-          if (confirmed) await attempt(payments, reason);
+          if (confirmed) await attempt(payments, { ...options, overrideReason: reason });
           return;
         }
       }
       toast.error(toErrorMessage(e));
     }
+  };
+
+  /**
+   * Show what the server found, once, and take an answer.
+   *
+   * The server sends a key and parameters, never a sentence — it does not know
+   * which language this phone is in. Each warning becomes its own line, with
+   * what was typed and what it was compared against, so the question a person
+   * is answering is a question about numbers they can see.
+   */
+  const confirmWarnings = async (response: WarningsPending): Promise<boolean> => {
+    const lines_ = orderWarnings(response.warnings).map((w) => {
+      const reference = referenceKey(w.reference);
+      return [
+        t(w.messageKey as never, w.params),
+        w.submitted === null ? null : t('warning.youTyped', { amount: formatMoney(w.submitted) }),
+        reference === null
+          ? null
+          : t(
+              reference as never,
+              w.reference?.amount === null
+                ? undefined
+                : { amount: formatMoney(w.reference?.amount ?? 0) },
+            ),
+      ]
+        .filter(Boolean)
+        .join(' ');
+    });
+
+    /*
+     * Why the person is being asked a second time, when they are. "Something
+     * changed" is the honest answer for a queued sale whose world moved; the
+     * alternative is a dialog that looks identical to the one they just
+     * answered and teaches them to tap through it.
+     */
+    const preface =
+      response.reissuedBecause === 'warnings_changed'
+        ? t('warning.changed')
+        : response.reissuedBecause === 'expired'
+          ? t('warning.expiredConfirmation')
+          : null;
+
+    /*
+     * A confirmation, not an override. Nothing is typed here: a magnitude
+     * warning is advisory, and the person is answering "yes, I meant that".
+     * Demanding a written explanation for a genuinely expensive phone is how a
+     * warning becomes something people learn to avoid triggering.
+     */
+    return dialog.confirm({
+      title: t('warning.title'),
+      message: [preface, ...lines_].filter(Boolean).join('\n\n'),
+      confirmLabel: t('warning.confirm'),
+      cancelLabel: t('warning.edit'),
+      tone: 'danger',
+    });
   };
 
   const onComplete = async (payments: PaymentEntry[]) => {
@@ -430,7 +597,7 @@ export default function SellScreen() {
         overrideReason = reason;
       }
 
-      await attempt(payments, overrideReason);
+      await attempt(payments, { overrideReason });
     } finally {
       setSubmitting(false);
     }
@@ -456,6 +623,26 @@ export default function SellScreen() {
       </Screen>
     );
   }
+
+  /**
+   * The Owner said yes. Complete the SAME sale — the approval is not the sale.
+   *
+   * The server consumes the approval inside the sale's own transaction, so the
+   * two either both happen or neither does. Sending the sale again is what
+   * spends it; nothing here marks anything as approved.
+   */
+  const onApproved = async () => {
+    const payments = heldPayments.current;
+    setApprovalRequest(null);
+    if (!payments) return;
+    toast.success(t('sell.approval.ready'));
+    setSubmitting(true);
+    try {
+      await attempt(payments);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -598,6 +785,14 @@ export default function SellScreen() {
           onReasonChange: setReturnPolicyReason,
           canOverride: canOverrideReturnPolicy,
         }}
+      />
+      <ApprovalRequestSheet
+        request={approvalRequest}
+        onClose={() => {
+          setApprovalRequest(null);
+          heldPayments.current = null;
+        }}
+        onApproved={() => void onApproved()}
       />
     </>
   );
