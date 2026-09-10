@@ -5,11 +5,10 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { Chip, EmptyState, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
-import { formatSmartDateTime } from '../lib/format';
+import { formatMoney, formatSmartDateTime } from '../lib/format';
 import { haptics } from '../lib/haptics';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
-import { formatMoney } from '../lib/format';
 import type {
   AppNotification,
   DiscountApprovalNotificationPayload,

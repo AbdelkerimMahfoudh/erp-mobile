@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { ExportAction } from '../components/reports/ExportAction';
+import { AttentionList } from '../components/analytics/AttentionList';
 import { GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
 import {
   Chip,
@@ -115,6 +116,15 @@ export default function AnalyticsScreen() {
           <SkeletonList count={6} />
         ) : (
           <>
+            {/*
+              What needs attention, first (A3).
+
+              Above the analytics rather than below them: a figure that needs
+              acting on today outranks last month's best seller, and a panel
+              somebody has to scroll to find is a panel nobody reads.
+            */}
+            <AttentionList />
+
             <Section
               icon={<TrendingUp size={18} color={colors.semantic.success} />}
               title={t('analytics.mostProfitable')}

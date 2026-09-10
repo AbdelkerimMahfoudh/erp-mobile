@@ -147,4 +147,13 @@ export const qk = {
   /** What this exact unit already has outstanding, for the sale in progress. */
   discountApprovalsForUnit: (branchId: string | null, unitId: string) =>
     ['discount-approvals', 'unit', branchId, unitId] as const,
+
+  /**
+   * What needs attention (A3).
+   *
+   * Branch-scoped, because five of the six rules are about one shop's stock,
+   * drawer and sellers — and because the server returns a different list to a
+   * different branch. Never cached across a branch switch.
+   */
+  anomalies: (branchId: string | null) => ['anomalies', branchId] as const,
 };
