@@ -6,6 +6,7 @@ import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore } from '../lib/permissions';
+import { clearExports } from '../lib/report-export';
 import { useSyncEngine } from '../lib/offline/use-sync';
 import {
   clearLegacyCredential,
@@ -215,6 +216,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await clearSession();
     branch.clear();
     usePermissionStore.getState().clear();
+    /*
+     * Any report still in the cache goes too. An exported CSV is the shop's
+     * profit and its debts as plain text, and leaving one behind after somebody
+     * signs out leaves it for whoever signs in next.
+     */
+    clearExports();
     setUser(null);
   };
 

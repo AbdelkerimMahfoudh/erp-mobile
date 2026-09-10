@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { ExportAction } from '../components/reports/ExportAction';
 import { GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
 import {
   Chip,
@@ -96,7 +97,14 @@ export default function AnalyticsScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <Stack.Screen options={{ headerShown: true, title: t('nav.analytics') }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: t('nav.analytics'),
+          /* The dashboard is a 30-day view, so its export is too. */
+          headerRight: () => <ExportAction days={30} />,
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={

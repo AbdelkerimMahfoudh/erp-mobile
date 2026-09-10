@@ -161,8 +161,95 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
   return parse<T>(res);
 }
 
+/** A file the server generated, plus the name it gave it. */
+export interface DownloadedFile {
+  text: string;
+  filename: string;
+  /** Rows in the report, from the server, so the app never counts lines itself. */
+  rows: number | null;
+}
+
+/**
+ * Fetch a file rather than JSON.
+ *
+ * Goes through the same `send` as everything else — the same token, the same
+ * `X-Branch-Id`, the same timeout, the same connectivity marking, the same
+ * refresh-once-on-401. A separate `fetch` here would be a second client that
+ * drifts: it would miss a branch switch, or hold a token past a refresh, and
+ * the symptom would be a report from the wrong branch, which is worse than an
+ * error.
+ *
+ * The response is NOT parsed as JSON. An error still is, because the server
+ * answers a refusal with the project's ordinary error shape — a CSV containing
+ * an error message is a file a spreadsheet opens happily and a person misreads
+ * as data.
+ */
+async function download(path: string): Promise<DownloadedFile> {
+  const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
+
+  let res: Response;
+  try {
+    res = await send('GET', path, undefined, token);
+  } catch (error) {
+    if (!(error instanceof RequestTimeout)) useConnectivity.getState().markUnreachable();
+    throw error;
+  }
+  useConnectivity.getState().markReachable();
+
+  if (res.status === 401 && token) {
+    const fresh = await refreshAccessToken();
+    if (fresh) res = await send('GET', path, undefined, fresh);
+  }
+
+  if (!res.ok) {
+    const payload = await parse<any>(res).catch(() => null);
+    const message = payload?.message || payload?.error || `Request failed (${res.status})`;
+    throw new ApiError(
+      Array.isArray(message) ? message.join(', ') : message,
+      res.status,
+      typeof payload?.code === 'string' ? payload.code : undefined,
+      payload,
+    );
+  }
+
+  const text = await res.text();
+
+  /*
+   * Validate before anything is written to disk or handed to a share sheet.
+   * A 200 with an HTML captive-portal page is a real thing on shop wifi, and
+   * saving it as `profit-by-product.csv` would hand somebody a file that opens
+   * as gibberish and looks like our bug.
+   */
+  const type = res.headers.get('content-type') ?? '';
+  if (!type.includes('text/csv')) {
+    throw new ApiError('The server did not return a report.', res.status);
+  }
+
+  return {
+    text,
+    filename: filenameFrom(res.headers.get('content-disposition')) ?? 'report.csv',
+    rows: Number(res.headers.get('x-report-rows') ?? '') || null,
+  };
+}
+
+/**
+ * The server's filename, or nothing.
+ *
+ * Only a plain ASCII `filename="…"` is accepted, and anything with a path
+ * separator is rejected: the value decides what gets written to disk, and a
+ * name the client did not sanity-check is a name that can escape the directory
+ * it was meant for.
+ */
+function filenameFrom(header: string | null): string | null {
+  const match = header?.match(/filename="([^"]+)"/);
+  const name = match?.[1];
+  if (!name || /[/\\]/.test(name) || !/^[\x20-\x7e]+$/.test(name)) return null;
+  return name;
+}
+
 export const api = {
   get: <T = unknown>(path: string) => request<T>('GET', path),
+  download,
   post: <T = unknown>(path: string, body?: Body) => request<T>('POST', path, body),
   put: <T = unknown>(path: string, body?: Body) => request<T>('PUT', path, body),
   patch: <T = unknown>(path: string, body?: Body) => request<T>('PATCH', path, body),

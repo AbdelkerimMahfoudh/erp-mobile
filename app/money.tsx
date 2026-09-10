@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { ExportAction } from '../components/reports/ExportAction';
 import { Stack } from 'expo-router';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react-native';
 import {
@@ -89,7 +90,14 @@ export default function MoneyScreen() {
 
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ headerShown: true, title: t('money.title') }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: t('money.title'),
+          /* The export follows the period the user is already looking at. */
+          headerRight: () => <ExportAction days={days} />,
+        }}
+      />
 
       <View style={styles.controls}>
         <SegmentedControl
