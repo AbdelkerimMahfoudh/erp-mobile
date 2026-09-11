@@ -4,25 +4,26 @@ import { Stack, useRouter } from 'expo-router';
 import { Handshake, Plus } from 'lucide-react-native';
 import {
   Button,
-  Chip,
   EmptyState,
   ErrorState,
+  FilterChip,
   ListRow,
   ListSeparator,
   MoneyValue,
   Screen,
-  SegmentedControl,
   SkeletonList,
 } from '../../components/ui';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import {
-  groupTone,
+  consignmentStatusLabel,
   useConsignments,
   type ConsignmentGroup,
   type ConsignmentSummary,
 } from '../../lib/consignment';
+
+const GROUPS: ConsignmentGroup[] = ['pending', 'accepted', 'confirmed'];
 
 /**
  * Stock sent to, or held for, another shop (Milestone H).
@@ -46,16 +47,16 @@ export default function ConsignmentsScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('consignment.title') }} />
 
-      <View style={styles.controls}>
-        <SegmentedControl
-          options={[
-            { value: 'pending', label: t('consignment.tab.pending') },
-            { value: 'accepted', label: t('consignment.tab.accepted') },
-            { value: 'confirmed', label: t('consignment.tab.confirmed') },
-          ]}
-          value={group}
-          onChange={(v) => setGroup(v as ConsignmentGroup)}
-        />
+      {/* Filter chips, like Stock and Transfers. */}
+      <View style={styles.controls} accessibilityRole="radiogroup">
+        {GROUPS.map((value) => (
+          <FilterChip
+            key={value}
+            label={t(`consignment.tab.${value}`)}
+            selected={group === value}
+            onPress={() => setGroup(value)}
+          />
+        ))}
       </View>
 
       {query.isLoading ? (
@@ -109,17 +110,18 @@ function Row({ row, onPress }: { row: ConsignmentSummary; onPress: () => void })
       subtitle={[
         t(row.side === 'source' ? 'consignment.side.sent' : 'consignment.side.holding'),
         t('consignment.phones', { count: String(row.phones) }),
-        row.statusText,
+        consignmentStatusLabel(row.status, t),
       ].join(' · ')}
       value={<MoneyValue value={amount} size="small" />}
-      accessory={<Chip tone={groupTone(row.group)} label={t(`consignment.tab.${row.group}`)} size="sm" dot />}
+      // No group chip: it only repeated the selected filter and squeezed a long
+      // store name to "Boutique …". The status is in the subtitle, in words.
       onPress={onPress}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  controls: { paddingBottom: space.sm },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, paddingBottom: space.sm },
   list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

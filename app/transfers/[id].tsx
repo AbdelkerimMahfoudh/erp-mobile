@@ -24,6 +24,7 @@ import { toFriendlyError } from '../../lib/errors';
 import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { transferSummary } from '../../lib/transfer-summary';
+import { transferStanding } from '../../lib/custody-state';
 import { toast } from '../../lib/toast';
 import { isStaleTransfer, useTransfer, useTransferAction } from '../../lib/transfers';
 import type { TransferAction, TransferActionName, TransferDetail } from '../../types/api';
@@ -74,6 +75,8 @@ function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: 
   const action = useTransferAction();
   /** Guards against a double tap firing two requests before the first answers. */
   const [busy, setBusy] = useState<TransferActionName | null>(null);
+  /** Where the items are and who moves them on — facts, not a status code. */
+  const standing = transferStanding(transfer.status);
 
   /**
    * Which action the user most likely came here to do — the one whose button
@@ -215,6 +218,23 @@ function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: 
               <Text tone="secondary">{transfer.decisionReason}</Text>
             </View>
           ) : null}
+          <Divider style={styles.divider} />
+          <View style={styles.fact}>
+            <Text tone="secondary">{t('transfers.standing.items')}</Text>
+            <Text variant="bodyStrong" align="end" style={styles.factValue}>
+              {t(`transfers.holder.${standing.holder}` as never, {
+                branch: standing.holder === 'origin' ? transfer.from.name : transfer.to.name,
+              })}
+            </Text>
+          </View>
+          <View style={styles.fact}>
+            <Text tone="secondary">{t('transfers.standing.next')}</Text>
+            <Text variant="bodyStrong" align="end" style={styles.factValue}>
+              {t(`transfers.nextStep.${standing.next}` as never, {
+                branch: standing.next === 'ship' ? transfer.from.name : transfer.to.name,
+              })}
+            </Text>
+          </View>
         </Card>
       </Section>
 
@@ -400,6 +420,9 @@ const styles = StyleSheet.create({
   ref: { marginTop: space.sm },
   reason: { marginTop: space.base, gap: space.xs },
   gapTop: { marginTop: space.sm },
+  divider: { marginVertical: space.sm },
+  fact: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm, paddingVertical: space.xs },
+  factValue: { flexShrink: 1 },
   actions: { gap: space.sm },
   item: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.sm },
   itemBody: { flex: 1, gap: space.xs },

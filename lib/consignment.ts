@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
 import { useBranch } from './branch';
+import { isKnownConsignmentStatus } from './custody-state';
+import type { TranslationKey } from './i18n';
 import { qk } from './query-keys';
 
 /**
@@ -300,6 +302,17 @@ export function awaitingConfirmation(ledger: LedgerEntry[]): number {
   const confirmed = ledger.filter((e) => e.kind === 'payment_confirmed').length;
   // Each confirmation answers one report, oldest first.
   return reported.slice(confirmed).reduce((s, e) => s + e.amount, 0);
+}
+
+/**
+ * The status in the reader's language. The server's `statusText` is English
+ * wording for its own messages; a screen shows this instead, and an unknown
+ * status says so rather than leaking a raw code.
+ */
+export function consignmentStatusLabel(status: string, t: (key: TranslationKey) => string): string {
+  return isKnownConsignmentStatus(status)
+    ? t(`consignment.status.${status}` as TranslationKey)
+    : t('consignment.status.unknown');
 }
 
 export function groupTone(group: ConsignmentGroup): 'warning' | 'info' | 'success' {

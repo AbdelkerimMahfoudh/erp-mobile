@@ -17,12 +17,23 @@ import {
   Text,
   TextField,
 } from '../../components/ui';
-import { ApiError } from '../../lib/api-client';
+import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
+import { toFriendlyError } from '../../lib/errors';
+import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import {
+  canAnswerOffer,
+  consignmentStanding,
+  isKnownConsignmentStatus,
+  whoseMove,
+  type MoneyState,
+} from '../../lib/custody-state';
+import {
   awaitingConfirmation,
+  consignmentStatusLabel,
+  groupTone,
   outstandingOf,
   useConsignment,
   useConsignmentPayment,
@@ -80,10 +91,24 @@ export default function ConsignmentDetailScreen() {
 
         <Card style={styles.card}>
           <View style={styles.head}>
-            <Text variant="bodyStrong">{c.statusText}</Text>
-            <Chip tone="neutral" label={t(`consignment.side.${c.side}`)} size="sm" dot />
+            {/* The status in words and colour, never the server's English sentence. */}
+            <Chip tone={groupTone(c.group)} label={consignmentStatusLabel(c.status, t)} size="sm" dot />
+            <Text variant="caption" tone="secondary">
+              {t(`consignment.side.${c.side}`)}
+            </Text>
           </View>
-          <Row label={t('consignment.agreed')} value={c.agreedAmount} fallback={c.proposedAmount} />
+          {/* Say which amount this is: an offer is not an agreement. */}
+          <Row
+            label={
+              c.agreedAmount !== null
+                ? t('consignment.agreed')
+                : c.counterAmount !== null
+                  ? t('consignment.counterOffer')
+                  : t('consignment.proposed')
+            }
+            value={c.agreedAmount ?? c.counterAmount ?? c.proposedAmount}
+          />
+          <Standing consignment={c} />
           {c.disputeReason ? (
             <InlineNotice tone="warning">{c.disputeReason}</InlineNotice>
           ) : null}
@@ -104,7 +129,7 @@ export default function ConsignmentDetailScreen() {
                   paid when the other side has not agreed.
                 */
                 <Text variant="caption" tone="secondary">
-                  {t('consignment.awaiting', { amount: String(pending) })}
+                  {t('consignment.awaiting', { amount: isolateLtr(formatMoney(pending)) })}
                 </Text>
               ) : null}
               <Divider style={styles.divider} />
@@ -148,7 +173,7 @@ export default function ConsignmentDetailScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  <Chip tone="neutral" label={t(`consignment.line.${l.status}`)} size="sm" dot />
+                  <Chip tone={LINE_TONE[l.status]} label={t(`consignment.line.${l.status}`)} size="sm" dot />
                 </View>
               </View>
             ))}
@@ -161,14 +186,88 @@ export default function ConsignmentDetailScreen() {
   );
 }
 
-function Row({ label, value, fallback }: { label: string; value: number | null; fallback?: number | null }) {
+function Row({ label, value }: { label: string; value: number | null }) {
   return (
     <View style={styles.row}>
       <Text variant="body" tone="secondary">
         {label}
       </Text>
-      <MoneyValue value={value ?? fallback ?? 0} size="small" />
+      <MoneyValue value={value ?? 0} size="small" />
     </View>
+  );
+}
+
+const LINE_TONE: Record<ConsignmentDetail['lines'][number]['status'], 'neutral' | 'info' | 'success'> = {
+  proposed: 'neutral',
+  in_custody: 'info',
+  sold: 'success',
+  returned: 'neutral',
+  cancelled: 'neutral',
+};
+
+const MONEY_TONE: Record<MoneyState, 'neutral' | 'warning' | 'success'> = {
+  not_due: 'neutral',
+  awaiting: 'warning',
+  partly_paid: 'warning',
+  paid: 'success',
+  written_off: 'neutral',
+  none: 'neutral',
+};
+
+/**
+ * Three separate answers: where the phones are, whose move it is, and the money.
+ *
+ * Kept apart on purpose — "they have the phone" and "we have been paid" are
+ * different facts, and one combined label is how a shop believes it was paid
+ * because the phone arrived. Derived from the server's status only.
+ */
+function Standing({ consignment: c }: { consignment: ConsignmentDetail }) {
+  const { t } = useTranslation();
+  if (!isKnownConsignmentStatus(c.status)) return null;
+  const s = consignmentStanding(c.status);
+  const mine = c.side === 'source' ? 'sender' : 'holder';
+
+  const phones =
+    s.phonesAt === 'sold'
+      ? t('consignment.at.sold')
+      : s.phonesAt === 'sender' || s.phonesAt === 'holder'
+        ? s.phonesAt === mine
+          ? t('consignment.at.with.you')
+          : t('consignment.at.with.them', { name: c.otherParty })
+        : (s.phonesAt === 'to_holder' ? 'holder' : 'sender') === mine
+          ? t('consignment.at.toward.you')
+          : t('consignment.at.toward.them', { name: c.otherParty });
+
+  const move = whoseMove(s.next, c.side);
+  const next =
+    move === 'you'
+      ? t('consignment.nextStep.you')
+      : move === 'them'
+        ? t('consignment.nextStep.them', { name: c.otherParty })
+        : move === 'both'
+          ? t('consignment.nextStep.both')
+          : t('consignment.nextStep.none');
+
+  return (
+    <>
+      <Divider style={styles.divider} />
+      <View style={styles.row}>
+        <Text tone="secondary">{t('consignment.standing.phones')}</Text>
+        <Text variant="bodyStrong" align="end" style={styles.value}>
+          {phones}
+        </Text>
+      </View>
+      <View style={styles.row}>
+        <Text tone="secondary">{t('consignment.standing.next')}</Text>
+        <Text variant="bodyStrong" align="end" style={styles.value}>
+          {next}
+        </Text>
+      </View>
+      <View style={styles.row}>
+        <Text tone="secondary">{t('consignment.money')}</Text>
+        <Chip tone={MONEY_TONE[s.money]} label={t(`consignment.moneyState.${s.money}`)} size="sm" dot />
+      </View>
+    </>
   );
 }
 
@@ -202,28 +301,35 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
 
-  const fail = (e: unknown) => onError(e instanceof ApiError ? e.message : t('consignment.failed'));
+  // The friendly, translated explanation — never the server's raw English message.
+  const fail = (e: unknown) => onError(toFriendlyError(e).body || t('consignment.failed'));
   const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T) =>
     m.mutate({ id: c.id, body }, { onError: fail });
 
   const owed = outstandingOf(c.ledger);
   const negotiating = ['requested', 'counter_proposed', 'disputed'].includes(c.status);
+  // Accept and counter only for the side whose answer is awaited; the server refuses the other.
+  const mayAnswer = isKnownConsignmentStatus(c.status) && canAnswerOffer(c.status, c.side);
 
   return (
     <Section title={t('consignment.next')}>
       <Card style={styles.card}>
         {negotiating && canReview ? (
           <>
-            <MoneyField label={t('consignment.counterAmount')} value={amount} onChangeText={setAmount} />
-            <View style={styles.actions}>
-              <Button title={t('consignment.accept')} onPress={() => go(decide, { action: 'accept' as const, expectedVersion: c.version })} />
-              <Button
-                title={t('consignment.counter')}
-                variant="ghost"
-                disabled={!amount.trim()}
-                onPress={() => go(decide, { action: 'counter' as const, amount: Number(amount), expectedVersion: c.version })}
-              />
-            </View>
+            {mayAnswer ? (
+              <>
+                <MoneyField label={t('consignment.counterAmount')} value={amount} onChangeText={setAmount} />
+                <View style={styles.actions}>
+                  <Button title={t('consignment.accept')} onPress={() => go(decide, { action: 'accept' as const, expectedVersion: c.version })} />
+                  <Button
+                    title={t('consignment.counter')}
+                    variant="ghost"
+                    disabled={!amount.trim()}
+                    onPress={() => go(decide, { action: 'counter' as const, amount: Number(amount), expectedVersion: c.version })}
+                  />
+                </View>
+              </>
+            ) : null}
             <TextField label={t('consignment.disputeReason')} value={reason} onChangeText={setReason} />
             <Button
               title={t('consignment.dispute')}
@@ -313,6 +419,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm, paddingVertical: space.xs },
   entryText: { flex: 1, gap: 2 },
+  value: { flexShrink: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   divider: { marginVertical: space.xs },
 });
