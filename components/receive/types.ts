@@ -25,6 +25,8 @@ export interface StagedItem {
   quantity?: number;
   /** Serialized products only — one entry per physical unit. */
   identifiers?: string[];
+  /** IMEI 2 by IMEI 1, for dual-SIM phones. Optional for every phone. */
+  secondaries?: Record<string, string>;
   /**
    * Echoed back to the server on confirm so recognition learns this code.
    * Receiving is the strongest learning signal the system gets.

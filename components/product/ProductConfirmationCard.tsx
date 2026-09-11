@@ -10,6 +10,7 @@ import { Chip, StatusChip } from '../ui/Chip';
 import { Divider } from '../ui/Surface';
 import { Identifier, Text } from '../ui/Text';
 import type { ProductSuggestion, ScanResult } from '../../types/api';
+import { scanHintKey } from '../../lib/scan/hint';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
@@ -69,6 +70,10 @@ export interface ProductConfirmationCardProps {
    * "this unit is sold". Rendered prominently; `danger` also hides confirm.
    */
   notice?: { tone: 'warning' | 'danger'; message: string };
+  /** The way out of a blocking notice — e.g. open the phone that already exists. */
+  recovery?: { label: string; onPress: () => void };
+  /** IMEI 2 of the same phone, when one was captured. */
+  secondaryCode?: string | null;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -83,6 +88,8 @@ export function ProductConfirmationCard({
   confirmDisabled = false,
   loading = false,
   notice,
+  recovery,
+  secondaryCode,
   style,
 }: ProductConfirmationCardProps) {
   const colors = useColors();
@@ -101,13 +108,18 @@ export function ProductConfirmationCard({
     unreadable: t('confirm.unreadable.title'),
   };
 
-  // The backend's own hint is more specific than anything we can say generically
-  // ("New barcode — confirm the product to teach it"), so prefer it.
+  /*
+   * The backend's guidance is more specific than anything generic, so prefer it —
+   * translated from its code. The English hint it also sends is never shown: it
+   * used to appear verbatim in French and Arabic sheets.
+   */
+  const hintKey = scanHintKey(result.hintCode);
+  const hintText = hintKey ? t(hintKey as never, result.hintParams) : undefined;
   const explanation: Record<CardState, string | undefined> = {
     confident: undefined,
-    uncertain: result.hint ?? t('confirm.checkThis.body'),
-    unknown: result.hint ?? t('confirm.unknown.body'),
-    unreadable: result.hint ?? t('confirm.unreadable.body'),
+    uncertain: hintText ?? t('confirm.checkThis.body'),
+    unknown: hintText ?? t('confirm.unknown.body'),
+    unreadable: hintText ?? t('confirm.unreadable.body'),
   };
 
   const blocked = notice?.tone === 'danger';
@@ -176,6 +188,14 @@ export function ProductConfirmationCard({
         </Text>
         <Identifier tone="secondary">{result.code}</Identifier>
       </View>
+      {secondaryCode ? (
+        <View style={styles.codeRow}>
+          <Text variant="caption" tone="tertiary">
+            {t('scan.imei2')}
+          </Text>
+          <Identifier tone="secondary">{secondaryCode}</Identifier>
+        </View>
+      ) : null}
 
       {notice && !blocked ? (
         <View
@@ -205,12 +225,17 @@ export function ProductConfirmationCard({
       {/* Teaching promise — only where confirming actually teaches something. */}
       {state === 'unknown' && result.recognitionKey ? (
         <Text variant="caption" tone="tertiary">
-          {t('confirm.willLearn')}
+          {/* An IMEI teaches the MODEL (its TAC); the full number stays with this phone. */}
+          {result.kind === 'imei' ? t('confirm.willLearn.imei') : t('confirm.willLearn')}
         </Text>
       ) : null}
 
       {/* Actions */}
       <View style={styles.actions}>
+        {blocked && recovery ? (
+          <Button title={recovery.label} fullWidth onPress={recovery.onPress} />
+        ) : null}
+
         {canConfirm ? (
           <Button
             title={confirmLabel}

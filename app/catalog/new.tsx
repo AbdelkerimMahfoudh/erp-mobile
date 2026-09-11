@@ -81,7 +81,10 @@ export default function NewProductScreen() {
        */
       if (peekPendingIntake(intakeScope)) {
         notePendingProduct(product.id);
-        router.replace('/receive');
+        // Back to the SAME Receive screen, which still holds the delivery. A
+        // `replace` put a second, empty Receive on top of it.
+        if (router.canGoBack()) router.back();
+        else router.replace('/receive');
         return;
       }
       router.replace(`/catalog/${product.id}` as never);

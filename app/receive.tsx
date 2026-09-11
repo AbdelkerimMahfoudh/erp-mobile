@@ -1,15 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, PackagePlus, Truck } from 'lucide-react-native';
+import { Check, Package, PackagePlus, Truck } from 'lucide-react-native';
 import { Button, EmptyState, Screen, Text } from '../components/ui';
 import { SelectSheet } from '../components/overlay';
+import { BottomSheet } from '../components/overlay/BottomSheet';
 import { ScanTarget } from '../components/scanner';
+import type { AcceptedImei } from '../components/scanner/ScannerSheet';
 import { ReceiveItemSheet, type ReceiveItemDraft } from '../components/receive/ReceiveItemSheet';
 import { StagedItemRow } from '../components/receive/StagedItemRow';
 import { stagedCostTotal, stagedUnitTotal, type StagedItem } from '../components/receive/types';
-import { api } from '../lib/api-client';
+import { TextField } from '../components/ui/Field';
+import { ApiError, api } from '../lib/api-client';
 import { useBranch } from '../lib/branch';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -18,6 +21,15 @@ import {
   takePendingIntake,
   type IntakeScope,
 } from '../lib/scan/pending-intake';
+import {
+  codesInDelivery,
+  imei2Problem,
+  purchaseItems,
+  settle,
+  withSecondary,
+  type PurchaseOutcome,
+  type RejectedLine,
+} from '../lib/receive-outcome';
 import { radius, space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
@@ -30,7 +42,16 @@ import { isolateLtr } from '../lib/design/direction';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
-import type { ProductSuggestion, ScanResult, SupplierDetail, SupplierPage, SupplierRow } from '../types/api';
+import type {
+  ProductListRow,
+  ProductPage,
+  ProductSuggestion,
+  ScanInventoryMatch,
+  ScanResult,
+  SupplierDetail,
+  SupplierPage,
+  SupplierRow,
+} from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
 
 /**
@@ -42,34 +63,48 @@ import { makeStyles, useColors } from '../lib/design/theme';
  *
  * Nothing is committed until the end. `POST /purchases` creates the purchase,
  * the units and one audit entry in a single transaction, and the recognition
- * key from each scan rides along so the scanner learns this shop's stock —
- * receiving is the strongest learning signal the system gets.
+ * key from each scan rides along so the scanner learns this shop's stock.
+ *
+ * ## One phone, one or two IMEIs
+ *
+ * IMEI 1 is enough. IMEI 2 is optional and belongs to the same unit: it comes
+ * from the camera when both were captured, from the cost sheet, or from "Add
+ * IMEI 2" on a staged phone. Both are checked against stock BEFORE the phone
+ * joins the delivery, both are checked against the delivery itself, and the
+ * server checks both again at Finish for anything that changed meanwhile.
+ *
+ * ## What Finish means
+ *
+ * Only what the server names as received is counted. A partly refused delivery
+ * keeps its refused lines here for correction and drops the received ones, and
+ * the next attempt uses a new request key — the old one now belongs to a
+ * purchase that exists. A lost response keeps everything locked under the SAME
+ * key until "Check again" gets an answer, so a retry replays rather than
+ * receiving twice.
  */
-
-interface RejectedLine {
-  identifier: string;
-  reason: string;
-}
-
-interface PurchaseResponse {
-  /** Null when every line was refused and nothing was written. */
-  purchaseId: string | null;
-  unitsCreated: number;
-  stockLines: number;
-  total: number;
-  rejected?: RejectedLine[];
-}
 
 /** The server's refusal reasons, in the shop's language. */
 const REFUSAL_KEYS = {
   'already registered': 'receive.refused.alreadyRegistered',
   'duplicate in batch': 'receive.refused.duplicateInBatch',
+  'invalid secondary IMEI': 'receive.refused.invalidSecondary',
+  'secondary IMEI equals primary': 'receive.refused.secondaryEqualsPrimary',
+  'secondary IMEI on a product without IMEIs': 'receive.refused.secondaryNotImei',
 } as const;
 
 interface PendingScan {
   result: ScanResult;
   suggestion: ProductSuggestion | null;
+  /** IMEI 2 captured with this scan. */
+  secondary: string | null;
   notice?: { tone: 'warning' | 'danger'; message: string };
+  /** Set when either IMEI already belongs to a unit. */
+  existing?: ScanInventoryMatch;
+}
+
+/** A timeout, a dropped connection or a server fault: the purchase may exist or not. */
+function isUncertain(e: unknown): boolean {
+  return !(e instanceof ApiError) || e.status >= 500;
 }
 
 export default function ReceiveScreen() {
@@ -93,69 +128,55 @@ export default function ReceiveScreen() {
     [user?.companyId, user?.id, branchId],
   );
 
-  // The picker now yields a SupplierRow (the paged list shape), which carries
-  // everything receiving needs: id, name and phone.
   const [supplier, setSupplier] = useState<SupplierRow | null>(null);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [staged, setStaged] = useState<StagedItem[]>([]);
 
   /**
-   * A receiving session survives an app kill (J.1).
+   * One request identity per DELIVERY ATTEMPT THAT MAY HAVE LANDED.
    *
-   * Scanning twenty phones into a delivery is minutes of work, and losing it
-   * to Android's memory manager is exactly what sends somebody back to the
-   * notebook. The staged list and the chosen supplier are kept.
-   *
-   * Nothing the server owns is: the pending in-flight scan is transient, and
-   * `done` is a completed purchase — restoring that would tell a shop it had
-   * received stock it never did.
+   * Kept across every retry of an unconfirmed Finish, so a lost response is
+   * replayed rather than received twice; renewed only once the server has
+   * answered and something is left to send. Kept in the draft for the same
+   * reason: an app killed mid-Finish must retry under the same key.
    */
-  const draft = useDraft('receive.preparation', { staged, supplier }, (v) => {
+  const [clientUuid, setClientUuid] = useState(() => uuidv4());
+
+  /**
+   * A receiving session survives an app kill (J.1): the staged phones with both
+   * IMEIs, the supplier and the request key. Nothing the server owns is kept —
+   * restoring `done` would tell a shop it had received stock it never did.
+   */
+  const draft = useDraft('receive.preparation', { staged, supplier, clientUuid }, (v) => {
     setStaged(v.staged ?? []);
     setSupplier(v.supplier ?? null);
+    if (v.clientUuid) setClientUuid(v.clientUuid);
   });
+
   const [pending, setPending] = useState<PendingScan | null>(null);
-  /**
-   * The summary is built from what was staged, not from the API response.
-   *
-   * `unitsCreated` counts `Unit` rows, which is zero for quantity-tracked
-   * products — they only bump a stock total. Reporting that verbatim tells an
-   * employee who just counted six power banks that zero arrived.
-   */
-  const [done, setDone] = useState<{ response: PurchaseResponse; units: number } | null>(null);
-  /**
-   * Lines the server refused on Finish — an IMEI already registered, the same
-   * one twice. The purchase endpoint answers 200 with them listed, so they have
-   * to be read: counting what was staged would call a refused phone received.
-   */
+  const [done, setDone] = useState<{ response: PurchaseOutcome; units: number } | null>(null);
   const [refused, setRefused] = useState<RejectedLine[]>([]);
+  /** Server-confirmed count from a partly received delivery. */
+  const [partialUnits, setPartialUnits] = useState<number | null>(null);
+  /** Finish sent, no answer received. Everything is locked until "Check again". */
+  const [uncertain, setUncertain] = useState(false);
 
-  /**
-   * One request identity per DELIVERY, not per attempt.
-   *
-   * Generated once when the session starts and reused across every retry —
-   * including an eventual offline replay — so a timeout cannot receive the same
-   * delivery twice. Regenerated only when a new delivery begins. Same
-   * convention as Sell.
-   */
-  const clientUuid = useRef(uuidv4());
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [productQuery, setProductQuery] = useState('');
+  const [imei2Target, setImei2Target] = useState<{ key: string; identifier: string } | null>(null);
+  const [imei2Value, setImei2Value] = useState('');
+  const [imei2Error, setImei2Error] = useState<string | undefined>();
+  const [imei2Checking, setImei2Checking] = useState(false);
 
-  /**
-   * ACTIVE suppliers only (J1).
-   *
-   * Receiving must not offer a supplier the shop has stopped buying from, while
-   * every past delivery keeps showing the one it was actually bought from. The
-   * list is also paged now, so this reads `rows` rather than the bare array it
-   * used to return - a change TypeScript could not catch, because `api.get<T>`
-   * is an assertion rather than a check.
-   */
+  /** The camera's accepted phone, so its IMEI 2 can travel with the scan result. */
+  const lastAccepted = useRef<{ primary: string; secondary: string | null } | null>(null);
+
   const suppliers = useQuery({
     queryKey: [...qk.suppliers, 'active'],
     queryFn: () => api.get<SupplierPage>('/suppliers?status=active&limit=50'),
   });
 
   const createSupplier = useMutation({
-    // POST /suppliers returns the full detail; the picker only needs the row.
     mutationFn: (name: string) => api.post<SupplierDetail>('/suppliers', { name }),
     onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: qk.suppliers });
@@ -166,101 +187,166 @@ export default function ReceiveScreen() {
     onError: (e) => toast.error(toErrorMessage(e)),
   });
 
+  /** Only products that can take this scan: IMEI products for an IMEI, serial for a serial. */
+  const pickerKind =
+    pending?.result.kind === 'imei' ? 'imei' : pending?.result.kind === 'serial' ? 'serial' : null;
+  const products = useQuery({
+    queryKey: ['products', 'receive-picker', productQuery, pickerKind],
+    queryFn: () => {
+      const params = new URLSearchParams({ active: 'active' });
+      if (productQuery) params.set('q', productQuery);
+      if (pickerKind) params.set('trackingType', pickerKind);
+      return api.get<ProductPage>(`/products?${params.toString()}`);
+    },
+    enabled: pickerOpen,
+  });
+
   const unitTotal = stagedUnitTotal(staged);
   const costTotal = stagedCostTotal(staged);
 
   // ── Scanning ──────────────────────────────────────────────────────────────
 
-  /**
-   * Coming back from the Create-product detour.
-   *
-   * The identifier accepted before leaving is re-resolved through the same
-   * `/scan` pipeline, so the product that has just been created comes back as
-   * a populated suggestion and the intake sheet opens on the phone the user
-   * actually scanned — rather than on an empty screen, which is what happened
-   * before and forced them to scan it again.
-   */
-  const restored = useRef(false);
-  useEffect(() => {
-    if (restored.current || !scope) return;
-    const back = takePendingIntake(scope);
-    if (!back?.primaryImei) return;
-    restored.current = true;
-    void api
-      .post<ScanResult>('/scan', { code: back.primaryImei })
-      .then((result) => setPending({ result, suggestion: result.suggestion ?? null }))
-      // A failed re-resolve is not worth an error dialog: the identifier is
-      // shown again by scanning, and nothing has been lost from inventory.
-      .catch(() => undefined);
-  }, [scope]);
+  /** Both IMEIs go to /scan together — they are one phone. */
+  const lookUp = useCallback(
+    (code: string, secondary: string | null) =>
+      api.post<ScanResult>('/scan', { code, ...(secondary ? { secondary } : {}) }),
+    [],
+  );
 
-  const onScanResult = useCallback(
-    (result: ScanResult) => {
+  /** Decide what a scan means for this delivery. */
+  const route = useCallback(
+    (result: ScanResult, secondary: string | null) => {
       const suggestion = result.suggestion;
+      const perUnit = result.kind === 'imei' || result.kind === 'serial';
 
-      // Unknown code — there is nothing to receive against until the product
-      // template exists.
+      if (perUnit) {
+        // Either number already in this delivery — as anybody's IMEI 1 or IMEI 2.
+        const inDelivery = codesInDelivery(staged);
+        if (inDelivery.has(result.code) || (secondary && inDelivery.has(secondary))) {
+          toast.error(t('receive.inDelivery'));
+          return;
+        }
+        // Already a unit: refused before anybody types a cost.
+        if (result.inventory?.alreadyInInventory) {
+          setPending({ result, suggestion, secondary, existing: result.inventory });
+          return;
+        }
+      }
+
+      // Unknown code — choose a product or create one.
       if (!suggestion) {
-        setPending({ result, suggestion: null });
+        setPending({ result, suggestion: null, secondary });
         return;
       }
 
       const serialized = suggestion.trackingType !== 'quantity';
 
-      // A serialized product must be scanned by its own identifier: each scan
-      // becomes one physical unit. A box barcode identifies the model, not the
-      // device, so it cannot create units.
+      // A box barcode identifies the model, not the device, so it cannot create units.
       if (serialized && result.kind === 'barcode') {
         setPending({
           result,
           suggestion,
+          secondary: null,
           notice: { tone: 'warning', message: t('scanner.manual.placeholder') },
         });
         return;
       }
 
-      const existing = staged.find((item) => item.productId === suggestion.productId);
+      const line = staged.find((item) => item.productId === suggestion.productId);
 
-      // Cost already established for this product — append silently. This is
-      // the fast path that makes receiving a delivery quick.
-      if (existing) {
+      // Cost already established for this product — append silently.
+      if (line) {
         if (serialized) {
-          if (existing.identifiers?.includes(result.code)) {
-            toast.error(t('sell.alreadyInCart'));
-            return;
-          }
-          const nextCount = (existing.identifiers?.length ?? 0) + 1;
+          const nextCount = (line.identifiers?.length ?? 0) + 1;
           setStaged((prev) =>
             prev.map((item) =>
-              item.key === existing.key
-                ? { ...item, identifiers: [...(item.identifiers ?? []), result.code] }
+              item.key === line.key
+                ? {
+                    ...item,
+                    identifiers: [...(item.identifiers ?? []), result.code],
+                    ...(secondary ? { secondaries: { ...(item.secondaries ?? {}), [result.code]: secondary } } : {}),
+                  }
                 : item,
             ),
           );
-          toast.success(t('receive.counted', { label: existing.label, count: nextCount }));
+          toast.success(t('receive.counted', { label: line.label, count: nextCount }));
         } else {
-          const nextCount = (existing.quantity ?? 0) + 1;
-          setStaged((prev) =>
-            prev.map((item) =>
-              item.key === existing.key ? { ...item, quantity: nextCount } : item,
-            ),
-          );
-          toast.success(t('receive.counted', { label: existing.label, count: nextCount }));
+          const nextCount = (line.quantity ?? 0) + 1;
+          setStaged((prev) => prev.map((item) => (item.key === line.key ? { ...item, quantity: nextCount } : item)));
+          toast.success(t('receive.counted', { label: line.label, count: nextCount }));
         }
         return;
       }
 
       // First of this product in the delivery — ask for the cost once.
-      setPending({ result, suggestion });
+      setPending({ result, suggestion, secondary });
     },
     [staged, t],
   );
 
-  const addStaged = (draft: ReceiveItemDraft) => {
+  const onImeiAccepted = useCallback((accepted: AcceptedImei) => {
+    lastAccepted.current = { primary: accepted.primary, secondary: accepted.secondary };
+  }, []);
+
+  const onScanResult = useCallback(
+    async (scanned: ScanResult) => {
+      const accepted = lastAccepted.current;
+      lastAccepted.current = null;
+      const secondary = scanned.kind === 'imei' && accepted?.primary === scanned.code ? accepted.secondary : null;
+      let result = scanned;
+      if (secondary) {
+        // The scanner looked up IMEI 1 alone; ask again with both numbers.
+        try {
+          result = await lookUp(scanned.code, secondary);
+        } catch (e) {
+          toast.error(toErrorMessage(e));
+          return;
+        }
+      }
+      route(result, secondary);
+    },
+    [lookUp, route],
+  );
+
+  /**
+   * Back from Create product — whether it was created or cancelled.
+   *
+   * Both IMEIs were held across the detour. A created product comes back
+   * selected; a cancelled one reopens the same phone, so the user can choose an
+   * existing product instead. Creating a product created no inventory: the
+   * phone is still only received by Finish.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!scope) return;
+      const back = takePendingIntake(scope);
+      if (!back?.primaryImei) return;
+      const primary = back.primaryImei;
+      void (async () => {
+        try {
+          const result = await lookUp(primary, back.secondaryImei);
+          if (back.createdProductId && !result.inventory?.alreadyInInventory) {
+            const created = await api.get<ProductSuggestion>(
+              `/products/suggest?productId=${encodeURIComponent(back.createdProductId)}`,
+            );
+            setPending({ result, suggestion: created, secondary: back.secondaryImei });
+            toast.success(t('receive.createdSelected'));
+            return;
+          }
+          route(result, back.secondaryImei);
+        } catch (e) {
+          toast.error(toErrorMessage(e));
+        }
+      })();
+    }, [scope, lookUp, route, t]),
+  );
+
+  const addStaged = (draftItem: ReceiveItemDraft) => {
     if (!pending?.suggestion) return;
     const { suggestion, result } = pending;
     const serialized = suggestion.trackingType !== 'quantity';
     const label = `${suggestion.brand} ${suggestion.model}`;
+    const secondary = draftItem.imeiSecondary ?? null;
 
     setStaged((prev) => [
       ...prev,
@@ -270,9 +356,11 @@ export default function ReceiveScreen() {
         label,
         variant: suggestion.variant,
         trackingType: suggestion.trackingType,
-        unitCost: draft.unitCost,
-        price: draft.price,
-        ...(serialized ? { identifiers: [result.code] } : { quantity: draft.quantity ?? 1 }),
+        unitCost: draftItem.unitCost,
+        price: draftItem.price,
+        ...(serialized
+          ? { identifiers: [result.code], ...(secondary ? { secondaries: { [result.code]: secondary } } : {}) }
+          : { quantity: draftItem.quantity ?? 1 }),
         recognitionKey: result.recognitionKey,
       },
     ]);
@@ -285,53 +373,140 @@ export default function ReceiveScreen() {
     setStaged((prev) => prev.filter((item) => item.key !== key));
     if (removed) {
       toast.success(removed.label, {
-        action: {
-          label: t('action.undo'),
-          onPress: () => setStaged((prev) => [...prev, removed]),
-        },
+        action: { label: t('action.undo'), onPress: () => setStaged((prev) => [...prev, removed]) },
       });
+    }
+  };
+
+  const pickProduct = async (row: ProductListRow) => {
+    setPickerOpen(false);
+    try {
+      const chosen = await api.get<ProductSuggestion>(`/products/suggest?productId=${encodeURIComponent(row.id)}`);
+      setPending((p) =>
+        p
+          ? {
+              ...p,
+              suggestion: chosen,
+              notice:
+                chosen.trackingType !== 'quantity' && p.result.kind === 'barcode'
+                  ? { tone: 'warning', message: t('scanner.manual.placeholder') }
+                  : undefined,
+            }
+          : p,
+      );
+    } catch (e) {
+      toast.error(toErrorMessage(e));
+    }
+  };
+
+  const createProduct = (typedSecondary: string | null) => {
+    const current = pending;
+    if (!current) return;
+    /*
+     * The scan must survive the detour, with BOTH IMEIs.
+     *
+     * Only a GENUINE product barcode is handed to the product form. An IMEI
+     * identifies one phone, never a model — putting it in the Product barcode
+     * box would poison recognition for every unit of that model.
+     */
+    const result = current.result;
+    const isImei = result.kind === 'imei';
+    const barcode = result && result.kind === 'barcode' ? result.code : null;
+    if (scope) {
+      holdPendingIntake(
+        pendingFrom(scope, {
+          imei: isImei ? { primary: result.code, secondary: typedSecondary ?? current.secondary } : null,
+          productBarcode: barcode,
+        }),
+      );
+    }
+    setPending(null);
+    router.push(barcode ? (`/catalog/new?barcode=${encodeURIComponent(barcode)}` as never) : '/catalog/new');
+  };
+
+  // ── IMEI 2 on a staged phone ──────────────────────────────────────────────
+
+  const closeImei2 = () => {
+    setImei2Target(null);
+    setImei2Value('');
+    setImei2Error(undefined);
+  };
+
+  const saveImei2 = async () => {
+    if (!imei2Target) return;
+    const { key, identifier } = imei2Target;
+    const problem = imei2Problem(identifier, imei2Value, staged);
+    if (problem) {
+      setImei2Error(t(`receive.imei2.${problem}` as never));
+      return;
+    }
+    setImei2Checking(true);
+    try {
+      const check = await lookUp(identifier, imei2Value);
+      // IMEI 1 is only staged, not in stock — so a match can only be this number.
+      if (check.inventory?.alreadyInInventory) {
+        setImei2Error(t('receive.imei2.registered'));
+        return;
+      }
+      setStaged((prev) => withSecondary(prev, key, identifier, imei2Value));
+      closeImei2();
+    } catch (e) {
+      setImei2Error(toErrorMessage(e));
+    } finally {
+      setImei2Checking(false);
     }
   };
 
   // ── Commit ────────────────────────────────────────────────────────────────
 
   const finish = useMutation({
-    mutationFn: () =>
-      api.post<PurchaseResponse>('/purchases', {
-        clientUuid: clientUuid.current,
+    mutationFn: (lines: StagedItem[]) =>
+      api.post<PurchaseOutcome>('/purchases', {
+        clientUuid,
         supplierId: supplier!.id,
-        items: staged.map((item) => ({
-          productId: item.productId,
-          unitCost: item.unitCost,
-          ...(item.price !== undefined ? { price: item.price } : {}),
-          ...(item.trackingType === 'quantity'
-            ? { quantity: item.quantity }
-            : { identifiers: item.identifiers }),
-          ...(item.recognitionKey ? { recognitionKey: item.recognitionKey } : {}),
-        })),
+        items: purchaseItems(lines),
       }),
-    onSuccess: (res) => {
-      const rejected = res.rejected ?? [];
-      setRefused(rejected);
-      if (res.purchaseId === null) {
-        // Nothing was written. Keep the delivery on screen so it can be fixed.
+    onSuccess: (res, lines) => {
+      setUncertain(false);
+      const outcome = settle(lines, res);
+      setRefused(res.rejected ?? []);
+
+      if (outcome.outcome === 'none') {
+        // Nothing was written. The delivery stays, unchanged, for correction.
         toast.error(t('receive.refused.none'));
         return;
       }
-      const refusedIds = new Set(rejected.map((r) => r.identifier));
-      const refusedUnits = staged.reduce(
-        (n, item) => n + (item.identifiers?.filter((id) => refusedIds.has(id)).length ?? 0),
-        0,
-      );
-      setDone({ response: res, units: unitTotal - refusedUnits });
-      setStaged([]);
-      draft.clear();
+
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
-      // The Stock screen's per-variant counts move with every sale and delivery.
       qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
+      const received = outcome.receivedUnits + outcome.receivedPieces;
+
+      if (outcome.outcome === 'partial') {
+        // Received lines leave the phone; refused ones stay for correction. The
+        // old key now names a purchase that exists, so the rest needs a new one.
+        setStaged(outcome.remaining);
+        setPartialUnits(received);
+        setClientUuid(uuidv4());
+        return;
+      }
+
+      setPartialUnits(null);
+      setDone({ response: res, units: received });
+      setStaged([]);
+      draft.clear();
     },
-    onError: (e) => toast.error(toErrorMessage(e)),
+    onError: (e) => {
+      if (e instanceof ApiError && e.status === 409 && /already used/i.test(e.message)) {
+        void dialog.alert({ title: t('receive.uncertain.title'), message: t('receive.keyConflict') });
+        return;
+      }
+      if (isUncertain(e)) {
+        setUncertain(true);
+        return;
+      }
+      toast.error(toErrorMessage(e));
+    },
   });
 
   const confirmLeave = async () => {
@@ -376,22 +551,43 @@ export default function ReceiveScreen() {
               fullWidth
               onPress={() => {
                 // A new delivery is a new logical action, so a new key.
-                clientUuid.current = uuidv4();
+                setClientUuid(uuidv4());
                 setRefused([]);
                 setDone(null);
               }}
             />
-            <Button
-              title={t('action.done')}
-              variant="secondary"
-              fullWidth
-              onPress={() => router.back()}
-            />
+            <Button title={t('action.done')} variant="secondary" fullWidth onPress={() => router.back()} />
           </View>
         </View>
       </Screen>
     );
   }
+
+  const existing = pending?.existing;
+  const sheetNotice = existing
+    ? {
+        tone: 'danger' as const,
+        message: existing.conflictingUnits
+          ? t('receive.existing.conflict')
+          : existing.unit
+            ? `${t('receive.existing.title')} — ${t('receive.existing.here', {
+                product: existing.unit.productLabel,
+                branch: existing.unit.branchName,
+              })}`
+            : t('receive.existing.elsewhere'),
+      }
+    : pending?.notice;
+  const recovery =
+    existing?.unit && pending
+      ? {
+          label: t('receive.existing.open'),
+          onPress: () => {
+            const identifier = pending.result.code;
+            setPending(null);
+            router.push({ pathname: '/unit/[identifier]', params: { identifier } });
+          },
+        }
+      : undefined;
 
   return (
     <>
@@ -405,14 +601,18 @@ export default function ReceiveScreen() {
               variant="secondary"
               icon={Truck}
               fullWidth
+              disabled={uncertain}
               onPress={() => setSupplierOpen(true)}
             />
-            <ScanTarget
-              onResult={onScanResult}
-              placeholder={t('receive.scan.placeholder')}
-              mode="continuous"
-              scannedCount={unitTotal}
-            />
+            {!uncertain ? (
+              <ScanTarget
+                onResult={onScanResult}
+                onImeiAccepted={onImeiAccepted}
+                placeholder={t('receive.scan.placeholder')}
+                mode="continuous"
+                scannedCount={unitTotal}
+              />
+            ) : null}
           </>
         }
         footer={
@@ -425,12 +625,12 @@ export default function ReceiveScreen() {
                 <Text variant="title">{formatMoney(costTotal)}</Text>
               </View>
               <Button
-                title={t('receive.finish')}
+                title={uncertain ? t('receive.uncertain.retry') : t('receive.finish')}
                 size="lg"
                 fullWidth
                 loading={finish.isPending}
                 disabled={!supplier}
-                onPress={() => finish.mutate()}
+                onPress={() => finish.mutate(staged)}
               />
               {!supplier ? (
                 <Text variant="caption" tone="warning" align="center">
@@ -446,39 +646,43 @@ export default function ReceiveScreen() {
             headerShown: true,
             title: t('receive.title'),
             headerBackVisible: false,
-            headerLeft: () => (
-              <Button
-                title={t('action.back')}
-                variant="tertiary"
-                size="sm"
-                onPress={confirmLeave}
-              />
-            ),
+            headerLeft: () => <Button title={t('action.back')} variant="tertiary" size="sm" onPress={confirmLeave} />,
           }}
         />
 
-        {staged.length === 0 ? (
-          <EmptyState
-            icon={PackagePlus}
-            title={t('receive.empty.title')}
-            body={t('receive.empty.body')}
-          />
+        {staged.length === 0 && partialUnits === null ? (
+          <EmptyState icon={PackagePlus} title={t('receive.empty.title')} body={t('receive.empty.body')} />
         ) : (
           <ScrollView
             contentContainerStyle={styles.list}
             keyboardShouldPersistTaps="handled"
-            // Dragging the list puts the keyboard away, the same as on Sell.
-            // Without it this was the one scrollable on a scan page where a
-            // scroll left the keyboard sitting over the content being scrolled.
             keyboardDismissMode="on-drag"
           >
             <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setSupplier(null); }} />
-            <RefusedNotice lines={refused} />
-            <Text variant="label" tone="tertiary">
-              {t('receive.session')}
-            </Text>
+            {uncertain ? (
+              <InlineNotice tone="warning" title={t('receive.uncertain.title')}>
+                {t('receive.uncertain.body')}
+              </InlineNotice>
+            ) : null}
+            {partialUnits !== null ? (
+              <InlineNotice tone="info" title={t('receive.partial.title')}>
+                {t('receive.partial.body', { units: partialUnits })}
+              </InlineNotice>
+            ) : null}
+            <RefusedNotice lines={refused} retry={staged.length > 0} />
+            {staged.length > 0 ? (
+              <Text variant="label" tone="tertiary">
+                {t('receive.session')}
+              </Text>
+            ) : null}
             {staged.map((item) => (
-              <StagedItemRow key={item.key} item={item} onRemove={removeStaged} />
+              <StagedItemRow
+                key={item.key}
+                item={item}
+                locked={uncertain || finish.isPending}
+                onRemove={removeStaged}
+                onAddSecondary={(key, identifier) => setImei2Target({ key, identifier })}
+              />
             ))}
           </ScrollView>
         )}
@@ -504,57 +708,84 @@ export default function ReceiveScreen() {
       />
 
       <ReceiveItemSheet
-        open={Boolean(pending)}
+        open={Boolean(pending) && !pickerOpen}
         result={pending?.result ?? null}
         suggestion={pending?.suggestion ?? null}
-        notice={pending?.notice}
+        secondary={pending?.secondary ?? null}
+        notice={sheetNotice}
+        recovery={recovery}
+        lines={staged}
         onClose={() => setPending(null)}
         onAdd={addStaged}
-        onCreateProduct={() => {
-          /*
-           * The scan must survive the detour. It used to be dropped here, so
-           * the user came back to an empty screen and scanned the phone again.
-           *
-           * Only a GENUINE product barcode is handed to the product form. An
-           * IMEI identifies one phone, never a model — putting it in the
-           * Product barcode box would poison recognition for every unit of
-           * that model, and is not a way to solve lost state.
-           */
-          const result = pending?.result;
-          const isImei = result?.kind === 'imei';
-          const barcode = result && result.kind === 'barcode' ? result.code : null;
-          if (scope && result) {
-            holdPendingIntake(
-              pendingFrom(scope, {
-                imei: isImei ? { primary: result.code, secondary: null } : null,
-                productBarcode: barcode,
-              }),
-            );
-          }
-          setPending(null);
-          router.push(
-            barcode
-              ? (`/catalog/new?barcode=${encodeURIComponent(barcode)}` as never)
-              : '/catalog/new',
-          );
-        }}
+        onCreateProduct={createProduct}
+        onChooseProduct={() => setPickerOpen(true)}
+        lookUp={lookUp}
       />
+
+      <SelectSheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('receive.chooseProduct.title')}
+        items={products.data?.rows ?? []}
+        keyExtractor={(p) => p.id}
+        labelExtractor={(p) => [p.brand, p.model].filter(Boolean).join(' ')}
+        descriptionExtractor={(p) => p.variant ?? undefined}
+        leadingIcon={Package}
+        selectedKeys={pending?.suggestion ? [pending.suggestion.productId] : []}
+        searchPlaceholder={t('receive.chooseProduct.search')}
+        onSearchChange={setProductQuery}
+        loading={products.isLoading}
+        error={products.error}
+        onRetry={() => products.refetch()}
+        onSelect={(row) => void pickProduct(row)}
+      />
+
+      <BottomSheet
+        open={Boolean(imei2Target)}
+        onClose={closeImei2}
+        title={imei2Target ? t('receive.imei2.title', { imei: imei2Target.identifier }) : undefined}
+      >
+        <View style={styles.imei2}>
+          <TextField
+            label={t('receive.imei2.label')}
+            hint={t('receive.imei2.hint')}
+            value={imei2Value}
+            onChangeText={(text) => {
+              setImei2Value(text.replace(/[^0-9]/g, '').slice(0, 15));
+              setImei2Error(undefined);
+            }}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={15}
+            error={imei2Error}
+          />
+          <Button
+            title={t('receive.imei2.save')}
+            fullWidth
+            loading={imei2Checking}
+            disabled={imei2Value.length !== 15}
+            onPress={() => void saveImei2()}
+          />
+        </View>
+      </BottomSheet>
     </>
   );
 }
 
-/** Each refused identifier with its reason, in words. Renders nothing when empty. */
-function RefusedNotice({ lines }: { lines: RejectedLine[] }) {
+/** Each refused phone with its reason, in words. Renders nothing when empty. */
+function RefusedNotice({ lines, retry = false }: { lines: RejectedLine[]; retry?: boolean }) {
   const { t } = useTranslation();
   if (lines.length === 0) return null;
+  const body = lines
+    .map((line) => {
+      const key = REFUSAL_KEYS[line.reason as keyof typeof REFUSAL_KEYS] ?? 'receive.refused.other';
+      const ids = line.secondary ? `${isolateLtr(line.identifier)} / ${isolateLtr(line.secondary)}` : isolateLtr(line.identifier);
+      return `${ids} — ${t(key)}`;
+    })
+    .join('\n');
   return (
     <InlineNotice tone="danger" title={t('receive.refused.title')}>
-      {lines
-        .map((line) => {
-          const key = REFUSAL_KEYS[line.reason as keyof typeof REFUSAL_KEYS] ?? 'receive.refused.other';
-          return `${isolateLtr(line.identifier)} — ${t(key)}`;
-        })
-        .join('\n')}
+      {retry ? `${body}\n${t('receive.refused.retry')}` : body}
     </InlineNotice>
   );
 }
@@ -591,5 +822,8 @@ const useStyles = makeStyles((colors) => ({
     maxWidth: 380,
     gap: space.sm,
     marginTop: space.lg,
+  },
+  imei2: {
+    gap: space.md,
   },
 }));

@@ -201,7 +201,10 @@ export interface ScanResult {
    * thing, so the question does not apply to it.
    */
   inventory: ScanInventoryMatch | null;
+  /** English, for older clients. Never shown — translate `hintCode`. */
   hint?: string;
+  hintCode?: string;
+  hintParams?: Record<string, string>;
 }
 
 /** What the server will say about an identifier it has seen before. */

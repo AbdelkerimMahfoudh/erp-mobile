@@ -161,11 +161,13 @@ it('gates Receive stock on the same permission as Home', () => {
 
 it('never calls a refused delivery received', () => {
   const receive = withoutComments(source('app/receive.tsx'));
+  // The server's answer decides, through the proved rules in lib/receive-outcome.
+  assert.match(receive, /const outcome = settle\(lines, res\);/);
   // All refused: nothing written, the delivery stays on screen.
-  assert.match(receive, /if \(res\.purchaseId === null\) \{[\s\S]*?toast\.error\(t\('receive\.refused\.none'\)\);[\s\S]*?return;/);
-  // Partly refused: the count excludes refused identifiers, and they are listed.
-  assert.match(receive, /setDone\(\{ response: res, units: unitTotal - refusedUnits \}\)/);
-  assert.match(receive, /<RefusedNotice lines=\{refused\} \/>/);
+  assert.match(receive, /if \(outcome\.outcome === 'none'\) \{[\s\S]*?toast\.error\(t\('receive\.refused\.none'\)\);[\s\S]*?return;/);
+  // Received counts come from what the server named, and refused lines are listed.
+  assert.match(receive, /const received = outcome\.receivedUnits \+ outcome\.receivedPieces;/);
+  assert.match(receive, /<RefusedNotice lines=\{refused\}/);
   for (const lang of ['en', 'fr', 'ar']) {
     const locale = source(`lib/i18n/${lang}.ts`);
     for (const key of ['receive.refused.title', 'receive.refused.none', 'receive.refused.alreadyRegistered', 'receive.refused.duplicateInBatch', 'receive.refused.other']) {
