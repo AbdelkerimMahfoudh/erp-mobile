@@ -232,6 +232,48 @@ export const HUBS: readonly Hub[] = [
 ];
 
 /**
+ * How More presents the destinations: grouped sections, one tap to a screen.
+ *
+ * The hubs above still own membership, permissions and the `/hub/[id]` deep
+ * links; this is only the order and grouping More shows. It names destinations
+ * by id, so it cannot introduce a route, and the drift test requires every
+ * business and account destination to appear here exactly once. Money is a tab
+ * and is deliberately absent.
+ */
+export type MoreGroupId = 'store' | 'team' | 'products' | 'reports' | 'security' | 'appearance' | 'account';
+
+export interface MoreGroup {
+  readonly id: MoreGroupId;
+  readonly titleKey: TranslationKey;
+  readonly destinationIds: readonly string[];
+}
+
+export const MORE_GROUPS: readonly MoreGroup[] = [
+  {
+    id: 'store',
+    titleKey: 'more.group.store',
+    destinationIds: ['sales', 'returns', 'approvals', 'transfers', 'suppliers', 'imports', 'stores', 'consignments'],
+  },
+  { id: 'team', titleKey: 'more.group.team', destinationIds: ['team', 'goals'] },
+  { id: 'products', titleKey: 'more.group.products', destinationIds: ['catalog', 'settings'] },
+  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics'] },
+  { id: 'security', titleKey: 'more.group.security', destinationIds: ['devices', 'sync'] },
+  { id: 'appearance', titleKey: 'more.group.appearance', destinationIds: ['appearance'] },
+  { id: 'account', titleKey: 'more.group.account', destinationIds: ['subscription'] },
+];
+
+/** The More groups this user may be offered, each with its permitted destinations; empty groups omitted. */
+export function visibleGroups(granted: ReadonlySet<string>): { group: MoreGroup; destinations: Destination[] }[] {
+  const byId = new Map(allDestinations().map((d) => [d.id, d]));
+  return MORE_GROUPS.map((group) => ({
+    group,
+    destinations: group.destinationIds
+      .map((id) => byId.get(id))
+      .filter((d): d is Destination => d !== undefined && canSee(d, granted)),
+  })).filter((entry) => entry.destinations.length > 0);
+}
+
+/**
  * Routes that exist but are deliberately not hub children, each with the reason.
  *
  * The drift test refuses an unclassified route, so adding a screen forces a

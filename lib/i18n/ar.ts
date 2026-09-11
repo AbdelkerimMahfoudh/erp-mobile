@@ -355,6 +355,13 @@ export const ar: Catalogue = {
   // ── قائمة المزيد ──────────────────────────────────────────────────────────
   'more.manage': 'الإدارة',
   'more.account': 'الحساب',
+  'more.group.store': 'المتجر',
+  'more.group.team': 'الفريق',
+  'more.group.products': 'المنتجات والإعدادات',
+  'more.group.reports': 'التقارير',
+  'more.group.security': 'الأمان',
+  'more.group.appearance': 'اللغة والمظهر',
+  'more.group.account': 'الحساب',
   'nav.catalog': 'الكتالوج',
   'nav.team': 'الفريق',
   'nav.analytics': 'التحليلات',

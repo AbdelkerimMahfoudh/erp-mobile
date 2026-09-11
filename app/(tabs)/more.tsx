@@ -20,7 +20,7 @@ import { mirror } from '../../lib/design/direction';
 import { useEntitlement } from '../../lib/entitlement';
 import { useTranslation } from '../../lib/i18n';
 import { subscriptionNotice, syncNotice } from '../../lib/navigation/notices';
-import { visibleHubs } from '../../lib/navigation/registry';
+import { visibleGroups } from '../../lib/navigation/registry';
 import { useQueue } from '../../lib/offline/queue';
 import { usePermissionStore } from '../../lib/permissions';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -49,8 +49,9 @@ export default function MoreScreen() {
   const { signOut } = useAuth();
   const granted = usePermissionStore((s) => s.granted);
 
-  const business = visibleHubs(granted, 'business');
-  const account = visibleHubs(granted, 'account');
+  // Grouped sections, one tap to a screen. Membership and permissions still come
+  // from the registry; this screen decides nothing about who sees what.
+  const groups = visibleGroups(granted);
 
   return (
     <Screen>
@@ -74,46 +75,27 @@ export default function MoreScreen() {
       <SyncNotice />
       <SubscriptionNotice />
 
-      {business.length > 0 ? (
-        <>
-          <SectionLabel>{t('more.manage')}</SectionLabel>
-          {/*
-            One grouped list, not one card per destination.
-
-            A menu of six bordered boxes reads as six decisions of equal weight;
-            a grouped list reads as a menu, which is what it is. The grouping
-            itself still comes from `lib/navigation/registry.ts` — this file
-            decides nothing about who sees what, so the completed navigation
-            organisation is unchanged and only its presentation moved.
-          */}
+      {/*
+        One grouped list per section, each row a real screen. The previous
+        hub rows cost a second tap to reach anything; the section names now do
+        the organising that the hub screens did. Old /hub/<id> links still work.
+      */}
+      {groups.map(({ group, destinations }) => (
+        <React.Fragment key={group.id}>
+          <SectionLabel>{t(group.titleKey)}</SectionLabel>
           <RowGroup>
-            {business.map(({ hub }) => (
+            {destinations.map((d) => (
               <ListRow
-                key={hub.id}
+                key={d.id}
                 flat
-                title={t(hub.titleKey)}
-                subtitle={t(hub.descriptionKey)}
-                leading={HUB_ICONS[hub.icon]}
-                onPress={() => router.push(`/hub/${hub.id}` as Href)}
+                title={t(d.titleKey)}
+                leading={HUB_ICONS[d.icon]}
+                onPress={() => router.push(d.route as Href)}
               />
             ))}
           </RowGroup>
-        </>
-      ) : null}
-
-      <SectionLabel>{t('more.account')}</SectionLabel>
-      <RowGroup>
-        {account.map(({ hub }) => (
-          <ListRow
-            key={hub.id}
-            flat
-            title={t(hub.titleKey)}
-            subtitle={t(hub.descriptionKey)}
-            leading={HUB_ICONS[hub.icon]}
-            onPress={() => router.push(`/hub/${hub.id}` as Href)}
-          />
-        ))}
-      </RowGroup>
+        </React.Fragment>
+      ))}
 
       {/*
         Sign out is deliberately NOT in the group above.

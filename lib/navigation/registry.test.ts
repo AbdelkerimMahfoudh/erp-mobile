@@ -28,11 +28,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   HUBS,
+  MORE_GROUPS,
   EXCLUDED_ROUTES,
   allDestinations,
   canSee,
   hubById,
   visibleChildren,
+  visibleGroups,
   visibleHubs,
   tabHub,
   tabHubIsVisible,
@@ -600,5 +602,49 @@ it('Money is named in all three languages', () => {
   }
 });
 
+
+// ── More as grouped sections (checkpoint 3e) ────────────────────────────────
+
+it('More groups name every business and account destination exactly once, and nothing else', () => {
+  const expected = HUBS.filter((h) => h.placement !== 'tab')
+    .flatMap((h) => h.children.map((c) => c.id))
+    .sort();
+  const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
+  assert.equal(new Set(grouped).size, grouped.length, 'a destination is in two More groups');
+  assert.deepEqual([...grouped].sort(), expected, 'More groups must cover exactly the non-tab destinations');
+});
+
+it('Money stays a tab: none of its children is on More', () => {
+  const money = hubById('money')!.children.map((c) => c.id);
+  const grouped = new Set(MORE_GROUPS.flatMap((g) => g.destinationIds));
+  for (const id of money) assert.ok(!grouped.has(id), id + ' must not be duplicated on More');
+});
+
+it('the groups follow the requested order', () => {
+  assert.deepEqual(
+    MORE_GROUPS.map((g) => g.id),
+    ['store', 'team', 'products', 'reports', 'security', 'appearance', 'account'],
+  );
+});
+
+it('groups show only permitted destinations and never render empty', () => {
+  for (const granted of [OWNER, MANAGER, EMPLOYEE, new Set<string>()]) {
+    for (const entry of visibleGroups(granted)) {
+      assert.ok(entry.destinations.length > 0, entry.group.id + ' rendered empty');
+      for (const d of entry.destinations) assert.ok(canSee(d, granted), d.id + ' shown without permission');
+    }
+  }
+  const employee = visibleGroups(EMPLOYEE).map((e) => e.group.id);
+  assert.ok(!employee.includes('reports'), 'an Employee has no report.view');
+  const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'team')!.destinations.map((d) => d.id);
+  assert.deepEqual(manager, ['goals'], 'a Manager holds no user.manage');
+});
+
+it('every More group name exists in all three catalogues', () => {
+  for (const locale of ['en', 'ar', 'fr']) {
+    const src = fs.readFileSync(path.join(MOBILE, 'lib', 'i18n', locale + '.ts'), 'utf8');
+    for (const g of MORE_GROUPS) assert.ok(src.includes(`'${g.titleKey}':`), locale + ' is missing ' + g.titleKey);
+  }
+});
 
 console.log('\n' + passed + ' passed');

@@ -360,6 +360,13 @@ export const en = {
   // ── More menu ─────────────────────────────────────────────────────────────
   'more.manage': 'Manage',
   'more.account': 'Account',
+  'more.group.store': 'Store',
+  'more.group.team': 'Team',
+  'more.group.products': 'Products and settings',
+  'more.group.reports': 'Reports',
+  'more.group.security': 'Security',
+  'more.group.appearance': 'Language and appearance',
+  'more.group.account': 'Account',
   'nav.catalog': 'Catalog',
   'nav.team': 'Team',
   'nav.analytics': 'Analytics',

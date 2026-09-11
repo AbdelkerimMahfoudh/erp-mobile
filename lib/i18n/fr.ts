@@ -392,6 +392,13 @@ export const fr: Catalogue = {
   // ── More menu ─────────────────────────────────────────────────────────────
   'more.manage': 'Gérer',
   'more.account': 'Compte',
+  'more.group.store': 'Boutique',
+  'more.group.team': 'Équipe',
+  'more.group.products': 'Produits et réglages',
+  'more.group.reports': 'Rapports',
+  'more.group.security': 'Sécurité',
+  'more.group.appearance': 'Langue et apparence',
+  'more.group.account': 'Compte',
   'nav.catalog': 'Catalogue',
   'nav.team': 'Équipe',
   'nav.analytics': 'Analyses',
