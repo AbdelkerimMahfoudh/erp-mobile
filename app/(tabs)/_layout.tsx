@@ -9,6 +9,7 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
 import { tabHubIsVisible } from '../../lib/navigation/registry';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { type as typeScale } from '../../lib/design/tokens';
 
 /** Icon plus label, above the safe area; measured to fit an 11pt label. */
 const TAB_BAR_CONTENT = 64;
@@ -89,7 +90,7 @@ export default function TabsLayout() {
         // An explicit line height that may not shrink: the label is an
         // overflow-hidden box, and when the item was short it was squeezed to
         // 9 of the 15 points its glyphs need.
-        tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: '600', flexShrink: 0 },
+        tabBarLabelStyle: { ...typeScale.tabLabel, flexShrink: 0 },
         // The scene behind each tab. Unset, the navigator paints its own
         // light default, which ignores the theme entirely.
         sceneStyle: { backgroundColor: colors.surface.canvas },

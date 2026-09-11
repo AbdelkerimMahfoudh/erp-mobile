@@ -104,7 +104,7 @@ function ToastCard({ toast }: { toast: Toast }) {
             actionPress.pressed ? { opacity: 0.6 } : null,
           ]}
         >
-          <Text variant="label" style={{ color: palette.fg, fontWeight: '700' }}>
+          <Text variant="labelStrong" style={{ color: palette.fg }}>
             {toast.action.label}
           </Text>
         </Pressable>

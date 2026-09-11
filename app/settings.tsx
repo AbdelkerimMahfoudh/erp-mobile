@@ -23,7 +23,7 @@ import {
 } from '../components/ui';
 import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
-import { space } from '../lib/design/tokens';
+import { space, type as typeScale } from '../lib/design/tokens';
 import { toFriendlyError } from '../lib/errors';
 import { useTranslation } from '../lib/i18n';
 import { useAuth } from '../hooks/useAuth';
@@ -712,6 +712,6 @@ const styles = StyleSheet.create({
   list: { gap: space.sm },
   lockList: { gap: space.sm, marginTop: space.md },
   sheet: { gap: space.base },
-  storeIdValue: { fontSize: 20, letterSpacing: 2 },
+  storeIdValue: { fontSize: typeScale.title.fontSize, lineHeight: typeScale.title.lineHeight, letterSpacing: 2 },
   storeIdRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { useColors } from '../../lib/design/theme';
+import { space } from '../../lib/design/tokens';
 import { forgetContinuation, readContinuation } from '../../lib/registration-session';
 import { openAccountPortal } from '../../lib/portal';
 import type { AuthTokens } from '../../types/api';
@@ -111,13 +112,13 @@ export default function VerifyScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.surface.canvas }}>
+    <SafeAreaView style={[styles.fill, { backgroundColor: colors.surface.canvas }]}>
       <Stack.Screen options={{ headerShown: true, title: t('register.verify.title') }} />
       <KeyboardAvoidingView
-        className="flex-1"
+        style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerClassName="p-5 gap-5" keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text variant="body" tone="secondary">
             {t('register.verify.sent', { destination: destination ?? '' })}
           </Text>
@@ -144,7 +145,7 @@ export default function VerifyScreen() {
             </Text>
           ) : null}
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Button
               title={t('register.verify.confirm')}
               onPress={() => void confirm()}
@@ -186,3 +187,9 @@ export default function VerifyScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  content: { padding: space.lg, gap: space.lg },
+  group: { gap: space.md },
+});

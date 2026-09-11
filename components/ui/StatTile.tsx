@@ -86,7 +86,7 @@ export function StatTile({
 
   const content = (pressed: boolean) => (
     <View style={[styles.tile, pressed ? styles.pressed : null, style]}>
-      <Text variant="caption" tone="tertiary" numberOfLines={1} style={styles.label}>
+      <Text variant="captionStrong" tone="tertiary" numberOfLines={1} style={styles.label}>
         {label}
       </Text>
 
@@ -163,7 +163,7 @@ function Trend({ trend }: { trend: StatTrend }) {
   return (
     <View style={styles.trend}>
       <Icon color={color} size={13} />
-      <Text variant="caption" numberOfLines={1} style={{ color, fontWeight: '600' }}>
+      <Text variant="captionStrong" numberOfLines={1} style={{ color }}>
         {label}
       </Text>
     </View>
@@ -189,7 +189,6 @@ const useStyles = makeStyles((colors) => ({
   label: {
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    fontWeight: '600',
   },
   restricted: {
     flexDirection: 'row',

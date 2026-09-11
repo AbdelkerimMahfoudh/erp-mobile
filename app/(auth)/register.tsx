@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
@@ -7,6 +7,7 @@ import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { useColors } from '../../lib/design/theme';
+import { space } from '../../lib/design/tokens';
 import { uuidv4 } from '../../lib/utils';
 import {
   emptyRegistration,
@@ -112,14 +113,14 @@ export default function RegisterScreen() {
     problems[key] ? t(problems[key] as never) : undefined;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.surface.canvas }}>
+    <SafeAreaView style={[styles.fill, { backgroundColor: colors.surface.canvas }]}>
       <Stack.Screen options={{ headerShown: true, title: t('register.title') }} />
       <KeyboardAvoidingView
-        className="flex-1"
+        style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerClassName="p-5 gap-5"
+          contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
@@ -127,7 +128,7 @@ export default function RegisterScreen() {
             {t('register.subtitle')}
           </Text>
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Text variant="label">{t('register.section.business')}</Text>
             <Field
               label={t('register.field.businessName')}
@@ -153,7 +154,7 @@ export default function RegisterScreen() {
             />
           </View>
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Text variant="label">{t('register.section.owner')}</Text>
             <Field
               label={t('register.field.ownerName')}
@@ -165,7 +166,7 @@ export default function RegisterScreen() {
             />
           </View>
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Text variant="label">{t('register.section.contact')}</Text>
             <Text variant="caption" tone="secondary">
               {t('register.contact.hint')}
@@ -194,7 +195,7 @@ export default function RegisterScreen() {
             ) : null}
           </View>
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Text variant="label">{t('register.section.password')}</Text>
             <Field
               label={t('register.field.password')}
@@ -223,7 +224,7 @@ export default function RegisterScreen() {
             </Text>
           ) : null}
 
-          <View className="gap-3">
+          <View style={styles.group}>
             <Button
               title={submitting ? t('register.creating') : t('register.submit')}
               onPress={() => void submit()}
@@ -250,3 +251,9 @@ export default function RegisterScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  content: { padding: space.lg, gap: space.lg },
+  group: { gap: space.md },
+});

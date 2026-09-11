@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
-import { AuthLanguageSwitch, Button, Field } from '../../components/ui';
+import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { looksSubmittable } from '../../lib/identifier';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
-import { useColors } from '../../lib/design/theme';
+import { makeStyles, useColors } from '../../lib/design/theme';
+import { radius, space } from '../../lib/design/tokens';
 
 /**
  * Signing in.
@@ -35,6 +36,7 @@ import { useColors } from '../../lib/design/theme';
  */
 export default function Login() {
   const colors = useColors();
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
@@ -125,18 +127,19 @@ export default function Login() {
   const canSubmit = looksSubmittable(identifier) && password.length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View className="flex-1 justify-center px-6">
-          <View className="mb-8 items-center">
-            <View
-              className="h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: colors.intent.info.solid }}
-            >
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
+        <View style={styles.page}>
+          <View style={styles.brand}>
+            <View style={styles.logo}>
               <Store color={colors.text.inverse} size={30} />
             </View>
-            <Text className="mt-4 text-2xl font-bold" style={{ color: colors.text.primary }}>{t('auth.title')}</Text>
-            <Text className="mt-1" style={{ color: colors.text.secondary }}>{t('auth.subtitle')}</Text>
+            <Text variant="title" align="center" accessibilityRole="header">
+              {t('auth.title')}
+            </Text>
+            <Text variant="body" tone="secondary" align="center">
+              {t('auth.subtitle')}
+            </Text>
           </View>
 
           {choice ? (
@@ -146,11 +149,13 @@ export default function Login() {
               Store ID up front, which would put this rare case's cost on
               everybody, every day.
             */
-            <View className="gap-4">
-              <Text className="text-center text-base font-semibold" style={{ color: colors.text.primary }}>
+            <View style={styles.stack}>
+              <Text variant="heading" align="center">
                 {t('auth.choose.title')}
               </Text>
-              <Text className="text-center text-sm" style={{ color: colors.text.secondary }}>{t('auth.choose.body')}</Text>
+              <Text variant="label" tone="secondary" align="center">
+                {t('auth.choose.body')}
+              </Text>
               {choice.accounts.map((a) => (
                 <Button
                   key={a.accountRef}
@@ -161,7 +166,9 @@ export default function Login() {
                 />
               ))}
               {inlineError ? (
-                <Text className="text-center text-sm" style={{ color: colors.intent.danger.fg }}>{inlineError}</Text>
+                <Text variant="label" tone="danger" align="center">
+                  {inlineError}
+                </Text>
               ) : null}
               <Button
                 title={t('auth.choose.cancel')}
@@ -174,82 +181,111 @@ export default function Login() {
               />
             </View>
           ) : (
-          <View className="gap-4">
-            <Field
-              label={t('auth.field.identifier')}
-              hint={t('auth.field.identifier.hint')}
-              /*
-                A general keyboard, NOT a phone pad: the same field has to
-                accept an email address, and a numeric keyboard would make that
-                impossible to type. `email-address` is wrong for the same
-                reason in reverse — it would make the number awkward.
-              */
-              keyboardType="default"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="username"
-              textContentType="username"
-              value={identifier}
-              onChangeText={setIdentifier}
-            />
-            <Field
-              label={t('auth.field.password')}
-              /* Field renders its own show/hide control for a secure input. */
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-              value={password}
-              onChangeText={setPassword}
-              onSubmitEditing={onSubmit}
-            />
+            <View style={styles.stack}>
+              <Field
+                label={t('auth.field.identifier')}
+                hint={t('auth.field.identifier.hint')}
+                /*
+                  A general keyboard, NOT a phone pad: the same field has to
+                  accept an email address, and a numeric keyboard would make that
+                  impossible to type. `email-address` is wrong for the same
+                  reason in reverse — it would make the number awkward.
+                */
+                keyboardType="default"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                textContentType="username"
+                value={identifier}
+                onChangeText={setIdentifier}
+              />
+              <Field
+                label={t('auth.field.password')}
+                /* Field renders its own show/hide control for a secure input. */
+                secureTextEntry
+                autoComplete="current-password"
+                textContentType="password"
+                value={password}
+                onChangeText={setPassword}
+                onSubmitEditing={onSubmit}
+              />
 
-            {/* Blocking, translated device-verification state. No Continue /
-                Retry as new device / Send code action — none of those exist. */}
-            {failure === 'device_verification_required' ? (
-              <View className="rounded-xl border p-4" style={{ borderColor: colors.intent.warning.border, backgroundColor: colors.intent.warning.bg }}>
-                <Text className="text-center text-base font-semibold" style={{ color: colors.intent.warning.fg }}>
-                  {t('auth.device.title')}
-                </Text>
-                <Text className="mt-2 text-center text-sm leading-5" style={{ color: colors.intent.warning.fg }}>
+              {/* Blocking, translated device-verification state. No Continue /
+                  Retry as new device / Send code action — none of those exist. */}
+              {failure === 'device_verification_required' ? (
+                <InlineNotice tone="warning" title={t('auth.device.title')}>
                   {t('auth.device.body')}
+                </InlineNotice>
+              ) : inlineError ? (
+                <Text variant="label" tone="danger" align="center">
+                  {inlineError}
                 </Text>
-              </View>
-            ) : inlineError ? (
-              <Text className="text-center text-sm" style={{ color: colors.intent.danger.fg }}>{inlineError}</Text>
-            ) : null}
+              ) : null}
 
-            <Button
-              title={t('auth.action.signIn')}
-              onPress={onSubmit}
-              loading={loading}
-              disabled={!canSubmit || loading}
-            />
+              <Button
+                title={t('auth.action.signIn')}
+                onPress={onSubmit}
+                loading={loading}
+                disabled={!canSubmit || loading}
+              />
 
-            {/*
-              A clear SECONDARY action. Somebody whose shop has no account
-              yet currently has nowhere to go from this screen at all, and
-              the answer to "how do I get one" should not be a phone call.
-            */}
-            <Button
-              title={t('auth.action.createAccount')}
-              variant="secondary"
-              onPress={onCreateAccount}
-            />
+              {/*
+                A clear SECONDARY action. Somebody whose shop has no account
+                yet currently has nowhere to go from this screen at all, and
+                the answer to "how do I get one" should not be a phone call.
+              */}
+              <Button
+                title={t('auth.action.createAccount')}
+                variant="secondary"
+                onPress={onCreateAccount}
+              />
 
-            {/*
-              Last on the screen, and the first thing somebody needs.
+              {/*
+                Last on the screen, and the first thing somebody needs.
 
-              A person handed a phone in a language they cannot read cannot sign
-              in to change the language, and could not change the language
-              without signing in — the setting lived behind this screen. It sits
-              below the actions because it is not the task; it is the way out of
-              being unable to start the task.
-            */}
-            <AuthLanguageSwitch />
-          </View>
+                A person handed a phone in a language they cannot read cannot sign
+                in to change the language, and could not change the language
+                without signing in — the setting lived behind this screen. It sits
+                below the actions because it is not the task; it is the way out of
+                being unable to start the task.
+              */}
+              <AuthLanguageSwitch />
+            </View>
           )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const useStyles = makeStyles((colors) => ({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.surface.canvas,
+  },
+  fill: {
+    flex: 1,
+  },
+  page: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: space.xl,
+  },
+  brand: {
+    alignItems: 'center',
+    gap: space.xs,
+    marginBottom: space['2xl'],
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.intent.info.solid,
+    marginBottom: space.md,
+  },
+  stack: {
+    gap: space.base,
+  },
+}));

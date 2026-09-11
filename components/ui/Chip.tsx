@@ -53,7 +53,7 @@ export function Chip({ label, tone = 'neutral', size = 'md', icon: Icon, dot = f
     >
       {dot ? <View style={[styles.dot, { backgroundColor: intent.fg }]} /> : null}
       {Icon ? <Icon color={intent.fg} size={s.icon} /> : null}
-      <Text variant="caption" style={{ color: intent.fg, fontWeight: '600' }} numberOfLines={1}>
+      <Text variant="captionStrong" style={{ color: intent.fg }} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -124,16 +124,16 @@ export function FilterChip({ label, selected, onPress, count, style }: FilterChi
       ]}
     >
       <Text
-        variant="label"
-        style={{ color: selected ? colors.text.inverse : colors.text.secondary, fontWeight: '600' }}
+        variant="labelStrong"
+        style={{ color: selected ? colors.text.inverse : colors.text.secondary }}
         numberOfLines={1}
       >
         {label}
       </Text>
       {count !== undefined ? (
         <Text
-          variant="caption"
-          style={{ color: selected ? colors.text.onSolidMuted : colors.text.tertiary, fontWeight: '600' }}
+          variant="captionStrong"
+          style={{ color: selected ? colors.text.onSolidMuted : colors.text.tertiary }}
         >
           {count}
         </Text>

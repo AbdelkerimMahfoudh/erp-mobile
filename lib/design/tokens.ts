@@ -40,7 +40,16 @@ export const type = {
   body: { fontSize: 15, lineHeight: 21, fontWeight: '400' },
   bodyStrong: { fontSize: 15, lineHeight: 21, fontWeight: '600' },
   label: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+  /** Filter pills, chips, toast actions — a label that has to be read at a glance. */
+  labelStrong: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
+  /** Status words inside chips, trend lines, small counts. */
+  captionStrong: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
+  /**
+   * Bottom-tab labels. Their own size because the bar's height is tuned to it:
+   * a fixed line height that cannot shrink, or the label clips (Stock pass).
+   */
+  tabLabel: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
   mono: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
 
   /**
