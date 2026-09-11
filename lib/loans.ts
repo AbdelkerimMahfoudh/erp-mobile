@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
 import { useBranch } from './branch';
+import type { TranslationKey } from './i18n';
 import { qk } from './query-keys';
 
 /**
@@ -199,6 +200,29 @@ export function useCreateLoan() {
  */
 export function iAmOwed(loan: Pick<LoanSummary, 'direction'>): boolean {
   return loan.direction === 'they_owe_us';
+}
+
+const LOAN_STATUSES = [
+  'proposed',
+  'counter_proposed',
+  'disputed',
+  'accepted',
+  'partially_paid',
+  'payment_awaiting_confirmation',
+  'settled',
+  'forgiven_settled',
+  'cancelled',
+] as const;
+
+/**
+ * The status in the reader's language. The server's `statusText` is English
+ * wording for its own messages; a screen shows this, and an unknown status says
+ * so rather than leaking a raw code.
+ */
+export function loanStatusLabel(status: string, t: (key: TranslationKey) => string): string {
+  return (LOAN_STATUSES as readonly string[]).includes(status)
+    ? t(`loans.status.${status}` as TranslationKey)
+    : t('loans.status.unknown');
 }
 
 export function groupTone(group: LoanGroup): 'warning' | 'info' | 'success' {

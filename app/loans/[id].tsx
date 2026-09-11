@@ -16,13 +16,17 @@ import {
   Text,
   TextField,
 } from '../../components/ui';
-import { ApiError } from '../../lib/api-client';
+import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
+import { toFriendlyError } from '../../lib/errors';
+import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { uuidv4 } from '../../lib/utils';
 import {
   directionTone,
+  groupTone,
+  loanStatusLabel,
   iAmOwed,
   useDecideLoan,
   useForgiveLoan,
@@ -79,7 +83,8 @@ export default function LoanDetailScreen() {
 
         <Card style={styles.card}>
           <View style={styles.head}>
-            <Text variant="bodyStrong">{loan.statusText}</Text>
+            {/* The status in words and colour, never the server's English sentence. */}
+            <Chip tone={groupTone(loan.group)} label={loanStatusLabel(loan.status, t)} size="sm" dot />
             {/* Which way round, in words and colour — never colour alone. */}
             <Chip
               tone={directionTone(loan.direction)}
@@ -101,7 +106,7 @@ export default function LoanDetailScreen() {
           {loan.principal != null ? (
             <Text variant="caption" tone="secondary">
               {/* The agreed figure, kept visible: it never changes again. */}
-              {t('loans.principal', { amount: String(loan.principal) })}
+              {t('loans.principal', { amount: isolateLtr(formatMoney(loan.principal)) })}
             </Text>
           ) : null}
 
@@ -112,7 +117,7 @@ export default function LoanDetailScreen() {
               has not received.
             */
             <InlineNotice tone="warning">
-              {t('loans.awaiting', { amount: String(b.awaitingConfirmation) })}
+              {t('loans.awaiting', { amount: isolateLtr(formatMoney(b.awaitingConfirmation)) })}
             </InlineNotice>
           ) : null}
 
@@ -219,7 +224,8 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
   const [reason, setReason] = useState('');
   const [reference, setReference] = useState('');
 
-  const fail = (e: unknown) => onError(e instanceof ApiError ? e.message : t('loans.failed'));
+  // The friendly, translated explanation — never the server's raw English message.
+  const fail = (e: unknown) => onError(toFriendlyError(e).body || t('loans.failed'));
   const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T) =>
     m.mutate({ id: loan.id, body }, { onError: fail });
 
@@ -307,7 +313,7 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
           <>
             <Divider style={styles.divider} />
             <Text variant="body">
-              {t('loans.confirmPayment.ask', { amount: String(unanswered.amount) })}
+              {t('loans.confirmPayment.ask', { amount: isolateLtr(formatMoney(unanswered.amount)) })}
             </Text>
             <Button
               title={t('loans.confirmPayment')}

@@ -8,10 +8,10 @@ import {
   EmptyState,
   ErrorState,
   ListRow,
+  FilterChip,
   ListSeparator,
   MoneyValue,
   Screen,
-  SegmentedControl,
   SkeletonList,
 } from '../../components/ui';
 import { space } from '../../lib/design/tokens';
@@ -19,6 +19,8 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { useExpenses } from '../../lib/expenses';
 import type { Expense, ExpenseStatus } from '../../types/api';
+
+const FILTERS = ['reported', 'confirmed', 'all'] as const;
 
 /**
  * What the shop has spent, and what is waiting on the Owner.
@@ -43,16 +45,15 @@ export default function ExpensesScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('expenses.title') }} />
 
-      <View style={styles.controls}>
-        <SegmentedControl
-          options={[
-            { value: 'reported', label: t('expenses.filter.reported') },
-            { value: 'confirmed', label: t('expenses.filter.confirmed') },
-            { value: 'all', label: t('expenses.filter.all') },
-          ]}
-          value={status}
-          onChange={(v) => setStatus(v as ExpenseStatus | 'all')}
-        />
+      <View style={styles.controls} accessibilityRole="radiogroup">
+        {FILTERS.map((value) => (
+          <FilterChip
+            key={value}
+            label={t(`expenses.filter.${value}`)}
+            selected={status === value}
+            onPress={() => setStatus(value)}
+          />
+        ))}
       </View>
 
       {query.isLoading ? (
@@ -120,7 +121,7 @@ function ExpenseRow({ expense, onPress }: { expense: Expense; onPress: () => voi
 }
 
 const styles = StyleSheet.create({
-  controls: { paddingBottom: space.sm },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, paddingBottom: space.sm },
   list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

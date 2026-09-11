@@ -4,20 +4,21 @@ import { Stack, useRouter } from 'expo-router';
 import { HandCoins, Plus } from 'lucide-react-native';
 import {
   Button,
-  Chip,
   EmptyState,
   ErrorState,
+  FilterChip,
   ListRow,
   ListSeparator,
   MoneyValue,
   Screen,
-  SegmentedControl,
   SkeletonList,
 } from '../../components/ui';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
-import { groupTone, useLoans, type LoanGroup, type LoanSummary } from '../../lib/loans';
+import { loanStatusLabel, useLoans, type LoanGroup, type LoanSummary } from '../../lib/loans';
+
+const GROUPS: LoanGroup[] = ['pending', 'accepted', 'confirmed'];
 
 /**
  * Money owed and money lent (Milestone I).
@@ -39,16 +40,15 @@ export default function LoansScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('loans.title') }} />
 
-      <View style={styles.controls}>
-        <SegmentedControl
-          options={[
-            { value: 'pending', label: t('loans.tab.pending') },
-            { value: 'accepted', label: t('loans.tab.accepted') },
-            { value: 'confirmed', label: t('loans.tab.confirmed') },
-          ]}
-          value={group}
-          onChange={(v) => setGroup(v as LoanGroup)}
-        />
+      <View style={styles.controls} accessibilityRole="radiogroup">
+        {GROUPS.map((value) => (
+          <FilterChip
+            key={value}
+            label={t(`loans.tab.${value}`)}
+            selected={group === value}
+            onPress={() => setGroup(value)}
+          />
+        ))}
       </View>
 
       {query.isLoading ? (
@@ -104,17 +104,17 @@ function Row({ row, onPress }: { row: LoanSummary; onPress: () => void }) {
       subtitle={[
         /* In words, both ways round. Never a minus sign. */
         t(`loans.direction.${row.direction}`),
-        row.statusText,
+        loanStatusLabel(row.status, t),
       ].join(' · ')}
       value={<MoneyValue value={amount} size="small" />}
-      accessory={<Chip tone={groupTone(row.group)} label={t(`loans.tab.${row.group}`)} size="sm" dot />}
+      // No group chip: it repeated the selected filter and squeezed the name.
       onPress={onPress}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  controls: { paddingBottom: space.sm },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, paddingBottom: space.sm },
   list: { paddingBottom: space['3xl'] },
   actions: { paddingTop: space.sm },
 });

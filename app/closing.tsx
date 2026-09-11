@@ -17,9 +17,11 @@ import {
   Text,
   TextField,
 } from '../components/ui';
-import { ApiError } from '../lib/api-client';
 import { useConnectivity } from '../lib/connectivity';
 import { space } from '../lib/design/tokens';
+import { isolateLtr } from '../lib/design/direction';
+import { toFriendlyError } from '../lib/errors';
+import { formatDate, formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
 import { useClosingReminders } from '../lib/loans';
@@ -74,7 +76,7 @@ export default function ClosingScreen() {
         <Stack.Screen options={{ headerShown: true, title: t('closing.title') }} />
         <View style={styles.doneHead}>
           <Lock size={32} />
-          <Text variant="title">{t('closing.done.headline', { date: day.date })}</Text>
+          <Text variant="title">{t('closing.done.headline', { date: formatDate(day.date) })}</Text>
         </View>
         <InlineNotice tone="info">{t('closing.locked.body')}</InlineNotice>
         <Section title={t('closing.channels')}>
@@ -119,7 +121,7 @@ export default function ClosingScreen() {
             onSubmit={(body) => {
               setError(null);
               record.mutate(body, {
-                onError: (e) => setError(e instanceof ApiError ? e.message : t('closing.count.failed')),
+                onError: (e) => setError(toFriendlyError(e).body || t('closing.count.failed')),
               });
             }}
           />
@@ -143,7 +145,7 @@ export default function ClosingScreen() {
                 setError(null);
                 signOff.mutate(undefined, {
                   onSuccess: () => router.push('/analytics' as never),
-                  onError: (e) => setError(e instanceof ApiError ? e.message : t('closing.failed')),
+                  onError: (e) => setError(toFriendlyError(e).body || t('closing.failed')),
                 });
               }}
             />
@@ -217,7 +219,7 @@ function LoanReminders() {
           <Text variant="body">
             {t('closing.loans.outstanding', {
               count: String(r.balancesOutstanding),
-              amount: String(r.totalOutstanding),
+              amount: isolateLtr(formatMoney(r.totalOutstanding)),
             })}
           </Text>
         ) : null}
@@ -443,7 +445,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.xs },
   form: { gap: space.sm },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: space.sm },
-  loanCard: { gap: 8 },
+  loanCard: { gap: space.sm },
   divider: { marginVertical: space.xs },
   hint: { marginTop: space.xs },
   doneHead: { alignItems: 'center', gap: space.sm, paddingVertical: space.lg },

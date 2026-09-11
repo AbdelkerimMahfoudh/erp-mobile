@@ -9,15 +9,17 @@ import {
   Divider,
   EmptyState,
   ErrorState,
+  FilterChip,
   InlineNotice,
   MoneyValue,
   Screen,
   Section,
-  SegmentedControl,
   SkeletonList,
   Text,
 } from '../components/ui';
+import { isolateLtr } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
+import { formatMoney, formatNumber } from '../lib/format';
 import { useConnectivity } from '../lib/connectivity';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
@@ -86,6 +88,8 @@ export default function MoneyScreen() {
   }
 
   const s = query.data;
+  // Every period figure is labelled with its period; balances say they are "as of now".
+  const periodLabel = t(PERIODS.find((p) => p.days === days)?.labelKey ?? 'money.period.week');
   const nothingHappened = s.profit.grossSales === 0 && s.cash.inflow === 0 && s.cash.outflow === 0;
 
   return (
@@ -99,16 +103,10 @@ export default function MoneyScreen() {
         }}
       />
 
-      <View style={styles.controls}>
-        <SegmentedControl
-          options={[
-            { value: '1', label: t('money.period.today') },
-            { value: '7', label: t('money.period.week') },
-            { value: '30', label: t('money.period.month') },
-          ]}
-          value={String(days)}
-          onChange={(v) => setDays(Number(v))}
-        />
+      <View style={styles.controls} accessibilityRole="radiogroup">
+        {PERIODS.map((p) => (
+          <FilterChip key={p.days} label={t(p.labelKey)} selected={days === p.days} onPress={() => setDays(p.days)} />
+        ))}
       </View>
 
       <ScrollView contentContainerStyle={styles.list}>
@@ -119,7 +117,7 @@ export default function MoneyScreen() {
         ) : null}
 
         {/* 1 & 2 — the period, then profit. */}
-        <Section title={t('money.profit')}>
+        <Section title={t('money.profit')} subtitle={periodLabel}>
           <Card style={styles.card}>
             <Headline
               label={t('money.netOperatingProfit')}
@@ -134,15 +132,15 @@ export default function MoneyScreen() {
             <Line label={t('money.expenses')} value={-s.profit.expenses} />
             <Text variant="caption" tone="secondary">
               {t('money.expenses.detail', {
-                fixed: String(s.expenseDetail.fixed),
-                salaries: String(s.expenseDetail.salaries),
+                fixed: isolateLtr(formatMoney(s.expenseDetail.fixed)),
+                salaries: isolateLtr(formatMoney(s.expenseDetail.salaries)),
               })}
             </Text>
           </Card>
         </Section>
 
         {/* 3 — cash, which is a different question. */}
-        <Section title={t('money.cash')}>
+        <Section title={t('money.cash')} subtitle={periodLabel}>
           <Card style={styles.card}>
             <Text variant="caption" tone="secondary">
               {t('money.cash.hint')}
@@ -176,7 +174,7 @@ export default function MoneyScreen() {
               <InlineNotice tone="warning">
                 {t('money.discrepancies.open', {
                   count: String(s.discrepancies.open),
-                  amount: String(s.discrepancies.total),
+                  amount: isolateLtr(formatMoney(s.discrepancies.total)),
                 })}
               </InlineNotice>
               <Text variant="caption" tone="secondary">
@@ -262,7 +260,8 @@ function Trend({ comparison, label }: { comparison: Comparison; label: string })
       {/* Colour is never the only carrier: the sign and the words are there. */}
       <Text variant="caption" tone="secondary">
         {t('money.change', {
-          percent: String(Math.abs(comparison.changePercent)),
+          // Grouped and whole: "141 531 %", never "141530.72 %".
+          percent: isolateLtr(formatNumber(Math.abs(comparison.changePercent))),
           direction: t(`money.direction.${direction ?? 'flat'}`),
           label,
         })}
@@ -296,8 +295,14 @@ function Unavailable({ summary }: { summary: PeriodSummary }) {
   );
 }
 
+const PERIODS = [
+  { days: 1, labelKey: 'money.period.today' },
+  { days: 7, labelKey: 'money.period.week' },
+  { days: 30, labelKey: 'money.period.month' },
+] as const;
+
 const styles = StyleSheet.create({
-  controls: { paddingBottom: space.sm },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, paddingBottom: space.sm },
   list: { gap: space.base, paddingBottom: space['3xl'] },
   card: { gap: space.sm },
   headline: { gap: space.xs },
