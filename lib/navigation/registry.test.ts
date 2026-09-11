@@ -432,7 +432,18 @@ it('the one directional glyph on More is mirrored explicitly', () => {
   const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
   // Chevrons point. A chevron that does not mirror points the wrong way in
   // Arabic, which is worse than no chevron at all.
-  assert.match(src, /<ChevronRight[^>]*style=\{mirror\(\)\}/, 'the branch chevron must use mirror()');
+  /*
+   * The mirror goes on a WRAPPING VIEW, not on the icon. A transform set on the
+   * SVG element itself does not flip it in this stack — it moved the drawing
+   * outside its own box, where the SVG's overflow clipped it, and the chevron
+   * disappeared in Arabic rather than pointing the other way.
+   */
+  assert.match(
+    src,
+    /<View style=\{mirror\(\)\}>\s*<ChevronRight/,
+    'the branch chevron must be wrapped in a mirrored View',
+  );
+  assert.doesNotMatch(src, /<ChevronRight[^>]*style=\{mirror\(\)\}/, 'mirroring the icon itself does not flip it');
 });
 
 // ── 11. notifications ────────────────────────────────────────────────────────

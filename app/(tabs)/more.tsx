@@ -164,8 +164,16 @@ function BranchControl() {
             {branchName ?? t('home.branch.unknown')}
           </Text>
         </View>
-        {/* Directional: this points, so it must mirror in RTL. */}
-        <ChevronRight size={18} color={colors.text.tertiary} style={mirror()} />
+        {/*
+          Directional: this points, so it must mirror in RTL — and the mirror
+          goes on a wrapping View, never on the icon itself. A transform set on
+          an SVG element does not flip it here; it only moved the drawing out of
+          its own box, where the SVG's overflow clipped it away and the chevron
+          vanished in Arabic. Every list row already mirrors a wrapper.
+        */}
+        <View style={mirror()}>
+          <ChevronRight size={18} color={colors.text.tertiary} />
+        </View>
       </Card>
     </Pressable>
   );

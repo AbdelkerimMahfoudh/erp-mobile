@@ -107,10 +107,14 @@ export function useLoans(group?: LoanGroup) {
 }
 
 export function useLoan(id: string | undefined) {
+  // Wait for the branch to be restored: the server resolves permissions from
+  // `X-Branch-Id`, so asking before it exists is a 403 the screen shows as an
+  // error. Same race a deep link into a transfer lost on a cold start.
+  const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.loan(id ?? ''),
     queryFn: () => api.get<LoanDetail>(`/loans/${id}`),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && Boolean(branchId),
   });
 }
 

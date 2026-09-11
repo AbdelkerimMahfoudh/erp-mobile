@@ -191,10 +191,14 @@ export function useConsignments(group?: ConsignmentGroup) {
 }
 
 export function useConsignment(id: string | undefined) {
+  // Wait for the branch to be restored: the server resolves permissions from
+  // `X-Branch-Id`, so asking before it exists is a 403 the screen shows as an
+  // error. Same race a deep link into a transfer lost on a cold start.
+  const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.consignment(id ?? ''),
     queryFn: () => api.get<ConsignmentDetail>(`/consignments/${id}`),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && Boolean(branchId),
   });
 }
 

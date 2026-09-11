@@ -65,9 +65,20 @@ export function useTransfers(filters: TransferFilters) {
 }
 
 export function useTransfer(id: string | undefined) {
+  /**
+   * Wait for the branch to be restored.
+   *
+   * The API client puts the active branch in `X-Branch-Id`, and the server
+   * resolves permissions from it — without it this request is a 403, which this
+   * screen renders as "this transfer no longer exists". On a cold start the
+   * branch is restored asynchronously, so a deep link (a notification, a
+   * bookmark) raced it and lost. Asking only once the branch is known costs
+   * nothing: the query runs as soon as it is.
+   */
+  const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.transfer(id ?? ''),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && Boolean(branchId),
     // A transfer that does not exist, or a branch the user cannot see, is an
     // answer rather than a fault — retrying only asks the same question again.
     retry: false,

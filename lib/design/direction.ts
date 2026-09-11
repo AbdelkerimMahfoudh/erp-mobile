@@ -60,6 +60,19 @@ export function writingDirection(identifier = false): TextStyle['writingDirectio
  * Do NOT apply to icons that are merely asymmetric (a shopping cart, a camera);
  * those read as broken when flipped.
  */
+/**
+ * Apply this to a **wrapping View**, never to the icon itself.
+ *
+ * An icon here is an SVG element, and a transform set on it does not turn the
+ * glyph round: it moves the drawing out of its own box, where the SVG's
+ * `overflow: hidden` clips it away. More's branch chevron did exactly that and
+ * simply disappeared in Arabic. Wrapping works, which is what every list row
+ * already does:
+ *
+ *     <View style={mirror()}>
+ *       <ChevronRight … />
+ *     </View>
+ */
 export function mirror(): StyleProp<ViewStyle> {
   return layoutIsRTL() ? { transform: [{ scaleX: -1 }] } : undefined;
 }
