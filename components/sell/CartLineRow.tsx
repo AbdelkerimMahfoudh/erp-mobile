@@ -13,13 +13,19 @@ import { lineTotal, type CartLine } from './types';
 import { makeStyles } from '../../lib/design/theme';
 
 /**
- * One line in the sale.
+ * One line in the sale — in the Stock screen's row language.
  *
- * The price is editable in place — at a counter, haggling a few thousand
- * ouguiya off is routine, and making that a separate "apply discount" flow
- * would cost taps on a very common path. A below-cost price is flagged the
- * moment it is typed rather than at checkout, so the employee finds out while
- * still talking to the customer.
+ * What it is on the left (name, variant, tracking and identifier), what it
+ * comes to on the right, and underneath the two things a seller changes at the
+ * counter: how many, and the unit price. The price is labelled — a bare number
+ * box beside a total left people unsure which figure they were editing.
+ *
+ * The price is editable in place: haggling a few thousand ouguiya off is
+ * routine, and a separate "apply discount" flow would cost taps on a very common
+ * path. A below-cost price is flagged the moment it is typed — in words, not
+ * only colour — so the employee finds out while still talking to the customer.
+ * Cost itself is never shown here; the flag appears only when the server sent
+ * cost, which it does not without `cost.view`.
  */
 
 export interface CartLineRowProps {
@@ -44,7 +50,7 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
             {line.label}
           </Text>
           {line.variant ? (
-            <Text variant="caption" tone="tertiary" numberOfLines={1}>
+            <Text variant="caption" tone="secondary" numberOfLines={1}>
               {line.variant}
             </Text>
           ) : null}
@@ -54,12 +60,17 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
           </View>
         </View>
 
-        <IconButton
-          icon={X}
-          accessibilityLabel={t('action.remove')}
-          onPress={() => onRemove(line.key)}
-          size={36}
-        />
+        <View style={styles.end}>
+          <Text variant="title" align="end">
+            {formatMoney(lineTotal(line))}
+          </Text>
+          <IconButton
+            icon={X}
+            accessibilityLabel={t('action.remove')}
+            onPress={() => onRemove(line.key)}
+            size={36}
+          />
+        </View>
       </View>
 
       <View style={styles.controls}>
@@ -71,37 +82,32 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
             size="sm"
             accessibilityLabel={t('tracking.quantity')}
           />
-        ) : (
-          <View style={styles.spacer} />
-        )}
+        ) : null}
 
         <View style={styles.priceField}>
           <MoneyField
+            label={t('sell.line.unitPrice')}
+            // The line total beside it already says MRU; a currency suffix in a
+            // field this narrow pushed out of its own border.
+            showCurrency={false}
             value={String(line.price)}
             onChangeText={(text) => onPriceChange(line.key, Number(text) || 0)}
-            showCurrency={false}
-            containerStyle={styles.priceInput}
           />
         </View>
       </View>
 
-      <View style={styles.footer}>
-        {belowCost ? (
-          <Text variant="caption" tone="danger">
-            {t('sell.belowCost.title')}
-          </Text>
-        ) : (
-          <View />
-        )}
-        <Text variant="bodyStrong">{formatMoney(lineTotal(line))}</Text>
-      </View>
+      {belowCost ? (
+        <Text variant="captionStrong" tone="danger">
+          {t('sell.belowCost.title')}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
   row: {
-    gap: space.sm,
+    gap: space.md,
     padding: space.md,
     borderRadius: radius.lg,
     backgroundColor: colors.surface.card,
@@ -115,10 +121,11 @@ const useStyles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: space.sm,
+    gap: space.md,
   },
   identity: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   meta: {
@@ -128,25 +135,16 @@ const useStyles = makeStyles((colors) => ({
     gap: space.xs,
     marginTop: 2,
   },
+  end: {
+    alignItems: 'flex-end',
+    gap: space.xs,
+  },
   controls: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     gap: space.md,
   },
-  spacer: {
-    flex: 1,
-  },
   priceField: {
-    width: 150,
-  },
-  priceInput: {
     flex: 1,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.sm,
   },
 }));

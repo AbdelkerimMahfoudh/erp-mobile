@@ -35,8 +35,14 @@ const withoutComments = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '').replac
 
 /* ── detectors ───────────────────────────────────────────────────────────── */
 
-/** A size or weight written as a literal rather than taken from a token. */
-const RAW_TYPE = /\bfontSize:\s*-?\d|\bfontWeight:\s*['"`]?(?:\d{3}|bold|normal)\b|\blineHeight:\s*\d/;
+/**
+ * A size, line height or weight written as a literal rather than taken from a
+ * token — including inside an expression (`fontWeight: selected ? '600' : '500'`,
+ * `fontSize: small ? 13 : 15`). A property whose value only references tokens
+ * (`typeScale.title.fontSize`, `s.fontSize`) contains no bare number and passes.
+ */
+const RAW_TYPE =
+  /\b(?:fontSize|lineHeight):[^,}\n]*?(?<![\w.])\d+(?![\w.])|\bfontWeight:[^,}\n]*?['"`](?:\d{3}|bold|normal)['"`]|\bfontWeight:\s*\d{3}\b/;
 /** A font family chosen locally. The system font (with the Arabic system font) is the theme's. */
 const RAW_FAMILY = /\bfontFamily:/;
 /** A colour literal: hex, rgb/rgba/hsl, or a named CSS colour in a colour property. */
@@ -54,6 +60,8 @@ it('the detectors reject local values', () => {
     "{ fontWeight: '700' }",
     "{ fontWeight: 'bold' }",
     "{ lineHeight: 20 }",
+    "{ fontWeight: selected ? '600' : '500' }",
+    "{ fontSize: small ? 13 : 15 }",
   ]) {
     assert.ok(hasRawType(bad), `should reject ${bad}`);
   }

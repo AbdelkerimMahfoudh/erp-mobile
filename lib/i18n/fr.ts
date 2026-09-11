@@ -976,6 +976,7 @@ export const fr: Catalogue = {
   'sell.addToSale': 'Ajouter à la vente',
   'sell.priceRequired': 'Ce produit n’a pas encore de prix — saisissez-en un.',
   'sell.cart.count': '{count} article(s)',
+  'sell.line.unitPrice': 'Prix unitaire',
   'sell.subtotal': 'Sous-total',
   'sell.discount': 'Remise',
   'sell.total': 'Total',

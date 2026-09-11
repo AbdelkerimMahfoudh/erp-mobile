@@ -4,7 +4,7 @@ import { space } from '../../lib/design/tokens';
 import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { allowedWindowChoices, describeWindow } from '../../lib/return-policy';
-import { SegmentedControl } from '../ui/SegmentedControl';
+import { FilterChip } from '../ui/Chip';
 import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 
@@ -66,15 +66,17 @@ export function ReturnPolicyControl({
       </Text>
 
       {canOverride && choices.length > 1 ? (
-        <SegmentedControl
-          size="sm"
-          options={choices.map((hours) => ({
-            value: String(hours),
-            label: describeWindow(hours, t),
-          }))}
-          value={String(windowHours)}
-          onChange={(next) => onWindowChange(Number(next))}
-        />
+        // Wrapping chips: five windows do not fit one segmented row at phone width.
+        <View style={styles.chips} accessibilityRole="radiogroup">
+          {choices.map((hours) => (
+            <FilterChip
+              key={hours}
+              label={describeWindow(hours, t)}
+              selected={windowHours === hours}
+              onPress={() => onWindowChange(hours)}
+            />
+          ))}
+        </View>
       ) : (
         <Text variant="body">{describeWindow(windowHours, t)}</Text>
       )}
@@ -108,4 +110,5 @@ export function ReturnPolicyControl({
 
 const styles = StyleSheet.create({
   group: { gap: space.xs },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

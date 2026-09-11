@@ -72,7 +72,7 @@ export function SegmentedControl<T extends string>({
             ]}
           >
             <Text
-              variant="label"
+              variant={selected ? 'labelStrong' : 'label'}
               align="center"
               numberOfLines={1}
               style={{
@@ -88,7 +88,6 @@ export function SegmentedControl<T extends string>({
                   : selected
                     ? colors.text.primary
                     : colors.text.secondary,
-                fontWeight: selected ? '600' : '500',
               }}
             >
               {option.label}

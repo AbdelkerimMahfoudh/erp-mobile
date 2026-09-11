@@ -872,6 +872,7 @@ export const ar: Catalogue = {
   'sell.addToSale': 'إضافة إلى البيع',
   'sell.priceRequired': 'لا يوجد سعر لهذا المنتج بعد — أدخل سعرًا.',
   'sell.cart.count': '{count} قطعة',
+  'sell.line.unitPrice': 'سعر القطعة',
   'sell.subtotal': 'المجموع الفرعي',
   'sell.discount': 'خصم',
   'sell.total': 'الإجمالي',

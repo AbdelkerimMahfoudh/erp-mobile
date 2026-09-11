@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Check, Share2, ShoppingCart } from 'lucide-react-native';
+import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -70,7 +71,7 @@ export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: Sa
 
       {margin !== undefined ? (
         <Text variant="bodyStrong" tone="success" align="center">
-          {t('sell.done.profit', { amount: formatMoney(margin) })}
+          {t('sell.done.profit', { amount: isolateLtr(formatMoney(margin)) })}
         </Text>
       ) : null}
 

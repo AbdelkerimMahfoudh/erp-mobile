@@ -25,6 +25,7 @@ import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../
 import { api, ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
+import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
@@ -537,14 +538,14 @@ export default function SellScreen() {
       const reference = referenceKey(w.reference);
       return [
         t(w.messageKey as never, w.params),
-        w.submitted === null ? null : t('warning.youTyped', { amount: formatMoney(w.submitted) }),
+        w.submitted === null ? null : t('warning.youTyped', { amount: isolateLtr(formatMoney(w.submitted)) }),
         reference === null
           ? null
           : t(
               reference as never,
               w.reference?.amount === null
                 ? undefined
-                : { amount: formatMoney(w.reference?.amount ?? 0) },
+                : { amount: isolateLtr(formatMoney(w.reference?.amount ?? 0)) },
             ),
       ]
         .filter(Boolean)
@@ -589,7 +590,7 @@ export default function SellScreen() {
       if (totalCost !== undefined && total < totalCost) {
         const { confirmed, reason } = await dialog.confirmWithReason({
           title: t('sell.belowCost.title'),
-          message: t('sell.belowCost.body', { amount: formatMoney(totalCost - total) }),
+          message: t('sell.belowCost.body', { amount: isolateLtr(formatMoney(totalCost - total)) }),
           confirmLabel: t('sell.belowCost.confirm'),
           reasonLabel: t('sell.belowCost.reason'),
           reasonPlaceholder: t('sell.belowCost.reasonPlaceholder'),
@@ -653,8 +654,18 @@ export default function SellScreen() {
         padded={false}
         header={
           <>
+            {/* Title and branch, as on Stock: which shop this sale is being taken in. */}
             <View style={styles.titleRow}>
-              <Text variant="title">{t('sell.title')}</Text>
+              <View style={styles.titleText}>
+                <Text variant="title" accessibilityRole="header">
+                  {t('sell.title')}
+                </Text>
+                {branchName ? (
+                  <Text variant="caption" tone="tertiary" numberOfLines={1}>
+                    {branchName}
+                  </Text>
+                ) : null}
+              </View>
               {lines.length > 0 ? (
                 <Button
                   title={t('sell.clear')}
@@ -683,7 +694,7 @@ export default function SellScreen() {
               */}
               {belowCost ? (
                 <InlineNotice tone="warning" style={styles.notice}>
-                  {t('sell.belowCost.inline', { amount: formatMoney(totalCost - total) })}
+                  {t('sell.belowCost.inline', { amount: isolateLtr(formatMoney(totalCost - total)) })}
                 </InlineNotice>
               ) : null}
               {offline ? (
@@ -698,7 +709,8 @@ export default function SellScreen() {
                 <MoneyValue value={total} size="display" />
               </View>
               <Button
-                title={t('sell.charge', { amount: formatMoney(total) })}
+                // Isolated so "1 030 MRU" keeps its order inside an Arabic label.
+                title={t('sell.charge', { amount: isolateLtr(formatMoney(total)) })}
                 size="lg"
                 fullWidth
                 /**
@@ -806,6 +818,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.md,
+  },
+  titleText: {
+    flexShrink: 1,
+    gap: 2,
   },
   list: {
     padding: space.base,

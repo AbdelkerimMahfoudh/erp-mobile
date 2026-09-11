@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Plus, X } from 'lucide-react-native';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
@@ -9,7 +9,7 @@ import { BottomSheet } from '../overlay/BottomSheet';
 import { Button } from '../ui/Button';
 import { MoneyField } from '../ui/Field';
 import { IconButton } from '../ui/IconButton';
-import { SegmentedControl } from '../ui/SegmentedControl';
+import { FilterChip } from '../ui/Chip';
 import { Text } from '../ui/Text';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
 import type { PaymentEntry } from './types';
@@ -168,11 +168,16 @@ export function PaymentSheet({
             <Text variant="label" tone="secondary">
               {t('sell.payment.method')}
             </Text>
-            <SegmentedControl
-              options={METHODS.map((m) => ({ value: m, label: t(`payment.${m}`) }))}
-              value={method}
-              onChange={setMethod}
-            />
+            {/*
+              Chips that wrap, not a segmented bar: four method names in French or
+              Arabic do not fit one row at phone width, and a truncated
+              "Paieme…" is a choice nobody can read.
+            */}
+            <View style={styles.chips} accessibilityRole="radiogroup">
+              {METHODS.map((m) => (
+                <FilterChip key={m} label={t(`payment.${m}`)} selected={method === m} onPress={() => setMethod(m)} />
+              ))}
+            </View>
           </View>
         ) : (
           <View style={styles.group}>
@@ -180,19 +185,20 @@ export function PaymentSheet({
               {t('sell.payment.split')}
             </Text>
             {split.map((entry, index) => (
-              <View key={entry.key} style={styles.splitRow}>
-                <View style={styles.splitMethod}>
-                  <SegmentedControl
-                    size="sm"
-                    options={METHODS.map((m) => ({ value: m, label: t(`payment.${m}`) }))}
-                    value={entry.method}
-                    onChange={(next) =>
-                      setSplit((prev) =>
-                        prev.map((x) => (x.key === entry.key ? { ...x, method: next } : x)),
-                      )
-                    }
-                  />
+              <View key={entry.key} style={styles.splitEntry}>
+                <View style={styles.chips} accessibilityRole="radiogroup">
+                  {METHODS.map((m) => (
+                    <FilterChip
+                      key={m}
+                      label={t(`payment.${m}`)}
+                      selected={entry.method === m}
+                      onPress={() =>
+                        setSplit((prev) => prev.map((x) => (x.key === entry.key ? { ...x, method: m } : x)))
+                      }
+                    />
+                  ))}
                 </View>
+              <View style={styles.splitRow}>
                 <View style={styles.splitAmount}>
                   <MoneyField
                     value={String(entry.amount)}
@@ -213,6 +219,7 @@ export function PaymentSheet({
                   onPress={() => setSplit((prev) => prev.filter((x) => x.key !== entry.key))}
                   disabled={index === 0 && split.length === 1}
                 />
+              </View>
               </View>
             ))}
           </View>
@@ -245,13 +252,21 @@ const useStyles = makeStyles((colors) => ({
   group: {
     gap: space.sm,
   },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  splitEntry: {
+    gap: space.sm,
+    paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.subtle,
+  },
   splitRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  splitMethod: {
-    flex: 1.4,
   },
   splitAmount: {
     flex: 1,

@@ -882,6 +882,7 @@ export const en = {
   'sell.addToSale': 'Add to sale',
   'sell.priceRequired': 'This product has no price yet — enter one.',
   'sell.cart.count': '{count} item(s)',
+  'sell.line.unitPrice': 'Unit price',
   'sell.subtotal': 'Subtotal',
   'sell.discount': 'Discount',
   'sell.total': 'Total',
