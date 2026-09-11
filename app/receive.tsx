@@ -2,8 +2,9 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Package, PackagePlus, Truck } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, Package, PackagePlus, Truck } from 'lucide-react-native';
 import { Button, EmptyState, Screen, Text } from '../components/ui';
+import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
 import { BottomSheet } from '../components/overlay/BottomSheet';
 import { ScanTarget } from '../components/scanner';
@@ -38,7 +39,7 @@ import { useTranslation } from '../lib/i18n';
 import { useDraft } from '../lib/offline/use-draft';
 import { DraftNotice } from '../components/DraftNotice';
 import { InlineNotice } from '../components/ui/InlineNotice';
-import { isolateLtr } from '../lib/design/direction';
+import { isRTL, isolateLtr } from '../lib/design/direction';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
@@ -320,11 +321,12 @@ export default function ReceiveScreen() {
     useCallback(() => {
       if (!scope) return;
       const back = takePendingIntake(scope);
-      if (!back?.primaryImei) return;
-      const primary = back.primaryImei;
+      // The device waiting for its product: a phone's IMEI 1, or a serial number.
+      const device = back?.primaryImei ?? back?.serial;
+      if (!back || !device) return;
       void (async () => {
         try {
-          const result = await lookUp(primary, back.secondaryImei);
+          const result = await lookUp(device, back.secondaryImei);
           if (back.createdProductId && !result.inventory?.alreadyInInventory) {
             const created = await api.get<ProductSuggestion>(
               `/products/suggest?productId=${encodeURIComponent(back.createdProductId)}`,
@@ -416,6 +418,7 @@ export default function ReceiveScreen() {
       holdPendingIntake(
         pendingFrom(scope, {
           imei: isImei ? { primary: result.code, secondary: typedSecondary ?? current.secondary } : null,
+          serial: result.kind === 'serial' ? result.code : null,
           productBarcode: barcode,
         }),
       );
@@ -646,7 +649,14 @@ export default function ReceiveScreen() {
             headerShown: true,
             title: t('receive.title'),
             headerBackVisible: false,
-            headerLeft: () => <Button title={t('action.back')} variant="tertiary" size="sm" onPress={confirmLeave} />,
+            // Arrow only, like every other screen; it still asks before a delivery is left behind.
+            headerLeft: () => (
+              <IconButton
+                icon={isRTL() ? ArrowRight : ArrowLeft}
+                accessibilityLabel={t('action.back')}
+                onPress={confirmLeave}
+              />
+            ),
           }}
         />
 

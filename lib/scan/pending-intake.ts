@@ -36,6 +36,8 @@ export interface PendingIntake {
   /** The phone. Present whenever the scan was an IMEI. */
   readonly primaryImei: string | null;
   readonly secondaryImei: string | null;
+  /** The device, when the scan was a serial number (a TV, a laptop). Never a barcode. */
+  readonly serial: string | null;
   /** A GENUINE product barcode. Never an IMEI. */
   readonly productBarcode: string | null;
   /** Safe draft fields worth restoring — never a camera frame. */
@@ -59,6 +61,7 @@ export function pendingFrom(
   scope: IntakeScope,
   input: {
     imei?: { primary: string; secondary: string | null } | null;
+    serial?: string | null;
     productBarcode?: string | null;
     cost?: string | null;
   },
@@ -68,6 +71,7 @@ export function pendingFrom(
     scope,
     primaryImei: input.imei?.primary ?? null,
     secondaryImei: input.imei?.secondary ?? null,
+    serial: input.imei ? null : input.serial ?? null,
     productBarcode: input.productBarcode ?? null,
     cost: input.cost ?? null,
     createdProductId: null,

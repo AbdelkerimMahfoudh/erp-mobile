@@ -1294,6 +1294,7 @@ export const fr: Catalogue = {
   'receive.supplier.search': 'Rechercher un fournisseur',
   'receive.supplier.needed': 'Choisissez un fournisseur pour terminer',
   'receive.session': 'Cette livraison',
+  'receive.line.each': '{amount} l’unité',
   'receive.empty.title': 'Rien d’ajouté pour l’instant',
   'receive.empty.body': 'Scannez le premier article pour commencer la livraison.',
   'receive.cost': 'Ce qu’il vous a coûté',

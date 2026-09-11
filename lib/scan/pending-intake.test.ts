@@ -62,7 +62,7 @@ it('safe draft fields come back too; nothing else is stored', () => {
   // No frame, no image, no path — a draft is a form's inputs, never a file.
   assert.deepEqual(
     Object.keys(pending).sort(),
-    ['at', 'cost', 'createdProductId', 'primaryImei', 'productBarcode', 'scope', 'secondaryImei'],
+    ['at', 'cost', 'createdProductId', 'primaryImei', 'productBarcode', 'scope', 'secondaryImei', 'serial'],
   );
 });
 
@@ -112,6 +112,34 @@ it('the newly created product is remembered, and creating it makes no unit', () 
   // Creating a Product does not create the Unit: the IMEI is still waiting to
   // become one when the intake is submitted.
   assert.equal(back?.primaryImei, IMEI_A);
+});
+
+it('a serial number survives the detour, for a TV or a laptop', () => {
+  holdPendingIntake(pendingFrom(SCOPE, { serial: 'BRV-B-2033266574' }));
+  const back = takePendingIntake(SCOPE);
+  assert.equal(back?.serial, 'BRV-B-2033266574');
+  assert.equal(back?.primaryImei, null, 'a serial is not a phone');
+  assert.equal(back?.productBarcode, null, 'and never a product barcode');
+});
+
+it('cancelling product creation keeps the serial too', () => {
+  holdPendingIntake(pendingFrom(SCOPE, { serial: 'LGSN-A-844113836' }));
+  // Cancel = the form closes without notePendingProduct.
+  assert.equal(peekPendingIntake(SCOPE)?.serial, 'LGSN-A-844113836');
+  assert.equal(takePendingIntake(SCOPE)?.createdProductId, null);
+});
+
+it('a created product comes back with its serial still waiting to become a unit', () => {
+  holdPendingIntake(pendingFrom(SCOPE, { serial: 'LGSN-A-844113836' }));
+  notePendingProduct('p-tv');
+  const back = takePendingIntake(SCOPE);
+  assert.equal(back?.createdProductId, 'p-tv');
+  assert.equal(back?.serial, 'LGSN-A-844113836');
+});
+
+it('an IMEI scan never also records a serial', () => {
+  const pending = pendingFrom(SCOPE, { imei: { primary: IMEI_A, secondary: null }, serial: 'X' });
+  assert.equal(pending.serial, null);
 });
 
 console.log('\n' + passed + ' passed');

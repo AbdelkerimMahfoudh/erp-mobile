@@ -1177,6 +1177,7 @@ export const en = {
   'receive.supplier.search': 'Search suppliers',
   'receive.supplier.needed': 'Choose a supplier to finish',
   'receive.session': 'This delivery',
+  'receive.line.each': '{amount} each',
   'receive.empty.title': 'Nothing added yet',
   'receive.empty.body': 'Scan the first item to start the delivery.',
   'receive.cost': 'What it cost you',

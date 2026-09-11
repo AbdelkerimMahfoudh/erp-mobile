@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
+import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -59,8 +60,9 @@ export function StagedItemRow({ item, onRemove, onAddSecondary, locked = false }
           ) : null}
           <View style={styles.meta}>
             <StatusChip domain="tracking" value={item.trackingType} size="sm" dot={false} />
+            {/* Labelled, so the per-unit cost is not mistaken for the line total beside it. */}
             <Text variant="caption" tone="secondary">
-              {formatMoney(item.unitCost)}
+              {t('receive.line.each', { amount: isolateLtr(formatMoney(item.unitCost)) })}
             </Text>
           </View>
         </View>

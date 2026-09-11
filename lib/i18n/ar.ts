@@ -1156,6 +1156,7 @@ export const ar: Catalogue = {
   'receive.supplier.search': 'البحث عن مورّد',
   'receive.supplier.needed': 'اختر مورّدًا لإتمام الاستلام',
   'receive.session': 'هذه الشحنة',
+  'receive.line.each': '{amount} للقطعة',
   'receive.empty.title': 'لم تُضف أي قطعة بعد',
   'receive.empty.body': 'امسح أول قطعة لبدء الشحنة.',
   'receive.cost': 'سعر التكلفة',
