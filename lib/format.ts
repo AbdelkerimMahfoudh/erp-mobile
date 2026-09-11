@@ -1,6 +1,6 @@
 import { format as formatDateFns, formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
-import { ar as arDateLocale, enUS as enDateLocale } from 'date-fns/locale';
 import { getLanguage } from './i18n';
+import { dateLocaleFor } from './date-locale';
 
 /**
  * Formatting — money, quantities and dates, in one place.
@@ -87,7 +87,7 @@ export function formatPercent(value?: number | null, decimals = 0): string {
 // ── Dates ───────────────────────────────────────────────────────────────────
 
 function dateLocale() {
-  return getLanguage() === 'ar' ? arDateLocale : enDateLocale;
+  return dateLocaleFor(getLanguage());
 }
 
 function toDate(value: string | number | Date): Date {

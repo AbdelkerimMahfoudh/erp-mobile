@@ -127,6 +127,14 @@ function AppShell() {
           <Stack
             screenOptions={{
               headerShown: false,
+              /*
+                The back button is the arrow alone. iOS otherwise labels it with
+                the previous screen's title, and a tab screen's parent is the
+                `(tabs)` route group — so detail screens opened from a tab read
+                "‹ (tabs)", a file name, in every language. The system still
+                announces the control as "Back" to VoiceOver.
+              */
+              headerBackButtonDisplayMode: 'minimal',
               animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
               gestureEnabled: true,
               // The navigator draws the gap between screens during a
