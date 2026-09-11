@@ -96,5 +96,5 @@ const styles = StyleSheet.create({
   list: { padding: space.base, paddingBottom: space['2xl'] },
   gap: { height: space.sm },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  meta: { marginTop: space.xs, lineHeight: 18 },
+  meta: { marginTop: space.xs },
 });

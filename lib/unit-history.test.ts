@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { dateLocaleFor } from './date-locale.ts';
 import {
   describeUnitEvent,
+  foldSignature,
   groupHistory,
   HISTORY_KEYS,
   roleKey,
@@ -148,6 +149,38 @@ it('folds consecutive identical entries into a counted run and drops none', () =
   const folded = runs.find((r) => r.entries.length === 3);
   assert.ok(folded, 'three identical sends fold into one run');
   assert.equal(folded.described.titleKey, 'history.event.sent');
+});
+
+it('folds only when the complete meaning matches — similar titles are not enough', () => {
+  const base = change('reserved', 'in_transit', { actor: { name: 'A', role: 'owner' }, toBranch: { name: 'Warehouse' }, transferId: 'T-1' });
+  const same = foldSignature(base);
+  const variants: [string, UnitHistoryEvent][] = [
+    ['another transfer', { ...base, transferId: 'T-2' }],
+    ['another destination', { ...base, toBranch: { name: 'Airport' } }],
+    ['another origin', { ...base, fromBranch: { name: 'Airport' } }],
+    ['another role', { ...base, actor: { name: 'A', role: 'store_manager' } }],
+    ['another person', { ...base, actor: { name: 'B', role: 'owner' } }],
+    ['another branch', { ...base, branch: { name: 'Airport' } }],
+    ['another source status', { ...base, fromStatus: 'in_stock' }],
+    ['another context', { ...base, context: 'transfer_cancelled' }],
+    ['another action', { ...base, action: 'price_override' }],
+  ];
+  for (const [label, other] of variants) {
+    assert.notEqual(foldSignature(other), same, `${label} must not fold`);
+  }
+  assert.equal(foldSignature({ ...base }), same, 'an exact repeat folds');
+});
+
+it('two "Transfer cancelled — back in stock" rows for different transfers stay separate', () => {
+  const at = (m: number) => new Date(2026, 7, 7, 14, m).toISOString();
+  const days = groupHistory(
+    [
+      change('reserved', 'in_stock', { at: at(2), context: 'transfer_cancelled', transferId: 'T-1' }),
+      change('reserved', 'in_stock', { at: at(1), context: 'transfer_cancelled', transferId: 'T-2' }),
+    ],
+    new Date(2026, 8, 1),
+  );
+  assert.equal(days.flatMap((d) => d.runs).length, 2);
 });
 
 it('does not fold entries by different people', () => {

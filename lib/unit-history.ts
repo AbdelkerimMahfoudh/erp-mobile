@@ -28,6 +28,7 @@ export interface UnitHistoryEvent {
   branch?: { name: string } | null;
   fromBranch?: { name: string } | null;
   toBranch?: { name: string } | null;
+  transferId?: string | null;
   // Legacy fields, read only when the facts above are absent (an older server).
   before?: unknown;
   after?: unknown;
@@ -152,15 +153,29 @@ function localDay(date: Date): string {
   return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
 }
 
-/** What makes two entries "the same" for folding: meaning, place and person. */
-function signature(event: UnitHistoryEvent, described: DescribedEvent): string {
+/**
+ * What makes two entries "the same" for folding: their COMPLETE user-visible
+ * meaning. Every structured fact the row could show or that distinguishes one
+ * business event from another is part of it — a matching title is never
+ * enough. Two transfers to the same branch by the same person are still two
+ * transfers if they are different transfers.
+ */
+export function foldSignature(event: UnitHistoryEvent, described: DescribedEvent = describeUnitEvent(event)): string {
   return JSON.stringify([
+    described.kind,
     described.titleKey,
     described.params,
+    event.entity,
+    event.action,
     event.fromStatus ?? statusFrom(event.before),
     event.toStatus ?? statusFrom(event.after),
+    event.context ?? null,
     event.actor?.name ?? null,
+    event.actor?.role ?? null,
     event.branch?.name ?? null,
+    event.fromBranch?.name ?? null,
+    event.toBranch?.name ?? null,
+    event.transferId ?? null,
   ]);
 }
 
@@ -184,7 +199,7 @@ export function groupHistory(events: UnitHistoryEvent[], now: Date = new Date())
     }
     const described = describeUnitEvent(event);
     const last = bucket.runs[bucket.runs.length - 1];
-    if (last && signature(last.lead, last.described) === signature(event, described)) {
+    if (last && foldSignature(last.lead, last.described) === foldSignature(event, described)) {
       last.entries.push(event);
     } else {
       bucket.runs.push({ lead: event, described, entries: [event] });

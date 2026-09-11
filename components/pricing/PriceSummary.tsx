@@ -72,5 +72,5 @@ export function PriceSummary({ pricing, branchName }: PriceSummaryProps) {
 const styles = StyleSheet.create({
   headline: { gap: space.xs },
   sourceRow: { flexDirection: 'row', marginTop: space.md },
-  explain: { marginTop: space.sm, lineHeight: 18 },
+  explain: { marginTop: space.sm },
 });

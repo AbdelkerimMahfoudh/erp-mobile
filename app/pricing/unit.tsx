@@ -234,5 +234,5 @@ export default function UnitPricingScreen() {
 const styles = StyleSheet.create({
   stack: { gap: space.md },
   actions: { gap: space.sm, marginTop: space.md },
-  howTo: { lineHeight: 20 },
+  howTo: {},
 });

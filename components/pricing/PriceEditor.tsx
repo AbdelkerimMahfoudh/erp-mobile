@@ -185,5 +185,5 @@ export function PriceEditor({
 const styles = StyleSheet.create({
   body: { gap: space.base },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  scope: { lineHeight: 18 },
+  scope: {},
 });

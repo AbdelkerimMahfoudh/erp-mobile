@@ -247,5 +247,5 @@ const useStyles = makeStyles((colors) => ({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chips: { flexDirection: 'row', gap: space.xs, flexShrink: 1 },
   title: { marginTop: space.sm },
-  body: { marginTop: space.xs, lineHeight: 18 },
+  body: { marginTop: space.xs },
 }));
