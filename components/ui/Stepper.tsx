@@ -1,7 +1,8 @@
 import React from 'react';
-import { I18nManager, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import { disabledOpacity, radius, space, touch } from '../../lib/design/tokens';
+import { layoutIsRTL } from '../../lib/design/layout-direction';
 import { haptics } from '../../lib/haptics';
 import { Text } from './Text';
 import { usePressed } from './use-pressed';
@@ -60,7 +61,7 @@ export function Stepper({
         // RN flips `row` automatically under RTL; `row-reverse` cancels that so
         // minus stays on the left in every language. There is no `direction`
         // style property in React Native — this is the only way to pin order.
-        { flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row' },
+        { flexDirection: layoutIsRTL() ? 'row-reverse' : 'row' },
         { opacity: disabled ? disabledOpacity : 1 },
         style,
       ]}

@@ -1155,6 +1155,11 @@ export const en = {
   'receive.done.title': 'Stock received',
   'receive.done.summary': '{units} item(s) · {lines} product line(s)',
   'receive.done.more': 'Receive more',
+  'receive.refused.title': 'Not received',
+  'receive.refused.none': 'Nothing was received — every item was refused.',
+  'receive.refused.alreadyRegistered': 'already registered',
+  'receive.refused.duplicateInBatch': 'scanned twice in this delivery',
+  'receive.refused.other': 'refused',
 
   // ── Product confirmation ──────────────────────────────────────────────────
   'confirm.recognized': 'Recognized',
@@ -1709,7 +1714,11 @@ export const en = {
   'inventory.availableOf': '{available} free to sell',
   'stock.category.phone': 'Phones',
   'stock.category.accessory': 'Accessories',
+  'stock.category.other': 'Other devices',
+  'stock.countsHint': 'Filter numbers count products, not pieces.',
   'stock.available': 'available',
+  'stock.availablePlural': 'available',
+  'stock.reservedOnHand': 'Reserved: {reserved} · On hand: {onHand}',
   'stock.lowStock': 'Low stock',
   'stock.outOfStock': 'Out of stock',
   'stock.price': 'Price {amount}',

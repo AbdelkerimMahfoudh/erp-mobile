@@ -159,6 +159,21 @@ it('gates Receive stock on the same permission as Home', () => {
   assert.match(source('app/(tabs)/index.tsx'), /usePermission\('purchase\.manage'\)/);
 });
 
+it('never calls a refused delivery received', () => {
+  const receive = withoutComments(source('app/receive.tsx'));
+  // All refused: nothing written, the delivery stays on screen.
+  assert.match(receive, /if \(res\.purchaseId === null\) \{[\s\S]*?toast\.error\(t\('receive\.refused\.none'\)\);[\s\S]*?return;/);
+  // Partly refused: the count excludes refused identifiers, and they are listed.
+  assert.match(receive, /setDone\(\{ response: res, units: unitTotal - refusedUnits \}\)/);
+  assert.match(receive, /<RefusedNotice lines=\{refused\} \/>/);
+  for (const lang of ['en', 'fr', 'ar']) {
+    const locale = source(`lib/i18n/${lang}.ts`);
+    for (const key of ['receive.refused.title', 'receive.refused.none', 'receive.refused.alreadyRegistered', 'receive.refused.duplicateInBatch', 'receive.refused.other']) {
+      assert.ok(locale.includes(`'${key}'`), `${lang} is missing ${key}`);
+    }
+  }
+});
+
 /* ── states ─────────────────────────────────────────────────────────────── */
 
 it('never draws unknown stock as an empty shelf', () => {
@@ -184,6 +199,60 @@ it('has every new key in all three languages', () => {
 it('uses direction-aware alignment, not left or right', () => {
   assert.ok(!/align="(left|right)"/.test(ROW + SCREEN));
   assert.ok(!/marginLeft|marginRight|paddingLeft|paddingRight/.test(ROW + SCREEN));
+});
+
+it('keeps an amount in reading order inside an Arabic sentence', () => {
+  assert.match(ROW, /isolateLtr\(formatMoney\(w\.amount\)\)/);
+});
+
+/* ── categories and quantities ───────────────────────────────────────────── */
+
+it('makes serial-tracked devices reachable by a category chip, and keeps them under All', () => {
+  assert.match(SCREEN, /type Category = 'all' \| 'phone' \| 'accessory' \| 'other'/);
+  assert.match(SCREEN, /label=\{t\('stock\.category\.other'\)\}/);
+  // All is the unfiltered list.
+  assert.match(SCREEN, /category === 'all' \? allRows :/);
+});
+
+it('says what the filter numbers count', () => {
+  assert.match(SCREEN, /t\('stock\.countsHint'\)/);
+});
+
+it('explains a low warning next to a reserved quantity instead of changing the rule', () => {
+  assert.match(ROW, /row\.reserved > 0/);
+  assert.match(ROW, /stock\.reservedOnHand/);
+  // The row does not recompute "low" — the server's shared rule decides.
+  assert.match(ROW, /stockStatus\(row\.available, row\.lowStock\)/);
+});
+
+it('agrees "available" with the count in French', () => {
+  const fr = source('lib/i18n/fr.ts');
+  assert.match(fr, /'stock\.available': 'disponible'/);
+  assert.match(fr, /'stock\.availablePlural': 'disponibles'/);
+  assert.match(ROW, /row\.available > 1 \? 'stock\.availablePlural' : 'stock\.available'/);
+});
+
+/* ── layout direction and the tab bar ────────────────────────────────────── */
+
+it('lays Arabic out right-to-left on web as well as native', () => {
+  const dir = source('lib/design/layout-direction.ts');
+  assert.match(dir, /document\.documentElement\.dir = rtl \? 'rtl' : 'ltr'/);
+  assert.match(dir, /Platform\.OS === 'web' \? webRtl : I18nManager\.isRTL/);
+  const i18n = source('lib/i18n/index.ts');
+  assert.match(i18n, /applyWebDirection\(isRtlLanguage\(lang\), lang\)/);
+  // Native keeps the restart behaviour.
+  assert.match(i18n, /I18nManager\.forceRTL\(wantsRtl\)/);
+  // Nothing reads the web stub's isRTL directly.
+  for (const f of ['lib/design/direction.ts', 'components/ui/Stepper.tsx']) {
+    assert.ok(!/I18nManager\.isRTL\b/.test(withoutComments(source(f))), `${f} reads I18nManager.isRTL`);
+  }
+});
+
+it('sizes the tab bar from the safe area instead of a fixed height', () => {
+  const tabs = withoutComments(source('app/(tabs)/_layout.tsx'));
+  assert.match(tabs, /height: TAB_BAR_CONTENT \+ insets\.bottom/);
+  assert.match(tabs, /paddingBottom: TAB_BAR_PADDING \+ insets\.bottom/);
+  assert.ok(!/height: 60,/.test(tabs));
 });
 
 console.log(`stock screen: ${passed} passed`);

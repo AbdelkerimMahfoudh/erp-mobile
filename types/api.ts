@@ -344,7 +344,12 @@ export interface StockSummaryRow {
   trackingType: TrackingType;
   specifications: Record<string, unknown> | null;
   category: 'phone' | 'accessory' | 'other';
+  /** Sellable now: in-stock units, or physical quantity minus reserved. */
   available: number;
+  /** Physically held — what the low-stock rule compares. */
+  onHand: number;
+  /** Promised to an open transfer; 0 for serialized goods. */
+  reserved: number;
   lowStock: boolean;
   lowStockThreshold: number;
   /**

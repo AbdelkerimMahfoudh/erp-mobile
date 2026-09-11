@@ -1134,6 +1134,11 @@ export const ar: Catalogue = {
   'receive.done.title': 'تم استلام البضاعة',
   'receive.done.summary': '{units} قطعة · {lines} سطر منتج',
   'receive.done.more': 'استلام المزيد',
+  'receive.refused.title': 'لم يُستلم',
+  'receive.refused.none': 'لم يُستلم شيء: رُفضت كل القطع.',
+  'receive.refused.alreadyRegistered': 'مسجّل مسبقًا',
+  'receive.refused.duplicateInBatch': 'مُسح مرتين في هذه الشحنة',
+  'receive.refused.other': 'مرفوض',
 
   // ── Product confirmation ──────────────────────────────────────────────────
   'confirm.recognized': 'تم التعرف عليه',
@@ -1662,7 +1667,11 @@ export const ar: Catalogue = {
   'inventory.availableOf': '{available} متاح للبيع',
   'stock.category.phone': 'الهواتف',
   'stock.category.accessory': 'الإكسسوارات',
+  'stock.category.other': 'أجهزة أخرى',
+  'stock.countsHint': 'أرقام المرشحات تعدّ المنتجات، لا القطع.',
   'stock.available': 'متاح',
+  'stock.availablePlural': 'متاح',
+  'stock.reservedOnHand': 'محجوز: {reserved} · في المخزون: {onHand}',
   'stock.lowStock': 'مخزون منخفض',
   'stock.outOfStock': 'نفد من المخزون',
   'stock.price': 'السعر {amount}',

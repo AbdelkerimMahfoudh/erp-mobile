@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { ScanLine, Search, X } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
-import { textAlign } from '../../lib/design/direction';
+import { textAlign, writingDirection } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { haptics } from '../../lib/haptics';
 import { usePressed } from './use-pressed';
@@ -113,7 +113,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
         autoCapitalize={identifier ? 'characters' : 'none'}
         style={[
           styles.input,
-          { textAlign: identifier ? 'left' : textAlign('start') },
+          { textAlign: identifier ? 'left' : textAlign('start'), writingDirection: writingDirection(identifier) },
           identifier ? styles.identifierInput : null,
         ]}
       />

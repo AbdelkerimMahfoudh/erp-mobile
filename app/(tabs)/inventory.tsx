@@ -20,7 +20,7 @@ import {
 } from '../../components/ui';
 import { InlineNotice } from '../../components/ui/InlineNotice';
 import { ScannerSheet } from '../../components/scanner/ScannerSheet';
-import { StockRow } from '../../components/inventory/StockRow';
+import { STOCK_THUMB, StockRow } from '../../components/inventory/StockRow';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
@@ -66,7 +66,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
 
 const STATUS_FILTERS = ['in_stock', 'sold', 'faulty', ''] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
-type Category = 'all' | 'phone' | 'accessory';
+type Category = 'all' | 'phone' | 'accessory' | 'other';
 
 const PAGE_SIZE = 50;
 /** Long enough to feel deliberate, short enough not to feel laggy. */
@@ -167,6 +167,7 @@ export default function InventoryScreen() {
       all: allRows.length,
       phone: allRows.filter((r) => r.category === 'phone').length,
       accessory: allRows.filter((r) => r.category === 'accessory').length,
+      other: allRows.filter((r) => r.category === 'other').length,
     }),
     [allRows],
   );
@@ -252,6 +253,19 @@ export default function InventoryScreen() {
               count={summary.data ? counts.accessory : undefined}
               onPress={() => setCategory('accessory')}
             />
+            {/*
+              Serial-tracked goods — TVs, laptops, consoles. Always under All;
+              given their own chip only when the branch holds some, so a phone
+              shop is not shown an empty category it never uses.
+            */}
+            {counts.other > 0 || category === 'other' ? (
+              <FilterChip
+                label={t('stock.category.other')}
+                selected={category === 'other'}
+                count={summary.data ? counts.other : undefined}
+                onPress={() => setCategory('other')}
+              />
+            ) : null}
           </View>
         </ScrollView>
       ) : (
@@ -465,6 +479,7 @@ function ShelfList({
   onReceive: () => void;
   onOpen: (row: StockSummaryRow) => void;
 }) {
+  const styles = useStyles();
   const { t } = useTranslation();
 
   if (loading) return <SkeletonList count={6} />;
@@ -491,11 +506,17 @@ function ShelfList({
   }
 
   return (
-    <RowGroup separatorInset={48 + space.md * 2}>
-      {rows.map((row) => (
-        <StockRow key={row.productId} row={row} onPress={() => onOpen(row)} />
-      ))}
-    </RowGroup>
+    <>
+      {/* The chips count products (rows), not pieces — said once, above the rows. */}
+      <Text variant="caption" tone="tertiary" style={styles.hint}>
+        {t('stock.countsHint')}
+      </Text>
+      <RowGroup separatorInset={STOCK_THUMB + space.md * 2}>
+        {rows.map((row) => (
+          <StockRow key={row.productId} row={row} onPress={() => onOpen(row)} />
+        ))}
+      </RowGroup>
+    </>
   );
 }
 
@@ -592,6 +613,9 @@ const useStyles = makeStyles(() => ({
   },
   notice: {
     marginBottom: space.md,
+  },
+  hint: {
+    marginBottom: space.sm,
   },
   list: {
     padding: space.base,

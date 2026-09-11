@@ -25,6 +25,8 @@ import { formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
 import { useDraft } from '../lib/offline/use-draft';
 import { DraftNotice } from '../components/DraftNotice';
+import { InlineNotice } from '../components/ui/InlineNotice';
+import { isolateLtr } from '../lib/design/direction';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
@@ -44,11 +46,25 @@ import { makeStyles, useColors } from '../lib/design/theme';
  * receiving is the strongest learning signal the system gets.
  */
 
+interface RejectedLine {
+  identifier: string;
+  reason: string;
+}
+
 interface PurchaseResponse {
+  /** Null when every line was refused and nothing was written. */
+  purchaseId: string | null;
   unitsCreated: number;
   stockLines: number;
   total: number;
+  rejected?: RejectedLine[];
 }
+
+/** The server's refusal reasons, in the shop's language. */
+const REFUSAL_KEYS = {
+  'already registered': 'receive.refused.alreadyRegistered',
+  'duplicate in batch': 'receive.refused.duplicateInBatch',
+} as const;
 
 interface PendingScan {
   result: ScanResult;
@@ -107,6 +123,12 @@ export default function ReceiveScreen() {
    * employee who just counted six power banks that zero arrived.
    */
   const [done, setDone] = useState<{ response: PurchaseResponse; units: number } | null>(null);
+  /**
+   * Lines the server refused on Finish — an IMEI already registered, the same
+   * one twice. The purchase endpoint answers 200 with them listed, so they have
+   * to be read: counting what was staged would call a refused phone received.
+   */
+  const [refused, setRefused] = useState<RejectedLine[]>([]);
 
   /**
    * One request identity per DELIVERY, not per attempt.
@@ -289,7 +311,19 @@ export default function ReceiveScreen() {
         })),
       }),
     onSuccess: (res) => {
-      setDone({ response: res, units: unitTotal });
+      const rejected = res.rejected ?? [];
+      setRefused(rejected);
+      if (res.purchaseId === null) {
+        // Nothing was written. Keep the delivery on screen so it can be fixed.
+        toast.error(t('receive.refused.none'));
+        return;
+      }
+      const refusedIds = new Set(rejected.map((r) => r.identifier));
+      const refusedUnits = staged.reduce(
+        (n, item) => n + (item.identifiers?.filter((id) => refusedIds.has(id)).length ?? 0),
+        0,
+      );
+      setDone({ response: res, units: unitTotal - refusedUnits });
       setStaged([]);
       draft.clear();
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
@@ -333,6 +367,7 @@ export default function ReceiveScreen() {
           <Text variant="display" align="center">
             {formatMoney(done.response.total)}
           </Text>
+          <RefusedNotice lines={refused} />
           <View style={styles.successActions}>
             <Button
               title={t('receive.done.more')}
@@ -342,6 +377,7 @@ export default function ReceiveScreen() {
               onPress={() => {
                 // A new delivery is a new logical action, so a new key.
                 clientUuid.current = uuidv4();
+                setRefused([]);
                 setDone(null);
               }}
             />
@@ -437,6 +473,7 @@ export default function ReceiveScreen() {
             keyboardDismissMode="on-drag"
           >
             <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setSupplier(null); }} />
+            <RefusedNotice lines={refused} />
             <Text variant="label" tone="tertiary">
               {t('receive.session')}
             </Text>
@@ -503,6 +540,22 @@ export default function ReceiveScreen() {
         }}
       />
     </>
+  );
+}
+
+/** Each refused identifier with its reason, in words. Renders nothing when empty. */
+function RefusedNotice({ lines }: { lines: RejectedLine[] }) {
+  const { t } = useTranslation();
+  if (lines.length === 0) return null;
+  return (
+    <InlineNotice tone="danger" title={t('receive.refused.title')}>
+      {lines
+        .map((line) => {
+          const key = REFUSAL_KEYS[line.reason as keyof typeof REFUSAL_KEYS] ?? 'receive.refused.other';
+          return `${isolateLtr(line.identifier)} — ${t(key)}`;
+        })
+        .join('\n')}
+    </InlineNotice>
   );
 }
 

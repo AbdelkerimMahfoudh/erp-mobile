@@ -2,6 +2,7 @@ import { I18nManager } from 'react-native';
 import { getLocales } from 'expo-localization';
 import { create } from 'zustand';
 import { getItem, setItem } from '../storage';
+import { applyWebDirection, DIRECTION_NEEDS_RESTART, layoutIsRTL } from '../design/layout-direction';
 import { en } from './en';
 import { ar } from './ar';
 import { fr } from './fr';
@@ -77,12 +78,14 @@ export function getLanguage(): Language {
 /**
  * Whether the UI is laid out right-to-left.
  *
- * Read from `I18nManager`, not from the language, because native RTL only takes
- * effect after a restart — during the gap between choosing Arabic and relaunching,
- * the layout is still LTR and the UI must agree with reality, not with intent.
+ * On native, read from `I18nManager`, not from the language, because native RTL
+ * only takes effect after a restart — during the gap between choosing Arabic and
+ * relaunching, the layout is still LTR and the UI must agree with reality, not
+ * with intent. On web the document direction applies at once; see
+ * `lib/design/layout-direction.ts`.
  */
 export function isRTL(): boolean {
-  return I18nManager.isRTL;
+  return layoutIsRTL();
 }
 
 interface I18nState {
@@ -98,6 +101,7 @@ interface I18nState {
 function applyLanguage(lang: Language): void {
   activeLanguage = lang;
   activeCatalogue = CATALOGUES[lang];
+  applyWebDirection(isRtlLanguage(lang), lang);
 }
 
 export const useI18n = create<I18nState>((set, get) => ({
@@ -109,6 +113,12 @@ export const useI18n = create<I18nState>((set, get) => ({
     const stored = await getItem(LANGUAGE_STORAGE_KEY);
     const lang = isSupported(stored) ? stored : deviceLanguage();
     applyLanguage(lang);
+
+    // Web has already applied the direction to the document; nothing to relaunch.
+    if (!DIRECTION_NEEDS_RESTART) {
+      set({ language: lang, ready: true, restartRequired: false });
+      return;
+    }
 
     // Permit RTL at all; without this, forceRTL is ignored on some builds.
     I18nManager.allowRTL(true);
@@ -127,6 +137,11 @@ export const useI18n = create<I18nState>((set, get) => ({
     if (get().language === lang) return;
     applyLanguage(lang);
     await setItem(LANGUAGE_STORAGE_KEY, lang);
+
+    if (!DIRECTION_NEEDS_RESTART) {
+      set({ language: lang, restartRequired: false });
+      return;
+    }
 
     const wantsRtl = isRtlLanguage(lang);
     const directionChanges = I18nManager.isRTL !== wantsRtl;
@@ -149,7 +164,7 @@ export function useTranslation(): {
   isRTL: boolean;
 } {
   const language = useI18n((s) => s.language);
-  return { t, language, isRTL: I18nManager.isRTL };
+  return { t, language, isRTL: layoutIsRTL() };
 }
 
 export type { TranslationKey, TranslationValues } from './keys';

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, ShoppingCart, Boxes, Menu, Wallet } from 'lucide-react-native';
 import { ErrorState } from '../../components/ui';
 import { useBranch } from '../../lib/branch';
@@ -8,6 +9,10 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
 import { tabHubIsVisible } from '../../lib/navigation/registry';
 import { makeStyles, useColors } from '../../lib/design/theme';
+
+/** Icon plus label, above the safe area; measured to fit an 11pt label. */
+const TAB_BAR_CONTENT = 64;
+const TAB_BAR_PADDING = 4;
 
 /**
  * The tab bar, gated by role.
@@ -35,6 +40,7 @@ export default function TabsLayout() {
     drawer needs the tab that holds the daily closing.
   */
   const canSeeMoney = tabHubIsVisible(granted);
+  const insets = useSafeAreaInsets();
 
   // Permissions failed to resolve. Without an escape here the app is a
   // permanent spinner — the tab bar cannot decide what to show, and there is
@@ -66,14 +72,24 @@ export default function TabsLayout() {
         // dark mode, where brand[600] goes muddy against near-black.
         tabBarActiveTintColor: colors.text.accent,
         tabBarInactiveTintColor: colors.text.tertiary,
+        /*
+          Height includes the bottom safe area. It used to be a fixed 60 with
+          paddingBottom 8, which REPLACES the navigator's own inset handling:
+          on web the icon and label did not fit the 46 points left and the
+          labels were cut off at the bottom edge, and on a phone with a home
+          indicator they would sit under it.
+        */
         tabBarStyle: {
           borderTopColor: colors.border.subtle,
           backgroundColor: colors.surface.card,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: TAB_BAR_CONTENT + insets.bottom,
+          paddingBottom: TAB_BAR_PADDING + insets.bottom,
+          paddingTop: TAB_BAR_PADDING,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        // An explicit line height that may not shrink: the label is an
+        // overflow-hidden box, and when the item was short it was squeezed to
+        // 9 of the 15 points its glyphs need.
+        tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: '600', flexShrink: 0 },
         // The scene behind each tab. Unset, the navigator paints its own
         // light default, which ignores the theme entirely.
         sceneStyle: { backgroundColor: colors.surface.canvas },

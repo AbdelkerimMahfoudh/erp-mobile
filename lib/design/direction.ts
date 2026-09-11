@@ -1,4 +1,5 @@
-import { I18nManager, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { layoutIsRTL } from './layout-direction';
 
 /**
  * Layout direction helpers.
@@ -9,7 +10,11 @@ import { I18nManager, type StyleProp, type TextStyle, type ViewStyle } from 'rea
  *     `ps-*`→`paddingStart`, `me-*`→`marginEnd`, `start-*`→`insetInlineStart`.
  *     Prefer them over `pl-*`/`mr-*`/`left-*`, which are physical and will not flip.
  *
- *  ✅ `flex-row` flips automatically once `I18nManager.isRTL` is true.
+ *  ✅ `flex-row` flips automatically once `I18nManager.isRTL` is true on
+ *     native, and under the document's `dir="rtl"` on web.
+ *
+ *  Direction itself comes from `layoutIsRTL()` — never `I18nManager.isRTL`
+ *  directly, which react-native-web never reports as true.
  *
  *  ❌ Logical TEXT ALIGNMENT does not survive compilation. NativeWind drops
  *     `text-align: start | end` with an `IncompatibleNativeValue` warning, so
@@ -22,7 +27,7 @@ import { I18nManager, type StyleProp, type TextStyle, type ViewStyle } from 'rea
  */
 
 export function isRTL(): boolean {
-  return I18nManager.isRTL;
+  return layoutIsRTL();
 }
 
 /**
@@ -31,9 +36,20 @@ export function isRTL(): boolean {
  */
 export function textAlign(align: 'start' | 'end' | 'center' = 'start'): TextStyle['textAlign'] {
   if (align === 'center') return 'center';
-  const rtl = I18nManager.isRTL;
+  const rtl = layoutIsRTL();
   if (align === 'start') return rtl ? 'right' : 'left';
   return rtl ? 'left' : 'right';
+}
+
+/**
+ * The paragraph direction of an editable field.
+ *
+ * On web an input with no direction resolves from its (empty) value and lays an
+ * Arabic placeholder out left-to-right, scrambling the word order around a Latin
+ * term like "IMEI". Identifiers stay LTR: they are not language.
+ */
+export function writingDirection(identifier = false): TextStyle['writingDirection'] {
+  return !identifier && layoutIsRTL() ? 'rtl' : 'ltr';
 }
 
 /**
@@ -45,7 +61,7 @@ export function textAlign(align: 'start' | 'end' | 'center' = 'start'): TextStyl
  * those read as broken when flipped.
  */
 export function mirror(): StyleProp<ViewStyle> {
-  return I18nManager.isRTL ? { transform: [{ scaleX: -1 }] } : undefined;
+  return layoutIsRTL() ? { transform: [{ scaleX: -1 }] } : undefined;
 }
 
 /**
@@ -65,6 +81,6 @@ export const USE_LATIN_DIGITS = true;
  * it in Unicode isolates pins it to LTR wherever it appears.
  */
 export function isolateLtr(value: string): string {
-  if (!I18nManager.isRTL) return value;
+  if (!layoutIsRTL()) return value;
   return `⁦${value}⁩`; // LRI … PDI
 }

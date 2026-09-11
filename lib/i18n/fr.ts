@@ -1272,6 +1272,11 @@ export const fr: Catalogue = {
   'receive.done.title': 'Stock réceptionné',
   'receive.done.summary': '{units} article(s) · {lines} ligne(s) de produit',
   'receive.done.more': 'Réceptionner davantage',
+  'receive.refused.title': 'Non réceptionné',
+  'receive.refused.none': 'Rien n’a été réceptionné : chaque article a été refusé.',
+  'receive.refused.alreadyRegistered': 'déjà enregistré',
+  'receive.refused.duplicateInBatch': 'scanné deux fois dans cette livraison',
+  'receive.refused.other': 'refusé',
 
   // ── Product confirmation ──────────────────────────────────────────────────
   'confirm.recognized': 'Reconnu',
@@ -1872,7 +1877,11 @@ export const fr: Catalogue = {
   'inventory.availableOf': '{available} disponibles à la vente',
   'stock.category.phone': 'Téléphones',
   'stock.category.accessory': 'Accessoires',
+  'stock.category.other': 'Autres appareils',
+  'stock.countsHint': 'Les nombres des filtres comptent les produits, pas les pièces.',
   'stock.available': 'disponible',
+  'stock.availablePlural': 'disponibles',
+  'stock.reservedOnHand': 'Réservé : {reserved} · En stock : {onHand}',
   'stock.lowStock': 'Stock bas',
   'stock.outOfStock': 'En rupture',
   'stock.price': 'Prix {amount}',
