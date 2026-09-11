@@ -67,6 +67,15 @@ export const qk = {
   analyticsCategories: (branchId: string | null) => ['analytics-categories', branchId] as const,
   inventoryValue: (branchId: string | null) => ['inventory-value', branchId] as const,
   inventoryByModel: (branchId: string | null) => ['inventory-by-model', branchId] as const,
+  /**
+   * One row per variant. Keyed by branch so a switch never shows the previous
+   * branch's shelf.
+   *
+   * Starts with `'inventory'` on purpose: catalog edits, consignments and
+   * imports already invalidate the `['inventory']` prefix, and a summary outside
+   * that prefix would go on showing counts those mutations just changed.
+   */
+  inventorySummary: (branchId: string | null) => ['inventory', 'summary', branchId] as const,
   health: (branchId: string | null) => ['health', branchId] as const,
   expenses: (branchId: string | null, filters?: string) =>
     ['expenses', branchId, filters ?? ''] as const,

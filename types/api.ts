@@ -327,6 +327,34 @@ export interface InventoryPage {
  * no client-side counter: a number that is maintained rather than derived
  * drifts the first time a sale or a transfer takes a path nobody updated.
  */
+/**
+ * One exact variant on the shelf — `GET /inventory/summary`.
+ *
+ * What the Stock screen lists. Server-derived on every request: `available`
+ * excludes reserved quantity and non-`in_stock` units, `lowStock` is the shop's
+ * own threshold (the dashboard's rule), and `price` comes from the sale's own
+ * price ladder. **There is no cost or margin in this row, ever.**
+ */
+export interface StockSummaryRow {
+  productId: string;
+  brand: string;
+  model: string;
+  variant: string | null;
+  barcode: string | null;
+  trackingType: TrackingType;
+  specifications: Record<string, unknown> | null;
+  category: 'phone' | 'accessory' | 'other';
+  available: number;
+  lowStock: boolean;
+  lowStockThreshold: number;
+  /**
+   * Null when nothing in the row has a selling price — "no price set", never
+   * zero. When units resolve to different prices (a unit override), `min` and
+   * `max` differ and the client must show a range, not one of them.
+   */
+  price: { min: number; max: number; pricedCount: number; unpricedCount: number } | null;
+}
+
 export interface ModelStockRow {
   brand: string;
   model: string;

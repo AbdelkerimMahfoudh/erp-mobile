@@ -294,6 +294,8 @@ export default function ReceiveScreen() {
       draft.clear();
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
+      // The Stock screen's per-variant counts move with every sale and delivery.
+      qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
     },
     onError: (e) => toast.error(toErrorMessage(e)),
   });

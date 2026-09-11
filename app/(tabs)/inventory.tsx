@@ -1,13 +1,14 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Cable, PackageSearch } from 'lucide-react-native';
+import { Cable, PackagePlus, PackageSearch, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
   ErrorState,
   FilterChip,
+  IconButton,
   ListRow,
   MoneyValue,
   RowGroup,
@@ -17,33 +18,55 @@ import {
   StatusChip,
   Text,
 } from '../../components/ui';
-import { ScanTarget } from '../../components/scanner';
+import { InlineNotice } from '../../components/ui/InlineNotice';
+import { ScannerSheet } from '../../components/scanner/ScannerSheet';
+import { StockRow } from '../../components/inventory/StockRow';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
+import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { formatQuantity } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { withDismiss } from '../../lib/keyboard-dismiss';
+import { usePermission } from '../../lib/permissions';
 import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
-import type { InventoryPage, InventoryRow, ModelStockRow, ScanResult, Unit } from '../../types/api';
+import type { InventoryPage, InventoryRow, ScanResult, StockSummaryRow, Unit } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
- * Inventory — what is physically here.
+ * Stock — what this branch can sell today.
  *
- * Shows both shapes of stock: serialized units (one row per device, each with a
- * status) and quantity-tracked lines (one row per exact variant with a count).
- * An electronics shop sells accessories daily; inventory that omits them is
- * wrong, not merely partial.
+ * ## Two lists, and which question each answers
  *
- * Paging is cursor-based and search runs on the server, because the alternative
- * — showing the first N rows and filtering only those on the phone — quietly
- * answers "we don't have it" for stock that is sitting on the shelf.
+ * The shelf is shown one row per **exact variant** — "iPhone 17, 256 GB ·
+ * Black, 2 available, price 42 000 MRU, low stock" — from
+ * `GET /inventory/summary`. That is the question asked fifty times a day.
+ *
+ * Every phone is still an individual unit with its own IMEI. Searching, or
+ * tapping a phone variant, switches to the existing **unit list**
+ * (`GET /inventory`): paginated, searched on the server by name, barcode,
+ * **either IMEI** and serial, filtered by lifecycle status. A search is a
+ * question about one handset, so it answers with handsets.
+ *
+ * ## Category is not status
+ *
+ * All / Phones / Accessories narrows the variant list, which is complete and
+ * small, so it filters on the phone without hiding anything. In, sold and faulty
+ * are lifecycle statuses of units and keep their server meaning on the unit
+ * list. The two never share a row of chips, because they are different kinds of
+ * question.
+ *
+ * ## What it never shows
+ *
+ * No cost or margin: the summary carries none, and unit rows show cost only when
+ * the server sent it. A figure the server did not send is never a zero.
  */
 
 const STATUS_FILTERS = ['in_stock', 'sold', 'faulty', ''] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number];
+type Category = 'all' | 'phone' | 'accessory';
 
 const PAGE_SIZE = 50;
 /** Long enough to feel deliberate, short enough not to feel laggy. */
@@ -54,162 +77,193 @@ export default function InventoryScreen() {
   const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
-  const { branchId } = useBranch();
-  // Arriving from a product's detail screen: filter to that exact product
-  // rather than guessing from its name, which two variants can share.
-  const { productId } = useLocalSearchParams<{ productId?: string }>();
+  const { branchId, branchName } = useBranch();
+  const online = useConnectivity((s) => s.online);
+  const canReceive = usePermission('purchase.manage');
+
+  // Arriving from a product's detail screen: that exact product's units.
+  const { productId: productIdParam } = useLocalSearchParams<{ productId?: string }>();
+  /** A variant tapped here. Takes precedence over the route parameter. */
+  const [focus, setFocus] = useState<{ id: string; label: string } | null>(null);
+  const focusId = focus?.id ?? (productIdParam ? String(productIdParam) : undefined);
+
+  const [category, setCategory] = useState<Category>('all');
   const [status, setStatus] = useState<StatusFilter>('in_stock');
-  /**
-   * How the shelf is presented — by model, or one row per unit.
-   *
-   * By model is the default because it is the question that gets asked fifty
-   * times a day: "how many 17 Pro Max do I have?" A list of individual IMEIs
-   * answers a different question, and answering it first meant counting rows by
-   * eye. Nothing about the data changes between the two — every phone is still
-   * one Unit with its own IMEI, still searchable by either — only which of the
-   * two true answers is on top.
-   *
-   * Arriving from a product's detail screen goes straight to the units: that
-   * journey has already picked a model, so aggregating it again would show one
-   * line and hide what was asked for.
-   */
-  const [view, setView] = useState<'model' | 'unit'>(productId ? 'unit' : 'model');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  /** Unit lookups started the moment a code is captured, keyed by code. */
-  const lookups = useRef(new Map<string, Promise<Unit | null>>());
+  const searching = debounced.length > 0;
+  const mode: 'summary' | 'units' = searching || focusId ? 'units' : 'summary';
+
+  /*
+   * A branch switch starts from the whole shelf of the NEW branch. A focus or a
+   * search typed for the old branch would otherwise carry over and describe
+   * stock that is not here. The query keys already include the branch, so no
+   * previous-branch row can render while the new one loads.
+   */
+  const [shownBranch, setShownBranch] = useState(branchId);
+  if (shownBranch !== branchId) {
+    // Adjusted during render rather than in an effect, so the stale focus and
+    // search never paint even for one frame after the switch.
+    setShownBranch(branchId);
+    setFocus(null);
+    setQuery('');
+    setDebounced('');
+  }
+
+  const summary = useQuery({
+    queryKey: qk.inventorySummary(branchId),
+    queryFn: () => api.get<StockSummaryRow[]>('/inventory/summary'),
+    enabled: Boolean(branchId) && mode === 'summary',
+  });
 
   const inventory = useInfiniteQuery({
-    queryKey: qk.inventory(branchId, status, debounced, productId),
+    queryKey: qk.inventory(branchId, status, debounced, focusId),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (status) params.set('status', status);
       if (debounced) params.set('search', debounced);
-      if (productId) params.set('productId', String(productId));
+      if (focusId) params.set('productId', focusId);
       if (pageParam) params.set('cursor', pageParam);
       return api.get<InventoryPage>(`/inventory?${params.toString()}`);
     },
     getNextPageParam: (last) => last.nextCursor,
+    enabled: Boolean(branchId) && mode === 'units',
   });
 
-  /**
-   * The shelf, counted by model.
-   *
-   * Not paginated, and not filtered by the search box: a shop has hundreds of
-   * units and a few dozen models, so the whole list is small, and a search over
-   * IMEIs is a question about one phone rather than about the shelf. Typing in
-   * the search box switches the view to units for that reason.
-   */
-  const byModel = useQuery({
-    queryKey: qk.inventoryByModel(branchId),
-    queryFn: () => api.get<ModelStockRow[]>('/inventory/by-model'),
-    enabled: view === 'model',
-  });
+  // Coming back to the tab after a sale or a delivery shows the shelf as it is
+  // now, not as it was when the tab was last opened.
+  useFocusEffect(
+    useCallback(() => {
+      if (mode === 'summary') void summary.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode]),
+  );
 
-  // ── Lookup by scan ────────────────────────────────────────────────────────
+  // ── Scan to find one handset ──────────────────────────────────────────────
 
-  const onCodeCaptured = useCallback((code: string) => {
-    if (lookups.current.has(code)) return;
-    lookups.current.set(
-      code,
-      api.get<Unit>(`/units/${encodeURIComponent(code)}`).catch(() => null),
-    );
-  }, []);
+  const openScanner = withDismiss(Keyboard, () => setScannerOpen(true));
 
   const onScanResult = useCallback(
     async (result: ScanResult) => {
-      const unit = (await lookups.current.get(result.code)) ?? null;
-      lookups.current.delete(result.code);
-
-      if (!unit) {
+      try {
+        const unit = await api.get<Unit>(`/units/${encodeURIComponent(result.code)}`);
+        const identifier = unit.imeiPrimary ?? unit.serialNo ?? result.code;
+        router.push({ pathname: '/unit/[identifier]', params: { identifier } });
+      } catch {
         toast.error(t('inventory.notFound'));
-        return;
       }
-      const identifier = unit.imeiPrimary ?? unit.serialNo ?? result.code;
-      router.push({ pathname: '/unit/[identifier]', params: { identifier } });
     },
     [router, t],
   );
 
   // ── Derived ───────────────────────────────────────────────────────────────
 
+  const allRows = useMemo(() => summary.data ?? [], [summary.data]);
+  const counts = useMemo(
+    () => ({
+      all: allRows.length,
+      phone: allRows.filter((r) => r.category === 'phone').length,
+      accessory: allRows.filter((r) => r.category === 'accessory').length,
+    }),
+    [allRows],
+  );
+  const shelf = category === 'all' ? allRows : allRows.filter((r) => r.category === category);
+
   const rows: InventoryRow[] = useMemo(
     () => inventory.data?.pages.flatMap((page) => page.rows) ?? [],
     [inventory.data],
   );
   const totals = inventory.data?.pages[0]?.totals ?? { units: 0, stock: 0 };
-
   const units = rows.filter((r): r is Extract<InventoryRow, { kind: 'unit' }> => r.kind === 'unit');
   const stock = rows.filter((r): r is Extract<InventoryRow, { kind: 'stock' }> => r.kind === 'stock');
 
-  const isEmpty = !inventory.isLoading && rows.length === 0;
-  const searching = debounced.length > 0;
+  const focusLabel =
+    focus?.label ??
+    (units[0]?.product ? [productTitle(units[0].product), variantSummary(units[0].product)].filter(Boolean).join(' · ') : '');
 
-  /**
-   * Searching is a question about one phone, so it answers with phones.
-   *
-   * Somebody typing an IMEI wants that handset, not the line "iPhone 17 Pro
-   * Max — 4". The model view is restored the moment the box is cleared, so this
-   * costs nobody a tap.
-   */
-  const showing: 'model' | 'unit' = searching || productId ? 'unit' : view;
+  const clearFocus = () => {
+    setFocus(null);
+    if (productIdParam) router.setParams({ productId: undefined });
+  };
 
-  const models = byModel.data ?? [];
-  /** Phones and other individually-tracked devices, then bulk stock. */
-  const trackedModels = models.filter((m) => m.trackingType !== 'quantity');
-  const quantityModels = models.filter((m) => m.trackingType === 'quantity');
-  const modelsEmpty = showing === 'model' && !byModel.isLoading && models.length === 0;
+  const openVariant = (row: StockSummaryRow) => {
+    if (row.category === 'accessory') {
+      // Quantity stock has no units to pick between; its detail is the product.
+      router.push(`/catalog/${row.productId}` as Href);
+      return;
+    }
+    setFocus({
+      id: row.productId,
+      label: [productTitle(row), variantSummary(row)].filter(Boolean).join(' · '),
+    });
+  };
 
-  const onSearchChange = useCallback((value: string) => {
-    setQuery(value);
-  }, []);
-
-  /** Refetching from the first page — a cursor from the old filter is invalid. */
   const refresh = useCallback(() => {
-    void inventory.refetch();
-    void byModel.refetch();
-  }, [inventory, byModel]);
+    if (mode === 'summary') void summary.refetch();
+    else void inventory.refetch();
+  }, [mode, summary, inventory]);
 
-  return (
-    <Screen
-      scroll={false}
-      padded={false}
-      header={
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const header = (
+    <>
+      <View style={styles.titleRow}>
+        <Text variant="title" accessibilityRole="header">
+          {t('inventory.title')}
+        </Text>
+        {branchName ? (
+          <Text variant="caption" tone="tertiary" numberOfLines={1} style={styles.branch}>
+            {branchName}
+          </Text>
+        ) : null}
+      </View>
+
+      <SearchInput
+        value={query}
+        onChangeText={setQuery}
+        onDebouncedChange={setDebounced}
+        debounceMs={SEARCH_DEBOUNCE_MS}
+        onSubmit={setDebounced}
+        onScanPress={openScanner}
+        placeholder={t('inventory.search')}
+      />
+
+      {mode === 'summary' ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filters}>
+            <FilterChip
+              label={t('inventory.filter.all')}
+              selected={category === 'all'}
+              count={summary.data ? counts.all : undefined}
+              onPress={() => setCategory('all')}
+            />
+            <FilterChip
+              label={t('stock.category.phone')}
+              selected={category === 'phone'}
+              count={summary.data ? counts.phone : undefined}
+              onPress={() => setCategory('phone')}
+            />
+            <FilterChip
+              label={t('stock.category.accessory')}
+              selected={category === 'accessory'}
+              count={summary.data ? counts.accessory : undefined}
+              onPress={() => setCategory('accessory')}
+            />
+          </View>
+        </ScrollView>
+      ) : (
         <>
-          <Text variant="title">{t('inventory.title')}</Text>
-          <ScanTarget
-            onResult={onScanResult}
-            onCodeCaptured={onCodeCaptured}
-            placeholder={t('inventory.scan.placeholder')}
-          />
-          <SearchInput
-            value={query}
-            onChangeText={onSearchChange}
-            onDebouncedChange={setDebounced}
-            debounceMs={SEARCH_DEBOUNCE_MS}
-            onSubmit={setDebounced}
-            placeholder={t('inventory.search')}
-          />
-          {/*
-            Two true answers about the same shelf, and a tap between them.
-            Hidden while searching, because a search has already chosen one.
-          */}
-          {searching || productId ? null : (
-            <View style={styles.filters}>
-              <FilterChip
-                label={t('inventory.view.byModel')}
-                selected={showing === 'model'}
-                onPress={() => setView('model')}
-              />
-              <FilterChip
-                label={t('inventory.view.byUnit')}
-                selected={showing === 'unit'}
-                onPress={() => setView('unit')}
-              />
+          {focusId ? (
+            <View style={styles.focusRow}>
+              <Text variant="caption" tone="secondary" style={styles.focusText} numberOfLines={2}>
+                {t('stock.showingProduct', { product: focusLabel })}
+              </Text>
+              <IconButton icon={X} accessibilityLabel={t('stock.clearProduct')} onPress={clearFocus} />
             </View>
-          )}
+          ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filters}>
               {STATUS_FILTERS.map((value) => (
@@ -223,21 +277,45 @@ export default function InventoryScreen() {
             </View>
           </ScrollView>
         </>
-      }
-    >
-      {inventory.error ? (
-        // ErrorState reads the thrown value: a 403 renders "Not available to
-        // you" with no retry, since retrying a role boundary never succeeds.
-        <ErrorState error={inventory.error} onRetry={refresh} />
+      )}
+    </>
+  );
+
+  const footer = canReceive ? (
+    <Button
+      title={t('stock.receive')}
+      icon={PackagePlus}
+      fullWidth
+      onPress={() => router.push('/receive' as Href)}
+    />
+  ) : undefined;
+
+  const active = mode === 'summary' ? summary : inventory;
+  const staleNotice =
+    (!online || active.isError) && active.data ? (
+      <InlineNotice tone="warning" style={styles.notice}>
+        {t('stock.offline')}
+      </InlineNotice>
+    ) : null;
+
+  return (
+    <Screen scroll={false} padded={false} header={header} footer={footer}>
+      <ScannerSheet open={scannerOpen} onClose={() => setScannerOpen(false)} onResult={onScanResult} />
+
+      {!branchId ? (
+        <EmptyState icon={PackageSearch} title={t('branch.select.title')} />
+      ) : active.isError && !active.data ? (
+        // A 403 renders "Not available to you" with no retry; anything else can
+        // be retried. Unknown stock is never drawn as an empty shelf.
+        <ErrorState error={active.error} onRetry={refresh} />
       ) : (
         <ScrollView
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           onScroll={({ nativeEvent: e }) => {
-            // Prefetch one screen ahead so the list rarely stalls visibly.
-            const nearEnd =
-              e.layoutMeasurement.height + e.contentOffset.y >= e.contentSize.height - 600;
+            if (mode !== 'units') return;
+            const nearEnd = e.layoutMeasurement.height + e.contentOffset.y >= e.contentSize.height - 600;
             if (nearEnd && inventory.hasNextPage && !inventory.isFetchingNextPage) {
               void inventory.fetchNextPage();
             }
@@ -245,34 +323,26 @@ export default function InventoryScreen() {
           scrollEventThrottle={200}
           refreshControl={
             <RefreshControl
-              refreshing={inventory.isRefetching}
+              refreshing={active.isRefetching}
               onRefresh={refresh}
               tintColor={colors.brand[600]}
               colors={[colors.brand[600]]}
             />
           }
         >
-          {inventory.isLoading ? (
-            <SkeletonList count={6} />
-          ) : showing === 'model' ? (
-            <ModelList
-              loading={byModel.isLoading}
-              empty={modelsEmpty}
-              tracked={trackedModels}
-              quantity={quantityModels}
-              /*
-                Tapping a model answers the next question: which four? It
-                switches to units AND filters to that model, because landing on
-                every unit in the branch would make the tap a step backwards.
-              */
-              onOpen={(m) => {
-                const term = `${m.brand} ${m.model}`.trim();
-                setView('unit');
-                setQuery(term);
-                setDebounced(term);
-              }}
+          {staleNotice}
+          {mode === 'summary' ? (
+            <ShelfList
+              loading={summary.isLoading}
+              rows={shelf}
+              everything={allRows.length}
+              canReceive={canReceive}
+              onReceive={() => router.push('/receive' as Href)}
+              onOpen={openVariant}
             />
-          ) : isEmpty ? (
+          ) : inventory.isLoading ? (
+            <SkeletonList count={6} />
+          ) : rows.length === 0 ? (
             <EmptyState
               icon={PackageSearch}
               title={t(
@@ -298,42 +368,30 @@ export default function InventoryScreen() {
                     label={t('inventory.units')}
                     // Shown vs total, never a bare count — a page is not the
                     // whole branch, and implying otherwise hides stock.
-                    count={t('inventory.count.units', {
-                      shown: units.length,
-                      total: totals.units,
-                    })}
+                    count={t('inventory.count.units', { shown: units.length, total: totals.units })}
                   />
                   <RowGroup>
-                  {units.map((row) => (
-                    <ListRow
-                      key={row.id}
-                      flat
-                      leading={PackageSearch}
-                      title={productTitle(row.product, row.identifier)}
-                      subtitle={variantSummary(row.product) || undefined}
-                      identifier={row.identifier}
-                      accessory={<StatusChip domain="unit" value={row.status} size="sm" />}
-                      /**
-                       * Cost, and only when the server actually sent it — it is
-                       * stripped without `cost.view`. Rendered only when
-                       * present, so a role that may not see cost gets a row
-                       * with no cost on it rather than a dash or a zero, either
-                       * of which would read as "this phone cost nothing".
-                       */
-                      value={
-                        row.cost !== undefined ? (
-                          <MoneyValue value={row.cost} size="small" tone="muted" />
-                        ) : undefined
-                      }
-                      valueCaption={row.cost !== undefined ? t('inventory.cost') : undefined}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/unit/[identifier]',
-                          params: { identifier: row.identifier },
-                        })
-                      }
-                    />
-                  ))}
+                    {units.map((row) => (
+                      <ListRow
+                        key={row.id}
+                        flat
+                        leading={PackageSearch}
+                        title={productTitle(row.product, row.identifier)}
+                        subtitle={variantSummary(row.product) || undefined}
+                        identifier={row.identifier}
+                        accessory={<StatusChip domain="unit" value={row.status} size="sm" />}
+                        /*
+                         * Cost, only when the server actually sent it — it is
+                         * stripped without `cost.view`. Never a dash or a zero,
+                         * which would read as "this phone cost nothing".
+                         */
+                        value={row.cost !== undefined ? <MoneyValue value={row.cost} size="small" tone="muted" /> : undefined}
+                        valueCaption={row.cost !== undefined ? t('inventory.cost') : undefined}
+                        onPress={() =>
+                          router.push({ pathname: '/unit/[identifier]', params: { identifier: row.identifier } })
+                        }
+                      />
+                    ))}
                   </RowGroup>
                 </>
               ) : null}
@@ -342,39 +400,32 @@ export default function InventoryScreen() {
                 <>
                   <SectionHeading
                     label={t('inventory.accessories')}
-                    count={t('inventory.count.stock', {
-                      shown: stock.length,
-                      total: totals.stock,
-                    })}
+                    count={t('inventory.count.stock', { shown: stock.length, total: totals.stock })}
                     spaced={units.length > 0}
                   />
                   <RowGroup>
-                  {stock.map((row) => (
-                    <ListRow
-                      key={row.id}
-                      flat
-                      leading={Cable}
-                      title={productTitle(row.product)}
-                      subtitle={variantSummary(row.product) || undefined}
-                      identifier={row.product?.barcode ?? undefined}
-                      value={formatQuantity(row.quantity)}
-                      /**
-                       * The headline number stays PHYSICAL stock — what the
-                       * branch owns. When some of it is promised to a transfer,
-                       * the caption says how much can actually be sold rather
-                       * than quietly showing a smaller total (H1.1).
-                       */
-                      valueCaption={
-                        row.reservedQuantity > 0
-                          ? t('inventory.availableOf', {
-                              available: formatQuantity(row.availableQuantity),
-                            })
-                          : t('inventory.inStock')
-                      }
-                      // No product-detail screen yet, so nothing to navigate to.
-                      chevron={false}
-                    />
-                  ))}
+                    {stock.map((row) => (
+                      <ListRow
+                        key={row.id}
+                        flat
+                        leading={Cable}
+                        title={productTitle(row.product)}
+                        subtitle={variantSummary(row.product) || undefined}
+                        identifier={row.product?.barcode ?? undefined}
+                        value={formatQuantity(row.quantity)}
+                        /*
+                         * The headline stays PHYSICAL stock. When some of it is
+                         * promised to a transfer, the caption says how much can
+                         * actually be sold (H1.1).
+                         */
+                        valueCaption={
+                          row.reservedQuantity > 0
+                            ? t('inventory.availableOf', { available: formatQuantity(row.availableQuantity) })
+                            : t('inventory.inStock')
+                        }
+                        onPress={() => router.push(`/catalog/${row.productId}` as Href)}
+                      />
+                    ))}
                   </RowGroup>
                 </>
               ) : null}
@@ -390,6 +441,61 @@ export default function InventoryScreen() {
         </ScrollView>
       )}
     </Screen>
+  );
+}
+
+/**
+ * The shelf, one row per variant.
+ *
+ * Complete rather than paginated — it is one row per variant, not per unit — so
+ * narrowing by category on the phone hides nothing the server knows about.
+ */
+function ShelfList({
+  loading,
+  rows,
+  everything,
+  canReceive,
+  onReceive,
+  onOpen,
+}: {
+  loading: boolean;
+  rows: StockSummaryRow[];
+  everything: number;
+  canReceive: boolean;
+  onReceive: () => void;
+  onOpen: (row: StockSummaryRow) => void;
+}) {
+  const { t } = useTranslation();
+
+  if (loading) return <SkeletonList count={6} />;
+
+  if (everything === 0) {
+    return (
+      <EmptyState
+        icon={PackageSearch}
+        title={t('inventory.empty.title')}
+        body={t('inventory.empty.body')}
+        action={canReceive ? { label: t('stock.receive'), onPress: onReceive, icon: PackagePlus } : undefined}
+      />
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        icon={PackageSearch}
+        title={t('stock.empty.category.title')}
+        body={t('stock.empty.category.body')}
+      />
+    );
+  }
+
+  return (
+    <RowGroup separatorInset={48 + space.md * 2}>
+      {rows.map((row) => (
+        <StockRow key={row.productId} row={row} onPress={() => onOpen(row)} />
+      ))}
+    </RowGroup>
   );
 }
 
@@ -448,15 +554,7 @@ function ListFooter({
   );
 }
 
-function SectionHeading({
-  label,
-  count,
-  spaced = false,
-}: {
-  label: string;
-  count: string;
-  spaced?: boolean;
-}) {
+function SectionHeading({ label, count, spaced = false }: { label: string; count: string; spaced?: boolean }) {
   const styles = useStyles();
   return (
     <View style={[styles.sectionHeading, spaced ? styles.sectionSpaced : null]}>
@@ -470,114 +568,37 @@ function SectionHeading({
   );
 }
 
-/**
- * The shelf as a shopkeeper counts it: "iPhone 17 Pro Max — 4 in stock".
- *
- * Every one of those four is still an individual `Unit` with its own IMEI, and
- * still findable by either of its identifiers. This is a presentation of the
- * same rows, not a different kind of record — which is why the storage and
- * colour breakdown sits one level down rather than splitting the headline. A
- * shopkeeper asked "how many 17 Pro Max"; "two black and two blue" is the
- * answer to the next question, not this one.
- *
- * The count comes from the server on every load. Nothing here adds up rows or
- * remembers a total.
- */
-function ModelList({
-  loading,
-  empty,
-  tracked,
-  quantity,
-  onOpen,
-}: {
-  loading: boolean;
-  empty: boolean;
-  tracked: ModelStockRow[];
-  quantity: ModelStockRow[];
-  onOpen: (model: ModelStockRow) => void;
-}) {
-  const { t } = useTranslation();
-
-  if (loading) return <SkeletonList count={6} />;
-  if (empty) {
-    return (
-      <EmptyState
-        icon={PackageSearch}
-        title={t('inventory.empty.title')}
-        body={t('inventory.empty.body')}
-      />
-    );
-  }
-
-  const row = (m: ModelStockRow) => {
-    /*
-     * Shown only when it says something. One variant adds a line that repeats
-     * what the count already said; several is the reason somebody tapped.
-     */
-    const named = m.variants.filter((v) => v.variant);
-    const breakdown =
-      named.length > 1 ? named.map((v) => `${v.variant} · ${v.inStock}`).join('   ') : undefined;
-
-    return (
-      <ListRow
-        key={`${m.brand} ${m.model}`}
-        leading={m.trackingType === 'quantity' ? Cable : PackageSearch}
-        title={`${m.brand} ${m.model}`.trim()}
-        subtitle={breakdown}
-        // The number in words as well as as a figure, so "4" is never a bare
-        // digit somebody has to interpret.
-        value={<Text variant="title">{formatQuantity(m.inStock)}</Text>}
-        valueCaption={t('inventory.inStock')}
-        onPress={() => onOpen(m)}
-      />
-    );
-  };
-
-  return (
-    <>
-      {tracked.length > 0 ? (
-        <>
-          <SectionHeading
-            label={t('inventory.models')}
-            // Every unit in the branch is counted, so this is a total rather
-            // than a page — said plainly, unlike the paginated unit list.
-            count={t('inventory.count.models', {
-              models: tracked.length,
-              units: tracked.reduce((n, m) => n + m.inStock, 0),
-            })}
-          />
-          {tracked.map(row)}
-        </>
-      ) : null}
-
-      {quantity.length > 0 ? (
-        <>
-          <SectionHeading
-            label={t('inventory.accessories')}
-            count={t('inventory.count.models', {
-              models: quantity.length,
-              units: quantity.reduce((n, m) => n + m.inStock, 0),
-            })}
-            spaced={tracked.length > 0}
-          />
-          {quantity.map(row)}
-        </>
-      ) : null}
-    </>
-  );
-}
-
-const useStyles = makeStyles((colors) => ({
+const useStyles = makeStyles(() => ({
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  branch: {
+    flexShrink: 1,
+  },
   filters: {
     flexDirection: 'row',
     gap: space.sm,
   },
+  focusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  focusText: {
+    flex: 1,
+  },
+  notice: {
+    marginBottom: space.md,
+  },
   list: {
     padding: space.base,
     /*
-     * No gap: flat rows abut and are separated by their own hairline, which is
-     * what turns a run of rows into one continuous surface instead of a stack
-     * of cards. Section headings carry their own spacing (`sectionSpaced`).
+     * No gap: rows abut and are separated by the group's hairline. The footer
+     * with Receive stock sits OUTSIDE this scroll area, so the last row can
+     * always scroll clear of it; this padding is overscroll comfort.
      */
     gap: 0,
     paddingBottom: space['3xl'],

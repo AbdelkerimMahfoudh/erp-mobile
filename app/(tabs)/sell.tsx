@@ -381,6 +381,8 @@ export default function SellScreen() {
     setReturnPolicyReason('');
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
+    // The Stock screen's per-variant counts move with every sale and delivery.
+    qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
   };
 
   /**

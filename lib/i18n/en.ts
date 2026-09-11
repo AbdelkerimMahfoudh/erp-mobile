@@ -384,7 +384,7 @@ export const en = {
   // ── Navigation ────────────────────────────────────────────────────────────
   'tab.home': 'Home',
   'tab.sell': 'Sell',
-  'tab.inventory': 'Inventory',
+  'tab.inventory': 'Stock',
   'tab.money': 'Money',
   'tab.more': 'More',
 
@@ -1098,7 +1098,7 @@ export const en = {
   'returns.policy.changedBy': 'Changed by {name}',
 
   // ── Inventory ─────────────────────────────────────────────────────────────
-  'inventory.title': 'Inventory',
+  'inventory.title': 'Stock',
   'inventory.scan.placeholder': 'Scan or type an IMEI or serial',
   'inventory.filter.in_stock': 'In stock',
   'inventory.filter.sold': 'Sold',
@@ -1120,7 +1120,7 @@ export const en = {
   'inventory.empty.filtered.title': 'Nothing matches',
   'inventory.empty.filtered.body': 'Try a different filter.',
   'inventory.notFound': 'No item with that code at this branch',
-  'inventory.search': 'Search by name, variant or barcode',
+  'inventory.search': 'Search name, barcode, IMEI or serial',
   'inventory.count.units': '{shown} of {total} tracked',
   'inventory.count.stock': '{shown} of {total} accessories',
   'inventory.loadingMore': 'Loading more…',
@@ -1707,6 +1707,21 @@ export const en = {
   'notifications.type.transfer.incoming': 'Incoming transfer',
   'notifications.type.transfer.received': 'Transfer received',
   'inventory.availableOf': '{available} free to sell',
+  'stock.category.phone': 'Phones',
+  'stock.category.accessory': 'Accessories',
+  'stock.available': 'available',
+  'stock.lowStock': 'Low stock',
+  'stock.outOfStock': 'Out of stock',
+  'stock.price': 'Price {amount}',
+  'stock.priceFrom': 'From {amount}',
+  'stock.priceUnset': 'No price set',
+  'stock.someUnpriced': '{count} without a price',
+  'stock.receive': 'Receive stock',
+  'stock.showingProduct': 'Showing {product}',
+  'stock.clearProduct': 'Show all stock',
+  'stock.offline': 'You are offline. This is the stock as it was last loaded.',
+  'stock.empty.category.title': 'Nothing in this category',
+  'stock.empty.category.body': 'Try All, or receive a delivery.',
   // ── Transfers (H1.3) ───────────────────────────────────────────────────────
   'transfers.title': 'Transfers',
   'transfers.new': 'New transfer',
