@@ -300,6 +300,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   // leaves the Sell tab's cart alone; putting it in a menu would offer two
   // entries that look like the same thing and behave differently.
   '/quick-sell': 'The scan-first shortcut on Home — a counter action, not a menu entry.',
+  '/quick-receive': 'The scan-first shortcut on Home — a counter action, not a menu entry. The full delivery workflow is /receive.',
   '/unit/[identifier]': 'Where a scan lands.',
   '/pricing/unit': 'Opened from a unit or the catalog.',
   '/pricing/history': 'Opened from a price.',
