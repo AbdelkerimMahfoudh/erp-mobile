@@ -77,7 +77,14 @@ export function useDraft<T>(
   useEffect(() => {
     if (!scope || !key || !enabled || restoredFor.current !== key) return;
     const result = saveDraft(form, scope, value, payloadVersion, recordId);
-    setRefused(!result.saved && result.reason !== 'io');
+    /*
+     * Refused means THIS payload was rejected — a forbidden field or an
+     * oversized draft (see `DraftNotice`). Neither an I/O hiccup nor a platform
+     * that keeps no drafts at all (`unsupported`, i.e. web) is a refusal: the
+     * latter used to put "this could not be saved" on every draft screen in a
+     * browser, blaming the form for a storage decision.
+     */
+    setRefused(!result.saved && result.reason !== 'io' && result.reason !== 'unsupported');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, key, enabled, payloadVersion, recordId, value]);
 
