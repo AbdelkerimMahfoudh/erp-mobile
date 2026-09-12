@@ -1046,6 +1046,18 @@ export const fr: Catalogue = {
   'sell.payment.split': 'Répartir entre plusieurs moyens',
   'sell.payment.addMethod': 'Ajouter un autre moyen',
   'sell.payment.complete': 'Terminer la vente',
+  'sell.payment.account': 'Quel compte ?',
+  'sell.payment.account.required': 'Choisissez le compte qui a reçu cet argent',
+  'sell.payment.account.chosen': '{provider} · {label}',
+  'sell.payment.account.none': 'Aucun compte configuré — le propriétaire en ajoute un dans les réglages',
+  'sell.customer': 'Client',
+  'sell.customer.none': 'Aucun client',
+  'sell.customer.choose': 'Choisir un client',
+  'sell.customer.search': 'Rechercher par nom ou téléphone',
+  'sell.customer.add': 'Ajouter un client',
+  'sell.customer.clear': 'Vendre sans client',
+  'sell.customer.optional': 'Facultatif pour une vente en espèces',
+  'sell.customer.balance': 'Doit {amount}',
   'sell.payment.exactOnly':
     'Le montant total doit être payé. La vente à crédit n’est pas encore disponible.',
 
@@ -1462,6 +1474,10 @@ export const fr: Catalogue = {
 
   // ── Payment methods ───────────────────────────────────────────────────────
   'payment.cash': 'Espèces',
+  'payment.provider.bankily': 'Bankily',
+  'payment.provider.sedad': 'Sedad',
+  'payment.provider.bim_bank': 'BIM Bank',
+  'payment.provider.other': 'Autre',
   'payment.card': 'Carte',
   'payment.mobile': 'Paiement mobile',
   'payment.bank': 'Virement bancaire',
@@ -1839,6 +1855,11 @@ export const fr: Catalogue = {
   'catalog.form.tracking.derived.from': 'Parce qu’il est classé dans {{category}}',
   'catalog.form.tracking.derived.noCategory':
     'Choisissez une catégorie pour définir le mode de réception',
+  'catalog.form.tracking.choose': 'Comment sont-ils comptés ? Changez si la suggestion est fausse.',
+  'catalog.form.tracking.suggested.imei': 'Suggéré : le code scanné était un IMEI, que seuls les téléphones portent.',
+  'catalog.form.tracking.suggested.serial': 'Suggéré : le code scanné était un numéro de série.',
+  'catalog.form.tracking.suggested.quantity': 'Suggéré : compté par quantité.',
+  'catalog.form.tracking.derived.serial': 'Enregistré un par un, chacun avec son propre numéro de série',
   'categories.tracking.hint':
     'Les téléphones sont enregistrés un par un. Tout le reste est compté.',
   'categories.tracking.locked':

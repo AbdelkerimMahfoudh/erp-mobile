@@ -9,6 +9,7 @@ import { ScanLine } from 'lucide-react-native';
 import {
   Button,
   Card,
+  FilterChip,
   IconButton,
   ListRow,
   Screen,
@@ -52,9 +53,18 @@ export interface ProductFormValues {
   defaultPrice: string;
 }
 
+/** The modes a product may be created with. `serial` is selectable again (4b). */
+const TRACKING_CHOICES: readonly TrackingType[] = ['imei', 'serial', 'quantity'];
+
 export interface ProductFormProps {
   mode: 'create' | 'edit';
   initial: ProductFormValues;
+  /**
+   * What the scan that opened this form classified the code as, when it opened
+   * from one. Used only to explain the preselection — never to decide it
+   * silently, and never to override a category.
+   */
+  suggestedFromScan?: TrackingType | null;
   /** False when the backend says history has frozen the tracking mode. */
   canChangeTracking?: boolean;
   submitting: boolean;
@@ -80,6 +90,7 @@ export const emptyProductForm: ProductFormValues = {
 export function ProductForm({
   mode,
   initial,
+  suggestedFromScan = null,
   canChangeTracking = true,
   submitting,
   errors,
@@ -127,7 +138,15 @@ export function ProductForm({
    * is not a choice on this screen any more, so there is no wrong choice to
    * prevent, and one fewer network dependency sits in the create path.
    */
-  const derivedTracking: TrackingType = selected?.defaultTrackingType ?? 'imei';
+  /**
+   * A category still DECIDES the mode, and the server refuses a contradiction.
+   * With no category there is nothing to derive from, so the scan gets to
+   * suggest: a serial suggests serial, an IMEI suggests IMEI, and a product
+   * barcode suggests nothing because it names a model rather than a unit.
+   * The suggestion is only a starting point — the chooser below still asks.
+   */
+  const derivedTracking: TrackingType = selected?.defaultTrackingType ?? values.trackingType;
+  const categoryDecides = selected !== null;
 
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(initial), [values, initial]);
 
@@ -207,34 +226,48 @@ export function ProductForm({
         />
       </Section>
 
-      {/* 2 ── How it is received (derived from the category, never chosen) ─── */}
+      {/* 2 ── How it is received ─────────────────────────────────────────── */}
       <Section title={t('catalog.form.section.tracking')}>
-        <Card>
-          {/*
-            Not a control any more.
-
-            The category decides how its products are received and the server
-            enforces it, so a form that let the two disagree could only produce
-            a rejection the employee did not cause and cannot fix. This reports
-            the consequence of the category chosen above instead of asking a
-            question whose answer was never really the user's.
-
-            It also takes the decision out of the daily path entirely: picking
-            "Smartphones" is something a shopkeeper already knows, while picking
-            "imei" is something they have to be taught.
-          */}
-          <ListRow
-            title={
-              derivedTracking === 'quantity'
-                ? t('catalog.form.tracking.derived.quantity')
-                : t('catalog.form.tracking.derived.imei')
-            }
-            subtitle={
-              selected
-                ? t('catalog.form.tracking.derived.from', { category: selected.name })
-                : t('catalog.form.tracking.derived.noCategory')
-            }
-          />
+        <Card style={styles.tracking}>
+          {categoryDecides ? (
+            /*
+              With a category chosen this is a consequence, not a question. The
+              category decides how its products are received and the server
+              enforces it, so a form that let the two disagree could only
+              produce a rejection the employee did not cause and cannot fix.
+            */
+            <ListRow
+              title={t(`catalog.form.tracking.derived.${derivedTracking}` as never)}
+              subtitle={t('catalog.form.tracking.derived.from', { category: selected!.name })}
+            />
+          ) : (
+            /*
+              No category, so nothing to derive from — and this is the path a
+              scan lands on. Asking here is what lets a television scanned by
+              its serial become a serial-tracked product instead of being asked
+              for an IMEI it does not have.
+            */
+            <>
+              <Text variant="caption" tone="secondary">
+                {t('catalog.form.tracking.choose')}
+              </Text>
+              <View style={styles.trackingChoices} accessibilityRole="radiogroup">
+                {TRACKING_CHOICES.map((mode) => (
+                  <FilterChip
+                    key={mode}
+                    label={t(`catalog.tracking.${mode}`)}
+                    selected={values.trackingType === mode}
+                    onPress={() => canChangeTracking && set('trackingType', mode)}
+                  />
+                ))}
+              </View>
+              <Text variant="caption" tone="tertiary">
+                {suggestedFromScan && values.trackingType === suggestedFromScan
+                  ? t(`catalog.form.tracking.suggested.${suggestedFromScan}` as never)
+                  : t('catalog.form.tracking.derived.noCategory')}
+              </Text>
+            </>
+          )}
           {!canChangeTracking ? (
             <Text variant="caption" tone="warning" style={styles.hint}>
               {t('catalog.form.tracking.locked')}
@@ -351,9 +384,12 @@ export function ProductForm({
  *
  * Two fields are deliberately absent.
  *
- * `trackingType` is not sent at all. The category determines it server-side,
- * and sending a second opinion can only agree redundantly or contradict and be
- * refused — so the form states no opinion and cannot be the thing that is wrong.
+ * `trackingType` is sent **only for an uncategorised product**. A category
+ * determines the mode server-side, and sending a second opinion there can only
+ * agree redundantly or contradict and be refused — so where a category exists
+ * the form still states no opinion and cannot be the thing that is wrong. With
+ * no category there is nothing to derive from and the mode is the client's to
+ * state, which is what lets a scanned serial become a serial-tracked product.
  *
  * `specifications` is not sent either, now that the free-form Details rows are
  * gone. Omitting the key means "leave it alone" on a PATCH, so every historical
@@ -368,13 +404,15 @@ export function toProductPayload(v: ProductFormValues, opts: { includePrice: boo
     model: v.model.trim(),
     // Empty optional values are normalized the same way everywhere: omitted.
     ...(v.variant.trim() ? { variant: v.variant.trim() } : {}),
-    ...(v.categoryId ? { categoryId: v.categoryId } : {}),
+    ...(v.categoryId ? { categoryId: v.categoryId } : { trackingType: v.trackingType }),
     ...(v.barcode.trim() ? { barcode: v.barcode.trim() } : {}),
     ...(opts.includePrice && v.defaultPrice.trim() && Number.isFinite(price) ? { defaultPrice: price } : {}),
   };
 }
 
 const styles = StyleSheet.create({
+  tracking: { gap: space.sm },
+  trackingChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   fields: { gap: space.base },
   hint: { marginTop: space.sm },
   footer: { gap: space.sm },

@@ -237,29 +237,40 @@ it('anything the catalogue does not know is not treated as a phone', () => {
 });
 
 /**
- * The tracking mode is no longer a choice on the product form.
+ * The tracking mode is a choice ONLY when there is no category to decide it.
  *
- * It used to be a segmented control, filtered so a phone could not be offered
- * "quantity". That guard is gone because the QUESTION is gone: the category
- * decides, the server enforces it, and the form only reports the consequence.
- * These assertions pin that down, because reintroducing a picker here would
- * quietly recreate a form that can contradict the server.
+ * It was once a free segmented control, then no control at all. Both extremes
+ * were wrong. A category still decides and the server refuses a contradiction —
+ * that half is unchanged. But an UNCATEGORISED product has nothing to derive
+ * from, and that is the path a scan lands on: before 4b the form proposed IMEI
+ * for a scanned serial, asking for a number a television does not have.
  */
-it('the product form offers no tracking picker at all', () => {
+it('the product form offers a tracking picker only where nothing else decides', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
-  assert.ok(!code.includes('SegmentedControl'), 'the tracking mode must not be selectable here');
-  assert.ok(!/set\('trackingType'/.test(code), 'nothing may set the tracking mode from this form');
+  assert.ok(!code.includes('SegmentedControl'), 'chips, like every other filter in the app');
+  assert.match(code, /categoryDecides \?/, 'a chosen category must still report, not ask');
+  assert.match(code, /set\('trackingType', mode\)/, 'and with no category, the user chooses');
 });
 
-it('the form derives the mode from the selected category', () => {
+it('the form still lets the category decide whenever there is one', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
   assert.match(code, /derivedTracking[^\n]*selected\?\.defaultTrackingType/);
+  assert.match(code, /const categoryDecides = selected !== null/);
 });
 
-it('the form does not send a tracking mode the server would have to referee', () => {
+it('the form sends a tracking mode only for an uncategorised product', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
   const payload = code.slice(code.indexOf('export function toProductPayload'));
-  assert.ok(!payload.includes('trackingType'), 'the payload must state no opinion on tracking');
+  /*
+   * With a category the payload must stay silent — the server would otherwise
+   * have to referee two opinions, and a refusal the employee cannot fix is the
+   * worst of the three outcomes. Without one, the mode is the client's to state.
+   */
+  assert.match(
+    payload,
+    /categoryId \? \{ categoryId: v\.categoryId \} : \{ trackingType: v\.trackingType \}/,
+    'tracking travels only in the no-category branch',
+  );
 });
 
 it('the derived copy answers both halves of "how will this be received?"', () => {

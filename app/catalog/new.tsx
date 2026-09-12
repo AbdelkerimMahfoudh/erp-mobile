@@ -3,6 +3,7 @@ import { Stack, useRouter , useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
 import { notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
+import { suggestedTracking } from '../../lib/scan/suggested-tracking';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, ErrorState, Screen } from '../../components/ui';
 import {
@@ -39,6 +40,19 @@ export default function NewProductScreen() {
     userId: user?.id ?? '',
     branchId: branchId ?? '',
   };
+  /**
+   * What the scan that opened this form was, if it opened from one.
+   *
+   * `peek`, not `take`: the intake belongs to Receive and must still be waiting
+   * when this screen hands control back — creating a product is a detour, not a
+   * handover. The kind is read from WHICH field holds the code, because the
+   * intake keeps an IMEI, a serial and a product barcode deliberately apart.
+   */
+  const held = peekPendingIntake(intakeScope);
+  const suggested = suggestedTracking(
+    held?.primaryImei ? 'imei' : held?.serial ? 'serial' : held?.productBarcode ? 'barcode' : 'unknown',
+  );
+
   const canManage = usePermission('catalog.manage');
   const canSetPrice = usePermission('price.edit');
 
@@ -131,8 +145,18 @@ export default function NewProductScreen() {
          * Prefilled ONLY from a genuine product barcode handed over by intake.
          * An IMEI never reaches this parameter — it identifies one phone, and
          * `ProductForm` refuses it here for the same reason.
+         *
+         * The tracking mode is seeded from what the scanner CLASSIFIED, not
+         * from the barcode: a serial suggests serial, an IMEI suggests IMEI,
+         * and a product barcode suggests nothing because it names a model
+         * rather than a unit. A category, once chosen, overrides all of it.
          */
-        initial={{ ...emptyProductForm, barcode: scannedBarcode ?? '' }}
+        initial={{
+          ...emptyProductForm,
+          barcode: scannedBarcode ?? '',
+          trackingType: suggested ?? emptyProductForm.trackingType,
+        }}
+        suggestedFromScan={suggested}
         submitting={create.isPending}
         errors={errors}
         onSubmit={(values) => {
