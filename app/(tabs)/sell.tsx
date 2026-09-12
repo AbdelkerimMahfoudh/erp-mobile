@@ -1,11 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
-import { ScanLine, Trash2 } from 'lucide-react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ScanLine, Trash2, UserRound } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
   InlineNotice,
+  ListRow,
   MoneyField,
   MoneyValue,
   Screen,
@@ -13,9 +14,10 @@ import {
 } from '../../components/ui';
 import { ProductConfirmationCard } from '../../components/product';
 import { ScanTarget } from '../../components/scanner';
-import { BottomSheet } from '../../components/overlay';
+import { BottomSheet, SelectSheet } from '../../components/overlay';
 import { CartLineRow } from '../../components/sell/CartLineRow';
-import { PaymentSheet } from '../../components/sell/PaymentSheet';
+import { PaymentSheet, type ReceivingAccount } from '../../components/sell/PaymentSheet';
+import { useCreateCustomer, useCustomers, type Customer } from '../../lib/customers';
 import { SaleSuccess } from '../../components/sell/SaleSuccess';
 import {
   ApprovalRequestSheet,
@@ -113,6 +115,29 @@ export default function SellScreen() {
   const [pending, setPending] = useState<PendingScan | null>(null);
   const [pendingPrice, setPendingPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
+
+  /**
+   * Who the sale is for. Optional, and deliberately so: an ordinary cash sale
+   * needs nobody, and stopping to identify a walk-in customer would slow the
+   * commonest transaction in the shop. The server requires one only when the
+   * sale is not paid in full, which is a different workflow.
+   */
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const customers = useCustomers(customerSearch, customerOpen);
+  const createCustomer = useCreateCustomer();
+
+  /**
+   * Where non-cash money can land. Only ACTIVE accounts are returned to a
+   * cashier, and the server refuses any other — so this list is what may be
+   * offered, never a hint.
+   */
+  const accountsQuery = useQuery({
+    queryKey: qk.settings,
+    queryFn: () => api.get<{ receivingAccounts?: ReceivingAccount[] }>('/settings'),
+  });
+  const receivingAccounts = accountsQuery.data?.receivingAccounts ?? [];
 
   /**
    * The return policy for THIS sale. It starts as the shop's, and only a
@@ -365,7 +390,13 @@ export default function SellScreen() {
       discount,
       total: sale.total,
       payments: payments.map((p) => ({
-        method: t(`payment.${p.method}` as never),
+        // The account is named on the receipt, so the customer's copy says
+        // where the money went, not merely how it was paid.
+        method: p.receivingAccountId
+          ? `${t(`payment.${p.method}` as never)} · ${
+              receivingAccounts.find((a) => a.id === p.receivingAccountId)?.label ?? ''
+            }`.trim()
+          : t(`payment.${p.method}` as never),
         amount: p.amount,
       })),
       returnPolicy: sale.returnPolicy,
@@ -375,6 +406,9 @@ export default function SellScreen() {
     setPaymentOpen(false);
     setLines([]);
     setDiscount(0);
+    // The next customer is a different person; carrying this one over is how a
+    // sale gets attributed to somebody who was never in the shop.
+    setCustomer(null);
     // The sale reached the server, so the draft has done its job.
     cartDraft.clear();
     // A policy chosen for one customer must never carry into the next.
@@ -412,7 +446,13 @@ export default function SellScreen() {
             ? { identifier: line.identifier, price: line.price }
             : { productId: line.productId, quantity: line.quantity, price: line.price },
         ),
-        payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
+        payments: payments.map((p) => ({
+          method: p.method,
+          amount: p.amount,
+          // Sent only when there is one: the server refuses an account on cash.
+          ...(p.receivingAccountId ? { receivingAccountId: p.receivingAccountId } : {}),
+        })),
+        ...(customer ? { customerId: customer.id } : {}),
         ...(discount > 0 ? { saleDiscount: discount } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         // Omitted for an ordinary sale: re-stating the default is not an
@@ -735,6 +775,23 @@ export default function SellScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
+            {/*
+              Who the sale is for — above the cart, because it is context for
+              everything below it, and quiet, because most sales have none.
+              Choosing or creating a customer never touches the cart.
+            */}
+            <ListRow
+              leading={UserRound}
+              title={customer?.name ?? t('sell.customer.none')}
+              subtitle={
+                customer
+                  ? customer.balance > 0
+                    ? t('sell.customer.balance', { amount: isolateLtr(formatMoney(customer.balance)) })
+                    : (customer.phone ?? undefined)
+                  : t('sell.customer.optional')
+              }
+              onPress={() => setCustomerOpen(true)}
+            />
             {lines.map((line) => (
               <CartLineRow
                 key={line.key}
@@ -791,6 +848,7 @@ export default function SellScreen() {
         onDiscountChange={setDiscount}
         onComplete={onComplete}
         submitting={submitting}
+        accounts={receivingAccounts}
         returnPolicy={{
           companyDefaultHours,
           windowHours: effectiveWindowHours,
@@ -800,6 +858,48 @@ export default function SellScreen() {
           canOverride: canOverrideReturnPolicy,
         }}
       />
+      {/*
+        Searching happens on the server, so a name two pages down is still
+        findable — the same rule the transfer and supplier pickers follow.
+        Creating one here returns to the sale with it selected; the cart,
+        the discount and the scanned lines are untouched throughout.
+      */}
+      <SelectSheet
+        open={customerOpen}
+        onClose={() => setCustomerOpen(false)}
+        title={t('sell.customer.choose')}
+        items={customers.data?.rows ?? []}
+        keyExtractor={(c: Customer) => c.id}
+        labelExtractor={(c: Customer) => c.name ?? ''}
+        descriptionExtractor={(c: Customer) => c.phone ?? undefined}
+        valueExtractor={(c: Customer) => (c.balance > 0 ? formatMoney(c.balance) : undefined)}
+        leadingIcon={UserRound}
+        selectedKeys={customer ? [customer.id] : []}
+        searchPlaceholder={t('sell.customer.search')}
+        onSearchChange={setCustomerSearch}
+        loading={customers.isLoading}
+        error={customers.error}
+        onRetry={() => customers.refetch()}
+        onSelect={(c: Customer) => {
+          setCustomer(c);
+          setCustomerOpen(false);
+        }}
+        onCreate={(name) =>
+          createCustomer.mutate(
+            { name },
+            {
+              onSuccess: (created) => {
+                setCustomer(created);
+                setCustomerOpen(false);
+                toast.success(created.name ?? name);
+              },
+              onError: (e) => toast.error(toErrorMessage(e)),
+            },
+          )
+        }
+        creating={createCustomer.isPending}
+      />
+
       <ApprovalRequestSheet
         request={approvalRequest}
         onClose={() => {

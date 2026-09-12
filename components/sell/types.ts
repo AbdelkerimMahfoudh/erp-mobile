@@ -33,6 +33,13 @@ export interface PaymentEntry {
   key: string;
   method: 'cash' | 'card' | 'mobile' | 'bank' | 'other';
   amount: number;
+  /**
+   * Which configured account this money reached. Required by the server for
+   * every non-cash method and refused for cash — the drawer belongs to no
+   * account. Money with no account used to be recorded as "unattributed",
+   * which nothing could reconcile.
+   */
+  receivingAccountId?: string;
 }
 
 export function lineTotal(line: CartLine): number {

@@ -33,6 +33,20 @@ import { makeStyles } from '../../lib/design/theme';
 const METHODS = ['cash', 'card', 'mobile', 'bank'] as const;
 type Method = (typeof METHODS)[number];
 
+/** A configured place non-cash money can land. Only ACTIVE ones are offered. */
+export interface ReceivingAccount {
+  id: string;
+  label: string;
+  provider: 'bankily' | 'sedad' | 'bim_bank' | 'other';
+  providerName?: string | null;
+}
+
+/**
+ * Cash belongs to no account — the drawer is not a Bankily wallet, and the
+ * server refuses an account on a cash payment. Everything else must name one.
+ */
+const needsAccount = (method: Method) => method !== 'cash';
+
 export interface PaymentSheetProps {
   open: boolean;
   onClose: () => void;
@@ -41,6 +55,12 @@ export interface PaymentSheetProps {
   onDiscountChange: (discount: number) => void;
   onComplete: (payments: PaymentEntry[]) => void;
   submitting?: boolean;
+  /**
+   * The shop's active receiving accounts. Empty is a real state — a shop that
+   * has configured none can still take cash, and the sheet says why the other
+   * methods cannot be completed rather than offering an empty picker.
+   */
+  accounts: ReceivingAccount[];
   /**
    * The return policy, shown where the sale is actually finished. Stating it at
    * the moment of payment is what makes it get said out loud to the customer.
@@ -63,11 +83,13 @@ export function PaymentSheet({
   onDiscountChange,
   onComplete,
   submitting = false,
+  accounts,
   returnPolicy,
 }: PaymentSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const [method, setMethod] = useState<Method>('cash');
+  const [accountId, setAccountId] = useState<string | null>(null);
   const [split, setSplit] = useState<PaymentEntry[]>([]);
 
   // Reset each time it opens: a half-built split from a previous sale must
@@ -75,9 +97,56 @@ export function PaymentSheet({
   useEffect(() => {
     if (open) {
       setMethod('cash');
+      setAccountId(null);
       setSplit([]);
     }
   }, [open]);
+
+  /** The provider and label, said in full before the sale is completed. */
+  const describe = (account: ReceivingAccount) =>
+    t('sell.payment.account.chosen', {
+      provider:
+        account.provider === 'other'
+          ? (account.providerName ?? t('payment.provider.other'))
+          : t(`payment.provider.${account.provider}` as never),
+      label: account.label,
+    });
+
+  const accountPicker = (
+    selected: string | null,
+    onPick: (id: string) => void,
+    key: string,
+  ) => {
+    if (accounts.length === 0) {
+      return (
+        <Text variant="caption" tone="warning">
+          {t('sell.payment.account.none')}
+        </Text>
+      );
+    }
+    const chosen = accounts.find((a) => a.id === selected) ?? null;
+    return (
+      <View style={styles.group}>
+        <Text variant="label" tone="secondary">
+          {t('sell.payment.account')}
+        </Text>
+        <View style={styles.chips} accessibilityRole="radiogroup">
+          {accounts.map((account) => (
+            <FilterChip
+              key={`${key}:${account.id}`}
+              label={account.label}
+              selected={selected === account.id}
+              onPress={() => onPick(account.id)}
+            />
+          ))}
+        </View>
+        {/* Provider AND label, so nobody confirms against a name alone. */}
+        <Text variant="caption" tone={chosen ? 'secondary' : 'warning'}>
+          {chosen ? describe(chosen) : t('sell.payment.account.required')}
+        </Text>
+      </View>
+    );
+  };
 
   const splitTotal = useMemo(
     () => split.reduce((sum, entry) => sum + entry.amount, 0),
@@ -91,11 +160,39 @@ export function PaymentSheet({
   const policyChanged = returnPolicy.windowHours !== returnPolicy.companyDefaultHours;
   const policyNeedsReason = policyChanged && returnPolicy.reason.trim().length === 0;
 
+  /**
+   * Every non-cash payment must name the account it reached, and the server
+   * refuses one that does not. Saying so here — with Complete disabled and the
+   * reason on screen — is the difference between a cashier fixing it in a tap
+   * and a customer standing at the counter while a sale is rejected.
+   */
+  const accountsSettled = isSplitting
+    ? split.every((entry) => !needsAccount(entry.method as Method) || Boolean(entry.receivingAccountId))
+    : !needsAccount(method) || Boolean(accountId);
+
   const complete = () => {
     if (isSplitting) {
-      onComplete(split.filter((entry) => entry.amount > 0));
+      onComplete(
+        split
+          .filter((entry) => entry.amount > 0)
+          .map((entry) => ({
+            ...entry,
+            // Cash carries no account: the drawer belongs to none, and the
+            // database refuses the alternative.
+            receivingAccountId: needsAccount(entry.method as Method)
+              ? entry.receivingAccountId
+              : undefined,
+          })),
+      );
     } else {
-      onComplete([{ key: uuidv4(), method, amount: total }]);
+      onComplete([
+        {
+          key: uuidv4(),
+          method,
+          amount: total,
+          ...(needsAccount(method) && accountId ? { receivingAccountId: accountId } : {}),
+        },
+      ]);
     }
   };
 
@@ -124,12 +221,16 @@ export function PaymentSheet({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={!settled || policyNeedsReason}
+            disabled={!settled || policyNeedsReason || !accountsSettled}
             onPress={complete}
           />
           {!settled ? (
             <Text variant="caption" tone="tertiary" align="center">
               {t('sell.payment.exactOnly')}
+            </Text>
+          ) : !accountsSettled ? (
+            <Text variant="caption" tone="tertiary" align="center">
+              {t('sell.payment.account.required')}
             </Text>
           ) : policyNeedsReason ? (
             <Text variant="caption" tone="tertiary" align="center">
@@ -175,9 +276,20 @@ export function PaymentSheet({
             */}
             <View style={styles.chips} accessibilityRole="radiogroup">
               {METHODS.map((m) => (
-                <FilterChip key={m} label={t(`payment.${m}`)} selected={method === m} onPress={() => setMethod(m)} />
+                <FilterChip
+                  key={m}
+                  label={t(`payment.${m}`)}
+                  selected={method === m}
+                  onPress={() => {
+                    setMethod(m);
+                    // One configured account is not a choice worth making, so
+                    // it is pre-picked; cash clears it, because cash has none.
+                    setAccountId(needsAccount(m) && accounts.length === 1 ? accounts[0].id : null);
+                  }}
+                />
               ))}
             </View>
+            {needsAccount(method) ? accountPicker(accountId, setAccountId, 'single') : null}
           </View>
         ) : (
           <View style={styles.group}>
@@ -193,11 +305,32 @@ export function PaymentSheet({
                       label={t(`payment.${m}`)}
                       selected={entry.method === m}
                       onPress={() =>
-                        setSplit((prev) => prev.map((x) => (x.key === entry.key ? { ...x, method: m } : x)))
+                        setSplit((prev) =>
+                          prev.map((x) =>
+                            x.key === entry.key
+                              ? {
+                                  ...x,
+                                  method: m,
+                                  receivingAccountId:
+                                    needsAccount(m) && accounts.length === 1 ? accounts[0].id : undefined,
+                                }
+                              : x,
+                          ),
+                        )
                       }
                     />
                   ))}
                 </View>
+                {needsAccount(entry.method as Method)
+                  ? accountPicker(
+                      entry.receivingAccountId ?? null,
+                      (id) =>
+                        setSplit((prev) =>
+                          prev.map((x) => (x.key === entry.key ? { ...x, receivingAccountId: id } : x)),
+                        ),
+                      entry.key,
+                    )
+                  : null}
               <View style={styles.splitRow}>
                 <View style={styles.splitAmount}>
                   <MoneyField

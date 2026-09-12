@@ -124,6 +124,13 @@ export const qk = {
   notifications: ['notifications'] as const,
   /** Company-scoped, not branch-scoped — one policy for the whole business. */
   settings: ['settings'] as const,
+  /**
+   * Customers are a company record, so the search term is the only key part.
+   * `customersAll` is what a newly created customer invalidates: every search
+   * is potentially stale, and the one just added has to be findable at once.
+   */
+  customers: (search: string) => ['customers', search] as const,
+  customersAll: ['customers'] as const,
   /** Company-scoped team list — Owner-only, not per branch. */
   users: ['users'] as const,
 
