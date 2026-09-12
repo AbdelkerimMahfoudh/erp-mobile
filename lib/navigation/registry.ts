@@ -296,6 +296,10 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
   '/receive': 'Started from Home and Inventory — a counter action, not a menu entry.',
+  // The Home shortcut, not a second Sell. It opens the camera on one phone and
+  // leaves the Sell tab's cart alone; putting it in a menu would offer two
+  // entries that look like the same thing and behave differently.
+  '/quick-sell': 'The scan-first shortcut on Home — a counter action, not a menu entry.',
   '/unit/[identifier]': 'Where a scan lands.',
   '/pricing/unit': 'Opened from a unit or the catalog.',
   '/pricing/history': 'Opened from a price.',

@@ -3,9 +3,12 @@ import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ArrowDownRight,
   ArrowLeftRight,
+  ArrowUpRight,
   Boxes,
   ClipboardCheck,
+  Minus,
   PackagePlus,
   ReceiptText,
   ScanLine,
@@ -17,6 +20,7 @@ import {
 import {
   Button,
   Card,
+  InlineNotice,
   ListRow,
   MoneyValue,
   RowGroup,
@@ -29,46 +33,55 @@ import {
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
 import { useBranch } from '../../lib/branch';
-import { usePermission } from '../../lib/permissions';
+import { useAuth } from '../../hooks/useAuth';
+import { useConnectivity } from '../../lib/connectivity';
+import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
 import { space } from '../../lib/design/tokens';
-import { formatMoney, formatQuantity } from '../../lib/format';
+import { isolateLtr } from '../../lib/design/direction';
+import { formatMoney, formatQuantity, formatRelative } from '../../lib/format';
+import { monthToDate } from '../../lib/home-metrics';
+import { trendOf, usePeriodSummary, type Comparison } from '../../lib/analytics-summary';
 import type {
   DashboardHome,
-  HealthScore,
   RefundSummary,
   ReturnPage,
   TransferCounts,
 } from '../../types/api';
-import { makeStyles, useColors } from '../../lib/design/theme';
+import { makeStyles } from '../../lib/design/theme';
 
 /**
- * The role landing screen.
+ * The landing screen ("Improvement").
  *
- * Rebuilt for the UX pilot (`docs/29`). What changed, and why:
+ * Three things it now does, and the reason for each:
  *
- * **Everyone gets one now.** This screen used to require `report.view` and
- * redirect anyone without it to Sell or Inventory, which meant two of the three
- * roles had no landing screen at all — only whichever tab happened to open
- * first. Instead of gating the whole screen, each *section* is gated: an
- * employee sees their work, an owner also sees the money.
+ * **It greets the person, not the shop.** A compact branch line, then their
+ * name. What was here before was a decorative phone and a slogan, which is
+ * space spent on nothing a shopkeeper can act on. The welcome says only what is
+ * actually known — who is signed in and where — and never invents a
+ * performance claim to sound encouraging.
  *
- * **Pending work comes first.** Approvals, reviews and confirmations used to be
- * invisible until someone went looking for them, feature by feature. A manager
- * opening the app now sees what is waiting on them before anything else,
- * because that is the reason they opened it.
+ * **Two shortcuts, both camera-first.** Sell and Receive replace the old
+ * Sell/Scanner pair. Both open the scanner the moment the screen is ready, so
+ * the common path is one tap and a phone held up; typing stays permanently
+ * available underneath, because whether a handset carries a scannable code is
+ * up to its manufacturer.
  *
- * **No fake zeroes.** Every count here comes from a real endpoint. Supplier
- * payments awaiting confirmation have no aggregate endpoint yet, so there is a
- * way in but no number — an honest link beats an invented figure.
+ * **Four monthly figures, all the server's.** Nothing here computes profit.
+ * `/analytics/summary` owns the arithmetic — see `accounting-rules.ts` for why
+ * it is written down once — and this screen only chooses the window and says
+ * what each number means. A figure the server cannot compute is named as
+ * unavailable rather than drawn as a zero that looks measured.
  */
-
 export default function HomeScreen() {
   const styles = useStyles();
   const router = useRouter();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { branchId, branchName } = useBranch();
+  const offline = !useConnectivity((s) => s.online);
 
+  const permissionsReady = usePermissionStatus() === 'ready';
   const canViewReports = usePermission('report.view');
   const canSell = usePermission('sale.create');
   const canReceive = usePermission('purchase.manage');
@@ -80,18 +93,29 @@ export default function HomeScreen() {
    * payment against one needs the way in — gating this on `supplier.manage`
    * alone would hide payables from the employee who reports the payment.
    */
+  /*
+   * Both hooks called unconditionally, then combined. Writing this as
+   * `usePermission(a) || usePermission(b)` short-circuits, so the second hook
+   * is skipped whenever the first is true — hooks must run in the same order
+   * on every render.
+   */
   const canManageSuppliers = usePermission('supplier.manage');
   const canReportSupplierPayment = usePermission('supplier.payment.report');
   const canViewSuppliers = canManageSuppliers || canReportSupplierPayment;
 
+  /**
+   * A shortcut may only open the camera once the branch and the permission set
+   * have both resolved. Opening it first would put a viewfinder in front of
+   * somebody who is about to be told they may not sell here.
+   */
+  const shortcutsReady = Boolean(branchId) && permissionsReady;
+
+  const month = React.useMemo(() => monthToDate(), []);
+  const summary = usePeriodSummary(month.from, month.to);
+
   const home = useQuery({
     queryKey: qk.home(branchId),
     queryFn: () => api.get<DashboardHome>('/home'),
-    enabled: canViewReports,
-  });
-  const health = useQuery({
-    queryKey: qk.health(branchId),
-    queryFn: () => api.get<HealthScore>('/health-score'),
     enabled: canViewReports,
   });
   const transfers = useQuery({
@@ -107,8 +131,7 @@ export default function HomeScreen() {
   /**
    * Returns waiting on a decision. The list endpoint is a cursor page with no
    * total, so this counts what one page holds and says "N+" when there is
-   * another — an approximate number that admits it is approximate, rather than
-   * a precise-looking one that is wrong.
+   * another — an approximate number that admits it is approximate.
    */
   const pendingReturns = useQuery({
     queryKey: qk.returns(branchId, 'home-pending'),
@@ -118,15 +141,15 @@ export default function HomeScreen() {
   });
 
   const refreshing =
+    summary.isFetching ||
     home.isFetching ||
-    health.isFetching ||
     transfers.isFetching ||
     refunds.isFetching ||
     pendingReturns.isFetching;
 
   const onRefresh = () => {
+    void summary.refetch();
     void home.refetch();
-    void health.refetch();
     void transfers.refetch();
     void refunds.refetch();
     void pendingReturns.refetch();
@@ -136,111 +159,131 @@ export default function HomeScreen() {
   const awaitingRefundCount = refunds.data?.awaitingConfirmation.count ?? 0;
   const returnRows = pendingReturns.data?.rows.length ?? 0;
   const returnsMore = Boolean(pendingReturns.data?.nextCursor);
-
   const hasPendingWork =
     pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0;
 
+  /** The comparison window's length, for wording it honestly on screen. */
+  const comparedDays = summary.data
+    ? Math.round(
+        (Date.parse(`${summary.data.comparison.period.to}T00:00:00.000Z`) -
+          Date.parse(`${summary.data.comparison.period.from}T00:00:00.000Z`)) /
+          86_400_000,
+      ) + 1
+    : 0;
+
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={refreshing} gap="xl">
+      {/* ── Who, and where ──────────────────────────────────────────────────
+          Compact on purpose: it is context for everything below, not a banner. */}
       <View>
         <Text variant="label" tone="secondary">
           {branchName ?? t('home.branch.unknown')}
         </Text>
-        <Text variant="title">{t('home.title')}</Text>
+        <Text variant="title" accessibilityRole="header">
+          {user?.name ? t('home.welcome.hello', { name: user.name }) : t('home.title')}
+        </Text>
+        <Text variant="body" tone="tertiary">
+          {/*
+            Said only when it is true. While the branch or the permission set is
+            still resolving the shortcuts below cannot open a camera, and
+            claiming readiness would be a lie the very next tap disproves.
+
+            There is deliberately no "you sold N today, keep going" here: an
+            encouraging number nobody asked for is a performance claim, and this
+            screen has no business inventing one.
+          */}
+          {shortcutsReady ? t('home.welcome.ready') : t('home.welcome.preparing')}
+        </Text>
       </View>
 
-      {/* ── What is waiting on you ─────────────────────────────────────────
-          First, deliberately. This is why a manager opens the app. */}
+      {/* ── The two shortcuts ───────────────────────────────────────────────
+          Camera-first, and the shortest path to the two things a counter does
+          all day. Each opens its own quick screen, which leaves the full Sell
+          and Receive workflows — and any draft in them — untouched. */}
+      {canSell || canReceive ? (
+        <View style={styles.shortcuts}>
+          {canSell ? (
+            <Button
+              title={t('home.shortcut.sell')}
+              icon={ScanLine}
+              size="lg"
+              fullWidth
+              disabled={!shortcutsReady}
+              onPress={() => router.push('/quick-sell' as Href)}
+            />
+          ) : null}
+          {canSell ? (
+            <Text variant="caption" tone="tertiary">
+              {t('home.shortcut.sell.hint')}
+            </Text>
+          ) : null}
+          {canReceive ? (
+            <Button
+              title={t('home.shortcut.receive')}
+              icon={PackagePlus}
+              variant="secondary"
+              size="lg"
+              fullWidth
+              disabled={!shortcutsReady}
+              onPress={() => router.push('/quick-receive' as Href)}
+            />
+          ) : null}
+          {canReceive ? (
+            <Text variant="caption" tone="tertiary">
+              {t('home.shortcut.receive.hint')}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* ── What is waiting on you ──────────────────────────────────────────*/}
       {hasPendingWork ? (
         <Section title={t('home.pending.title')}>
-          {/*
-            One surface, not three floating boxes. These are three answers to
-            the same question — what is waiting on you — so they read as a list
-            of outstanding work rather than as unrelated cards that happen to be
-            stacked.
-          */}
           <RowGroup>
-          {pendingTransferCount > 0 ? (
-            <PendingRow
-              icon={Truck}
-              label={t('home.pending.transfers')}
-              count={String(pendingTransferCount)}
-              onPress={() => router.push('/transfers' as Href)}
-            />
-          ) : null}
-          {returnRows > 0 ? (
-            <PendingRow
-              icon={Undo2}
-              label={t('home.pending.returns')}
-              count={returnsMore ? `${returnRows}+` : String(returnRows)}
-              onPress={() => router.push('/returns' as Href)}
-            />
-          ) : null}
-          {awaitingRefundCount > 0 ? (
-            <PendingRow
-              icon={Wallet}
-              label={t('home.pending.refunds')}
-              count={String(awaitingRefundCount)}
-              onPress={() => router.push('/returns' as Href)}
-            />
-          ) : null}
+            {pendingTransferCount > 0 ? (
+              <PendingRow
+                icon={Truck}
+                label={t('home.pending.transfers')}
+                count={String(pendingTransferCount)}
+                onPress={() => router.push('/transfers' as Href)}
+              />
+            ) : null}
+            {returnRows > 0 ? (
+              <PendingRow
+                icon={Undo2}
+                label={t('home.pending.returns')}
+                count={returnsMore ? `${returnRows}+` : String(returnRows)}
+                onPress={() => router.push('/returns' as Href)}
+              />
+            ) : null}
+            {awaitingRefundCount > 0 ? (
+              <PendingRow
+                icon={Wallet}
+                label={t('home.pending.refunds')}
+                count={String(awaitingRefundCount)}
+                onPress={() => router.push('/returns' as Href)}
+              />
+            ) : null}
           </RowGroup>
         </Section>
       ) : null}
 
-      {/* ── Start work ─────────────────────────────────────────────────────
-          The employee's whole screen is really this. Big, thumb-reachable,
-          and the first thing they can act on. */}
-      <Section title={t('home.actions.title')}>
-        <View style={styles.actions}>
-          {canSell ? (
-            <Button
-              title={t('tab.sell')}
-              icon={ScanLine}
-              size="lg"
-              fullWidth
-              onPress={() => router.push('/(tabs)/sell')}
-            />
-          ) : null}
-          <View style={styles.actionRow}>
-            {canReceive ? (
-              <View style={styles.actionHalf}>
-                <Button
-                  title={t('home.actions.receive')}
-                  icon={PackagePlus}
-                  variant="secondary"
-                  size="lg"
-                  fullWidth
-                  onPress={() => router.push('/receive' as Href)}
-                />
-              </View>
-            ) : null}
-            <View style={styles.actionHalf}>
-              <Button
-                title={t('tab.inventory')}
-                icon={Boxes}
-                variant="secondary"
-                size="lg"
-                fullWidth
-                onPress={() => router.push('/(tabs)/inventory')}
-              />
-            </View>
-          </View>
-        </View>
-      </Section>
-
-      {/* ── Today ──────────────────────────────────────────────────────────
-          Money only for those allowed to see it. Absent, not zeroed. */}
+      {/* ── The month ───────────────────────────────────────────────────────
+          Money only for those allowed to see it. Absent, never zeroed. */}
       {canViewReports ? (
-        <Section title={t('home.today.title')}>
-          {home.isPending ? (
+        <Section title={t('home.month.title')}>
+          {offline ? (
+            <InlineNotice tone="warning">{t('home.month.offline')}</InlineNotice>
+          ) : null}
+
+          {summary.isPending ? (
             <View style={styles.statRow}>
               <SkeletonStat />
               <SkeletonStat />
             </View>
-          ) : home.isError ? (
+          ) : summary.isError || !summary.data ? (
             <Card>
-              <Text variant="bodyStrong">{t('home.today.unavailable.title')}</Text>
+              <Text variant="bodyStrong">{t('home.month.unavailable')}</Text>
               <Text variant="body" tone="secondary">
                 {t('home.today.unavailable.body')}
               </Text>
@@ -248,126 +291,147 @@ export default function HomeScreen() {
                 title={t('action.retry')}
                 variant="secondary"
                 size="sm"
-                onPress={() => void home.refetch()}
+                onPress={() => void summary.refetch()}
                 style={styles.retry}
               />
             </Card>
           ) : (
             <>
+              {/*
+                The one focal figure: the operating result the server already
+                computes — revenue net of returns, less recognised COGS, less
+                CONFIRMED expenses. Never sales minus what was spent on stock:
+                buying inventory is not an expense, and a good month of
+                restocking would otherwise read as a catastrophe.
+              */}
               <Card>
                 <Text variant="label" tone="secondary">
-                  {t('home.today.revenue')}
+                  {t('home.month.result')}
                 </Text>
-                <MoneyValue value={home.data?.today.revenue} size="display" />
-                <View style={styles.inlineStats}>
+                <MoneyValue value={summary.data.profit.netOperatingProfit} size="display" />
+                <Text variant="caption" tone="tertiary">
+                  {t('home.month.result.basis')}
+                </Text>
+                <Trend
+                  comparison={summary.data.comparison.netOperatingProfit}
+                  days={comparedDays}
+                />
+                {summary.dataUpdatedAt ? (
                   <Text variant="caption" tone="tertiary">
-                    {t('home.today.sales', { count: formatQuantity(home.data?.today.salesCount) })}
+                    {t('home.month.stale', {
+                      time: formatRelative(summary.dataUpdatedAt),
+                    })}
                   </Text>
-                  <Text variant="caption" tone="tertiary">
-                    {t('home.today.items', { count: formatQuantity(home.data?.today.qtySold) })}
-                  </Text>
-                </View>
+                ) : null}
               </Card>
 
               <View style={styles.statRow}>
-                {/*
-                  `restricted` when the field is absent: the server strips
-                  profit for a role without `cost.view`, and a tile that said
-                  "0" there would misreport the shop's takings.
-                */}
                 <StatTile
-                  label={t('home.today.profit')}
-                  restricted={home.data?.today.grossProfit == null}
-                  value={<MoneyValue value={home.data?.today.grossProfit} showCurrency={false} />}
-                  valueLabel={formatMoney(home.data?.today.grossProfit)}
+                  label={t('home.month.sales')}
+                  value={<MoneyValue value={summary.data.profit.netRevenue} showCurrency={false} />}
+                  valueLabel={formatMoney(summary.data.profit.netRevenue)}
                 />
                 <StatTile
-                  label={t('home.month.profit')}
-                  restricted={home.data?.month.grossProfit == null}
-                  value={<MoneyValue value={home.data?.month.grossProfit} showCurrency={false} />}
-                  valueLabel={formatMoney(home.data?.month.grossProfit)}
+                  label={t('home.month.expenses')}
+                  value={<MoneyValue value={summary.data.expenseDetail.total} showCurrency={false} />}
+                  valueLabel={formatMoney(summary.data.expenseDetail.total)}
                 />
               </View>
+
+              {/*
+                Money collected — a different question from both of the above.
+                A credit sale is revenue nobody has paid yet; settling an old
+                balance is money arriving against no new sale. An older server
+                does not send it at all, and that is said rather than drawn as
+                a zero somebody would read as "we took nothing".
+              */}
+              {summary.data.collected ? (
+                <Card>
+                  <Text variant="label" tone="secondary">
+                    {t('home.month.collected')}
+                  </Text>
+                  <MoneyValue value={summary.data.collected.total} />
+                  <Text variant="caption" tone="tertiary">
+                    {t('home.month.collected.hint')}
+                  </Text>
+                </Card>
+              ) : (
+                <InlineNotice tone="info">
+                  {t('home.month.collected.unavailable')}
+                </InlineNotice>
+              )}
             </>
           )}
-
-          {health.data ? <HealthRow status={health.data.status} score={health.data.score} /> : null}
         </Section>
       ) : null}
 
-      {/* ── Stock ──────────────────────────────────────────────────────────*/}
+      {/* ── Stock ───────────────────────────────────────────────────────────*/}
       {canViewReports && home.data ? (
         <Section title={t('home.stock.title')}>
           <RowGroup>
-          <ListRow
-            flat
-            leading={Boxes}
-            title={t('home.stock.value')}
-            accessory={<MoneyValue value={home.data.inventory.inventoryValue} size="small" />}
-          />
-          <ListRow
-            flat
-            leading={PackagePlus}
-            title={t('home.stock.low')}
-            subtitle={t('home.stock.low.hint')}
-            value={formatQuantity(home.data.lowStockCount)}
-            valueTone="warning"
-            onPress={() => router.push('/(tabs)/inventory')}
-          />
+            <ListRow
+              flat
+              leading={Boxes}
+              title={t('home.stock.value')}
+              accessory={<MoneyValue value={home.data.inventory.inventoryValue} size="small" />}
+            />
+            <ListRow
+              flat
+              leading={PackagePlus}
+              title={t('home.stock.low')}
+              subtitle={t('home.stock.low.hint')}
+              value={formatQuantity(home.data.lowStockCount)}
+              valueTone="warning"
+              onPress={() => router.push('/(tabs)/inventory')}
+            />
           </RowGroup>
         </Section>
       ) : null}
 
-      {/* ── Everything else, one tap away ──────────────────────────────────
-          Suppliers is here because until this pilot the whole payables
-          workflow shipped with no way to reach it. */}
+      {/* ── Everything else, one tap away ───────────────────────────────────*/}
       <Section title={t('home.more.title')}>
-        {/*
-          Destinations, not cards. Five bordered boxes read as five decisions;
-          one grouped list reads as a menu, which is what it is.
-        */}
         <RowGroup>
-        {canViewSales ? (
-          <ListRow
-            flat
-            leading={ReceiptText}
-            title={t('nav.sales')}
-            onPress={() => router.push('/sales' as Href)}
-          />
-        ) : null}
-        {canViewReturns ? (
-          <ListRow
-            flat
-            leading={Undo2}
-            title={t('nav.returns')}
-            onPress={() => router.push('/returns' as Href)}
-          />
-        ) : null}
-        {canViewSuppliers ? (
-          <ListRow
-            flat
-            leading={Wallet}
-            title={t('nav.suppliers')}
-            subtitle={t('nav.suppliers.hint')}
-            onPress={() => router.push('/suppliers' as Href)}
-          />
-        ) : null}
-        {canViewTransfers ? (
-          <ListRow
-            flat
-            leading={ArrowLeftRight}
-            title={t('nav.transfers')}
-            onPress={() => router.push('/transfers' as Href)}
-          />
-        ) : null}
-        {canViewReports ? (
-          <ListRow
-            flat
-            leading={ClipboardCheck}
-            title={t('nav.closing')}
-            onPress={() => router.push('/closing')}
-          />
-        ) : null}
+          {canViewSales ? (
+            <ListRow
+              flat
+              leading={ReceiptText}
+              title={t('nav.sales')}
+              onPress={() => router.push('/sales' as Href)}
+            />
+          ) : null}
+          {canViewReturns ? (
+            <ListRow
+              flat
+              leading={Undo2}
+              title={t('nav.returns')}
+              onPress={() => router.push('/returns' as Href)}
+            />
+          ) : null}
+          {canViewSuppliers ? (
+            <ListRow
+              flat
+              leading={Wallet}
+              title={t('nav.suppliers')}
+              subtitle={t('nav.suppliers.hint')}
+              onPress={() => router.push('/suppliers' as Href)}
+            />
+          ) : null}
+          {canViewTransfers ? (
+            <ListRow
+              flat
+              leading={ArrowLeftRight}
+              title={t('nav.transfers')}
+              onPress={() => router.push('/transfers' as Href)}
+            />
+          ) : null}
+          {canViewReports ? (
+            <ListRow
+              flat
+              leading={ClipboardCheck}
+              title={t('nav.closing')}
+              onPress={() => router.push('/closing')}
+            />
+          ) : null}
         </RowGroup>
       </Section>
     </Screen>
@@ -375,9 +439,8 @@ export default function HomeScreen() {
 }
 
 /**
- * A piece of outstanding work. Warning-toned because it is somebody's unfinished
- * business, not a healthy resting state — the same reasoning the status registry
- * uses for `pending_approval`.
+ * A piece of outstanding work. Warning-toned because it is somebody's
+ * unfinished business, not a healthy resting state.
  */
 function PendingRow({
   icon,
@@ -396,45 +459,49 @@ function PendingRow({
 }
 
 /**
- * Store health, in words.
+ * The comparison, in words as well as an arrow — and silent when there is
+ * nothing to compare against.
  *
- * It used to render `92 · GREEN` — a bare number beside the name of a colour,
- * untranslated, telling a shopkeeper nothing about what to do. The condition is
- * now stated in language, and the score follows as supporting detail rather
- * than leading.
+ * The server compares against the preceding window of EQUAL LENGTH, so twelve
+ * days into a month are measured against the twelve days before them rather
+ * than against a whole previous month. The wording says how many days, because
+ * "vs last month" would describe a comparison nobody made.
+ *
+ * A zero base is reported as unavailable rather than as a percentage: "up 100%"
+ * from nothing is a division nobody checked, and a shop reads it as a result.
  */
-function HealthRow({ status, score }: { status: HealthScore['status']; score: number }) {
-  const colors = useColors();
+function Trend({ comparison, days }: { comparison: Comparison; days: number }) {
   const { t } = useTranslation();
-  const tone =
-    status === 'green' ? colors.intent.success : status === 'amber' ? colors.intent.warning : colors.intent.danger;
-  const label =
-    status === 'green'
-      ? t('home.health.good')
-      : status === 'amber'
-        ? t('home.health.watch')
-        : t('home.health.attention');
+  const direction = trendOf(comparison);
 
-  return (
-    <Card style={{ backgroundColor: tone.bg, borderColor: tone.border }}>
-      <Text variant="label" tone="secondary">
-        {t('home.health.title')}
-      </Text>
-      <Text variant="heading" style={{ color: tone.fg }}>
-        {label}
-      </Text>
+  if (!comparison.available || direction === null) {
+    return (
       <Text variant="caption" tone="secondary">
-        {t('home.health.score', { score: String(score) })}
+        {t('home.month.noComparison')}
       </Text>
-    </Card>
+    );
+  }
+
+  const Icon = direction === 'up' ? ArrowUpRight : direction === 'down' ? ArrowDownRight : Minus;
+  return (
+    <View style={styles0.trend}>
+      {/* Colour is never the only carrier: the arrow and the words are there. */}
+      <Icon size={14} />
+      <Text variant="caption" tone="secondary">
+        {t('home.month.compare', {
+          direction: t(`money.direction.${direction}` as never),
+          percent: isolateLtr(String(Math.abs(Math.round(comparison.changePercent)))),
+          days: String(days),
+        })}
+      </Text>
+    </View>
   );
 }
 
-const useStyles = makeStyles((colors) => ({
-  actions: { gap: space.md },
-  actionRow: { flexDirection: 'row', gap: space.md },
-  actionHalf: { flex: 1 },
+const styles0 = { trend: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: space.xs } };
+
+const useStyles = makeStyles(() => ({
+  shortcuts: { gap: space.sm },
   statRow: { flexDirection: 'row', gap: space.md },
-  inlineStats: { flexDirection: 'row', gap: space.base, marginTop: space.xs },
   retry: { alignSelf: 'flex-start', marginTop: space.sm },
 }));

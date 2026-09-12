@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, type StyleProp, type ViewStyle, Keyboard } from 'react-native';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
@@ -33,6 +33,24 @@ import type { ScanResult } from '../../types/api';
 export interface ScanTargetProps {
   onResult: (result: ScanResult) => void;
   /**
+   * Open the camera once, as soon as the screen is ready for it.
+   *
+   * For the two Home shortcuts, whose entire purpose is "tap Sell, aim at the
+   * phone" — making somebody tap a second time to reach the camera is the tap
+   * the shortcut exists to remove.
+   *
+   * **Once.** Closing the camera must leave it closed: the person who shut it
+   * wants the field below, and a viewfinder that springs back is a screen that
+   * cannot be escaped. Pass `false` until branch and permissions have resolved,
+   * so the camera never opens in front of a screen that is about to say the
+   * user may not sell.
+   *
+   * This is NOT the `autoFocus` prop that was deliberately removed (see below).
+   * That one raised a KEYBOARD over a scan-first screen, hiding the thing the
+   * user came for. This opens the scanner itself — the thing they came for.
+   */
+  autoOpenCamera?: boolean;
+  /**
    * One accepted phone, complete.
    *
    * Fires the moment the user taps "Use this IMEI", carrying the classified
@@ -65,6 +83,7 @@ export function ScanTarget({
   onResult,
   onImeiAccepted,
   onCodeCaptured,
+  autoOpenCamera = false,
   placeholder,
   mode = 'single',
   scannedCount,
@@ -84,6 +103,23 @@ export function ScanTarget({
 
   /** Dismiss, then open. The order is the point — see the call site. */
   const openCamera = withDismiss(Keyboard, () => setCameraOpen(true));
+
+  /*
+   * The shortcut's automatic opening — exactly once.
+   *
+   * A ref rather than state, and deliberately NOT depending on `cameraOpen`:
+   * depending on it would reopen the viewfinder the instant somebody closed it,
+   * leaving a screen with no way out. Closing it is a decision, and it stands.
+   *
+   * No keyboard dismissal here, unlike `openCamera`: nothing has been typed yet
+   * on a screen that has only just mounted, so there is nothing to dismiss.
+   */
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!autoOpenCamera || autoOpened.current) return;
+    autoOpened.current = true;
+    setCameraOpen(true);
+  }, [autoOpenCamera]);
 
   const submit = async (value: string) => {
     const trimmed = value.trim();

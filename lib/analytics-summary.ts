@@ -47,6 +47,18 @@ export interface PeriodSummary {
   profit: ProfitBlock;
   cash: CashBlock;
   expenseDetail: { total: number; fixed: number; salaries: number; count: number };
+  /**
+   * What customers actually paid in the period, across cash and accounts.
+   *
+   * A different question from revenue and from profit: a credit sale is revenue
+   * nobody has paid yet, and settling last month's balance is money arriving
+   * against no new sale. Refunds are NOT netted off — they are money going the
+   * other way and keep their own line in `cash.refundsPaid`.
+   *
+   * Optional so an older server, which does not send it, renders as unavailable
+   * rather than as a measured zero.
+   */
+  collected?: { total: number; cash: number; account: number; count: number };
   balances: {
     loansReceivable: number;
     loansPayable: number;

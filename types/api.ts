@@ -238,6 +238,17 @@ export interface Unit {
   status: string;
   cost?: number;
   branchId?: string;
+  /**
+   * When this unit entered stock — the moment the purchase that created it was
+   * received (`units.date_in`, defaulted at creation and never written again).
+   *
+   * It is what "days in stock" is measured from, and it deliberately survives a
+   * branch transfer: receiving a transfer rewrites `status` and `branch_id` and
+   * does NOT touch this column, so moving a phone between shops does not make
+   * it look newly arrived. Non-nullable at the database, so there is no missing
+   * case that would tempt anybody to invent a date.
+   */
+  dateIn?: string;
   product?: { brand: string; model: string; variant: string | null; defaultPrice?: number | null; trackingType?: TrackingType };
 }
 
