@@ -149,8 +149,22 @@ export default function QuickSellScreen() {
 
   const onScanResult = useCallback(
     async (result: ScanResult) => {
-      const found = (await unitLookups.current.get(result.code)) ?? null;
+      /*
+       * The prefetch is an OPTIMISATION, never the lookup itself.
+       *
+       * `onCodeCaptured` starts it for the inline field and for the camera, but
+       * the scanner sheet's own keypad submits through a different `useScan`
+       * instance that carries no `onCode` — and that keypad is the permanent
+       * manual-entry path, as well as the only one on a handset whose camera
+       * cannot read the label. Treating a missing prefetch as a missing phone
+       * made every typed identifier answer "no phone in stock has that number",
+       * which is the one answer that must never be wrong.
+       */
+      const pending = unitLookups.current.get(result.code);
       unitLookups.current.delete(result.code);
+      const found =
+        (await (pending ??
+          api.get<Unit>(`/units/${encodeURIComponent(result.code)}`).catch(() => null))) ?? null;
 
       /*
        * Either IMEI finds the same phone — the server looks up primary,
