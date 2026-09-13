@@ -12,6 +12,7 @@ import {
   PackagePlus,
   ReceiptText,
   ScanLine,
+  ShoppingCart,
   Truck,
   Undo2,
   Wallet,
@@ -216,6 +217,22 @@ export default function HomeScreen() {
             <Text variant="caption" tone="tertiary">
               {t('home.shortcut.sell.hint')}
             </Text>
+          ) : null}
+          {/*
+            The full sale — several items, discounts, a saved cart — used to be
+            a tab. It is now reached from here, and the cart it saved is still
+            waiting on the same screen under the same draft.
+          */}
+          {canSell ? (
+            <Button
+              title={t('home.shortcut.fullSale')}
+              icon={ShoppingCart}
+              variant="tertiary"
+              size="sm"
+              disabled={!shortcutsReady}
+              onPress={() => router.push('/(tabs)/sell')}
+              style={styles.fullSale}
+            />
           ) : null}
           {canReceive ? (
             <Button
@@ -502,6 +519,7 @@ const styles0 = { trend: { flexDirection: 'row' as const, alignItems: 'center' a
 
 const useStyles = makeStyles(() => ({
   shortcuts: { gap: space.sm },
+  fullSale: { alignSelf: 'flex-start' },
   statRow: { flexDirection: 'row', gap: space.md },
   retry: { alignSelf: 'flex-start', marginTop: space.sm },
 }));

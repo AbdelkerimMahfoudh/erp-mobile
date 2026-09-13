@@ -518,16 +518,29 @@ it('the whole hub moved — all four children, unchanged', () => {
   );
 });
 
-it('the bar order is Home, Sell, Money, Inventory, More', () => {
-  const src = TABS_LAYOUT();
-  const order = [...src.matchAll(/name="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(order, ['index', 'sell', 'money-hub', 'inventory', 'more']);
+/*
+ * The bar as a user sees it: every declared tab except the ones taken off the
+ * bar with `href: null`. Sell is still declared — its route and cart must keep
+ * working — so it has to be excluded explicitly rather than by position.
+ * (Partners milestone: Partners replaces Sell, superseding "Sell stays a tab".)
+ */
+const visibleTabs = (src: string) =>
+  [...src.matchAll(/<Tabs\.Screen\s+name="([a-z-]+)"([\s\S]*?)\/>/g)]
+    .filter(([, , body]) => !/href:\s*null\s*[,}]/.test(body))
+    .map((m) => m[1]);
+
+it('the bar order is Home, Partners, Money, Stock, More', () => {
+  assert.deepEqual(visibleTabs(TABS_LAYOUT()), ['index', 'partners', 'money-hub', 'inventory', 'more']);
 });
 
-it('with Money directly beside Sell', () => {
-  const src = TABS_LAYOUT();
-  const order = [...src.matchAll(/name="([a-z-]+)"/g)].map((m) => m[1]);
-  assert.equal(order[order.indexOf('sell') + 1], 'money-hub');
+it('with Money directly beside Partners', () => {
+  const order = visibleTabs(TABS_LAYOUT());
+  assert.equal(order[order.indexOf('partners') + 1], 'money-hub');
+});
+
+it('Sell is off the bar but still a declared route', () => {
+  const sell = TABS_LAYOUT().match(/<Tabs\.Screen\s+name="sell"([\s\S]*?)\/>/);
+  assert.ok(sell && /href:\s*null/.test(sell[1]));
 });
 
 it('RTL is left to the navigator, not reversed a second time', () => {

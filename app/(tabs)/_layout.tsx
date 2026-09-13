@@ -2,7 +2,9 @@ import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, ShoppingCart, Boxes, Menu, Wallet } from 'lucide-react-native';
+import { Home, Handshake, Boxes, Menu, Wallet } from 'lucide-react-native';
+import { useConnections } from '../../lib/consignment';
+import { incomingNeedingAction } from '../../lib/partners';
 import { ErrorState } from '../../components/ui';
 import { useBranch } from '../../lib/branch';
 import { useTranslation } from '../../lib/i18n';
@@ -33,8 +35,17 @@ export default function TabsLayout() {
   const status = usePermissionStatus();
   const error = usePermissionStore((s) => s.error);
   const { branchId } = useBranch();
-  const canSell = usePermission('sale.create');
   const granted = usePermissionStore((s) => s.granted);
+  /*
+    Partners is shown to anybody who can see the stores this shop deals with
+    or manage who it deals with. The list itself is `consignment.view`; the
+    badge counts only requests THIS user may answer (`connection.manage`).
+  */
+  const canViewPartners = usePermission('consignment.view');
+  const canManagePartners = usePermission('connection.manage');
+  const showPartners = canViewPartners || canManagePartners;
+  const connections = useConnections({ enabled: status === 'ready' && canViewPartners && Boolean(branchId) });
+  const partnerBadge = incomingNeedingAction(connections.data?.rows, canManagePartners);
   /*
     Money is shown when the user can reach at least one of its four
     children, not when they are the Owner. A store manager who counts the
@@ -112,12 +123,37 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
+      {/*
+        Partners replaces Sell on the bar (Partners milestone).
+
+        Selling did not move: the scan-first Sell shortcut is on Home, and the
+        full multi-item sale is reached from Home and from Quick Sell. Its badge
+        is the number of incoming requests this user can answer — nothing else,
+        so it never asks somebody to do what they may not.
+      */}
+      <Tabs.Screen
+        name="partners"
+        options={{
+          title: t('tab.partners'),
+          href: showPartners ? undefined : null,
+          tabBarBadge: partnerBadge > 0 ? partnerBadge : undefined,
+          tabBarAccessibilityLabel:
+            partnerBadge > 0
+              ? t('partners.tab.a11y', { count: String(partnerBadge) })
+              : t('tab.partners'),
+          tabBarIcon: ({ color, size }) => <Handshake color={color} size={size} />,
+        }}
+      />
+      {/*
+        The full sale, no longer a tab — but still a route. `href: null` takes it
+        off the bar without removing it, so `/sell` links, notifications and the
+        saved multi-item cart (`sell.cart`) all keep working exactly as before.
+      */}
       <Tabs.Screen
         name="sell"
         options={{
           title: t('tab.sell'),
-          href: canSell ? undefined : null,
-          tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} />,
+          href: null,
         }}
       />
       {/*

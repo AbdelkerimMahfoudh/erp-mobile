@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import {
   Button,
@@ -37,6 +37,8 @@ import { DraftNotice } from '../../components/DraftNotice';
 export default function NewLoanScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  /** Opened from a partner's screen: that store is already chosen. */
+  const { counterpartyId: initialCounterpartyId } = useLocalSearchParams<{ counterpartyId?: string }>();
   const create = useCreateLoan();
 
   const [party, setParty] = useState<Counterparty | null>(null);
@@ -98,6 +100,7 @@ export default function NewLoanScreen() {
 
         <Section title={t('loans.new.who')}>
           <CounterpartyPicker
+            initialId={initialCounterpartyId ?? null}
             selectedId={party?.id ?? null}
             onSelect={setParty}
             onError={setError}

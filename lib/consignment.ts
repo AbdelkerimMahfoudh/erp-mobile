@@ -29,7 +29,7 @@ export interface StorePreview {
   verification: 'Verified badge coming soon';
 }
 
-export type ConnectionStatus = 'pending' | 'accepted' | 'rejected' | 'blocked';
+export type ConnectionStatus = 'pending' | 'accepted' | 'rejected' | 'blocked' | 'cancelled' | 'removed';
 
 export interface Connection {
   id: string;
@@ -37,6 +37,10 @@ export interface Connection {
   /** Which way round it was asked, so the screen never makes you work it out. */
   direction: 'outgoing' | 'incoming';
   canDecide: boolean;
+  /** Only the store that sent a waiting request may withdraw it. */
+  canCancel: boolean;
+  /** Either store may end an accepted connection. */
+  canRemove: boolean;
   blockedByMe: boolean;
   blockReason: string | null;
   note: string | null;
@@ -55,10 +59,14 @@ export function useStoreSearch(query: string) {
   });
 }
 
-export function useConnections() {
+export function useConnections(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: qk.connections(),
     queryFn: () => api.get<{ rows: Connection[] }>('/connections'),
+    enabled: options.enabled ?? true,
+    // The tab badge reads this too; a request arriving should show up without a
+    // pull-to-refresh, but not by hammering the server.
+    refetchInterval: 60_000,
   });
 }
 
@@ -89,6 +97,111 @@ export function useBlockConnection() {
   });
 }
 
+/** A store found by its exact code, and this store's existing relationship with it. */
+export interface StoreLookup {
+  store: StorePreview;
+  relationship: { id: string; status: ConnectionStatus; direction: 'outgoing' | 'incoming' } | null;
+}
+
+export function useStoreLookup(code: string) {
+  const clean = code.trim().toUpperCase();
+  return useQuery({
+    queryKey: ['store-lookup', clean],
+    queryFn: () => api.get<StoreLookup>(`/stores/lookup?code=${encodeURIComponent(clean)}`),
+    enabled: clean.length === 10,
+    retry: false,
+  });
+}
+
+const invalidateConnections = (qc: ReturnType<typeof useQueryClient>) => {
+  void qc.invalidateQueries({ queryKey: qk.connections() });
+  void qc.invalidateQueries({ queryKey: qk.counterparties() });
+  void qc.invalidateQueries({ queryKey: ['connection-summary'] });
+};
+
+export function useCancelConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion?: number }) =>
+      api.post<{ rows: Connection[] }>(`/connections/${id}/cancel`, { expectedVersion }),
+    onSuccess: () => invalidateConnections(qc),
+  });
+}
+
+export function useRemoveConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion?: number }) =>
+      api.post<{ rows: Connection[] }>(`/connections/${id}/remove`, { expectedVersion }),
+    onSuccess: () => invalidateConnections(qc),
+  });
+}
+
+export interface SharedPhone {
+  consignmentId: string;
+  brand: string | null;
+  model: string | null;
+  variant: string | null;
+  identifier: string;
+  custody: 'held' | 'in_transit';
+}
+
+export type SharedDealing =
+  | {
+      type: 'consignment';
+      id: string;
+      status: string;
+      closed: boolean;
+      side: Side;
+      phones: number;
+      agreedAmount: number | null;
+      proposedAmount: number | null;
+      outstanding: number;
+      createdAt: string;
+    }
+  | {
+      type: 'loan';
+      id: string;
+      status: string;
+      closed: boolean;
+      direction: 'they_owe_us' | 'we_owe_them';
+      waitingOn: 'us' | 'them' | 'both' | 'none';
+      principal: number | null;
+      proposedAmount: number;
+      remaining: number;
+      createdAt: string;
+    };
+
+/**
+ * Everything two stores share, from this store's side. Only what both already
+ * see: their dealings with each other, never the other store's stock, costs,
+ * margins or customers — the server does not send them.
+ */
+export interface ConnectionSummary {
+  id: string;
+  status: ConnectionStatus;
+  direction: 'outgoing' | 'incoming';
+  version: number;
+  store: StorePreview & { phone: string | null };
+  canStartDealing: boolean;
+  canRemove: boolean;
+  canCancel: boolean;
+  canDecide: boolean;
+  money: { theyOweUs: number; weOweThem: number };
+  custody: { ourItemsWithThem: SharedPhone[]; theirItemsWithUs: SharedPhone[] };
+  pending: SharedDealing[];
+  history: SharedDealing[];
+}
+
+export function useConnectionSummary(id: string | undefined) {
+  const branchId = useBranch((s) => s.branchId);
+  return useQuery({
+    queryKey: ['connection-summary', id, branchId],
+    queryFn: () => api.get<ConnectionSummary>(`/connections/${id}/summary`),
+    enabled: Boolean(id) && Boolean(branchId),
+  });
+}
+
 export interface Counterparty {
   id: string;
   kind: 'connected_store' | 'manual_store' | 'manual_person' | 'employee';
@@ -97,6 +210,13 @@ export interface Counterparty {
   city: string | null;
   note: string | null;
   connectedStoreId: string | null;
+  /** The relationship behind a connected store, so Partners can link to the right one. */
+  connectionId?: string | null;
+  /**
+   * Whether a NEW dealing may start with them. A hint for the picker only — the
+   * server re-checks inside every commit. Absent from older servers.
+   */
+  canStartDealing?: boolean;
 }
 
 export function useCounterparties() {

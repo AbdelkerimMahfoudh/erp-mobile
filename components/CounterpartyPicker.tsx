@@ -42,10 +42,13 @@ export function CounterpartyPicker({
   selectedId,
   onSelect,
   onError,
+  initialId,
 }: {
   selectedId: string | null;
   onSelect: (c: Counterparty) => void;
   onError?: (message: string) => void;
+  /** Preselect this counterparty once the list arrives — used when opened from a partner. */
+  initialId?: string | null;
 }) {
   const { t } = useTranslation();
   const query = useCounterparties();
@@ -55,7 +58,25 @@ export function CounterpartyPicker({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
-  const rows = query.data?.rows ?? [];
+  /*
+   * Stores that cannot take NEW business (connection not accepted, or a shop
+   * recorded by hand before the Partners rule) sort after the ones that can,
+   * and say why instead of failing only when the proposal is sent. The server
+   * refuses them regardless; this is so nobody fills in a form for nothing.
+   */
+  const rows = [...(query.data?.rows ?? [])]
+    .filter((c) => c.canStartDealing !== false || c.kind !== 'manual_store')
+    .sort((a, b) => Number(b.canStartDealing !== false) - Number(a.canStartDealing !== false));
+
+  const preselected = React.useRef(false);
+  React.useEffect(() => {
+    if (preselected.current || !initialId || selectedId) return;
+    const found = rows.find((c) => c.id === initialId && c.canStartDealing !== false);
+    if (found) {
+      preselected.current = true;
+      onSelect(found);
+    }
+  }, [initialId, rows, selectedId, onSelect]);
 
   const add = () => {
     create.mutate(
@@ -87,22 +108,29 @@ export function CounterpartyPicker({
           body={t('counterparty.empty.body')}
         />
       ) : (
-        rows.map((c) => (
-          <ListRow
-            key={c.id}
-            leading={ICON[c.kind]}
-            title={c.name}
-            subtitle={[t(`counterparty.kind.${c.kind}`), c.phone ?? c.city]
-              .filter(Boolean)
-              .join(' · ')}
-            accessory={
-              c.id === selectedId ? (
-                <Chip tone="success" label={t('counterparty.selected')} size="sm" dot />
-              ) : undefined
-            }
-            onPress={() => onSelect(c)}
-          />
-        ))
+        rows.map((c) => {
+          const closed = c.canStartDealing === false;
+          return (
+            <ListRow
+              key={c.id}
+              leading={ICON[c.kind]}
+              title={c.name}
+              subtitle={[
+                t(`counterparty.kind.${c.kind}`),
+                closed ? t('partners.closedForNew') : (c.phone ?? c.city),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              accessory={
+                c.id === selectedId ? (
+                  <Chip tone="success" label={t('counterparty.selected')} size="sm" dot />
+                ) : undefined
+              }
+              disabled={closed}
+              onPress={closed ? undefined : () => onSelect(c)}
+            />
+          );
+        })
       )}
 
       {adding ? (

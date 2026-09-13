@@ -182,7 +182,8 @@ export const HUBS: readonly Hub[] = [
     children: [
       // Two entries on purpose: finding a partner is Owner-level company trust,
       // running the consigned stock is operational and held by more people.
-      { id: 'stores', route: '/stores', titleKey: 'nav.stores', icon: 'Building2', perm: 'connection.manage' },
+      // Partners is a tab now; this row keeps More's link to it and lands on the tab.
+      { id: 'stores', route: '/partners', titleKey: 'nav.stores', icon: 'Building2', perm: 'connection.manage' },
       { id: 'consignments', route: '/consignments', titleKey: 'nav.consignments', icon: 'Handshake', perm: 'consignment.view' },
     ],
   },
@@ -283,7 +284,9 @@ export function visibleGroups(granted: ReadonlySet<string>): { group: MoreGroup;
  */
 export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Bottom tab — Home.',
-  '/sell': 'Bottom tab — Sell.',
+  '/sell': 'The full sale — no longer a tab, still a route. Reached from Home and Quick Sell; kept so links and the saved cart keep working.',
+  '/stores': 'Legacy link — redirects to the Partners tab.',
+  '/partners/[id]': 'One store this shop deals with, opened from Partners.',
   '/inventory': 'Bottom tab — Inventory.',
   '/more': 'Bottom tab — this screen itself.',
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',

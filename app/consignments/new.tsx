@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScanLine, X } from 'lucide-react-native';
 import {
   Button,
@@ -45,6 +45,8 @@ interface Picked {
 export default function NewConsignmentScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  /** Opened from a partner's screen: that store is already chosen. */
+  const { counterpartyId: initialCounterpartyId } = useLocalSearchParams<{ counterpartyId?: string }>();
   const create = useCreateConsignment();
 
   const [party, setParty] = useState<Counterparty | null>(null);
@@ -175,7 +177,12 @@ export default function NewConsignmentScreen() {
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
         <Section title={t('consignment.new.who')}>
-          <CounterpartyPicker selectedId={party?.id ?? null} onSelect={setParty} onError={setError} />
+          <CounterpartyPicker
+            initialId={initialCounterpartyId ?? null}
+            selectedId={party?.id ?? null}
+            onSelect={setParty}
+            onError={setError}
+          />
         </Section>
 
         <Section title={t('consignment.new.what', { count: String(picked.length) })}>

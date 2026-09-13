@@ -479,7 +479,16 @@ export default function QuickSellScreen() {
 
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
           {!unit && !blocked ? (
-            <EmptyState icon={ScanLine} title={t('sell.empty.title')} body={t('sell.empty.body')} />
+            <>
+              <EmptyState icon={ScanLine} title={t('sell.empty.title')} body={t('sell.empty.body')} />
+              {/* Several items, or a cart already started: the full sale is one tap away. */}
+              <Button
+                title={t('home.shortcut.fullSale')}
+                variant="tertiary"
+                size="sm"
+                onPress={() => router.push('/(tabs)/sell')}
+              />
+            </>
           ) : null}
 
           {blocked ? (
