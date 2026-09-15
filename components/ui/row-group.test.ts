@@ -94,7 +94,7 @@ it('screens that map flat rows wrap them in a group', () => {
    * replaced — floating blocks of text with nothing saying where one ends. If a
    * screen uses `flat` it must have something owning the separation.
    */
-  for (const file of ['app/(tabs)/inventory.tsx', 'app/(tabs)/index.tsx', 'app/analytics.tsx']) {
+  for (const file of ['app/(tabs)/inventory.tsx', 'app/(tabs)/index.tsx']) {
     const s = src(file);
     if (!/\bflat\b/.test(s)) continue;
     assert.match(s, /<RowGroup/, `${file} uses flat rows without a group to separate them`);

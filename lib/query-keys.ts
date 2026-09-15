@@ -8,12 +8,6 @@ export const qk = {
   categories: ['categories'] as const,
   /** Reference data, not tenant data — safe to keep for the whole session. */
   deviceBrands: ['device-brands'] as const,
-  suppliers: ['suppliers'] as const,
-  /** One supplier and its ledger. Keyed by id so a payment refreshes it alone. */
-  supplier: (id: string) => ['supplier', id] as const,
-  /** Open purchases and the suggested split — changes the moment one is paid. */
-  supplierPayable: (id: string, amount?: number) => ['supplier-payable', id, amount ?? 0] as const,
-  supplierPayment: (id: string) => ['supplier-payment', id] as const,
   /**
    * Serialized units and quantity stock together, discriminated by `kind`.
    * `search` is part of the key so changing it starts a fresh pagination run —

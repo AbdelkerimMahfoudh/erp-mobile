@@ -4,13 +4,9 @@ import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowDownRight,
-  ArrowLeftRight,
   ArrowUpRight,
-  Boxes,
-  ClipboardCheck,
   Minus,
   PackagePlus,
-  ReceiptText,
   ScanLine,
   ShoppingCart,
   Truck,
@@ -40,11 +36,10 @@ import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
-import { formatMoney, formatQuantity, formatRelative } from '../../lib/format';
+import { formatMoney, formatRelative } from '../../lib/format';
 import { monthToDate } from '../../lib/home-metrics';
 import { trendOf, usePeriodSummary, type Comparison } from '../../lib/analytics-summary';
 import type {
-  DashboardHome,
   RefundSummary,
   ReturnPage,
   TransferCounts,
@@ -88,21 +83,6 @@ export default function HomeScreen() {
   const canReceive = usePermission('purchase.manage');
   const canViewTransfers = usePermission('transfer.view');
   const canViewReturns = usePermission('return.view');
-  const canViewSales = usePermission('sale.view');
-  /**
-   * There is no `supplier.view`. Anyone who can manage suppliers or report a
-   * payment against one needs the way in — gating this on `supplier.manage`
-   * alone would hide payables from the employee who reports the payment.
-   */
-  /*
-   * Both hooks called unconditionally, then combined. Writing this as
-   * `usePermission(a) || usePermission(b)` short-circuits, so the second hook
-   * is skipped whenever the first is true — hooks must run in the same order
-   * on every render.
-   */
-  const canManageSuppliers = usePermission('supplier.manage');
-  const canReportSupplierPayment = usePermission('supplier.payment.report');
-  const canViewSuppliers = canManageSuppliers || canReportSupplierPayment;
 
   /**
    * A shortcut may only open the camera once the branch and the permission set
@@ -114,11 +94,6 @@ export default function HomeScreen() {
   const month = React.useMemo(() => monthToDate(), []);
   const summary = usePeriodSummary(month.from, month.to);
 
-  const home = useQuery({
-    queryKey: qk.home(branchId),
-    queryFn: () => api.get<DashboardHome>('/home'),
-    enabled: canViewReports,
-  });
   const transfers = useQuery({
     queryKey: qk.transferCounts(branchId),
     queryFn: () => api.get<TransferCounts>('/transfers/counts'),
@@ -143,14 +118,12 @@ export default function HomeScreen() {
 
   const refreshing =
     summary.isFetching ||
-    home.isFetching ||
     transfers.isFetching ||
     refunds.isFetching ||
     pendingReturns.isFetching;
 
   const onRefresh = () => {
     void summary.refetch();
-    void home.refetch();
     void transfers.refetch();
     void refunds.refetch();
     void pendingReturns.refetch();
@@ -382,75 +355,11 @@ export default function HomeScreen() {
         </Section>
       ) : null}
 
-      {/* ── Stock ───────────────────────────────────────────────────────────*/}
-      {canViewReports && home.data ? (
-        <Section title={t('home.stock.title')}>
-          <RowGroup>
-            <ListRow
-              flat
-              leading={Boxes}
-              title={t('home.stock.value')}
-              accessory={<MoneyValue value={home.data.inventory.inventoryValue} size="small" />}
-            />
-            <ListRow
-              flat
-              leading={PackagePlus}
-              title={t('home.stock.low')}
-              subtitle={t('home.stock.low.hint')}
-              value={formatQuantity(home.data.lowStockCount)}
-              valueTone="warning"
-              onPress={() => router.push('/(tabs)/inventory')}
-            />
-          </RowGroup>
-        </Section>
-      ) : null}
-
-      {/* ── Everything else, one tap away ───────────────────────────────────*/}
-      <Section title={t('home.more.title')}>
-        <RowGroup>
-          {canViewSales ? (
-            <ListRow
-              flat
-              leading={ReceiptText}
-              title={t('nav.sales')}
-              onPress={() => router.push('/sales' as Href)}
-            />
-          ) : null}
-          {canViewReturns ? (
-            <ListRow
-              flat
-              leading={Undo2}
-              title={t('nav.returns')}
-              onPress={() => router.push('/returns' as Href)}
-            />
-          ) : null}
-          {canViewSuppliers ? (
-            <ListRow
-              flat
-              leading={Wallet}
-              title={t('nav.suppliers')}
-              subtitle={t('nav.suppliers.hint')}
-              onPress={() => router.push('/suppliers' as Href)}
-            />
-          ) : null}
-          {canViewTransfers ? (
-            <ListRow
-              flat
-              leading={ArrowLeftRight}
-              title={t('nav.transfers')}
-              onPress={() => router.push('/transfers' as Href)}
-            />
-          ) : null}
-          {canViewReports ? (
-            <ListRow
-              flat
-              leading={ClipboardCheck}
-              title={t('nav.closing')}
-              onPress={() => router.push('/closing')}
-            />
-          ) : null}
-        </RowGroup>
-      </Section>
+      {/*
+        Home ends here. Stock value lives on Stock, and every other destination
+        is in More — a second navigation list on Home was a duplicate, and the
+        low-stock row it carried is not a first-release concept.
+      */}
     </Screen>
   );
 }

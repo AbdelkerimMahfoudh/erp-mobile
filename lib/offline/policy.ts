@@ -123,10 +123,6 @@ export const OPERATIONS: readonly OperationSpec[] = [
   spec('correction.reject', 'online_only', 'Refusing one leaves the original standing, which is equally a decision'),
   spec('expense.confirm', 'online_only', 'Confirming an expense releases money from the shop'),
   spec('expense.reject', 'online_only', 'Refusing one is equally a decision somebody is waiting on'),
-  spec('supplier.payment.confirm', 'online_only', 'Settles a payable, which is money that has left the business'),
-  spec('supplier.payment.correct', 'online_only', 'Reverses a payable the shop had recorded as settled'),
-  spec('supplier.create', 'online_only', 'Two offline devices adding the same supplier gives the shop two payable ledgers for one person'),
-  spec('supplier.update', 'online_only', 'Supplier details are shared, and a stale replay would overwrite a newer correction'),
 
   // ── Goals, people, settings, identity ─────────────────────────────────────
   spec('goal.create', 'online_only', 'Sets a target other people are then measured against'),

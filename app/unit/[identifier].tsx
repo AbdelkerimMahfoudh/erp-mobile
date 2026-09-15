@@ -49,7 +49,6 @@ interface UnitDetail {
   dateIn?: string;
   product?: { brand: string; model: string; variant: string | null; trackingType?: string };
   branch?: { name: string } | null;
-  supplier?: { name: string } | null;
   purchase?: { referenceNo: string | null; date: string } | null;
   timeline: UnitHistoryEvent[];
 }
@@ -69,7 +68,7 @@ export default function UnitDetailScreen() {
   const data = query.data;
   const tracking = data?.product?.trackingType ?? (data?.imeiPrimary ? 'imei' : 'serial');
   const title = data?.product ? `${data.product.brand} ${data.product.model}` : (identifier ?? '');
-  const hasPurchase = Boolean(data?.dateIn || data?.supplier || data?.purchase?.referenceNo || data?.cost !== undefined);
+  const hasPurchase = Boolean(data?.dateIn || data?.purchase?.referenceNo || data?.cost !== undefined);
 
   return (
     <Screen scroll={Boolean(data)} gap="base">
@@ -147,11 +146,6 @@ export default function UnitDetailScreen() {
               {data.dateIn ? (
                 <Row label={t('unit.received')}>
                   <Text variant="bodyStrong">{formatDateTime(data.dateIn)}</Text>
-                </Row>
-              ) : null}
-              {data.supplier ? (
-                <Row label={t('unit.supplier')}>
-                  <Text variant="bodyStrong">{data.supplier.name}</Text>
                 </Row>
               ) : null}
               {data.purchase?.referenceNo ? (

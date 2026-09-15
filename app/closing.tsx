@@ -144,7 +144,7 @@ export default function ClosingScreen() {
               onPress={() => {
                 setError(null);
                 signOff.mutate(undefined, {
-                  onSuccess: () => router.push('/analytics' as never),
+                  onSuccess: () => router.push('/money' as never),
                   onError: (e) => setError(toFriendlyError(e).body || t('closing.failed')),
                 });
               }}

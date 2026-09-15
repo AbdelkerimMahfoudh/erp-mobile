@@ -2,14 +2,12 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Package, PackagePlus, Truck } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, Package, PackagePlus } from 'lucide-react-native';
 import {
   Button,
-  Card,
   EmptyState,
   IconButton,
   InlineNotice,
-  ListRow,
   MoneyField,
   Screen,
   Text,
@@ -19,10 +17,16 @@ import { ScanTarget } from '../components/scanner';
 import type { AcceptedImei } from '../components/scanner/ScannerSheet';
 import { ProductConfirmationCard } from '../components/product';
 import { SelectSheet } from '../components/overlay';
+import {
+  PurchasePaymentPicker,
+  purchasePaymentBody,
+  purchasePaymentReady,
+  type PurchasePayment,
+} from '../components/receive/PurchasePaymentPicker';
 import { ApiError, api } from '../lib/api-client';
 import { useAuth } from '../hooks/useAuth';
 import { useBranch } from '../lib/branch';
-import { isRTL, isolateLtr } from '../lib/design/direction';
+import { isRTL } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
@@ -46,8 +50,6 @@ import type {
   ProductSuggestion,
   ScanInventoryMatch,
   ScanResult,
-  SupplierPage,
-  SupplierRow,
 } from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
 
@@ -55,17 +57,13 @@ import { makeStyles, useColors } from '../lib/design/theme';
  * Quick Receive — one phone, from Home, camera first.
  *
  * The everyday purchase in this shop: somebody walks in with a handset, it is
- * scanned, a price is agreed and paid on the spot. That case has **no trading
- * partner**, which is why the seller lives under *More details* and may be left
- * out entirely — see `0070`.
+ * scanned, a price is agreed and paid on the spot.
  *
- * ## What "no seller" does and does not mean
+ * ## First release: anonymous, and paid in full
  *
- * It does not mean the money is unaccounted for. A purchase with nobody named
- * must be settled in full, and this screen says so in words and sends the
- * amount explicitly: the server refuses an outstanding balance owed to nobody,
- * because a debt has to be owed to somebody. Naming a seller is what unlocks
- * recording it as still owed.
+ * Nobody is asked who sold the phone, and nothing is ever left owing. The
+ * person chooses only HOW it was paid — cash from the drawer or an active
+ * account — and the server sets the amount to the cost.
  *
  * ## What it does NOT do
  *
@@ -105,12 +103,8 @@ export default function QuickReceiveScreen() {
   const [imei2, setImei2] = useState('');
   const [imei2Error, setImei2Error] = useState<string | undefined>();
 
-  /** Seller and payment both live here — closed by default, because usually neither is needed. */
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [supplier, setSupplier] = useState<SupplierRow | null>(null);
-  const [supplierOpen, setSupplierOpen] = useState(false);
-  /** Whether the money has actually been handed over. Never inferred. */
-  const [paidInFull, setPaidInFull] = useState(true);
+  /** How this purchase was paid. The amount is always the cost, set by the server. */
+  const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
 
   const [done, setDone] = useState<{ outcome: PurchaseOutcome; label: string } | null>(null);
   const [uncertain, setUncertain] = useState(false);
@@ -152,13 +146,12 @@ export default function QuickReceiveScreen() {
    */
   const draft = useDraft(
     'quick.receive',
-    { cost, price, imei2, supplier, paidInFull, clientUuid },
+    { cost, price, imei2, payment, clientUuid },
     (v) => {
       setCost(v.cost ?? '');
       setPrice(v.price ?? '');
       setImei2(v.imei2 ?? '');
-      setSupplier(v.supplier ?? null);
-      setPaidInFull(v.paidInFull ?? true);
+      if (v.payment) setPayment(v.payment);
       if (v.clientUuid) setClientUuid(v.clientUuid);
     },
     { enabled: !done },
@@ -200,12 +193,6 @@ export default function QuickReceiveScreen() {
       toast.error(toErrorMessage(e));
     }
   };
-
-  const suppliers = useQuery({
-    queryKey: [...qk.suppliers, 'active'],
-    queryFn: () => api.get<SupplierPage>('/suppliers?status=active&limit=50'),
-    enabled: supplierOpen,
-  });
 
   const lookUp = useCallback(
     (code: string, secondary: string | null) =>
@@ -324,12 +311,6 @@ export default function QuickReceiveScreen() {
 
   const costValue = Number(cost);
   const total = costValue > 0 ? costValue : 0;
-  /**
-   * With nobody named, the purchase must be settled in full — the server
-   * refuses a balance owed to no one. The amount is sent EXPLICITLY rather than
-   * inferred from the absence of a seller.
-   */
-  const settledInFull = supplier ? paidInFull : true;
   const ready = Boolean(scanned?.suggestion) && !scanned?.existing && costValue > 0;
 
   const add = useMutation({
@@ -338,9 +319,8 @@ export default function QuickReceiveScreen() {
       const secondary = imei2.trim();
       return api.post<PurchaseOutcome>('/purchases', {
         clientUuid,
-        // Omitted entirely for a walk-in seller — never a placeholder id.
-        ...(supplier ? { supplierId: supplier.id } : {}),
-        paidAmount: settledInFull ? total : 0,
+        // Paid in full by definition: the server sets the amount to the total.
+        ...purchasePaymentBody(payment),
         items: purchaseItems([
           {
             key: 'one',
@@ -378,7 +358,6 @@ export default function QuickReceiveScreen() {
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
       qc.invalidateQueries({ queryKey: ['analytics-summary'] });
-      if (supplier) qc.invalidateQueries({ queryKey: qk.suppliers });
       setDone({ outcome, label });
       draft.clear();
     },
@@ -463,15 +442,17 @@ export default function QuickReceiveScreen() {
             <>
               <View style={styles.totals}>
                 <Text variant="body" tone="secondary">
-                  {settledInFull ? t('quick.receive.payNow') : t('quick.receive.owed')}
+                  {t('quick.receive.payNow')}
                 </Text>
                 <Text variant="title">{formatMoney(total)}</Text>
               </View>
+              {!uncertain ? <PurchasePaymentPicker value={payment} onChange={setPayment} /> : null}
               <Button
                 title={uncertain ? t('receive.uncertain.retry') : t('quick.receive.add')}
                 size="lg"
                 fullWidth
                 loading={add.isPending}
+                disabled={!purchasePaymentReady(payment)}
                 onPress={() => add.mutate()}
               />
             </>
@@ -603,60 +584,6 @@ export default function QuickReceiveScreen() {
               ) : null}
             </ProductConfirmationCard>
           ) : null}
-
-          {/* ── More details: the seller, and whether the money has moved ──
-              Closed by default. The everyday purchase needs neither. */}
-          {/* Only once a product is known: before that there is no cost, and a
-              "paid in full — 0 MRU" sentence would describe nothing. */}
-          {scanned?.suggestion && !blocked ? (
-            <Card style={styles.more}>
-              <ListRow
-                flat
-                leading={ChevronDown}
-                title={t('quick.receive.more')}
-                subtitle={supplier ? supplier.name : t('quick.receive.supplier.none')}
-                onPress={() => setMoreOpen((v) => !v)}
-              />
-              {moreOpen ? (
-                <View style={styles.fields}>
-                  <ListRow
-                    leading={Truck}
-                    title={supplier ? supplier.name : t('quick.receive.supplier')}
-                    subtitle={t('quick.receive.supplier.optional')}
-                    onPress={() => setSupplierOpen(true)}
-                    value={supplier ? t('action.change') : undefined}
-                  />
-                  {/*
-                    Stated, never implied. With no seller the purchase must be
-                    settled in full, and the sentence says why rather than
-                    leaving a disabled control unexplained.
-                  */}
-                  {supplier ? (
-                    <ListRow
-                      leading={Check}
-                      title={paidInFull ? t('quick.receive.paid.yes') : t('quick.receive.paid.no')}
-                      subtitle={t('quick.receive.paid.hint')}
-                      onPress={() => setPaidInFull((v) => !v)}
-                    />
-                  ) : (
-                    <InlineNotice tone="info">
-                      {t('quick.receive.paid.required', {
-                        amount: isolateLtr(formatMoney(total)),
-                      })}
-                    </InlineNotice>
-                  )}
-                  {supplier ? (
-                    <Button
-                      title={t('quick.receive.supplier.clear')}
-                      variant="tertiary"
-                      size="sm"
-                      onPress={() => setSupplier(null)}
-                    />
-                  ) : null}
-                </View>
-              ) : null}
-            </Card>
-          ) : null}
         </ScrollView>
       </Screen>
 
@@ -677,30 +604,6 @@ export default function QuickReceiveScreen() {
         onRetry={() => products.refetch()}
         onSelect={(row: ProductListRow) => void pickProduct(row)}
       />
-
-      {/*
-        Choosing a seller is offered; creating one is not required, and no
-        placeholder person is ever invented on the user's behalf.
-      */}
-      <SelectSheet
-        open={supplierOpen}
-        onClose={() => setSupplierOpen(false)}
-        title={t('receive.supplier.title')}
-        items={suppliers.data?.rows ?? []}
-        keyExtractor={(s: SupplierRow) => s.id}
-        labelExtractor={(s: SupplierRow) => s.name}
-        descriptionExtractor={(s: SupplierRow) => s.phone ?? undefined}
-        leadingIcon={Truck}
-        selectedKeys={supplier ? [supplier.id] : []}
-        searchPlaceholder={t('receive.supplier.search')}
-        loading={suppliers.isLoading}
-        error={suppliers.error}
-        onRetry={() => suppliers.refetch()}
-        onSelect={(s: SupplierRow) => {
-          setSupplier(s);
-          setSupplierOpen(false);
-        }}
-      />
     </>
   );
 }
@@ -708,7 +611,6 @@ export default function QuickReceiveScreen() {
 const useStyles = makeStyles((colors) => ({
   list: { padding: space.base, gap: space.sm, paddingBottom: space['3xl'] },
   fields: { gap: space.md },
-  more: { padding: 0, gap: space.sm },
   totals: {
     flexDirection: 'row',
     alignItems: 'center',

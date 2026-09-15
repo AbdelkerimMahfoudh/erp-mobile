@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Package, PackagePlus, Truck } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, Package, PackagePlus } from 'lucide-react-native';
 import { Button, EmptyState, Screen, Text } from '../components/ui';
 import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
@@ -10,6 +10,12 @@ import { BottomSheet } from '../components/overlay/BottomSheet';
 import { ScanTarget } from '../components/scanner';
 import type { AcceptedImei } from '../components/scanner/ScannerSheet';
 import { ReceiveItemSheet, type ReceiveItemDraft } from '../components/receive/ReceiveItemSheet';
+import {
+  PurchasePaymentPicker,
+  purchasePaymentBody,
+  purchasePaymentReady,
+  type PurchasePayment,
+} from '../components/receive/PurchasePaymentPicker';
 import { StagedItemRow } from '../components/receive/StagedItemRow';
 import { stagedCostTotal, stagedUnitTotal, type StagedItem } from '../components/receive/types';
 import { TextField } from '../components/ui/Field';
@@ -49,9 +55,6 @@ import type {
   ProductSuggestion,
   ScanInventoryMatch,
   ScanResult,
-  SupplierDetail,
-  SupplierPage,
-  SupplierRow,
 } from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
 
@@ -129,8 +132,12 @@ export default function ReceiveScreen() {
     [user?.companyId, user?.id, branchId],
   );
 
-  const [supplier, setSupplier] = useState<SupplierRow | null>(null);
-  const [supplierOpen, setSupplierOpen] = useState(false);
+  /**
+   * How this delivery is paid. First release: every purchase is paid in full
+   * when it is received, nobody is asked who sold it, and the server sets the
+   * amount — this screen only says whether it was cash or which account.
+   */
+  const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
   const [staged, setStaged] = useState<StagedItem[]>([]);
 
   /**
@@ -145,12 +152,12 @@ export default function ReceiveScreen() {
 
   /**
    * A receiving session survives an app kill (J.1): the staged phones with both
-   * IMEIs, the supplier and the request key. Nothing the server owns is kept —
+   * IMEIs, how it is being paid and the request key. Nothing the server owns is kept —
    * restoring `done` would tell a shop it had received stock it never did.
    */
-  const draft = useDraft('receive.preparation', { staged, supplier, clientUuid }, (v) => {
+  const draft = useDraft('receive.preparation', { staged, payment, clientUuid }, (v) => {
     setStaged(v.staged ?? []);
-    setSupplier(v.supplier ?? null);
+    if (v.payment) setPayment(v.payment);
     if (v.clientUuid) setClientUuid(v.clientUuid);
   });
 
@@ -171,22 +178,6 @@ export default function ReceiveScreen() {
 
   /** The camera's accepted phone, so its IMEI 2 can travel with the scan result. */
   const lastAccepted = useRef<{ primary: string; secondary: string | null } | null>(null);
-
-  const suppliers = useQuery({
-    queryKey: [...qk.suppliers, 'active'],
-    queryFn: () => api.get<SupplierPage>('/suppliers?status=active&limit=50'),
-  });
-
-  const createSupplier = useMutation({
-    mutationFn: (name: string) => api.post<SupplierDetail>('/suppliers', { name }),
-    onSuccess: (created) => {
-      qc.invalidateQueries({ queryKey: qk.suppliers });
-      setSupplier({ id: created.id, name: created.name, phone: created.phone, isActive: created.isActive });
-      setSupplierOpen(false);
-      toast.success(created.name);
-    },
-    onError: (e) => toast.error(toErrorMessage(e)),
-  });
 
   /** Only products that can take this scan: IMEI products for an IMEI, serial for a serial. */
   const pickerKind =
@@ -466,7 +457,7 @@ export default function ReceiveScreen() {
     mutationFn: (lines: StagedItem[]) =>
       api.post<PurchaseOutcome>('/purchases', {
         clientUuid,
-        supplierId: supplier!.id,
+        ...purchasePaymentBody(payment),
         items: purchaseItems(lines),
       }),
     onSuccess: (res, lines) => {
@@ -599,14 +590,6 @@ export default function ReceiveScreen() {
         padded={false}
         header={
           <>
-            <Button
-              title={supplier ? supplier.name : t('receive.supplier.choose')}
-              variant="secondary"
-              icon={Truck}
-              fullWidth
-              disabled={uncertain}
-              onPress={() => setSupplierOpen(true)}
-            />
             {!uncertain ? (
               <ScanTarget
                 onResult={onScanResult}
@@ -627,19 +610,15 @@ export default function ReceiveScreen() {
                 </Text>
                 <Text variant="title">{formatMoney(costTotal)}</Text>
               </View>
+              <PurchasePaymentPicker value={payment} onChange={setPayment} />
               <Button
                 title={uncertain ? t('receive.uncertain.retry') : t('receive.finish')}
                 size="lg"
                 fullWidth
                 loading={finish.isPending}
-                disabled={!supplier}
+                disabled={!purchasePaymentReady(payment)}
                 onPress={() => finish.mutate(staged)}
               />
-              {!supplier ? (
-                <Text variant="caption" tone="warning" align="center">
-                  {t('receive.supplier.needed')}
-                </Text>
-              ) : null}
             </>
           ) : undefined
         }
@@ -668,7 +647,7 @@ export default function ReceiveScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setSupplier(null); }} />
+            <DraftNotice draft={draft} onDiscard={() => { setStaged([]); setPayment({ method: 'cash', receivingAccountId: null }); }} />
             {uncertain ? (
               <InlineNotice tone="warning" title={t('receive.uncertain.title')}>
                 {t('receive.uncertain.body')}
@@ -697,25 +676,6 @@ export default function ReceiveScreen() {
           </ScrollView>
         )}
       </Screen>
-
-      <SelectSheet
-        open={supplierOpen}
-        onClose={() => setSupplierOpen(false)}
-        title={t('receive.supplier.title')}
-        items={suppliers.data?.rows ?? []}
-        keyExtractor={(s) => s.id}
-        labelExtractor={(s) => s.name}
-        descriptionExtractor={(s) => s.phone ?? undefined}
-        leadingIcon={Truck}
-        selectedKeys={supplier ? [supplier.id] : []}
-        searchPlaceholder={t('receive.supplier.search')}
-        loading={suppliers.isLoading}
-        error={suppliers.error}
-        onRetry={() => suppliers.refetch()}
-        onSelect={setSupplier}
-        onCreate={(name) => createSupplier.mutate(name)}
-        creating={createSupplier.isPending}
-      />
 
       <ReceiveItemSheet
         open={Boolean(pending) && !pickerOpen}

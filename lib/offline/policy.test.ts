@@ -69,7 +69,6 @@ it('nor anything that settles money', () => {
     'loan.payment.confirm', 'loan.payment.correct', 'loan.forgive',
     'consignment.payment.confirm', 'consignment.payment.correct', 'consignment.forgive',
     'return.refund.confirm', 'return.refund.correct',
-    'supplier.payment.confirm', 'supplier.payment.correct',
     'expense.confirm', 'expense.reject',
     'correction.create', 'correction.approve', 'correction.reject',
     'closing.count', 'closing.signOff', 'discrepancy.resolve',

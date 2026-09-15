@@ -35,9 +35,10 @@ export function priceWording(price: SummaryPrice | null): PriceWording {
   return { kind: 'from', amount: price.min, unpriced: price.unpricedCount };
 }
 
-/** Out of stock wins over low stock: zero available is not merely "low". */
-export function stockStatus(available: number, lowStock: boolean): 'out' | 'low' | null {
-  if (available <= 0) return 'out';
-  if (lowStock) return 'low';
-  return null;
+/**
+ * A fact, not a forecast: nothing sellable is on the shelf. There is no "low"
+ * state — reorder thresholds are not a first-release concept.
+ */
+export function stockStatus(available: number): 'out' | null {
+  return available <= 0 ? 'out' : null;
 }

@@ -64,14 +64,15 @@ it('handles a very large price without changing the wording', () => {
 
 /* ── status ─────────────────────────────────────────────────────────────── */
 
-it('out of stock wins over low stock', () => {
-  assert.equal(stockStatus(0, true), 'out');
-  assert.equal(stockStatus(2, true), 'low');
-  assert.equal(stockStatus(9, false), null);
+it('states only the fact of nothing available — there is no low-stock state', () => {
+  assert.equal(stockStatus(0), 'out');
+  assert.equal(stockStatus(2), null);
+  assert.equal(stockStatus(9), null);
+  assert.doesNotMatch(ROW, /lowStock|stock\.lowStock/);
 });
 
 it('never shows a status as colour alone', () => {
-  // The chip carries its word; there is no bare coloured dot for low stock.
+  // The chip carries its word; there is no bare coloured dot.
   assert.match(ROW, /<Chip label=\{status\}/);
 });
 
@@ -220,11 +221,10 @@ it('says what the filter numbers count', () => {
   assert.match(SCREEN, /t\('stock\.countsHint'\)/);
 });
 
-it('explains a low warning next to a reserved quantity instead of changing the rule', () => {
+it('explains a reserved quantity next to what is available', () => {
   assert.match(ROW, /row\.reserved > 0/);
   assert.match(ROW, /stock\.reservedOnHand/);
-  // The row does not recompute "low" — the server's shared rule decides.
-  assert.match(ROW, /stockStatus\(row\.available, row\.lowStock\)/);
+  assert.match(ROW, /stockStatus\(row\.available\)/);
 });
 
 it('agrees "available" with the count in French', () => {

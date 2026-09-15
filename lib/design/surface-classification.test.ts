@@ -41,7 +41,6 @@ const CLASSIFICATION: Record<string, { kind: Kind; why: string }> = {
   'app/(tabs)/inventory.tsx': { kind: 'grouped', why: 'units and stock lines' },
   'app/(tabs)/more.tsx': { kind: 'grouped', why: 'destination menu; sign-out kept separate' },
   'app/(tabs)/money-hub.tsx': { kind: 'card', why: 'money metrics, meant to stand out' },
-  'app/analytics.tsx': { kind: 'grouped', why: 'supporting values under each metric' },
   'app/catalog/[id].tsx': { kind: 'grouped', why: 'per-branch stock' },
   'app/catalog/categories.tsx': { kind: 'custom', why: 'management sheet' },
   'app/consignments/index.tsx': { kind: 'grouped', why: 'consignment records' },
@@ -53,7 +52,6 @@ const CLASSIFICATION: Record<string, { kind: Kind; why: string }> = {
   'app/loans/index.tsx': { kind: 'grouped', why: 'loan records' },
   'app/select-branch.tsx': { kind: 'custom', why: 'a one-off choice before the app opens' },
   'app/settings.tsx': { kind: 'card', why: 'grouped settings panels' },
-  'app/suppliers/index.tsx': { kind: 'grouped', why: 'supplier records' },
   'app/team.tsx': { kind: 'grouped', why: 'team members' },
   'app/dev/gallery.tsx': { kind: 'custom', why: 'component gallery; not a user route' },
 };
@@ -89,7 +87,7 @@ it('no grouped list leaves a gap that would break the run', () => {
    * broken cards again.
    */
   const offenders: string[] = [];
-  for (const file of ['app/suppliers/index.tsx', 'app/expenses/index.tsx', 'app/loans/index.tsx']) {
+  for (const file of ['app/expenses/index.tsx', 'app/loans/index.tsx']) {
     const src = strip(readFileSync(file, 'utf8'));
     const list = src.match(/list: \{[^}]*\}/)?.[0] ?? '';
     if (/gap:/.test(list)) offenders.push(`${file} → ${list}`);

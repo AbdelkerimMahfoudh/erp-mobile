@@ -40,7 +40,7 @@ import {
  * order rather than in whatever order the API returns them.
  *
  * **Profit and cash are never mixed.** A shop can be profitable and short of
- * cash in the same week: it sold well, paid three suppliers and refunded a
+ * cash in the same week: it sold well, restocked heavily and refunded a
  * customer. Presenting one as the other is the most misleading thing a retail
  * report can do, so they are separate blocks with separate headings.
  *
@@ -147,7 +147,7 @@ export default function MoneyScreen() {
             </Text>
             <Line label={t('money.cash.in')} value={s.cash.salesReceived} />
             <Line label={t('money.cash.refunds')} value={-s.cash.refundsPaid} />
-            <Line label={t('money.cash.suppliers')} value={-s.cash.supplierPaymentsConfirmed} />
+            <Line label={t('money.cash.stock')} value={-s.cash.supplierPaymentsConfirmed} />
             <Line label={t('money.cash.expenses')} value={-s.cash.expensesCash} />
             <Divider style={styles.divider} />
             <Line label={t('money.cash.net')} value={s.cash.net} strong />
@@ -274,8 +274,8 @@ function Trend({ comparison, label }: { comparison: Comparison; label: string })
  * Figures the server could not compute.
  *
  * Named rather than drawn as zero. A shop cannot tell a measured zero from a
- * number nobody calculated, and the difference matters when the number is what
- * they owe a supplier.
+ * number nobody calculated, and the difference matters when the number is money
+ * the shop owes.
  */
 function Unavailable({ summary }: { summary: PeriodSummary }) {
   const { t } = useTranslation();

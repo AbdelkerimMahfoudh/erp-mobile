@@ -55,7 +55,6 @@ export const fr: Catalogue = {
   'unit.serial': 'Numéro de série',
   'unit.location': 'Emplacement',
   'unit.purchase': 'Achat',
-  'unit.supplier': 'Fournisseur',
   'unit.reference': 'Référence',
   'history.event.received': 'Entré en stock',
   'history.event.sold': 'Vendu',
@@ -192,46 +191,6 @@ export const fr: Catalogue = {
   // ── Goals (Milestone F) ───────────────────────────────────────────────────
   // The state is always a word before it is a number: "62%" does not tell
   // anybody whether that is good on the 20th of the month.
-  'goals.title': 'Objectifs',
-  'goals.filter.active': 'En cours',
-  'goals.filter.all': 'Y compris terminés',
-  'goals.empty.title': 'Aucun objectif fixé',
-  'goals.empty.body': 'Personne n’a encore fixé d’objectif pour cette boutique.',
-  'goals.empty.body.manager': 'Fixez-en un et toute l’équipe verra où en est le mois.',
-  'goals.set.action': 'Fixer un objectif',
-  'goals.set.title': 'Fixer un objectif',
-  'goals.set.who': 'Pour qui',
-  'goals.set.what': 'Quoi viser',
-  'goals.set.howMuch': 'Combien',
-  'goals.set.period': 'Du {from} au {to}',
-  'goals.set.note': 'Note',
-  'goals.set.notePlaceholder': 'Ce que l’équipe doit savoir',
-  'goals.set.failed': 'Impossible de fixer cet objectif',
-  'goals.scope.company': 'Toute l’entreprise',
-  'goals.scope.branch': 'Cette boutique',
-  'goals.scope.user': 'Une personne',
-  'goals.metric.gross_profit': 'Bénéfice conservé',
-  'goals.metric.revenue': 'Argent encaissé',
-  'goals.metric.sales_count': 'Nombre de ventes',
-  'goals.metric.units_sold': 'Articles vendus',
-  'goals.metric.gross_profit.help':
-    'Ce qui reste après le coût des marchandises. Le loyer et les factures n’entrent pas en compte.',
-  'goals.metric.revenue.help': 'Tout ce qui est encaissé, avant les coûts.',
-  'goals.metric.sales_count.help':
-    'Combien de ventes. Trois téléphones sur un même ticket comptent pour une.',
-  'goals.metric.units_sold.help': 'Combien d’articles ont quitté le rayon.',
-  'goals.achieved': 'Jusqu’ici',
-  'goals.target': 'Objectif',
-  'goals.state.not_started': 'Pas commencé',
-  'goals.state.on_track': 'En bonne voie',
-  'goals.state.behind': 'En retard',
-  'goals.state.met': 'Atteint',
-  'goals.state.missed': 'Non atteint',
-  'goals.hint.met': 'Objectif atteint — {percent} % de la cible.',
-  'goals.hint.missed': 'La période s’est terminée à {percent} %.',
-  'goals.hint.notStarted': 'Démarre bientôt, sur {days} jours.',
-  'goals.hint.running': '{needed} par jour sur les {days} jours restants.',
-  'goals.archived.reason': 'Clos : {reason}',
 
   // ── Correcting a confirmed payment (Milestone B) ──────────────────────────
   // Worded throughout so "asked for" can never be mistaken for "done".
@@ -395,13 +354,11 @@ export const fr: Catalogue = {
   'more.group.store': 'Boutique',
   'more.group.team': 'Équipe',
   'more.group.products': 'Produits et réglages',
-  'more.group.reports': 'Rapports',
   'more.group.security': 'Sécurité',
   'more.group.appearance': 'Langue et apparence',
   'more.group.account': 'Compte',
   'nav.catalog': 'Catalogue',
   'nav.team': 'Équipe',
-  'nav.analytics': 'Analyses',
   'nav.settings': 'Paramètres de l’entreprise',
   'nav.notifications': 'Notifications',
   'nav.appearance': 'Apparence et langue',
@@ -412,12 +369,6 @@ export const fr: Catalogue = {
   'transfers.count.onTheWay': '{n} en route',
 
   // ── Analytics ─────────────────────────────────────────────────────────────
-  'analytics.mostProfitable': 'Les plus rentables',
-  'analytics.bestSelling': 'Les plus vendus',
-  'analytics.worstPerforming': 'Les moins performants',
-  'analytics.deadStock': 'Ne bouge pas',
-  'analytics.deadStock.none': 'Tout se vend',
-  'analytics.none': 'Rien à afficher pour l’instant',
 
   // ── Export de rapports ────────────────────────────────────────────────────
   'reports.export': 'Exporter un rapport',
@@ -440,13 +391,6 @@ export const fr: Catalogue = {
   'reports.error.notAllowed': 'Vous n’avez pas la permission d’exporter ce rapport.',
   'reports.error.tooLarge': 'Ce rapport est trop volumineux. Choisissez une période plus courte.',
   'reports.error.offline': 'Serveur injoignable. Vérifiez votre connexion.',
-  'analytics.branches': 'Comparaison des sites',
-  'analytics.employees': 'Performance de l’équipe',
-  'analytics.sold': '{n} vendus',
-  'analytics.inStock': '{n} en stock',
-  'analytics.sales': '{n} ventes',
-  'analytics.revenue': 'Encaissé',
-  'analytics.net': 'Bénéfice',
   'action.undo': 'Annuler l’action',
   'action.close': 'Fermer',
   'action.back': 'Retour',
@@ -492,11 +436,6 @@ export const fr: Catalogue = {
   'home.today.unavailable.title': 'Les chiffres du jour ne se sont pas chargés',
   'home.today.unavailable.body': 'Tout le reste de cet écran fonctionne toujours.',
   'home.month.profit': 'Bénéfice du mois',
-  'home.stock.title': 'Stock',
-  'home.stock.value': 'Valeur du stock',
-  'home.stock.low': 'Bientôt épuisé',
-  'home.stock.low.hint': 'Produits à recommander',
-  'home.more.title': 'Tout le reste',
   'home.health.title': 'Santé de la boutique',
   // Said in words, never as a colour name. "GREEN" told a shopkeeper nothing.
   'home.health.good': 'La boutique tourne bien',
@@ -537,19 +476,12 @@ export const fr: Catalogue = {
   'quick.draft.start': 'Faire une vente rapide',
   'quick.receive.title': 'Réceptionner un téléphone',
   'quick.receive.payNow': 'Payé maintenant',
-  'quick.receive.owed': 'Reste dû',
-  'quick.receive.paid.yes': 'Payé intégralement maintenant',
-  'quick.receive.paid.no': 'Encore dû au vendeur',
-  'quick.receive.paid.hint': 'Appuyez pour indiquer si l’argent a été remis',
-  'quick.receive.paid.required': 'Sans vendeur nommé, l’achat est enregistré comme payé intégralement — {amount}. Pour l’enregistrer comme encore dû, indiquez à qui vous l’avez acheté.',
-  'quick.receive.supplier.clear': 'Retirer le vendeur',
+  'money.cash.stock': 'Payé pour le stock',
+  'receive.payment.title': 'Payé par',
+  'receive.payment.hint': 'Payé intégralement maintenant. Rien ne reste dû.',
   'quick.receive.cost': 'Prix d’achat',
   'quick.receive.cost.hint': 'Ce que la boutique a payé',
   'quick.receive.price': 'Prix de vente',
-  'quick.receive.more': 'Plus de détails',
-  'quick.receive.supplier': 'Fournisseur',
-  'quick.receive.supplier.optional': 'Facultatif — laissez vide si vous ne savez pas',
-  'quick.receive.supplier.none': 'Aucun fournisseur',
   'quick.receive.add': 'Ajouter au stock',
   'quick.receive.done.title': 'Ajouté au stock',
   'quick.receive.done.body': '{product} est maintenant en rayon à {branch}.',
@@ -572,11 +504,8 @@ export const fr: Catalogue = {
   'quick.sell.notFound': 'Aucun téléphone en stock ne porte ce numéro',
   'nav.sales': 'Historique des ventes',
   'nav.returns': 'Retours',
-  'nav.suppliers': 'Fournisseurs',
-  'nav.suppliers.hint': 'Ce que la boutique doit',
   'nav.transfers': 'Transferts',
   'nav.expenses': 'Dépenses',
-  'nav.goals': 'Objectifs',
   // ── Bringing a stock list in (Milestone G) ────────────────────────────────
   // Worded so that picking a file can never be mistaken for importing one.
   'imports.title': 'Importer du stock',
@@ -628,7 +557,6 @@ export const fr: Catalogue = {
   'stores.search.none.title': 'Aucun résultat',
   'stores.search.none.body':
     'Aucune boutique ne correspond. Vérifiez l’identifiant ou demandez-le-leur.',
-  'stores.verification.pending': 'Badge vérifié bientôt disponible',
   'stores.connect': 'Demander à se connecter',
   'stores.request.failed': 'Impossible d’envoyer cette demande',
   'stores.action.failed': 'Cela n’a pas fonctionné',
@@ -903,8 +831,6 @@ export const fr: Catalogue = {
   'partners.add.sent.title': 'Demande envoyée',
   'partners.add.sent.body': 'Ils la verront sur leur écran Partenaires. Rien ne commence avant leur acceptation.',
   'partners.actions.title': 'Commencer avec cette boutique',
-  'partners.action.sell': 'Vendre un téléphone à cette boutique',
-  'partners.action.sell.unavailable': 'Pas encore disponible — confiez-le plutôt en dépôt',
   'partners.action.lend': 'Prêter de l’argent',
   'partners.action.lend.hint': 'Ils doivent accepter le montant',
   'partners.action.consign': 'Confier un téléphone en dépôt',
@@ -1060,7 +986,6 @@ export const fr: Catalogue = {
     'Argent entré et sorti. Ce n’est pas le bénéfice — une bonne semaine peut laisser la caisse vide.',
   'money.cash.in': 'Encaissé auprès des clients',
   'money.cash.refunds': 'Remboursements versés',
-  'money.cash.suppliers': 'Payé aux fournisseurs',
   'money.cash.expenses': 'Payé en espèces',
   'money.cash.net': 'Mouvement net',
   'money.owed': 'Créances et dettes',
@@ -1082,7 +1007,6 @@ export const fr: Catalogue = {
   'money.unavailable.hint':
     'Ceci n’est pas encore suivi : c’est donc laissé de côté plutôt qu’affiché à zéro.',
   'money.unavailable.refund_liability': 'Remboursements dus',
-  'money.unavailable.supplier_liability': 'Soldes fournisseurs',
   'money.unavailable.commissions_and_fees': 'Commissions et frais',
   'money.unavailable.per_channel_expected_movement': 'Attendu par canal',
   'money.unavailable.unattributed_legacy_payments': 'Anciens paiements sans canal',
@@ -1499,10 +1423,6 @@ export const fr: Catalogue = {
   // ── Receive ───────────────────────────────────────────────────────────────
   'receive.title': 'Réceptionner du stock',
   'receive.scan.placeholder': 'Scannez l’article ou son code-barres',
-  'receive.supplier.choose': 'Choisir le fournisseur',
-  'receive.supplier.title': 'Fournisseur',
-  'receive.supplier.search': 'Rechercher un fournisseur',
-  'receive.supplier.needed': 'Choisissez un fournisseur pour terminer',
   'receive.session': 'Cette livraison',
   'receive.line.each': '{amount} l’unité',
   'receive.empty.title': 'Rien d’ajouté pour l’instant',
@@ -1705,20 +1625,6 @@ export const fr: Catalogue = {
   'settings.provider.bim_bank': 'BIM Bank',
   'settings.provider.other': 'Autre',
 
-  // WhatsApp summaries
-  'settings.whatsapp.section': 'Résumés WhatsApp',
-  'settings.whatsapp.hint':
-    'Envoyés à vous seul. Le personnel ne les reçoit jamais.',
-  'settings.whatsapp.language': 'Langue du message',
-  'settings.whatsapp.amounts': 'Inclure les montants',
-  'settings.whatsapp.amountsHint':
-    'Désactivé, le résumé décrit l’activité sans aucun chiffre.',
-  'settings.whatsapp.daily': 'Résumé quotidien',
-  'settings.whatsapp.dailyHint': 'Un court récapitulatif à la fin de chaque journée.',
-  'settings.whatsapp.monthly': 'Résumé mensuel',
-  'settings.whatsapp.monthlyHint': 'Un tableau plus complet à la fin de chaque mois.',
-  'settings.whatsapp.notYet':
-    'Enregistré maintenant, envoyé une fois WhatsApp connecté.',
 
   // Security
   'settings.security.section': 'Sécurité',
@@ -2176,7 +2082,6 @@ export const fr: Catalogue = {
   'stock.available': 'disponible',
   'stock.availablePlural': 'disponibles',
   'stock.reservedOnHand': 'Réservé : {reserved} · En stock : {onHand}',
-  'stock.lowStock': 'Stock bas',
   'stock.outOfStock': 'En rupture',
   'stock.price': 'Prix {amount}',
   'stock.priceFrom': 'À partir de {amount}',
@@ -2479,131 +2384,22 @@ export const fr: Catalogue = {
   'refund.recon.timingNote':
     'Le bénéfice a été annulé à la date d’approbation. L’argent bouge à la date de confirmation. Ils sont comptés séparément, jamais deux fois.',
 
-  // ── J1: suppliers and payables ──────────────────────────────────────────
-  // Wording rule, as with refunds: owed is a warning, reported is still not
-  // paid, and only a confirmed payment is a success.
-  'suppliers.title': 'Fournisseurs',
-  'suppliers.search': 'Rechercher par nom ou téléphone',
-  'suppliers.filter.active': 'Actifs',
-  'suppliers.filter.inactive': 'Inactifs',
-  'suppliers.filter.all': 'Tous',
-  'suppliers.inactive': 'Inactif',
-  'suppliers.inactiveExplain':
-    'Masqué à la réception de nouveau stock. Tout l’historique est conservé.',
-  'suppliers.empty': 'Aucun fournisseur pour l’instant',
-  'suppliers.emptyBody': 'Ajoutez les entreprises auprès desquelles vous achetez.',
-  'suppliers.empty.search': 'Aucun résultat',
-  'suppliers.empty.searchBody':
-    'Essayez une partie du nom, ou le numéro de téléphone.',
-  'suppliers.add': 'Ajouter un fournisseur',
-  'suppliers.created': 'Fournisseur ajouté',
-  'suppliers.duplicate':
-    'Vous achetez déjà auprès d’un fournisseur portant ce nom. Recherchez-le plutôt que d’en ajouter un second.',
-  'suppliers.notFound': 'Fournisseur introuvable',
-  'suppliers.notFoundBody':
-    'Il a peut-être été retiré, ou appartient à un autre site.',
-  'suppliers.updateFailed': 'Impossible d’enregistrer ce changement.',
 
-  'suppliers.form.section': 'Informations du fournisseur',
-  'suppliers.form.name': 'Nom',
-  'suppliers.form.namePlaceholder': 'L’entreprise auprès de laquelle vous achetez',
-  'suppliers.form.phone': 'Téléphone',
-  'suppliers.form.phonePlaceholder': 'Facultatif',
-  'suppliers.form.notes': 'Notes',
-  'suppliers.form.save': 'Enregistrer le fournisseur',
 
-  'suppliers.detail.title': 'Fournisseur',
-  'suppliers.detail.supplier': 'Fournisseur',
-  'suppliers.detail.money': 'Compte',
-  'suppliers.detail.moneyHidden':
-    'Ce que la boutique doit n’est pas affiché pour votre rôle.',
-  'suppliers.detail.purchased': 'Total acheté',
-  'suppliers.detail.paid': 'Payé à ce jour',
-  'suppliers.detail.outstanding': 'Reste dû',
-  'suppliers.detail.awaiting':
-    '{amount} déclarés et en attente de confirmation. Pas encore comptés comme payés.',
-  'suppliers.detail.purchases': 'Livraisons',
-  'suppliers.detail.noPurchases': 'Rien acheté auprès d’eux pour l’instant.',
-  'suppliers.detail.pending': 'En attente de confirmation',
-  'suppliers.detail.payments': 'Paiements effectués',
 
-  'suppliers.deactivate.title': 'Ne plus utiliser ce fournisseur ?',
-  'suppliers.deactivate.body':
-    'Il n’apparaîtra plus à la réception de nouveau stock. Chaque livraison et chaque paiement passés sont conservés.',
-  'suppliers.deactivate.action': 'Désactiver',
-  'suppliers.deactivated': 'Fournisseur désactivé',
-  'suppliers.reactivate.title': 'Réutiliser ce fournisseur ?',
-  'suppliers.reactivate.body':
-    'Il réapparaîtra lors de la réception de stock.',
-  'suppliers.reactivate.action': 'Réactiver',
-  'suppliers.reactivated': 'Fournisseur réactivé',
 
-  'suppliers.pay.action': 'Enregistrer un paiement',
-  'suppliers.pay.title': 'Enregistrer un paiement',
-  'suppliers.pay.outstanding': 'Reste dû',
-  'suppliers.pay.amount': 'Montant payé',
-  'suppliers.pay.tooMuch': 'C’est plus que les {outstanding} dus.',
-  'suppliers.pay.allocation': 'Ce que cela règle',
-  'suppliers.pay.allocationHint':
-    'Les livraisons les plus anciennes d’abord. Vérifiez avant d’enregistrer.',
-  'suppliers.pay.purchaseOf': 'Livraison {ref} · {outstanding} dus',
-  'suppliers.pay.stillNeedsApproval':
-    'Ceci enregistre que vous les avez payés. Un responsable ou le propriétaire doit encore le confirmer.',
-  'suppliers.pay.submit': 'Enregistrer',
-  'suppliers.pay.confirm.title': 'Enregistrer {amount} payés ?',
-  'suppliers.pay.confirm.body':
-    'Ceci indique que le fournisseur a été payé. Ce n’est pas encore confirmé — un responsable ou le propriétaire doit l’accepter avant que cela compte.',
-  'suppliers.pay.confirm.action': 'Oui, enregistrer',
-  'suppliers.pay.done': 'Enregistré. En attente de confirmation.',
-  'suppliers.pay.failed':
-    'Impossible d’enregistrer ce paiement. Rien n’a été sauvegardé.',
-  'suppliers.pay.problems': 'Ce paiement ne peut pas être appliqué',
 
-  'suppliers.pending.status': 'En attente de confirmation',
-  'suppliers.pending.employeeNote':
-    'Un responsable ou le propriétaire doit confirmer ceci.',
-  'suppliers.confirmed.status': 'Payé',
 
-  'suppliers.confirm.action': 'Confirmer le paiement',
-  'suppliers.confirm.title': 'Confirmer ce paiement ?',
-  'suppliers.confirm.irreversible':
-    'Ceci enregistre que l’argent est sorti de la boutique. Il ne pourra plus être considéré comme en attente.',
-  'suppliers.confirm.done': 'Paiement confirmé.',
-  'suppliers.confirm.failed':
-    'Impossible de confirmer le paiement. Rien n’a changé.',
-
-  'suppliers.conflict.stale.title': 'Quelqu’un d’autre est intervenu avant vous',
-  'suppliers.conflict.stale.body':
-    'Ceci a changé pendant que l’écran était ouvert. Il a été actualisé — vérifiez et réessayez.',
-  'suppliers.conflict.already_confirmed.title': 'Déjà confirmé',
-  'suppliers.conflict.already_confirmed.body':
-    'Quelqu’un a déjà confirmé ce paiement. Rien n’a été enregistré deux fois.',
-  'suppliers.conflict.day_locked.title': 'Cette journée est clôturée',
-  'suppliers.conflict.day_locked.body':
-    'Les comptes de cette journée sont clôturés : le paiement ne peut pas y être rattaché. Voyez avec le propriétaire.',
-  'suppliers.conflict.supplier_inactive.title': 'Fournisseur inactif',
-  'suppliers.conflict.supplier_inactive.body':
-    'Réactivez le fournisseur avant d’enregistrer un nouveau paiement. Ce qui lui est déjà dû reste inchangé.',
-  'suppliers.conflict.account_inactive.title': 'Compte inactif',
-  'suppliers.conflict.account_inactive.body':
-    'Ce compte n’est plus utilisé. Choisissez-en un autre, ou payez en espèces.',
-  'suppliers.conflict.duplicate.title': 'Déjà dans la liste',
-  'suppliers.conflict.duplicate.body': 'Un fournisseur porte déjà ce nom.',
-  'suppliers.conflict.other.title': 'Impossible',
-  'suppliers.conflict.other.body':
-    'Ce n’est pas possible pour l’instant. L’écran a été actualisé.',
 
   // ── N: navigation hubs ────────────────────────────────────────────────────
   'hub.sales.title': 'Ventes et retours',
   'hub.sales.desc': 'Historique des ventes, reçus et retours clients.',
   'hub.stock.title': 'Stock et achats',
-  'hub.stock.desc': 'Produits, fournisseurs et mouvements de stock.',
+  'hub.stock.desc': 'Produits, transferts et stock initial.',
   'hub.money.title': 'Argent',
   'hub.money.desc': 'Soldes, dépenses, clôture et dettes.',
   'hub.network.title': 'Réseau de boutiques',
   'hub.network.desc': 'Boutiques partenaires et stock confié entre boutiques.',
-  'hub.performance.title': 'Performance',
-  'hub.performance.desc': 'Résultats, tendances et objectifs.',
   'hub.business.title': 'Équipe et entreprise',
   'hub.business.desc': 'Personnel, abonnement et configuration de la boutique.',
   'hub.account.title': 'Compte et sécurité',
@@ -2810,7 +2606,6 @@ export const fr: Catalogue = {
   'notifications.approval.approved.body': 'Approuvé à {price}, pour une seule vente.',
   'notifications.approval.rejected.title': 'Votre prix n’a pas été approuvé',
   'notifications.approval.rejected.body': 'Ouvrez pour voir la réponse.',
-  'warning.anomaly.lowStock': '{product} : {inStock} restant(s), environ {days} jours.',
   'warning.anomaly.deadStock': '{product} ne s’est pas vendu depuis {days} jours.',
   'warning.anomaly.overdueDebt': '{count} dette(s) client sont en retard, {amount} au total.',
   'warning.anomaly.sellerMarginDrop': '{seller} : la marge est passée de {before}% à {after}% en {days} jours.',

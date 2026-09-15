@@ -187,7 +187,25 @@ it('keeps the request key across an uncertain attempt and renews it only after a
   const screen = withoutComments(source('app/receive.tsx'));
   assert.match(screen, /setUncertain\(true\)/);
   assert.match(screen, /outcome === 'partial'[\s\S]*?setClientUuid\(uuidv4\(\)\)/);
-  assert.match(screen, /clientUuid,\s*supplierId/);
+  assert.match(screen, /clientUuid,\s*\.\.\.purchasePaymentBody\(payment\)/);
+});
+
+it('asks no supplier and no amount paid — only how the purchase was paid', () => {
+  for (const file of ['app/receive.tsx', 'app/quick-receive.tsx']) {
+    const screen = withoutComments(source(file));
+    assert.doesNotMatch(screen, /supplier/i, `${file} must not mention a supplier`);
+    assert.doesNotMatch(screen, /paidAmount|paidInFull|dueDate/, `${file} must not ask what was paid`);
+    assert.match(screen, /<PurchasePaymentPicker value=\{payment\} onChange=\{setPayment\} \/>/);
+    assert.match(screen, /disabled=\{!purchasePaymentReady\(payment\)\}/);
+  }
+});
+
+it('a non-cash purchase is not ready until an account is chosen', async () => {
+  const picker = withoutComments(source('components/receive/PurchasePaymentPicker.tsx'));
+  assert.match(picker, /p\.method === 'cash' \|\| Boolean\(p\.receivingAccountId\)/);
+  assert.match(picker, /paymentMethod: p\.method/);
+  assert.match(picker, /\.filter\(\(a\) => a\.isActive !== false\)/, 'a deactivated account is never offered');
+  assert.doesNotMatch(picker, /amount/i);
 });
 
 it('returns from Create product to the same Receive screen with the created product', () => {

@@ -14,7 +14,7 @@ import type { StockSummaryRow } from '../../types/api';
 
 /**
  * One exact variant on the shelf: what it is, what it sells for, how many can
- * be sold today, and whether that is running low.
+ * be sold today, and whether none is left.
  *
  * ## The thumbnail is honest about having no photo
  *
@@ -33,16 +33,15 @@ import type { StockSummaryRow } from '../../types/api';
  *   lie about the other phones;
  * - some units unpriced → says how many, rather than hiding them.
  *
- * ## Available, reserved and low
+ * ## Available and reserved
  *
- * The big number is what can be sold now. Low stock is judged on what is
- * physically held, as the dashboard judges it. When some of it is reserved for
- * a transfer the two differ, so the row says how much is reserved and how much
- * is on hand — the warning and the number then read as consistent.
+ * The big number is what can be sold now. When some of what is physically held
+ * is reserved for a transfer the two differ, so the row says how much is
+ * reserved and how much is on hand.
  *
  * ## Status is a word, not a colour
  *
- * Low and out of stock are chips with their label, so the meaning survives a
+ * Out of stock is a chip with its label, so the meaning survives a
  * colour-blind reader and a monochrome screenshot.
  */
 
@@ -86,8 +85,7 @@ export function StockRow({ row, onPress }: StockRowProps) {
       ? t('stock.reservedOnHand', { reserved: formatQuantity(row.reserved), onHand: formatQuantity(row.onHand) })
       : null;
 
-  const state = stockStatus(row.available, row.lowStock);
-  const status = state === 'out' ? t('stock.outOfStock') : state === 'low' ? t('stock.lowStock') : null;
+  const status = stockStatus(row.available) === 'out' ? t('stock.outOfStock') : null;
 
   // One sentence for a screen reader, in reading order, instead of fragments.
   const a11y = [title, variant, `${formatQuantity(row.available)} ${availableWord}`, price.text, reservedNote, status]
@@ -120,7 +118,7 @@ export function StockRow({ row, onPress }: StockRowProps) {
         </Text>
         {status || reservedNote ? (
           <View style={styles.meta}>
-            {status ? <Chip label={status} tone={state === 'out' ? 'danger' : 'warning'} size="sm" dot /> : null}
+            {status ? <Chip label={status} tone="danger" size="sm" dot /> : null}
             {reservedNote ? (
               <Text variant="caption" tone="tertiary">
                 {reservedNote}

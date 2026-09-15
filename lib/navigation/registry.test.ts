@@ -60,7 +60,7 @@ const OWNER = new Set(
 );
 
 const MANAGER = new Set(
-  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,goal.manage,import.run,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
+  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,goal.manage,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
     ',',
   ),
 );
@@ -227,12 +227,11 @@ it('every permission named by a destination exists in the catalogue', () => {
 
 // ── 5. role visibility ───────────────────────────────────────────────────────
 
-it('an Owner sees the five business hubs — Money is a tab now, not a card', () => {
+it('an Owner sees the four business hubs — Money is a tab now, not a card', () => {
   assert.deepEqual(titles(visibleHubs(OWNER, 'business')), [
     'sales',
     'stock',
     'network',
-    'performance',
     'business',
   ]);
   // Moved, not removed: the Owner still reaches all four of its children.
@@ -250,7 +249,6 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
     'sales',
     'stock',
     'network',
-    'performance',
     'business',
   ]);
   // Money moved to the tab bar, and a Manager still reaches it there.
@@ -268,16 +266,25 @@ it('an Employee sees no money report, no imports and no loans', () => {
   assert.deepEqual(money, ['expenses', 'closing'], 'no report.view, no loan.view');
 
   const stock = visibleChildren(hubById('stock')!, EMPLOYEE).map((c) => c.id);
-  assert.deepEqual(stock, ['catalog', 'transfers', 'suppliers'], 'no import.run');
-
-  const performance = visibleChildren(hubById('performance')!, EMPLOYEE).map((c) => c.id);
-  assert.deepEqual(performance, ['goals'], 'no report.view, so no analytics');
+  assert.deepEqual(stock, ['catalog', 'transfers'], 'no import.run');
 });
 
-it('an Employee still reaches Suppliers, through supplier.payment.report alone', () => {
-  const suppliers = allDestinations().find((d) => d.id === 'suppliers')!;
-  assert.ok(!EMPLOYEE.has('supplier.manage'));
-  assert.ok(canSee(suppliers, EMPLOYEE));
+it('import is offered to the Owner alone (0073)', () => {
+  assert.deepEqual(visibleChildren(hubById('stock')!, MANAGER).map((c) => c.id), ['catalog', 'transfers']);
+  assert.ok(visibleChildren(hubById('stock')!, OWNER).some((c) => c.id === 'imports'));
+});
+
+it('first release: no Suppliers, Goals or Analytics destination anywhere', () => {
+  const ids = allDestinations().map((d) => d.id);
+  const routes = allDestinations().map((d) => d.route);
+  for (const gone of ['suppliers', 'goals', 'analytics']) {
+    assert.ok(!ids.includes(gone), gone + ' must not be a destination');
+    assert.ok(!routes.includes('/' + gone), '/' + gone + ' must not be linked');
+    assert.ok(!MORE_GROUPS.some((g) => g.destinationIds.includes(gone)), gone + ' must not be grouped on More');
+  }
+  for (const file of ['suppliers', 'goals', 'analytics.tsx']) {
+    assert.ok(!fs.existsSync(path.join(MOBILE, 'app', file)), 'app/' + file + ' must not exist');
+  }
 });
 
 it('hub order is identical for every role, with hidden hubs simply absent', () => {
@@ -293,7 +300,7 @@ it('hub order is identical for every role, with hidden hubs simply absent', () =
 it('a user holding only sale.view sees exactly one hub with one child', () => {
   const granted = new Set(['sale.view']);
   const shown = visibleHubs(granted, 'business');
-  // 'stock', 'performance' and 'business' contain ungated children, so they
+  // 'stock' and 'business' contain ungated children, so they
   // stay — the assertion is about the gated ones vanishing cleanly.
   const salesHub = shown.find((e) => e.hub.id === 'sales');
   assert.ok(salesHub, 'the one permission held must produce its hub');
@@ -385,8 +392,9 @@ it('every route the old More screen linked to is still linked, unchanged', () =>
   // Verbatim from the pre-N More screen. Branch, notifications and the language
   // control moved, and are accounted for as exclusions or in the account hub.
   const legacy = [
-    '/sales', '/returns', '/catalog', '/transfers', '/suppliers', '/team',
-    '/money', '/analytics', '/expenses', '/closing', '/goals', '/stores',
+    // Suppliers, Analytics and Goals left the first release on purpose.
+    '/sales', '/returns', '/catalog', '/transfers', '/team',
+    '/money', '/expenses', '/closing', '/stores',
     '/consignments', '/loans', '/sync', '/subscription', '/imports',
     '/settings', '/devices', '/notifications', '/select-branch',
   ];
@@ -409,7 +417,7 @@ it('hub order is data, not layout — the registry knows nothing about direction
   // Same list, same order, whichever way the page reads.
   assert.deepEqual(
     HUBS.map((h) => h.id),
-    ['sales', 'stock', 'money', 'network', 'performance', 'business', 'account'],
+    ['sales', 'stock', 'money', 'network', 'business', 'account'],
   );
 });
 
@@ -497,10 +505,10 @@ it('and is therefore absent from the More business list', () => {
   assert.ok(!onMore.includes('money'), 'Money must not appear on More: ' + onMore.join(', '));
 });
 
-it('More still shows exactly the five remaining business hubs', () => {
+it('More still shows exactly the four remaining business hubs', () => {
   const all = new Set(HUBS.flatMap((h) => h.children).flatMap((c) => [c.perm, ...(c.anyOf ?? [])]).filter(Boolean));
   const onMore = visibleHubs(all, 'business').map((e) => e.hub.id);
-  assert.deepEqual(onMore, ['sales', 'stock', 'network', 'performance', 'business']);
+  assert.deepEqual(onMore, ['sales', 'stock', 'network', 'business']);
 });
 
 it('the whole hub moved — all four children, unchanged', () => {
@@ -647,7 +655,7 @@ it('Money stays a tab: none of its children is on More', () => {
 it('the groups follow the requested order', () => {
   assert.deepEqual(
     MORE_GROUPS.map((g) => g.id),
-    ['store', 'team', 'products', 'reports', 'security', 'appearance', 'account'],
+    ['store', 'team', 'products', 'security', 'appearance', 'account'],
   );
 });
 
@@ -658,10 +666,8 @@ it('groups show only permitted destinations and never render empty', () => {
       for (const d of entry.destinations) assert.ok(canSee(d, granted), d.id + ' shown without permission');
     }
   }
-  const employee = visibleGroups(EMPLOYEE).map((e) => e.group.id);
-  assert.ok(!employee.includes('reports'), 'an Employee has no report.view');
-  const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'team')!.destinations.map((d) => d.id);
-  assert.deepEqual(manager, ['goals'], 'a Manager holds no user.manage');
+  // A Manager holds no user.manage, and Goals is postponed: the Team group is absent, not empty.
+  assert.ok(!visibleGroups(MANAGER).some((e) => e.group.id === 'team'));
 });
 
 it('every More group name exists in all three catalogues', () => {

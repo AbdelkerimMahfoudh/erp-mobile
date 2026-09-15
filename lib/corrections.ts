@@ -61,8 +61,8 @@ export function useApproveCorrection(id: string) {
   return useMutation({
     mutationFn: (body: { expectedVersion: number }) =>
       api.post<FinancialCorrection>(`/corrections/${id}/approve`, body),
-    // Approval restores a liability, so the supplier and return figures the
-    // user is about to look at are both stale.
+    // Approval restores a liability, so the return figures the user is about
+    // to look at are stale.
     onSuccess: () => invalidateAll(qc),
   });
 }
@@ -77,7 +77,7 @@ export function useRejectCorrection(id: string) {
 }
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  for (const key of ['corrections', 'correction', 'suppliers', 'supplier', 'returns', 'return', 'refund-summary']) {
+  for (const key of ['corrections', 'correction', 'returns', 'return', 'refund-summary']) {
     void qc.invalidateQueries({ queryKey: [key] });
   }
 }

@@ -24,7 +24,7 @@ import type { ServerWarning } from './warnings';
  */
 
 export interface Anomaly extends ServerWarning {
-  /** Stable identity — `anomaly.low_stock:<product>`. What a dismissal names. */
+  /** Stable identity — `anomaly.<rule>:<subject>`. What a dismissal names. */
   key: string;
 }
 

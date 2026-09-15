@@ -90,7 +90,7 @@ it('says nothing about a non-cost reference with no figure', () => {
 
 it('puts what must be answered above what is merely noted', () => {
   const ordered = orderWarnings([
-    warning({ code: 'anomaly.low_stock', severity: 'info' }),
+    warning({ code: 'anomaly.stale_stock', severity: 'info' }),
     warning({ severity: 'caution' }),
   ]);
   assert.equal(ordered[0].severity, 'caution');
