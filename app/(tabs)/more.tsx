@@ -1,15 +1,14 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { BadgeCheck, Bell, ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
+import { BadgeCheck, ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
 import {
   Card,
-  H1,
-  IconButton,
   InlineNotice,
   ListRow,
   RowGroup,
   Screen,
+  TabHeader,
   Text,
 } from '../../components/ui';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
@@ -23,6 +22,7 @@ import { subscriptionNotice, syncNotice } from '../../lib/navigation/notices';
 import { visibleGroups } from '../../lib/navigation/registry';
 import { useQueue } from '../../lib/offline/queue';
 import { usePermissionStore } from '../../lib/permissions';
+import { roleKey } from '../../lib/unit-history';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
@@ -53,6 +53,11 @@ export default function MoreScreen() {
   // from the registry; this screen decides nothing about who sees what.
   const groups = visibleGroups(granted);
 
+  // Branch and role, as context for everything below — never the company.
+  const { branchName, role } = useBranch();
+  const roleName = roleKey(role);
+  const context = [branchName, roleName ? t(roleName as never) : null].filter(Boolean).join(' · ');
+
   return (
     <Screen>
       {/*
@@ -60,15 +65,7 @@ export default function MoreScreen() {
         header: this tab renders its own title, and bolting a stack header on
         for one action would mean two competing headers on one screen.
       */}
-      <View style={styles.header}>
-        <H1>{t('tab.more')}</H1>
-        <IconButton
-          icon={Bell}
-          accessibilityLabel={t('more.notifications.a11y')}
-          variant="plain"
-          onPress={() => router.push('/notifications' as Href)}
-        />
-      </View>
+      <TabHeader context={context} title={t('tab.more')} bell />
 
       <BranchControl />
 
@@ -275,12 +272,6 @@ function SubscriptionNotice() {
 }
 
 const useStyles = makeStyles((colors) => ({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.sm,
-  },
   branch: {
     flexDirection: 'row',
     alignItems: 'center',

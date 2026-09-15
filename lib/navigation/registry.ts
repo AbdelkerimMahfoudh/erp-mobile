@@ -156,7 +156,8 @@ export const HUBS: readonly Hub[] = [
     */
     placement: 'tab',
     children: [
-      { id: 'money', route: '/money', titleKey: 'nav.money', icon: 'Landmark', perm: 'report.view' },
+      // `/money` is the Results screen: profit for the period Money shows.
+      { id: 'money', route: '/money', titleKey: 'nav.results', icon: 'BarChart3', perm: 'report.view' },
       // `expense.submit`, not `expense.manage`: the person who spent the money
       // reports it, and the list scopes them to their own.
       { id: 'expenses', route: '/expenses', titleKey: 'nav.expenses', icon: 'Receipt', perm: 'expense.submit' },
@@ -234,7 +235,7 @@ export const HUBS: readonly Hub[] = [
  * business and account destination to appear here exactly once. Money is a tab
  * and is deliberately absent.
  */
-export type MoreGroupId = 'store' | 'team' | 'products' | 'reports' | 'security' | 'appearance' | 'account';
+export type MoreGroupId = 'activity' | 'reports' | 'manage' | 'account';
 
 export interface MoreGroup {
   readonly id: MoreGroupId;
@@ -243,18 +244,23 @@ export interface MoreGroup {
 }
 
 export const MORE_GROUPS: readonly MoreGroup[] = [
-  {
-    id: 'store',
-    titleKey: 'more.group.store',
-    destinationIds: ['sales', 'returns', 'approvals', 'transfers', 'imports', 'stores', 'consignments'],
-  },
-  { id: 'team', titleKey: 'more.group.team', destinationIds: ['team', 'goals'] },
-  { id: 'products', titleKey: 'more.group.products', destinationIds: ['catalog', 'settings'] },
-  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics'] },
-  { id: 'security', titleKey: 'more.group.security', destinationIds: ['devices', 'sync'] },
-  { id: 'appearance', titleKey: 'more.group.appearance', destinationIds: ['appearance'] },
-  { id: 'account', titleKey: 'more.group.account', destinationIds: ['subscription'] },
+  { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
+  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'catalog', 'settings'] },
+  { id: 'account', titleKey: 'more.group.account', destinationIds: ['appearance', 'subscription', 'devices', 'sync'] },
 ];
+
+/**
+ * Destinations deliberately NOT repeated on More, because a bottom tab already
+ * leads to them — each with where. They stay registry destinations (their
+ * `/hub/[id]` deep links and permissions are unchanged); More simply does not
+ * list the same screen a second time.
+ */
+export const REACHED_FROM_TABS: Readonly<Record<string, string>> = {
+  transfers: 'Stock tab — the transfers button in its header.',
+  stores: 'Partners tab — it is this list.',
+  consignments: 'Partners tab — the Consignments row under the stores.',
+};
 
 /** The More groups this user may be offered, each with its permitted destinations; empty groups omitted. */
 export function visibleGroups(granted: ReadonlySet<string>): { group: MoreGroup; destinations: Destination[] }[] {

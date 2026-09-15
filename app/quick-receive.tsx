@@ -52,6 +52,7 @@ import type {
   ScanResult,
 } from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
+import { invalidateMoney } from '../lib/money-invalidation';
 
 /**
  * Quick Receive — one phone, from Home, camera first.
@@ -357,7 +358,7 @@ export default function QuickReceiveScreen() {
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
-      qc.invalidateQueries({ queryKey: ['analytics-summary'] });
+      invalidateMoney(qc);
       setDone({ outcome, label });
       draft.clear();
     },

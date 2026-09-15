@@ -110,6 +110,9 @@ export const qk = {
   loanReminders: () => ['loan-reminders'] as const,
   /** Company-level, not branch-level: a subscription covers the whole shop. */
   entitlement: () => ['entitlement'] as const,
+  /** Recorded money per channel for a period — branch-scoped, like the closing it reads. */
+  moneyMovements: (branchId: string | null, from: string, to: string) =>
+    ['money-movements', branchId, from, to] as const,
   /** The consolidated period summary (L). Branch-scoped, like every read. */
   analyticsSummary: (branchId: string | null, from: string, to: string) =>
     ['analytics-summary', branchId, from, to] as const,

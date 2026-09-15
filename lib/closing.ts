@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
+import { invalidateMoney } from './money-invalidation';
 
 /**
  * The progressive daily closing (Milestone E).
@@ -92,6 +93,7 @@ export function useSignOffDay(date?: string) {
       void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
       void qc.invalidateQueries({ queryKey: qk.discrepancies(branchId) });
       void qc.invalidateQueries({ queryKey: ['home', branchId] });
+      invalidateMoney(qc);
     },
   });
 }

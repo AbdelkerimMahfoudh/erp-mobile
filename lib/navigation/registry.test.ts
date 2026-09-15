@@ -29,6 +29,7 @@ import { fileURLToPath } from 'node:url';
 import {
   HUBS,
   MORE_GROUPS,
+  REACHED_FROM_TABS,
   EXCLUDED_ROUTES,
   allDestinations,
   canSee,
@@ -475,7 +476,10 @@ it('Notifications is reached from the header bell, and is not also a business ro
 });
 
 it('the bell carries a translated accessible label, not a hardcoded one', () => {
-  const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
+  // More's bell is the shared tab header's; the label lives there.
+  const more = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
+  assert.match(more, /<TabHeader[^>]*\bbell\b/);
+  const src = fs.readFileSync(path.join(MOBILE, 'components', 'ui', 'TabHeader.tsx'), 'utf8');
   assert.match(src, /accessibilityLabel=\{t\('more\.notifications\.a11y'\)\}/);
   // No badge is rendered, because the notifications contract supplies no
   // unread count. Inventing or estimating one would be worse than showing none.
@@ -643,8 +647,10 @@ it('Money is named in all three languages', () => {
 // ── More as grouped sections (checkpoint 3e) ────────────────────────────────
 
 it('More groups name every business and account destination exactly once, and nothing else', () => {
+  // Destinations a tab already leads to are named once, with where, instead.
   const expected = HUBS.filter((h) => h.placement !== 'tab')
     .flatMap((h) => h.children.map((c) => c.id))
+    .filter((id) => !(id in REACHED_FROM_TABS))
     .sort();
   const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
   assert.equal(new Set(grouped).size, grouped.length, 'a destination is in two More groups');
@@ -658,10 +664,27 @@ it('Money stays a tab: none of its children is on More', () => {
 });
 
 it('the groups follow the requested order', () => {
-  assert.deepEqual(
-    MORE_GROUPS.map((g) => g.id),
-    ['store', 'team', 'products', 'reports', 'security', 'appearance', 'account'],
-  );
+  assert.deepEqual(MORE_GROUPS.map((g) => g.id), ['activity', 'reports', 'manage', 'account']);
+});
+
+it('what More leaves out is reachable from a tab, and says which', () => {
+  const ids = new Set(allDestinations().map((d) => d.id));
+  for (const [id, reason] of Object.entries(REACHED_FROM_TABS)) {
+    assert.ok(ids.has(id), id + ' must still be a real destination');
+    assert.match(reason, /tab/i, id + ' must name the tab that leads to it');
+  }
+  const stock = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'inventory.tsx'), 'utf8');
+  assert.match(stock, /router\.push\('\/transfers' as Href\)/, 'Stock must lead to transfers');
+  const partners = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'partners.tsx'), 'utf8');
+  assert.match(partners, /router\.push\('\/consignments' as Href\)/, 'Partners must lead to consignments');
+});
+
+it('More lists Goals and Analytics, and nothing deferred', () => {
+  const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
+  for (const id of ['analytics', 'goals', 'sales', 'returns', 'approvals', 'team', 'imports', 'settings']) {
+    assert.ok(grouped.includes(id), id + ' must be on More');
+  }
+  assert.ok(!grouped.includes('suppliers'));
 });
 
 it('groups show only permitted destinations and never render empty', () => {
@@ -671,10 +694,10 @@ it('groups show only permitted destinations and never render empty', () => {
       for (const d of entry.destinations) assert.ok(canSee(d, granted), d.id + ' shown without permission');
     }
   }
-  const employee = visibleGroups(EMPLOYEE).map((e) => e.group.id);
-  assert.ok(!employee.includes('reports'), 'an Employee has no report.view');
-  const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'team')!.destinations.map((d) => d.id);
-  assert.deepEqual(manager, ['goals'], 'a Manager holds no user.manage');
+  const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
+  assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
+  const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
+  assert.deepEqual(manager, ['catalog'], 'a Manager holds neither user.manage, import.run nor settings.manage');
 });
 
 it('every More group name exists in all three catalogues', () => {

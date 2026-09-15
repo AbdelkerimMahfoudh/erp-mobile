@@ -55,6 +55,8 @@ export {
 } from './WorkflowTimeline';
 export { Toggle, type ToggleProps } from './Toggle';
 export { StatTile, type StatTileProps, type StatTrend } from './StatTile';
+export { TabHeader, type TabHeaderProps } from './TabHeader';
+export { Disclosure, type DisclosureProps } from './Disclosure';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Compatibility shims — TEMPORARY.

@@ -45,6 +45,7 @@ import { isWarningsPending, orderWarnings, referenceKey, type WarningsPending } 
 import type { ScanResult, Unit } from '../types/api';
 import { makeStyles } from '../lib/design/theme';
 import { selectableAccounts } from '../lib/receiving-accounts';
+import { invalidateMoney } from '../lib/money-invalidation';
 
 /**
  * Quick Sell — one phone, from Home, camera first.
@@ -246,7 +247,7 @@ export default function QuickSellScreen() {
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
-    qc.invalidateQueries({ queryKey: ['analytics-summary'] });
+    invalidateMoney(qc);
   };
 
   const attempt = async (

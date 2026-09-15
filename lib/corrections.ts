@@ -7,6 +7,7 @@ import type {
   FinancialCorrection,
   FinancialCorrectionKind,
 } from '../types/api';
+import { invalidateMoney } from './money-invalidation';
 
 /**
  * Correcting a confirmed payment (Milestone B).
@@ -80,6 +81,7 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   for (const key of ['corrections', 'correction', 'returns', 'return', 'refund-summary']) {
     void qc.invalidateQueries({ queryKey: [key] });
   }
+  invalidateMoney(qc);
 }
 
 export type CorrectionConflict =

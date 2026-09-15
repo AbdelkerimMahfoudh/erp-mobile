@@ -14,6 +14,7 @@ import type {
   RefundReceipt,
   RefundSummary,
 } from '../types/api';
+import { invalidateMoney } from './money-invalidation';
 
 /**
  * The mobile side of the return workflow.
@@ -114,6 +115,7 @@ function useRefundRefresh(id?: string) {
     ]) {
       void qc.invalidateQueries({ queryKey: prefix as readonly unknown[] });
     }
+    invalidateMoney(qc);
   };
 }
 

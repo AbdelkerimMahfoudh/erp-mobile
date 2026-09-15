@@ -44,7 +44,8 @@ export type Comparison =
 export interface PeriodSummary {
   from: string;
   to: string;
-  profit: ProfitBlock;
+  /** Absent without `cost.view`: the server strips the whole block. */
+  profit?: ProfitBlock;
   cash: CashBlock;
   expenseDetail: { total: number; fixed: number; salaries: number; count: number };
   /**
@@ -78,7 +79,7 @@ export interface PeriodSummary {
   unavailable: string[];
 }
 
-export function usePeriodSummary(from: string, to: string) {
+export function usePeriodSummary(from: string, to: string, options: { enabled?: boolean } = {}) {
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.analyticsSummary(branchId, from, to),
@@ -86,6 +87,7 @@ export function usePeriodSummary(from: string, to: string) {
       api.get<PeriodSummary>(
         `/analytics/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
       ),
+    enabled: options.enabled ?? true,
   });
 }
 

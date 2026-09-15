@@ -2,21 +2,11 @@ import React from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Minus,
-  PackagePlus,
-  ScanLine,
-  ShoppingCart,
-  Truck,
-  Undo2,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react-native';
+import { PackagePlus, ScanLine, ShoppingCart, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
   Card,
+  Disclosure,
   InlineNotice,
   ListRow,
   MoneyValue,
@@ -25,6 +15,7 @@ import {
   Section,
   SkeletonStat,
   StatTile,
+  TabHeader,
   Text,
 } from '../../components/ui';
 import { api } from '../../lib/api-client';
@@ -36,38 +27,26 @@ import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
-import { formatMoney, formatRelative } from '../../lib/format';
+import { formatDate, formatMoney, formatRelative } from '../../lib/format';
 import { monthToDate } from '../../lib/home-metrics';
-import { trendOf, usePeriodSummary, type Comparison } from '../../lib/analytics-summary';
-import type {
-  RefundSummary,
-  ReturnPage,
-  TransferCounts,
-} from '../../types/api';
+import { homeFigures } from '../../lib/home-figures';
+import { usePeriodSummary } from '../../lib/analytics-summary';
+import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
 
 /**
- * The landing screen ("Improvement").
+ * Home — the fastest operational screen.
  *
- * Three things it now does, and the reason for each:
+ * Greeting, then the two things a counter does all day (Sell, Receive) side by
+ * side, then what is waiting on this person, then the month's four figures.
+ * Nothing else: stock value lives on Stock, and every other destination is in
+ * More, so Home never becomes a second menu.
  *
- * **It greets the person, not the shop.** A compact branch line, then their
- * name. What was here before was a decorative phone and a slogan, which is
- * space spent on nothing a shopkeeper can act on. The welcome says only what is
- * actually known — who is signed in and where — and never invents a
- * performance claim to sound encouraging.
- *
- * **Two shortcuts, both camera-first.** Sell and Receive replace the old
- * Sell/Scanner pair. Both open the scanner the moment the screen is ready, so
- * the common path is one tap and a phone held up; typing stays permanently
- * available underneath, because whether a handset carries a scannable code is
- * up to its manufacturer.
- *
- * **Four monthly figures, all the server's.** Nothing here computes profit.
- * `/analytics/summary` owns the arithmetic — see `accounting-rules.ts` for why
- * it is written down once — and this screen only chooses the window and says
- * what each number means. A figure the server cannot compute is named as
- * unavailable rather than drawn as a zero that looks measured.
+ * **Every figure is the server's.** `/analytics/summary` owns the arithmetic
+ * and this screen only picks the window. Without `cost.view` the server strips
+ * the whole profit block — which is also where "sales after returns" lives — so
+ * those figures are hidden here, not shown as zero and not described in any
+ * label or accessibility text (`lib/home-figures.ts`).
  */
 export default function HomeScreen() {
   const styles = useStyles();
@@ -84,15 +63,11 @@ export default function HomeScreen() {
   const canViewTransfers = usePermission('transfer.view');
   const canViewReturns = usePermission('return.view');
 
-  /**
-   * A shortcut may only open the camera once the branch and the permission set
-   * have both resolved. Opening it first would put a viewfinder in front of
-   * somebody who is about to be told they may not sell here.
-   */
+  /** A shortcut opens the camera only once branch and permissions are known. */
   const shortcutsReady = Boolean(branchId) && permissionsReady;
 
   const month = React.useMemo(() => monthToDate(), []);
-  const summary = usePeriodSummary(month.from, month.to);
+  const summary = usePeriodSummary(month.from, month.to, { enabled: canViewReports });
 
   const transfers = useQuery({
     queryKey: qk.transferCounts(branchId),
@@ -104,26 +79,15 @@ export default function HomeScreen() {
     queryFn: () => api.get<RefundSummary>('/returns/refunds/summary'),
     enabled: canViewReturns,
   });
-  /**
-   * Returns waiting on a decision. The list endpoint is a cursor page with no
-   * total, so this counts what one page holds and says "N+" when there is
-   * another — an approximate number that admits it is approximate.
-   */
+  /** A cursor page with no total: counts one page and says "N+" when there is more. */
   const pendingReturns = useQuery({
     queryKey: qk.returns(branchId, 'home-pending'),
-    queryFn: () =>
-      api.get<ReturnPage>('/returns?status=pending_investigation,under_review'),
+    queryFn: () => api.get<ReturnPage>('/returns?status=pending_investigation,under_review'),
     enabled: canViewReturns,
   });
 
-  const refreshing =
-    summary.isFetching ||
-    transfers.isFetching ||
-    refunds.isFetching ||
-    pendingReturns.isFetching;
-
   const onRefresh = () => {
-    void summary.refetch();
+    if (canViewReports) void summary.refetch();
     void transfers.refetch();
     void refunds.refetch();
     void pendingReturns.refetch();
@@ -133,69 +97,48 @@ export default function HomeScreen() {
   const awaitingRefundCount = refunds.data?.awaitingConfirmation.count ?? 0;
   const returnRows = pendingReturns.data?.rows.length ?? 0;
   const returnsMore = Boolean(pendingReturns.data?.nextCursor);
-  const hasPendingWork =
-    pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0;
+  const hasPendingWork = pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0;
 
-  /** The comparison window's length, for wording it honestly on screen. */
-  const comparedDays = summary.data
-    ? Math.round(
-        (Date.parse(`${summary.data.comparison.period.to}T00:00:00.000Z`) -
-          Date.parse(`${summary.data.comparison.period.from}T00:00:00.000Z`)) /
-          86_400_000,
-      ) + 1
-    : 0;
+  const firstName = user?.name?.trim().split(/\s+/)[0];
+  const figures = summary.data ? homeFigures(summary.data) : null;
 
   return (
-    <Screen scroll onRefresh={onRefresh} refreshing={refreshing} gap="xl">
-      {/* ── Who, and where ──────────────────────────────────────────────────
-          Compact on purpose: it is context for everything below, not a banner. */}
-      <View>
-        <Text variant="label" tone="secondary">
-          {branchName ?? t('home.branch.unknown')}
-        </Text>
-        <Text variant="title" accessibilityRole="header">
-          {user?.name ? t('home.welcome.hello', { name: user.name }) : t('home.title')}
-        </Text>
-        <Text variant="body" tone="tertiary">
-          {/*
-            Said only when it is true. While the branch or the permission set is
-            still resolving the shortcuts below cannot open a camera, and
-            claiming readiness would be a lie the very next tap disproves.
+    <Screen scroll onRefresh={onRefresh} refreshing={summary.isRefetching} gap="lg">
+      <TabHeader
+        context={branchName ?? t('home.branch.unknown')}
+        title={firstName ? t('home.welcome.hello', { name: firstName }) : t('home.title')}
+        subtitle={shortcutsReady ? t('home.welcome.ready') : t('home.welcome.preparing')}
+        bell
+      />
 
-            There is deliberately no "you sold N today, keep going" here: an
-            encouraging number nobody asked for is a performance claim, and this
-            screen has no business inventing one.
-          */}
-          {shortcutsReady ? t('home.welcome.ready') : t('home.welcome.preparing')}
-        </Text>
-      </View>
-
-      {/* ── The two shortcuts ───────────────────────────────────────────────
-          Camera-first, and the shortest path to the two things a counter does
-          all day. Each opens its own quick screen, which leaves the full Sell
-          and Receive workflows — and any draft in them — untouched. */}
+      {/* ── The two counter actions, side by side ── */}
       {canSell || canReceive ? (
         <View style={styles.shortcuts}>
-          {canSell ? (
-            <Button
-              title={t('home.shortcut.sell')}
-              icon={ScanLine}
-              size="lg"
-              fullWidth
-              disabled={!shortcutsReady}
-              onPress={() => router.push('/quick-sell' as Href)}
-            />
-          ) : null}
-          {canSell ? (
-            <Text variant="caption" tone="tertiary">
-              {t('home.shortcut.sell.hint')}
-            </Text>
-          ) : null}
-          {/*
-            The full sale — several items, discounts, a saved cart — used to be
-            a tab. It is now reached from here, and the cart it saved is still
-            waiting on the same screen under the same draft.
-          */}
+          <View style={styles.actionRow}>
+            {canSell ? (
+              <Button
+                title={t('home.shortcut.sell')}
+                icon={ScanLine}
+                size="lg"
+                disabled={!shortcutsReady}
+                onPress={() => router.push('/quick-sell' as Href)}
+                accessibilityHint={t('home.shortcut.sell.hint')}
+                style={styles.action}
+              />
+            ) : null}
+            {canReceive ? (
+              <Button
+                title={t('home.shortcut.receive')}
+                icon={PackagePlus}
+                variant="secondary"
+                size="lg"
+                disabled={!shortcutsReady}
+                onPress={() => router.push('/quick-receive' as Href)}
+                accessibilityHint={t('home.shortcut.receive.hint')}
+                style={styles.action}
+              />
+            ) : null}
+          </View>
           {canSell ? (
             <Button
               title={t('home.shortcut.fullSale')}
@@ -207,26 +150,10 @@ export default function HomeScreen() {
               style={styles.fullSale}
             />
           ) : null}
-          {canReceive ? (
-            <Button
-              title={t('home.shortcut.receive')}
-              icon={PackagePlus}
-              variant="secondary"
-              size="lg"
-              fullWidth
-              disabled={!shortcutsReady}
-              onPress={() => router.push('/quick-receive' as Href)}
-            />
-          ) : null}
-          {canReceive ? (
-            <Text variant="caption" tone="tertiary">
-              {t('home.shortcut.receive.hint')}
-            </Text>
-          ) : null}
         </View>
       ) : null}
 
-      {/* ── What is waiting on you ──────────────────────────────────────────*/}
+      {/* ── What is waiting on you ── */}
       {hasPendingWork ? (
         <Section title={t('home.pending.title')}>
           <RowGroup>
@@ -258,116 +185,104 @@ export default function HomeScreen() {
         </Section>
       ) : null}
 
-      {/* ── The month ───────────────────────────────────────────────────────
-          Money only for those allowed to see it. Absent, never zeroed. */}
+      {/* ── The month's figures — money only for those allowed to see it ── */}
       {canViewReports ? (
-        <Section title={t('home.month.title')}>
-          {offline ? (
-            <InlineNotice tone="warning">{t('home.month.offline')}</InlineNotice>
-          ) : null}
+        <Section
+          title={t('home.figures.title')}
+          subtitle={t('home.figures.range', {
+            from: isolateLtr(formatDate(`${month.from}T00:00:00Z`)),
+            to: isolateLtr(formatDate(`${month.to}T00:00:00Z`)),
+          })}
+        >
+          {offline ? <InlineNotice tone="warning">{t('home.month.offline')}</InlineNotice> : null}
 
           {summary.isPending ? (
-            <View style={styles.statRow}>
+            <>
               <SkeletonStat />
-              <SkeletonStat />
-            </View>
-          ) : summary.isError || !summary.data ? (
-            <Card>
-              <Text variant="bodyStrong">{t('home.month.unavailable')}</Text>
-              <Text variant="body" tone="secondary">
-                {t('home.today.unavailable.body')}
-              </Text>
-              <Button
-                title={t('action.retry')}
-                variant="secondary"
-                size="sm"
-                onPress={() => void summary.refetch()}
-                style={styles.retry}
-              />
-            </Card>
+              <View style={styles.statRow}>
+                <SkeletonStat />
+                <SkeletonStat />
+              </View>
+            </>
+          ) : summary.isError || !figures ? (
+            <InlineNotice
+              tone="warning"
+              title={t('home.month.unavailable')}
+              action={
+                <Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void summary.refetch()} />
+              }
+            >
+              {t('home.today.unavailable.body')}
+            </InlineNotice>
           ) : (
             <>
-              {/*
-                The one focal figure: the operating result the server already
-                computes — revenue net of returns, less recognised COGS, less
-                CONFIRMED expenses. Never sales minus what was spent on stock:
-                buying inventory is not an expense, and a good month of
-                restocking would otherwise read as a catastrophe.
-              */}
-              <Card>
-                <Text variant="label" tone="secondary">
-                  {t('home.month.result')}
-                </Text>
-                <MoneyValue value={summary.data.profit.netOperatingProfit} size="display" />
-                <Text variant="caption" tone="tertiary">
-                  {t('home.month.result.basis')}
-                </Text>
-                <Trend
-                  comparison={summary.data.comparison.netOperatingProfit}
-                  days={comparedDays}
-                />
-                {summary.dataUpdatedAt ? (
-                  <Text variant="caption" tone="tertiary">
-                    {t('home.month.stale', {
-                      time: formatRelative(summary.dataUpdatedAt),
-                    })}
+              {figures.profit ? (
+                <Card style={styles.profitCard}>
+                  <Text variant="label" tone="secondary">
+                    {t('home.figure.profit')}
                   </Text>
-                ) : null}
-              </Card>
+                  <MoneyValue value={figures.profit.value} size="display" tone="auto" signed />
+                  <Disclosure title={t('home.profit.how')}>
+                    <Line label={t('home.profit.salesAfterReturns')} value={figures.profit.salesAfterReturns} />
+                    <Line label={t('home.profit.cost')} value={-figures.profit.cost} />
+                    <Line label={t('home.profit.expenses')} value={-figures.profit.expenses} />
+                  </Disclosure>
+                </Card>
+              ) : null}
 
               <View style={styles.statRow}>
+                {figures.sales !== null ? (
+                  <StatTile
+                    label={t('home.figure.sales')}
+                    value={<MoneyValue value={figures.sales} showCurrency={false} />}
+                    valueLabel={formatMoney(figures.sales)}
+                  />
+                ) : null}
                 <StatTile
-                  label={t('home.month.sales')}
-                  value={<MoneyValue value={summary.data.profit.netRevenue} showCurrency={false} />}
-                  valueLabel={formatMoney(summary.data.profit.netRevenue)}
+                  label={t('home.figure.expenses')}
+                  value={<MoneyValue value={figures.expenses} showCurrency={false} />}
+                  valueLabel={formatMoney(figures.expenses)}
                 />
-                <StatTile
-                  label={t('home.month.expenses')}
-                  value={<MoneyValue value={summary.data.expenseDetail.total} showCurrency={false} />}
-                  valueLabel={formatMoney(summary.data.expenseDetail.total)}
-                />
+                {figures.collected !== null ? (
+                  <StatTile
+                    label={t('home.figure.collected')}
+                    value={<MoneyValue value={figures.collected} showCurrency={false} />}
+                    valueLabel={formatMoney(figures.collected)}
+                  />
+                ) : null}
               </View>
 
-              {/*
-                Money collected — a different question from both of the above.
-                A credit sale is revenue nobody has paid yet; settling an old
-                balance is money arriving against no new sale. An older server
-                does not send it at all, and that is said rather than drawn as
-                a zero somebody would read as "we took nothing".
-              */}
-              {summary.data.collected ? (
-                <Card>
-                  <Text variant="label" tone="secondary">
-                    {t('home.month.collected')}
-                  </Text>
-                  <MoneyValue value={summary.data.collected.total} />
-                  <Text variant="caption" tone="tertiary">
-                    {t('home.month.collected.hint')}
-                  </Text>
-                </Card>
-              ) : (
-                <InlineNotice tone="info">
-                  {t('home.month.collected.unavailable')}
-                </InlineNotice>
-              )}
+              {figures.allZero ? (
+                <Text variant="caption" tone="secondary">
+                  {t('home.figures.empty')}
+                </Text>
+              ) : null}
+              {summary.dataUpdatedAt ? (
+                <Text variant="caption" tone="tertiary">
+                  {t('home.month.stale', { time: formatRelative(summary.dataUpdatedAt) })}
+                </Text>
+              ) : null}
             </>
           )}
         </Section>
       ) : null}
-
-      {/*
-        Home ends here. Stock value lives on Stock, and every other destination
-        is in More — a second navigation list on Home was a duplicate, and the
-        low-stock row it carried is not a first-release concept.
-      */}
     </Screen>
   );
 }
 
-/**
- * A piece of outstanding work. Warning-toned because it is somebody's
- * unfinished business, not a healthy resting state.
- */
+function Line({ label, value }: { label: string; value: number }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.line}>
+      <Text variant="body" tone="secondary" style={styles.lineLabel}>
+        {label}
+      </Text>
+      <MoneyValue value={value} size="small" />
+    </View>
+  );
+}
+
+/** Outstanding work — warning-toned, because it is somebody's unfinished business. */
 function PendingRow({
   icon,
   label,
@@ -379,56 +294,16 @@ function PendingRow({
   count: string;
   onPress: () => void;
 }) {
-  return (
-    <ListRow flat leading={icon} title={label} value={count} valueTone="warning" onPress={onPress} />
-  );
+  return <ListRow flat leading={icon} title={label} value={count} valueTone="warning" onPress={onPress} />;
 }
-
-/**
- * The comparison, in words as well as an arrow — and silent when there is
- * nothing to compare against.
- *
- * The server compares against the preceding window of EQUAL LENGTH, so twelve
- * days into a month are measured against the twelve days before them rather
- * than against a whole previous month. The wording says how many days, because
- * "vs last month" would describe a comparison nobody made.
- *
- * A zero base is reported as unavailable rather than as a percentage: "up 100%"
- * from nothing is a division nobody checked, and a shop reads it as a result.
- */
-function Trend({ comparison, days }: { comparison: Comparison; days: number }) {
-  const { t } = useTranslation();
-  const direction = trendOf(comparison);
-
-  if (!comparison.available || direction === null) {
-    return (
-      <Text variant="caption" tone="secondary">
-        {t('home.month.noComparison')}
-      </Text>
-    );
-  }
-
-  const Icon = direction === 'up' ? ArrowUpRight : direction === 'down' ? ArrowDownRight : Minus;
-  return (
-    <View style={styles0.trend}>
-      {/* Colour is never the only carrier: the arrow and the words are there. */}
-      <Icon size={14} />
-      <Text variant="caption" tone="secondary">
-        {t('home.month.compare', {
-          direction: t(`money.direction.${direction}` as never),
-          percent: isolateLtr(String(Math.abs(Math.round(comparison.changePercent)))),
-          days: String(days),
-        })}
-      </Text>
-    </View>
-  );
-}
-
-const styles0 = { trend: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: space.xs } };
 
 const useStyles = makeStyles(() => ({
-  shortcuts: { gap: space.sm },
-  fullSale: { alignSelf: 'flex-start' },
-  statRow: { flexDirection: 'row', gap: space.md },
-  retry: { alignSelf: 'flex-start', marginTop: space.sm },
+  shortcuts: { gap: space.xs },
+  actionRow: { flexDirection: 'row', gap: space.sm },
+  action: { flex: 1 },
+  fullSale: { alignSelf: 'center' },
+  profitCard: { gap: space.xs },
+  statRow: { flexDirection: 'row', gap: space.sm },
+  line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  lineLabel: { flex: 1 },
 }));

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Cable, PackagePlus, PackageSearch, X } from 'lucide-react-native';
+import { ArrowLeftRight, Cable, PackagePlus, PackageSearch, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -16,6 +16,7 @@ import {
   SearchInput,
   SkeletonList,
   StatusChip,
+  TabHeader,
   Text,
 } from '../../components/ui';
 import { InlineNotice } from '../../components/ui/InlineNotice';
@@ -80,6 +81,8 @@ export default function InventoryScreen() {
   const { branchId, branchName } = useBranch();
   const online = useConnectivity((s) => s.online);
   const canReceive = usePermission('purchase.manage');
+  const canViewReports = usePermission('report.view');
+  const canViewTransfers = usePermission('transfer.view');
 
   // Arriving from a product's detail screen: that exact product's units.
   const { productId: productIdParam } = useLocalSearchParams<{ productId?: string }>();
@@ -116,6 +119,17 @@ export default function InventoryScreen() {
     queryKey: qk.inventorySummary(branchId),
     queryFn: () => api.get<StockSummaryRow[]>('/inventory/summary'),
     enabled: Boolean(branchId) && mode === 'summary',
+  });
+
+  /**
+   * The header's two figures, both counted by the server: phones owned and in
+   * stock, and what they cost. `inventoryValue` is stripped without `cost.view`,
+   * so it is simply absent then — never a zero.
+   */
+  const value = useQuery({
+    queryKey: qk.inventoryValue(branchId),
+    queryFn: () => api.get<{ totals: { unitsCount: number; inventoryValue?: number } }>('/analytics/inventory-value'),
+    enabled: Boolean(branchId) && canViewReports,
   });
 
   const inventory = useInfiniteQuery({
@@ -203,24 +217,44 @@ export default function InventoryScreen() {
   };
 
   const refresh = useCallback(() => {
+    if (canViewReports) void value.refetch();
     if (mode === 'summary') void summary.refetch();
     else void inventory.refetch();
-  }, [mode, summary, inventory]);
+  }, [mode, summary, inventory, value, canViewReports]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   const header = (
     <>
-      <View style={styles.titleRow}>
-        <Text variant="title" accessibilityRole="header">
-          {t('inventory.title')}
-        </Text>
-        {branchName ? (
-          <Text variant="caption" tone="tertiary" numberOfLines={1} style={styles.branch}>
-            {branchName}
+      <TabHeader
+        context={branchName}
+        title={t('inventory.title')}
+        actions={
+          canViewTransfers ? (
+            <IconButton
+              icon={ArrowLeftRight}
+              variant="plain"
+              accessibilityLabel={t('nav.transfers')}
+              onPress={() => router.push('/transfers' as Href)}
+            />
+          ) : null
+        }
+      />
+      {value.data ? (
+        <View style={styles.figures}>
+          <Text variant="body" tone="secondary">
+            {t('stock.header.units', { count: formatQuantity(value.data.totals.unitsCount) })}
           </Text>
-        ) : null}
-      </View>
+          {value.data.totals.inventoryValue !== undefined ? (
+            <View style={styles.figureValue}>
+              <Text variant="caption" tone="tertiary">
+                {t('stock.header.value')}
+              </Text>
+              <MoneyValue value={value.data.totals.inventoryValue} size="small" />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <SearchInput
         value={query}
@@ -590,14 +624,17 @@ function SectionHeading({ label, count, spaced = false }: { label: string; count
 }
 
 const useStyles = makeStyles(() => ({
-  titleRow: {
+  figures: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.sm,
   },
-  branch: {
-    flexShrink: 1,
+  figureValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
   },
   filters: {
     flexDirection: 'row',

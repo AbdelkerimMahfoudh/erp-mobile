@@ -86,7 +86,7 @@ export function StatTile({
 
   const content = (pressed: boolean) => (
     <View style={[styles.tile, pressed ? styles.pressed : null, style]}>
-      <Text variant="captionStrong" tone="tertiary" numberOfLines={1} style={styles.label}>
+      <Text variant="captionStrong" tone="tertiary" numberOfLines={2} style={styles.label}>
         {label}
       </Text>
 

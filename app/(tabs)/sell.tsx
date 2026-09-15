@@ -51,6 +51,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import type { ProductSuggestion, ScanResult, Unit } from '../../types/api';
 import { selectableAccounts } from '../../lib/receiving-accounts';
+import { invalidateMoney } from '../../lib/money-invalidation';
 
 /**
  * Sell — the fastest screen in the app.
@@ -416,6 +417,7 @@ export default function SellScreen() {
     setReturnWindowHours(null);
     setReturnPolicyReason('');
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
+    invalidateMoney(qc);
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
     // The Stock screen's per-variant counts move with every sale and delivery.
     qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });

@@ -3,6 +3,7 @@ import { api, ApiError } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
 import type { Expense, ExpensePage, ExpenseStatus } from '../types/api';
+import { invalidateMoney } from './money-invalidation';
 
 /**
  * Expenses (Milestone D).
@@ -89,6 +90,7 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   for (const key of ['expenses', 'expense', 'home', 'closing', 'dashboard']) {
     void qc.invalidateQueries({ queryKey: [key] });
   }
+  invalidateMoney(qc);
 }
 
 export type ExpenseConflict =

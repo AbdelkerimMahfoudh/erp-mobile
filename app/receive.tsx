@@ -57,6 +57,7 @@ import type {
   ScanResult,
 } from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
+import { invalidateMoney } from '../lib/money-invalidation';
 
 /**
  * Receive — the bulk workflow.
@@ -472,6 +473,7 @@ export default function ReceiveScreen() {
       }
 
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
+      invalidateMoney(qc);
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
       const received = outcome.receivedUnits + outcome.receivedPieces;

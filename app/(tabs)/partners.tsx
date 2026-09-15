@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter, type Href } from 'expo-router';
-import { Building2, Check, Handshake, Plus, X } from 'lucide-react-native';
+import { Building2, Check, Copy, HandCoins, Handshake, Plus, X } from 'lucide-react-native';
 import {
   Button,
   Card,
   Chip,
+  Disclosure,
   EmptyState,
+  IconButton,
+  Identifier,
+  MoneyValue,
   ErrorState,
   InlineNotice,
   ListRow,
@@ -14,25 +19,32 @@ import {
   Screen,
   Section,
   SkeletonList,
+  TabHeader,
   Text,
   TextField,
 } from '../../components/ui';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
 import { ApiError } from '../../lib/api-client';
+import { useAuth } from '../../hooks/useAuth';
+import { useBranch } from '../../lib/branch';
+import { toast } from '../../lib/toast';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import {
   useCancelConnection,
+  useConnectionSummary,
   useConnections,
+  useCounterparties,
   useDecideConnection,
   useRequestConnection,
   useStoreLookup,
   type Connection,
   type ConnectionStatus,
 } from '../../lib/consignment';
-import { isCompleteStoreCode, normaliseStoreCode, partnerSections } from '../../lib/partners';
+import { isCompleteStoreCode, loanMove, normaliseStoreCode, partnerSections } from '../../lib/partners';
+import { consignmentStanding, whoseMove } from '../../lib/custody-state';
 
 /**
  * Partners — the stores this shop deals with (Partners milestone).
@@ -66,8 +78,11 @@ export default function PartnersScreen() {
   const sections = partnerSections(connections.data?.rows ?? []);
   const open = (c: Connection) => router.push(`/partners/${c.id}` as Href);
 
+  const { branchName } = useBranch();
   const empty =
     sections.received.length + sections.connected.length + sections.sent.length + sections.past.length === 0;
+  /** Empty only once the list has actually answered — never inferred while loading. */
+  const settledEmpty = connections.isSuccess && empty;
 
   return (
     <Screen
@@ -76,25 +91,22 @@ export default function PartnersScreen() {
       onRefresh={() => void connections.refetch()}
       refreshing={connections.isFetching}
     >
-      <View style={styles.titleRow}>
-        <View style={styles.titleText}>
-          <Text variant="title" accessibilityRole="header">
-            {t('tab.partners')}
-          </Text>
-          <Text variant="caption" tone="secondary">
-            {t('partners.intro')}
-          </Text>
-        </View>
-        {canManage ? (
-          <Button
-            title={t('partners.add')}
-            icon={Plus}
-            size="sm"
-            variant="secondary"
-            onPress={() => setAdding(true)}
-          />
-        ) : null}
-      </View>
+      {/*
+        The title and Add stay put while the list loads. In a completely empty
+        state the centre card carries Add instead, so the action is not offered
+        twice on one screen.
+      */}
+      <TabHeader
+        context={branchName}
+        title={t('tab.partners')}
+        actions={
+          canManage && !(settledEmpty && canView) ? (
+            <Button title={t('partners.add')} icon={Plus} size="sm" variant="secondary" onPress={() => setAdding(true)} />
+          ) : null
+        }
+      />
+
+      <OwnStoreCode />
 
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
@@ -155,19 +167,9 @@ export default function PartnersScreen() {
 
           {sections.connected.length > 0 ? (
             <Section title={t('partners.section.connected')}>
-              <RowGroup>
-                {sections.connected.map((c) => (
-                  <ListRow
-                    key={c.id}
-                    flat
-                    leading={Building2}
-                    title={c.store.name}
-                    subtitle={[c.store.city, isolateLtr(c.store.publicStoreId)].filter(Boolean).join(' · ')}
-                    accessory={<StatusChip status={c.status} />}
-                    onPress={() => open(c)}
-                  />
-                ))}
-              </RowGroup>
+              {sections.connected.map((c) => (
+                <ConnectedStore key={c.id} connection={c} onOpen={() => open(c)} />
+              ))}
             </Section>
           ) : null}
 
@@ -197,6 +199,18 @@ export default function PartnersScreen() {
             </Section>
           ) : null}
 
+          {canView ? (
+            <RowGroup>
+              <ListRow
+                flat
+                leading={Handshake}
+                title={t('nav.consignments')}
+                subtitle={t('partners.consignments.hint')}
+                onPress={() => router.push('/consignments' as Href)}
+              />
+            </RowGroup>
+          ) : null}
+
           {sections.past.length > 0 ? (
             <Section title={t('partners.section.past')}>
               <RowGroup>
@@ -219,6 +233,129 @@ export default function PartnersScreen() {
 
       <AddStoreSheet open={adding} onClose={() => setAdding(false)} />
     </Screen>
+  );
+}
+
+/**
+ * This store's own code, so it can be read out to another shop.
+ *
+ * Shareable by design: it only identifies the store and signs nobody in. The
+ * copy reports whether the write actually landed.
+ */
+function OwnStoreCode() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  if (!user?.publicStoreId) return null;
+  const code = user.publicStoreId;
+  const copy = async () => {
+    try {
+      const ok = await Clipboard.setStringAsync(code);
+      if (ok) toast.success(t('settings.storeId.copied'));
+      else toast.error(t('settings.storeId.copyFailed'));
+    } catch {
+      toast.error(t('settings.storeId.copyFailed'));
+    }
+  };
+  return (
+    <View style={styles.codeRow}>
+      <Text variant="caption" tone="secondary" style={styles.codeLabel}>
+        {t('partners.ownCode')}
+      </Text>
+      <Identifier tone="primary">{isolateLtr(code)}</Identifier>
+      <IconButton icon={Copy} variant="plain" accessibilityLabel={t('settings.storeId.copy')} onPress={() => void copy()} />
+    </View>
+  );
+}
+
+/**
+ * A connected store that opens in place to what both stores share.
+ *
+ * Money is shown each way and never netted; phones are phones, not money. The
+ * shared summary is fetched only when the row is opened, and nothing private to
+ * the other store is ever in it — the server does not send it.
+ */
+function ConnectedStore({ connection: c, onOpen }: { connection: Connection; onOpen: () => void }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const canLend = usePermission('loan.manage');
+  const canConsign = usePermission('consignment.request');
+  const summary = useConnectionSummary(open ? c.id : undefined);
+  const counterparties = useCounterparties();
+  const counterparty = (counterparties.data?.rows ?? []).find((x) => x.connectionId === c.id);
+  const sum = summary.data;
+  // The same rule the store's own screen uses to say whose move it is.
+  const moves = (sum?.pending ?? []).map((d) =>
+    d.type === 'consignment' ? whoseMove(consignmentStanding(d.status as never).next, d.side) : loanMove(d.waitingOn),
+  );
+  const ourMove = moves.filter((m) => m === 'you' || m === 'both').length;
+  const theirMove = moves.filter((m) => m === 'them').length;
+
+  return (
+    <Card style={styles.card}>
+      <StoreHeading connection={c} />
+      <Disclosure title={t('partners.shared.title')} onOpenChange={(v) => v && setOpen(true)}>
+        {summary.isPending ? (
+          <SkeletonList count={2} />
+        ) : summary.isError || !sum ? (
+          <ErrorState error={summary.error} onRetry={() => void summary.refetch()} />
+        ) : (
+          <>
+            <SharedLine label={t('partners.money.theyOweUs')} value={<MoneyValue value={sum.money.theyOweUs} size="small" />} />
+            <SharedLine label={t('partners.money.weOweThem')} value={<MoneyValue value={sum.money.weOweThem} size="small" />} />
+            <SharedLine label={t('partners.custody.ours')} value={<Text variant="bodyStrong">{String(sum.custody.ourItemsWithThem.length)}</Text>} />
+            <SharedLine label={t('partners.custody.theirs')} value={<Text variant="bodyStrong">{String(sum.custody.theirItemsWithUs.length)}</Text>} />
+            <Text variant="caption" tone={ourMove > 0 ? 'warning' : 'secondary'}>
+              {sum.pending.length === 0
+                ? t('partners.pending.none')
+                : t('partners.shared.open', { yours: String(ourMove), theirs: String(theirMove) })}
+            </Text>
+            {sum.canStartDealing && (canLend || canConsign) ? (
+              <View style={styles.actions}>
+                {canLend ? (
+                  <Button
+                    title={t('partners.action.lend')}
+                    icon={HandCoins}
+                    size="sm"
+                    variant="secondary"
+                    disabled={!counterparty}
+                    onPress={() =>
+                      counterparty &&
+                      router.push({ pathname: '/loans/new', params: { counterpartyId: counterparty.id } } as never)
+                    }
+                  />
+                ) : null}
+                {canConsign ? (
+                  <Button
+                    title={t('partners.action.consign')}
+                    icon={Handshake}
+                    size="sm"
+                    variant="secondary"
+                    disabled={!counterparty}
+                    onPress={() =>
+                      counterparty &&
+                      router.push({ pathname: '/consignments/new', params: { counterpartyId: counterparty.id } } as never)
+                    }
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            <Button title={t('partners.shared.history')} variant="tertiary" size="sm" onPress={onOpen} style={styles.start} />
+          </>
+        )}
+      </Disclosure>
+    </Card>
+  );
+}
+
+function SharedLine({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <View style={styles.sharedLine}>
+      <Text variant="body" tone="secondary" style={styles.sharedLabel}>
+        {label}
+      </Text>
+      {value}
+    </View>
   );
 }
 
@@ -364,8 +501,10 @@ function AddStoreSheet({ open, onClose }: { open: boolean; onClose: () => void }
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
-  titleText: { flexShrink: 1, gap: 2 },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  codeLabel: { flexShrink: 1 },
+  sharedLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  sharedLabel: { flex: 1 },
   card: { gap: space.sm },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
   headText: { flex: 1, gap: 2 },
