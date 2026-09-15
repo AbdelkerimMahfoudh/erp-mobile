@@ -44,6 +44,7 @@ import { refusalOf } from '../lib/discount-approval-state';
 import { isWarningsPending, orderWarnings, referenceKey, type WarningsPending } from '../lib/warnings';
 import type { ScanResult, Unit } from '../types/api';
 import { makeStyles } from '../lib/design/theme';
+import { selectableAccounts } from '../lib/receiving-accounts';
 
 /**
  * Quick Sell — one phone, from Home, camera first.
@@ -581,7 +582,7 @@ export default function QuickSellScreen() {
         onDiscountChange={() => {}}
         onComplete={onComplete}
         submitting={submitting}
-        accounts={receivingAccounts}
+        accounts={selectableAccounts(receivingAccounts)}
         returnPolicy={{
           companyDefaultHours,
           windowHours: effectiveWindowHours,

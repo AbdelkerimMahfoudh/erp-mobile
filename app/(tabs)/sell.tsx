@@ -50,6 +50,7 @@ import {
 } from '../../lib/warnings';
 import { useAuth } from '../../hooks/useAuth';
 import type { ProductSuggestion, ScanResult, Unit } from '../../types/api';
+import { selectableAccounts } from '../../lib/receiving-accounts';
 
 /**
  * Sell — the fastest screen in the app.
@@ -848,7 +849,7 @@ export default function SellScreen() {
         onDiscountChange={setDiscount}
         onComplete={onComplete}
         submitting={submitting}
-        accounts={receivingAccounts}
+        accounts={selectableAccounts(receivingAccounts)}
         returnPolicy={{
           companyDefaultHours,
           windowHours: effectiveWindowHours,

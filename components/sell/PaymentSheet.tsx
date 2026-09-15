@@ -39,6 +39,8 @@ export interface ReceivingAccount {
   label: string;
   provider: 'bankily' | 'sedad' | 'bim_bank' | 'other';
   providerName?: string | null;
+  /** Present on an Owner's settings view; `false` means it may not take new payments. */
+  isActive?: boolean;
 }
 
 /**
