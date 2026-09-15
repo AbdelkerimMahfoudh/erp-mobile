@@ -224,13 +224,6 @@ export interface ScanInventoryMatch {
   conflictingUnits: boolean;
 }
 
-export interface Supplier {
-  id: string;
-  name: string;
-  phone: string | null;
-  balance?: number;
-}
-
 export interface Unit {
   id: string;
   imeiPrimary: string | null;
@@ -345,8 +338,7 @@ export interface InventoryPage {
  * One exact variant on the shelf — `GET /inventory/summary`.
  *
  * What the Stock screen lists. Server-derived on every request: `available`
- * excludes reserved quantity and non-`in_stock` units, `lowStock` is the shop's
- * own threshold (the dashboard's rule), and `price` comes from the sale's own
+ * excludes reserved quantity and non-`in_stock` units, and `price` comes from the sale's own
  * price ladder. **There is no cost or margin in this row, ever.**
  */
 export interface StockSummaryRow {
@@ -360,12 +352,10 @@ export interface StockSummaryRow {
   category: 'phone' | 'accessory' | 'other';
   /** Sellable now: in-stock units, or physical quantity minus reserved. */
   available: number;
-  /** Physically held — what the low-stock rule compares. */
+  /** Physically held. */
   onHand: number;
   /** Promised to an open transfer; 0 for serialized goods. */
   reserved: number;
-  lowStock: boolean;
-  lowStockThreshold: number;
   /**
    * Null when nothing in the row has a selling price — "no price set", never
    * zero. When units resolve to different prices (a unit override), `min` and
@@ -389,7 +379,6 @@ export interface DashboardHome {
   today: { revenue: number; grossProfit?: number; netProfit?: number; salesCount: number; qtySold: number };
   month: { revenue: number; grossProfit?: number; netProfit?: number };
   inventory: { inventoryValue?: number; expectedProfit?: number; productCount: number };
-  lowStockCount: number;
 }
 
 export interface HealthComponent {
