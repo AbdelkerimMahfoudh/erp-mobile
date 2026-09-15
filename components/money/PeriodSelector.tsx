@@ -1,7 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
 import { SegmentedControl, Text } from '../ui';
-import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { formatDate } from '../../lib/format';
@@ -21,12 +20,13 @@ export function PeriodSelector() {
   const key = usePeriod((s) => s.key);
   const setKey = usePeriod((s) => s.setKey);
   const range = periodRange(key);
-  const day = (d: string) => isolateLtr(formatDate(`${d}T00:00:00Z`));
+  // Not LTR-isolated: a localised date carries its own month word, and forcing
+  // it left-to-right reverses an Arabic date ("سبتمبر 1 2026").
+  const day = (d: string) => formatDate(`${d}T00:00:00Z`);
 
   return (
     <View style={styles.wrap}>
       <SegmentedControl<PeriodKey>
-        size="sm"
         value={key}
         onChange={setKey}
         options={PERIOD_KEYS.map((k) => ({ value: k, label: t(`period.${k}` as never) }))}

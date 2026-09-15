@@ -26,7 +26,6 @@ import { useConnectivity } from '../../lib/connectivity';
 import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { useTranslation } from '../../lib/i18n';
 import { space } from '../../lib/design/tokens';
-import { isolateLtr } from '../../lib/design/direction';
 import { formatDate, formatMoney, formatRelative } from '../../lib/format';
 import { monthToDate } from '../../lib/home-metrics';
 import { homeFigures } from '../../lib/home-figures';
@@ -190,8 +189,8 @@ export default function HomeScreen() {
         <Section
           title={t('home.figures.title')}
           subtitle={t('home.figures.range', {
-            from: isolateLtr(formatDate(`${month.from}T00:00:00Z`)),
-            to: isolateLtr(formatDate(`${month.to}T00:00:00Z`)),
+            from: formatDate(`${month.from}T00:00:00Z`),
+            to: formatDate(`${month.to}T00:00:00Z`),
           })}
         >
           {offline ? <InlineNotice tone="warning">{t('home.month.offline')}</InlineNotice> : null}

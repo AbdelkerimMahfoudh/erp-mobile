@@ -2561,7 +2561,7 @@ export const en = {
   'partners.shared.open': 'Open items — waiting on you: {yours} · waiting on them: {theirs}',
   'partners.shared.history': 'Open history',
   'partners.consignments.hint': 'Phones given or received on consignment',
-  'stock.header.units': '{count} phones in stock',
+  'stock.header.units': '{count} in stock',
   'stock.header.value': 'Stock cost',
   'more.group.activity': 'Activity',
   'more.group.manage': 'Manage',

@@ -2750,7 +2750,7 @@ export const fr: Catalogue = {
   'partners.shared.open': 'En cours — à vous d’agir : {yours} · à eux : {theirs}',
   'partners.shared.history': 'Voir l’historique',
   'partners.consignments.hint': 'Téléphones confiés ou reçus en dépôt',
-  'stock.header.units': '{count} téléphones en stock',
+  'stock.header.units': '{count} en stock',
   'stock.header.value': 'Coût du stock',
   'more.group.activity': 'Activité',
   'more.group.manage': 'Gestion',

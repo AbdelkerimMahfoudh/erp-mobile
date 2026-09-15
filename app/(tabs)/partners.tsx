@@ -122,6 +122,7 @@ export default function PartnersScreen() {
           title={t('partners.empty.title')}
           body={canManage ? t('partners.empty.body.owner') : t('partners.empty.body')}
           action={canManage ? { label: t('partners.add'), onPress: () => setAdding(true) } : undefined}
+          size="inline"
         />
       ) : (
         <>
