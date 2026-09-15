@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { Check, HandCoins, Handshake, Link2Off, X } from 'lucide-react-native';
+import { Check, HandCoins, Handshake, Link2Off, ShoppingCart, X } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -142,14 +142,23 @@ export default function PartnerDetailScreen() {
           </Card>
 
           {/* ── What can be started with them ── */}
-          {/*
-            Only actions that work. Selling a phone outright to another store is
-            a proposal (docs/21), not a row that explains why it cannot be used;
-            with neither lending nor consigning allowed, the section is absent.
-          */}
-          {s.canStartDealing && (canLend || canConsign) ? (
+          {s.canStartDealing ? (
             <Section title={t('partners.actions.title')}>
               <RowGroup>
+                {/*
+                  Selling a phone outright to another store is not a supported
+                  transaction yet. It is NOT faked with an ordinary customer
+                  sale — that would give the buyer no receipt of ownership,
+                  record no purchase on their side and leave the IMEI in two
+                  stories. Stated, with the supported way to do it today.
+                */}
+                <ListRow
+                  flat
+                  leading={ShoppingCart}
+                  title={t('partners.action.sell')}
+                  subtitle={t('partners.action.sell.unavailable')}
+                  disabled
+                />
                 {canLend ? (
                   <ListRow
                     flat

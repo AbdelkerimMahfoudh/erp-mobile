@@ -328,6 +328,10 @@ function AddStoreSheet({ open, onClose }: { open: boolean; onClose: () => void }
                 <Text variant="caption" tone="secondary">
                   {[lookup.data.store.city, isolateLtr(lookup.data.store.publicStoreId)].filter(Boolean).join(' · ')}
                 </Text>
+                {/* A placeholder, worded so nobody mistakes it for an earned badge. */}
+                <Text variant="caption" tone="tertiary">
+                  {t('stores.verification.pending')}
+                </Text>
                 {relationship ? (
                   <InlineNotice tone="info">
                     {t(`partners.add.existing.${relationship.status}` as never)}

@@ -41,6 +41,7 @@ const CLASSIFICATION: Record<string, { kind: Kind; why: string }> = {
   'app/(tabs)/inventory.tsx': { kind: 'grouped', why: 'units and stock lines' },
   'app/(tabs)/more.tsx': { kind: 'grouped', why: 'destination menu; sign-out kept separate' },
   'app/(tabs)/money-hub.tsx': { kind: 'card', why: 'money metrics, meant to stand out' },
+  'app/analytics.tsx': { kind: 'grouped', why: 'supporting values under each metric' },
   'app/catalog/[id].tsx': { kind: 'grouped', why: 'per-branch stock' },
   'app/catalog/categories.tsx': { kind: 'custom', why: 'management sheet' },
   'app/consignments/index.tsx': { kind: 'grouped', why: 'consignment records' },

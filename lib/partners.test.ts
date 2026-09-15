@@ -126,16 +126,12 @@ it('a connected store has its own screen', () => {
   assert.ok(existsSync(new URL('../app/partners/[id].tsx', import.meta.url)));
 });
 
-// ── only actions that work ──────────────────────────────────────────────────
+// ── the direct-sale gap is stated, never faked ──────────────────────────────
 
-it('offers no "Sell to this store" row, and fakes no customer sale', () => {
+it('"Sell to this store" does not create an ordinary customer sale', () => {
   const detail = stripComments(read('../app/partners/[id].tsx'));
   assert.ok(!/\/sales['"`]/.test(detail) && !/api\.post[^;]*\/sales/.test(detail), 'no retail sale may stand in for an inter-store one');
-  assert.doesNotMatch(detail, /partners\.action\.sell/);
-  assert.match(detail, /partners\.action\.lend/);
-  assert.match(detail, /partners\.action\.consign/);
-  // With neither action permitted the section is absent, never empty.
-  assert.match(detail, /canStartDealing && \(canLend \|\| canConsign\)/);
+  assert.match(detail, /partners\.action\.sell\.unavailable/);
 });
 
 it('money owed each way and custody each way are shown separately', () => {

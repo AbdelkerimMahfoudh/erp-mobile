@@ -347,11 +347,63 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      {/*
-        WhatsApp summaries are postponed for the first release: nothing sends
-        them yet, so the controls are not offered. The stored preferences are
-        still sent back unchanged on save, so nothing an Owner chose is lost.
-      */}
+      {/* ── WhatsApp summaries ──────────────────────────────────────────── */}
+      <Section title={t('settings.whatsapp.section')} subtitle={t('settings.whatsapp.hint')}>
+        <Card>
+          <Text variant="label">{t('settings.whatsapp.language')}</Text>
+          {/*
+            Each language in its own words, and the same three the app itself
+            speaks. This is the Owner's summary message, NOT the app's language
+            — the two are chosen separately on purpose, because an Owner may
+            read the app in one language and want the nightly message in
+            another.
+          */}
+          <SegmentedControl
+            style={styles.control}
+            value={draft?.language ?? 'en'}
+            onChange={(value) =>
+              setDraft((d) => (d ? { ...d, language: value as SummaryLanguage } : d))
+            }
+            options={[
+              { value: 'en', label: 'English' },
+              { value: 'fr', label: 'Français' },
+              { value: 'ar', label: 'العربية' },
+            ]}
+          />
+        </Card>
+
+        <View style={styles.list}>
+          <Toggle
+            label={t('settings.whatsapp.amounts')}
+            hint={t('settings.whatsapp.amountsHint')}
+            onLabel={t('settings.toggle.on')}
+            offLabel={t('settings.toggle.off')}
+            value={draft?.includeAmounts ?? false}
+            onValueChange={(v) => setDraft((d) => (d ? { ...d, includeAmounts: v } : d))}
+          />
+          <Toggle
+            label={t('settings.whatsapp.daily')}
+            hint={t('settings.whatsapp.dailyHint')}
+            onLabel={t('settings.toggle.on')}
+            offLabel={t('settings.toggle.off')}
+            value={draft?.dailyEnabled ?? false}
+            onValueChange={(v) => setDraft((d) => (d ? { ...d, dailyEnabled: v } : d))}
+          />
+          <Toggle
+            label={t('settings.whatsapp.monthly')}
+            hint={t('settings.whatsapp.monthlyHint')}
+            onLabel={t('settings.toggle.on')}
+            offLabel={t('settings.toggle.off')}
+            value={draft?.monthlyEnabled ?? false}
+            onValueChange={(v) => setDraft((d) => (d ? { ...d, monthlyEnabled: v } : d))}
+          />
+        </View>
+
+        {/* Honest about what saving does today. */}
+        <Text variant="caption" tone="tertiary" style={styles.control}>
+          {t('settings.whatsapp.notYet')}
+        </Text>
+      </Section>
 
       {/* ── Security ────────────────────────────────────────────────────── */}
       <Section title={t('settings.security.section')}>

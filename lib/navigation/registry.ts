@@ -45,6 +45,8 @@ export type IconName =
   | 'HandCoins'
   | 'Building2'
   | 'Handshake'
+  | 'BarChart3'
+  | 'Target'
   | 'Users'
   | 'BadgeCheck'
   | 'BadgePercent'
@@ -59,6 +61,7 @@ export type HubId =
   | 'stock'
   | 'money'
   | 'network'
+  | 'performance'
   | 'business'
   | 'account';
 
@@ -178,6 +181,19 @@ export const HUBS: readonly Hub[] = [
     ],
   },
   {
+    id: 'performance',
+    titleKey: 'hub.performance.title',
+    descriptionKey: 'hub.performance.desc',
+    icon: 'BarChart3',
+    placement: 'business',
+    children: [
+      { id: 'analytics', route: '/analytics', titleKey: 'nav.analytics', icon: 'BarChart3', perm: 'report.view' },
+      // Ungated: an employee with a personal target must be able to see it, and
+      // the list scopes somebody without `goal.manage` to their own.
+      { id: 'goals', route: '/goals', titleKey: 'nav.goals', icon: 'Target' },
+    ],
+  },
+  {
     id: 'business',
     titleKey: 'hub.business.title',
     descriptionKey: 'hub.business.desc',
@@ -218,7 +234,7 @@ export const HUBS: readonly Hub[] = [
  * business and account destination to appear here exactly once. Money is a tab
  * and is deliberately absent.
  */
-export type MoreGroupId = 'store' | 'team' | 'products' | 'security' | 'appearance' | 'account';
+export type MoreGroupId = 'store' | 'team' | 'products' | 'reports' | 'security' | 'appearance' | 'account';
 
 export interface MoreGroup {
   readonly id: MoreGroupId;
@@ -232,8 +248,9 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
     titleKey: 'more.group.store',
     destinationIds: ['sales', 'returns', 'approvals', 'transfers', 'imports', 'stores', 'consignments'],
   },
-  { id: 'team', titleKey: 'more.group.team', destinationIds: ['team'] },
+  { id: 'team', titleKey: 'more.group.team', destinationIds: ['team', 'goals'] },
   { id: 'products', titleKey: 'more.group.products', destinationIds: ['catalog', 'settings'] },
+  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics'] },
   { id: 'security', titleKey: 'more.group.security', destinationIds: ['devices', 'sync'] },
   { id: 'appearance', titleKey: 'more.group.appearance', destinationIds: ['appearance'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['subscription'] },

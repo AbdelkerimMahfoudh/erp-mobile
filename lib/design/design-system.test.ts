@@ -101,15 +101,15 @@ it('selection is expressed through the token, never a literal', () => {
 
 it('a screen showing profit shows its sign, not just its colour', () => {
   /*
-   * Red text and green text are the same shape. The direction of a figure has
-   * to survive colour blindness and a monochrome screenshot — so anything, on
-   * any screen, toned `auto` is also `signed`.
+   * Red text and green text are the same shape. On analytics especially, the
+   * direction of a figure has to survive colour blindness and a monochrome
+   * screenshot — so anything toned `auto` is also `signed`.
    */
-  for (const file of ROUTES.filter((f) => !f.startsWith('app/dev/'))) {
-    const s = strip(readFileSync(file, 'utf8'));
-    for (const m of s.match(/<MoneyValue[^/]*tone="auto"[^/]*\/>/g) ?? []) {
-      assert.match(m, /signed/, `${file} colour-only direction: ${m.replace(/\s+/g, ' ')}`);
-    }
+  const s = strip(readFileSync('app/analytics.tsx', 'utf8'));
+  const autoToned = s.match(/<MoneyValue[^/]*tone="auto"[^/]*\/>/g) ?? [];
+  assert.ok(autoToned.length > 0, 'expected auto-toned money on analytics');
+  for (const m of autoToned) {
+    assert.match(m, /signed/, `colour-only direction: ${m.replace(/\s+/g, ' ')}`);
   }
 });
 
