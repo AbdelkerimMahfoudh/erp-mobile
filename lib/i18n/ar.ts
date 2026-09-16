@@ -2512,6 +2512,8 @@ export const ar: Catalogue = {
   'fileReceive.error.noBranch': "اختر الفرع أولًا — فالبضاعة تُستلم في فرع.",
   'fileReceive.error.tooLarge': "حجم الملف كبير جدًا. الحد الأقصى 8 ميغابايت.",
   'fileReceive.error.empty': "الملف فارغ، أو تعذّر على الهاتف فتحه. اختره من جديد.",
+  'fileReceive.error.gone': "لم يعد هذا الملف متاحًا على هذا الهاتف. اختره من جديد.",
+  'fileReceive.error.uploadFailed': "تعذّر إرسال الملف رغم أن الخادم متاح. أعد المحاولة، أو انسخ الملف إلى تطبيق الملفات أولًا.",
   'fileReceive.error.unsupported': "يمكن قراءة ملفات ‎.xlsx‎ وملفات PDF التي يمكن تحديد نصها فقط.",
   'fileReceive.error.corrupt': "تعذّر فتح هذا الملف. قد يكون تالفًا أو محفوظًا بصيغة قديمة.",
   'fileReceive.error.noSheet': "لا توجد ورقة في هذا الملف تحتوي على هواتف. تأكد من وجود صف عناوين وهاتف واحد في كل سطر.",

@@ -10,7 +10,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
 import { useBranch } from '../../lib/branch';
 import { useFileBatch } from '../../lib/file-batch-store';
-import { parseFailureKey, useParseReceivingFile, type ParseResult } from '../../lib/file-receiving';
+import { parseFailureKey, useParseReceivingFile, type ParseResult, type PickedFile } from '../../lib/file-receiving';
 
 /**
  * Choosing the file, and choosing what inside it to read.
@@ -30,12 +30,12 @@ export default function PickReceivingFileScreen() {
   const start = useFileBatch((s) => s.start);
   /** Stock is received into a branch, and the server resolves permissions per branch. */
   const branchId = useBranch((s) => s.branchId);
-  const [picked, setPicked] = useState<{ uri: string; name: string; mimeType?: string; file?: unknown } | null>(null);
+  const [picked, setPicked] = useState<PickedFile | null>(null);
   const [result, setResult] = useState<ParseResult | null>(null);
   /** The message to show, and what to do again if the person taps Try again. */
   const [error, setError] = useState<{ message: string; retry: () => void } | null>(null);
 
-  const read = (file: { uri: string; name: string; mimeType?: string; file?: unknown }, sheet?: string) => {
+  const read = (file: PickedFile, sheet?: string) => {
     setError(null);
     parse.mutate(
       { ...file, sheet },
@@ -86,7 +86,14 @@ export default function PickReceivingFileScreen() {
     });
     if (chosen.canceled || !chosen.assets?.[0]) return;
     const asset = chosen.assets[0];
-    const file = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, file: (asset as { file?: unknown }).file };
+    const file = {
+      uri: asset.uri,
+      name: asset.name,
+      mimeType: asset.mimeType,
+      // What the picker says it weighs, so the cached copy can be compared.
+      size: asset.size,
+      file: (asset as { file?: unknown }).file,
+    };
     setPicked(file);
     read(file);
   };

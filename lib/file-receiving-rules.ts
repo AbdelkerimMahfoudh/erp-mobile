@@ -275,6 +275,8 @@ export type FileFailureKey =
   | 'fileReceive.error.noBranch'
   | 'fileReceive.error.tooLarge'
   | 'fileReceive.error.empty'
+  | 'fileReceive.error.gone'
+  | 'fileReceive.error.uploadFailed'
   | 'fileReceive.error.unsupported'
   | 'fileReceive.error.corrupt'
   | 'fileReceive.error.noSheet'
@@ -283,10 +285,19 @@ export type FileFailureKey =
   | 'fileReceive.failed';
 
 export function parseFailureKey(status: number | null, code?: string | null): FileFailureKey {
-  if (status === null || status === 0 || code === 'offline') return 'fileReceive.error.offline';
+  // The code is read first: a local failure carries no status, and must never
+  // be answered with "the server is down".
+  if (code === 'offline') return 'fileReceive.error.offline';
   switch (code) {
     case 'file_missing':
+    case 'file_empty_local':
       return 'fileReceive.error.empty';
+    case 'file_gone':
+      // The document provider took the file back, or the copy did not match.
+      return 'fileReceive.error.gone';
+    case 'upload_failed':
+      // The request never started, and the server is answering other calls.
+      return 'fileReceive.error.uploadFailed';
     case 'file_empty':
       return 'fileReceive.error.noSheet';
     case 'file_too_large':
@@ -302,6 +313,7 @@ export function parseFailureKey(status: number | null, code?: string | null): Fi
     default:
       break;
   }
+  if (status === null || status === 0) return 'fileReceive.error.offline';
   if (status === 401) return 'fileReceive.error.unauthorized';
   if (status === 403) return 'fileReceive.error.forbidden';
   if (status === 404) return 'fileReceive.error.endpointMissing';

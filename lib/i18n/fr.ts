@@ -2767,6 +2767,8 @@ export const fr: Catalogue = {
   'fileReceive.error.noBranch': "Choisissez d\u0027abord une boutique — le stock y est réceptionné.",
   'fileReceive.error.tooLarge': "Ce fichier est trop volumineux. La limite est de 8 Mo.",
   'fileReceive.error.empty': "Ce fichier est vide, ou le téléphone n\u0027a pas pu l\u0027ouvrir. Choisissez-le à nouveau.",
+  'fileReceive.error.gone': "Ce fichier n'est plus disponible sur ce téléphone. Choisissez-le à nouveau.",
+  'fileReceive.error.uploadFailed': "Le fichier n'a pas pu être envoyé, bien que le serveur soit joignable. Réessayez, ou copiez d'abord le fichier dans Fichiers.",
   'fileReceive.error.unsupported': "Seuls les classeurs .xlsx et les PDF dont le texte est sélectionnable peuvent être lus.",
   'fileReceive.error.corrupt': "Ce classeur n\u0027a pas pu être ouvert. Il est peut-être endommagé ou enregistré dans un ancien format.",
   'fileReceive.error.noSheet': "Aucune feuille de ce fichier ne contient de téléphones. Vérifiez qu\u0027il y a une ligne d\u0027en-têtes et un téléphone par ligne.",

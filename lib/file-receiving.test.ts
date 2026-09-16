@@ -294,14 +294,85 @@ it('technical detail stays in development, never on the shop screen', () => {
   assert.ok(!/status|mimeType/.test(shown.slice(0, 400)), 'no status codes in the notice');
 });
 
-it('a phone sends the file itself, never a uri it could not open', () => {
+// ── the fault the iPhone actually hit ───────────────────────────────────────
+//
+// Everything else on the phone was talking to the server — a phone had just
+// been registered and a sale completed — and only the upload reported itself
+// as offline. React Native builds its multipart part from the picker's uri
+// inside the networking layer, so a uri the document provider no longer lets
+// the app read fails there: no status, no response, and a message that reads
+// exactly like the Wi-Fi being down. The file is now copied into the app's own
+// cache, checked there, and uploaded from that copy by the platform.
+
+it('the file is copied into the app cache before anything is sent', () => {
   const src = code(read('./file-receiving.ts'));
-  // The uri part is still the first attempt — it is the app's established
-  // transport — but a failure retries with the real bytes.
-  assert.match(src, /new File\(decodeURI\(input\.uri\)\)\.bytes\(\)/, 'the bytes are read as a fallback');
-  assert.match(src, /found\.size === 0/, 'an empty file is caught before sending');
+  assert.match(src, /Paths\.cache/, 'the copy lands in the app cache');
+  assert.match(src, /source\.copy\(destination\)/, 'the picked file is copied, not referenced');
+  const copyAt = src.indexOf('cacheCopy(input)');
+  const uploadAt = src.indexOf('.upload(url');
+  assert.ok(copyAt > 0 && uploadAt > copyAt, 'the copy happens before the upload');
+});
+
+it('the cached copy is checked before it is sent', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /if \(!file\.exists\)/, 'it must exist');
+  assert.match(src, /size === 0/, 'it must not be empty');
+  assert.match(src, /input\.size !== size/, 'it must weigh what the picker said');
+  assert.match(src, /ZIP_SIGNATURE/, 'a workbook must start with a ZIP signature');
+  assert.match(src, /\.xlsx\$\/i\.test\(input\.name\)/, 'the name must still be a workbook');
+});
+
+it('a workbook is recognised by its first four bytes, not its name alone', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /0x50, 0x4b, 0x03, 0x04/, 'PK\\x03\\x04');
+  assert.match(src, /readBytes\(length\)/, 'only the head is read, not the whole workbook');
+});
+
+it('the phone uploads through the platform, not through a JavaScript multipart body', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /uploadType: UploadType\.MULTIPART/, 'the established Expo uploader');
+  assert.match(src, /fieldName: 'file'/, 'the multipart field is still named file');
   assert.ok(!/'content-type'|Content-Type/i.test(src), 'no hand-set content type, or the boundary is lost');
-  assert.match(src, /form\.append\('file'/, 'the multipart field is named file');
+  // The uri part that failed on the device must not be reachable on a phone.
+  assert.ok(!/uri: input\.uri, name: input\.name/.test(src), 'no uri-built multipart part remains');
+});
+
+it('the upload uses the same origin and headers as every other call', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /\${API_V1_URL}\/purchases\/file\/parse/, 'the shared API origin, not a hand-built URL');
+  assert.ok(!/https?:\/\//.test(src), 'no origin is written into this helper');
+  assert.match(src, /authorization: `Bearer \${token}`/, 'the same authorisation header');
+  assert.match(src, /'x-branch-id': branchId/, 'the same branch header');
+});
+
+it('a local failure is never reported as the server being offline', () => {
+  assert.equal(parseFailureKey(0, 'file_gone'), 'fileReceive.error.gone');
+  assert.equal(parseFailureKey(0, 'file_empty_local'), 'fileReceive.error.empty');
+  assert.equal(parseFailureKey(0, 'upload_failed'), 'fileReceive.error.uploadFailed');
+  assert.equal(parseFailureKey(0, 'file_unreadable'), 'fileReceive.error.corrupt');
+  // Only a server that genuinely did not answer says so.
+  assert.equal(parseFailureKey(0, 'offline'), 'fileReceive.error.offline');
+});
+
+it('"offline" is claimed only after asking whether the server answers', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /serverAnswers\(token\)/, 'reachability is tested before blaming the network');
+  assert.match(src, /reachable[\s\S]{0,120}upload_failed/, 'a reachable server means the upload failed, not the network');
+});
+
+it('every stage the upload passes through is named, and logs metadata only', () => {
+  const src = code(read('./file-receiving.ts'));
+  for (const name of ['picked', 'copied', 'verified', 'started', 'answered']) {
+    assert.match(src, new RegExp(`stage\\('${name}'`), `the ${name} stage is traced`);
+  }
+  assert.match(src, /if \(__DEV__\) console\.log/, 'the trace is development-only');
+  assert.ok(!/bytes\(\)[\s\S]{0,40}console|console[\s\S]{0,60}token/.test(src), 'no contents or tokens are logged');
+});
+
+it('a retry reuses the cached copy when the picker cannot give the file again', () => {
+  const src = code(read('./file-receiving.ts'));
+  assert.match(src, /destination\.exists && \(destination\.size \?\? 0\) > 0/, 'an existing good copy is reused');
+  assert.match(src, /reused: true/);
 });
 
 console.log(`file receiving: ${passed} passed`);

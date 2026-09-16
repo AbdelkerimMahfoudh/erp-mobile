@@ -2578,6 +2578,8 @@ export const en = {
   'fileReceive.error.noBranch': "Choose a branch first — stock is received into one.",
   'fileReceive.error.tooLarge': "That file is too big to read. The limit is 8 MB.",
   'fileReceive.error.empty': "That file is empty, or the phone could not open it. Choose it again.",
+  'fileReceive.error.gone': "That file is no longer available on this phone. Choose it again.",
+  'fileReceive.error.uploadFailed': "The file could not be sent, although the server is reachable. Try again, or copy the file into Files first.",
   'fileReceive.error.unsupported': "Only .xlsx workbooks and PDFs whose text can be selected can be read.",
   'fileReceive.error.corrupt': "That workbook could not be opened. It may be damaged, or saved in an older format.",
   'fileReceive.error.noSheet': "No sheet in that file holds phones. Check it has a row of headings and one phone per row.",
