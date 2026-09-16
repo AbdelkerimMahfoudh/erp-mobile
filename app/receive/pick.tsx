@@ -10,7 +10,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
 import { useBranch } from '../../lib/branch';
 import { useFileBatch } from '../../lib/file-batch-store';
-import { useParseReceivingFile, type ParseResult } from '../../lib/file-receiving';
+import { parseFailureKey, useParseReceivingFile, type ParseResult } from '../../lib/file-receiving';
 
 /**
  * Choosing the file, and choosing what inside it to read.
@@ -32,7 +32,8 @@ export default function PickReceivingFileScreen() {
   const branchId = useBranch((s) => s.branchId);
   const [picked, setPicked] = useState<{ uri: string; name: string; mimeType?: string; file?: unknown } | null>(null);
   const [result, setResult] = useState<ParseResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  /** The message to show, and what to do again if the person taps Try again. */
+  const [error, setError] = useState<{ message: string; retry: () => void } | null>(null);
 
   const read = (file: { uri: string; name: string; mimeType?: string; file?: unknown }, sheet?: string) => {
     setError(null);
@@ -48,7 +49,24 @@ export default function PickReceivingFileScreen() {
             router.replace('/receive/file' as never);
           }
         },
-        onError: (e) => setError(e instanceof ApiError ? e.message : t('fileReceive.failed')),
+        onError: (e) => {
+          const status = e instanceof ApiError ? e.status : null;
+          const code = e instanceof ApiError ? e.code : null;
+          if (__DEV__) {
+            // The technical detail stays here, never on the shop's screen.
+            console.warn('[receive/file] parse failed', {
+              status,
+              code,
+              name: file.name,
+              mimeType: file.mimeType,
+              hasBytes: Boolean(file.file),
+            });
+          }
+          setError({
+            message: t(!branchId ? 'fileReceive.error.noBranch' : parseFailureKey(status, code)),
+            retry: () => read(file, sheet),
+          });
+        },
       },
     );
   };
@@ -106,7 +124,14 @@ export default function PickReceivingFileScreen() {
         </View>
       ) : null}
 
-      {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
+      {error ? (
+        <InlineNotice
+          tone="danger"
+          action={<Button title={t('action.retry')} variant="ghost" onPress={error.retry} />}
+        >
+          {error.message}
+        </InlineNotice>
+      ) : null}
 
       {/* More than one sheet could be the stock: the person picks. */}
       {result && !parse.isPending && result.sheets.filter((s) => !s.looksExplanatory).length > 1 ? (

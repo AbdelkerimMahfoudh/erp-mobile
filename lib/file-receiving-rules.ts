@@ -253,3 +253,60 @@ export function batchFingerprint(items: PurchaseItem[], payment: { method: strin
   // Shaped as a UUID so it satisfies the endpoint's `clientUuid` contract.
   return [seed.slice(0, 8), seed.slice(8, 12), '4' + seed.slice(13, 16), '8' + seed.slice(17, 20), seed.slice(20, 32)].join('-');
 }
+
+// ── saying what actually went wrong ─────────────────────────────────────────
+
+/**
+ * Which message to show when reading the file fails.
+ *
+ * Every failure used to arrive as one sentence — "That file could not be read"
+ * — which pointed at the workbook even when the workbook was fine. It hid a
+ * backend that had not been restarted and was answering 404 to an endpoint it
+ * did not yet have: the phone said the file was bad, and the file was perfect.
+ *
+ * `status` is the HTTP status, or `null` when the request never arrived at all.
+ */
+/** The messages this mapping can choose between. */
+export type FileFailureKey =
+  | 'fileReceive.error.offline'
+  | 'fileReceive.error.endpointMissing'
+  | 'fileReceive.error.unauthorized'
+  | 'fileReceive.error.forbidden'
+  | 'fileReceive.error.noBranch'
+  | 'fileReceive.error.tooLarge'
+  | 'fileReceive.error.empty'
+  | 'fileReceive.error.unsupported'
+  | 'fileReceive.error.corrupt'
+  | 'fileReceive.error.noSheet'
+  | 'fileReceive.error.pdfImageOnly'
+  | 'fileReceive.error.server'
+  | 'fileReceive.failed';
+
+export function parseFailureKey(status: number | null, code?: string | null): FileFailureKey {
+  if (status === null || status === 0 || code === 'offline') return 'fileReceive.error.offline';
+  switch (code) {
+    case 'file_missing':
+      return 'fileReceive.error.empty';
+    case 'file_empty':
+      return 'fileReceive.error.noSheet';
+    case 'file_too_large':
+      return 'fileReceive.error.tooLarge';
+    case 'file_type_unsupported':
+      return 'fileReceive.error.unsupported';
+    case 'file_unreadable':
+      return 'fileReceive.error.corrupt';
+    case 'pdf_image_only':
+      return 'fileReceive.error.pdfImageOnly';
+    case 'pdf_no_table':
+      return 'fileReceive.error.noSheet';
+    default:
+      break;
+  }
+  if (status === 401) return 'fileReceive.error.unauthorized';
+  if (status === 403) return 'fileReceive.error.forbidden';
+  if (status === 404) return 'fileReceive.error.endpointMissing';
+  if (status === 413) return 'fileReceive.error.tooLarge';
+  if (status === 400 || status === 422) return 'fileReceive.error.unsupported';
+  if (status >= 500) return 'fileReceive.error.server';
+  return 'fileReceive.failed';
+}

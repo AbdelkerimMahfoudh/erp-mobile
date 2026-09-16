@@ -15,6 +15,7 @@ import {
   entryState,
   groupEntries,
   purchaseItems,
+  parseFailureKey,
   remainingProblems,
   type BatchState,
   type FileEntry,
@@ -225,6 +226,82 @@ it('both new routes are classified, so the drift test stays honest', () => {
   const registry = read('./navigation/registry.ts');
   assert.match(registry, /'\/receive\/pick': '[^']+'/);
   assert.match(registry, /'\/receive\/file': '[^']+'/);
+});
+
+// ── the phone said the workbook was bad, and the workbook was perfect ───────
+//
+// The shop's API had not been restarted after the feature shipped, so
+// POST /purchases/file/parse answered 404. Every failure — 404 included — was
+// shown as the single sentence "That file could not be read", which accused the
+// file. These fix the accusation: each failure now says what actually happened,
+// and a missing endpoint says the server needs updating.
+
+it('a missing endpoint blames the server, not the workbook', () => {
+  assert.equal(parseFailureKey(404), 'fileReceive.error.endpointMissing');
+});
+
+it('a request that never arrived is not reported as a bad file', () => {
+  assert.equal(parseFailureKey(null), 'fileReceive.error.offline');
+  assert.equal(parseFailureKey(0, 'offline'), 'fileReceive.error.offline');
+});
+
+it('each failure the server can return has its own message', () => {
+  assert.equal(parseFailureKey(401), 'fileReceive.error.unauthorized');
+  assert.equal(parseFailureKey(403), 'fileReceive.error.forbidden');
+  assert.equal(parseFailureKey(413), 'fileReceive.error.tooLarge');
+  assert.equal(parseFailureKey(400, 'file_too_large'), 'fileReceive.error.tooLarge');
+  assert.equal(parseFailureKey(400, 'file_missing'), 'fileReceive.error.empty');
+  assert.equal(parseFailureKey(400, 'file_empty'), 'fileReceive.error.noSheet');
+  assert.equal(parseFailureKey(400, 'pdf_no_table'), 'fileReceive.error.noSheet');
+  assert.equal(parseFailureKey(400, 'file_type_unsupported'), 'fileReceive.error.unsupported');
+  assert.equal(parseFailureKey(400, 'file_unreadable'), 'fileReceive.error.corrupt');
+  assert.equal(parseFailureKey(400, 'pdf_image_only'), 'fileReceive.error.pdfImageOnly');
+  assert.equal(parseFailureKey(500), 'fileReceive.error.server');
+  assert.equal(parseFailureKey(503), 'fileReceive.error.server');
+});
+
+it('the server code decides, whatever status carried it', () => {
+  // A code the server sent under a status the mapping also knows must still win:
+  // "that PDF is photographs" beats the generic "unsupported".
+  assert.equal(parseFailureKey(400, 'pdf_image_only'), 'fileReceive.error.pdfImageOnly');
+  assert.equal(parseFailureKey(413, 'file_too_large'), 'fileReceive.error.tooLarge');
+});
+
+it('every message it can choose exists in all three languages', () => {
+  const src = read('./file-receiving-rules.ts');
+  const keys = [...src.matchAll(/'(fileReceive\.error\.[a-zA-Z]+)'/g)].map((m) => m[1]);
+  assert.ok(keys.length >= 11, `expected the whole set, found ${keys.length}`);
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    for (const key of [...keys, 'fileReceive.error.noBranch']) {
+      assert.ok(cat.includes(`'${key}':`), `${locale} is missing ${key}`);
+    }
+  }
+});
+
+it('the picker shows the mapped message and offers to try again', () => {
+  const src = code(read('../app/receive/pick.tsx'));
+  assert.match(src, /parseFailureKey\(status, code\)/, 'the mapping decides the message');
+  assert.ok(!src.includes("t('fileReceive.failed')"), 'the catch-all sentence is gone');
+  assert.match(src, /t\('action\.retry'\)/, 'a retry is offered');
+  assert.match(src, /fileReceive\.error\.noBranch/, 'a missing branch says so');
+});
+
+it('technical detail stays in development, never on the shop screen', () => {
+  const src = code(read('../app/receive/pick.tsx'));
+  assert.match(src, /if \(__DEV__\)/, 'the diagnostic log is development-only');
+  const shown = src.slice(src.indexOf('InlineNotice'));
+  assert.ok(!/status|mimeType/.test(shown.slice(0, 400)), 'no status codes in the notice');
+});
+
+it('a phone sends the file itself, never a uri it could not open', () => {
+  const src = code(read('./file-receiving.ts'));
+  // The uri part is still the first attempt — it is the app's established
+  // transport — but a failure retries with the real bytes.
+  assert.match(src, /new File\(decodeURI\(input\.uri\)\)\.bytes\(\)/, 'the bytes are read as a fallback');
+  assert.match(src, /found\.size === 0/, 'an empty file is caught before sending');
+  assert.ok(!/'content-type'|Content-Type/i.test(src), 'no hand-set content type, or the boundary is lost');
+  assert.match(src, /form\.append\('file'/, 'the multipart field is named file');
 });
 
 console.log(`file receiving: ${passed} passed`);
