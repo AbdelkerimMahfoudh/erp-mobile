@@ -35,6 +35,8 @@ import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { invalidateMoney } from '../../lib/money-invalidation';
+import { useDraft } from '../../lib/offline/use-draft';
+import { DraftNotice } from '../../components/DraftNotice';
 import { useFileBatch } from '../../lib/file-batch-store';
 import {
   batchCounts,
@@ -42,7 +44,6 @@ import {
   canConfirm,
   effectiveCost,
   effectiveImei2,
-  effectiveProductId,
   entryState,
   groupEntries,
   purchaseItems,
@@ -83,6 +84,7 @@ export default function FileReviewScreen() {
   const setExcluded = useFileBatch((s) => s.setExcluded);
   const excludeMany = useFileBatch((s) => s.excludeMany);
   const clear = useFileBatch((s) => s.clear);
+  const restore = useFileBatch((s) => s.restore);
 
   const [filter, setFilter] = useState<'all' | EntryState>('all');
   const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
@@ -90,6 +92,15 @@ export default function FileReviewScreen() {
   const [bulkCost, setBulkCost] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ units: number; total: number } | null>(null);
+
+  /**
+   * The batch survives the app being closed.
+   *
+   * Scoped to this person, company and branch by the shared draft mechanism, so
+   * a half-checked delivery is still there tomorrow — and it is a SEPARATE key
+   * from the scanned delivery's draft, which is left exactly as it was.
+   */
+  const draft = useDraft('receive.file', batch, (saved) => { if (saved?.parsed) restore(saved); }, { enabled: !done });
 
   const counts = batch ? batchCounts(batch) : null;
   const groups = useMemo(() => (batch ? groupEntries(batch) : []), [batch]);
@@ -129,12 +140,13 @@ export default function FileReviewScreen() {
         <EmptyState
           icon={Check}
           title={t('fileReceive.done.title')}
-          body={t('fileReceive.done.body', { count: String(done.units), branch: branchName ?? '' })}
+          body={t('fileReceive.done.body', {
+            count: String(done.units),
+            branch: branchName ?? '',
+            total: formatMoney(done.total),
+          })}
           action={{ label: t('action.done'), onPress: () => router.replace('/(tabs)/inventory') }}
         />
-        <Text variant="display" align="center">
-          {formatMoney(done.total)}
-        </Text>
       </Screen>
     );
   }
@@ -223,6 +235,7 @@ export default function FileReviewScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('fileReceive.title') }} />
 
       <ScrollView contentContainerStyle={styles.list}>
+        <DraftNotice draft={draft} onDiscard={() => { clear(); router.back(); }} />
         <Card style={styles.summary}>
           <Text variant="label" tone="secondary">
             {batch.parsed.filename}
