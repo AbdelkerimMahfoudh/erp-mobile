@@ -298,6 +298,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
   '/receive': 'Started from Home and Inventory — a counter action, not a menu entry.',
+  '/receive/pick': 'Choosing a stock file, from the Receive stock header. Owner-only, like the opening-inventory import.',
+  '/receive/file': 'Checking a delivery read out of a file, before any of it is received.',
   // The Home shortcut, not a second Sell. It opens the camera on one phone and
   // leaves the Sell tab's cart alone; putting it in a menu would offer two
   // entries that look like the same thing and behave differently.

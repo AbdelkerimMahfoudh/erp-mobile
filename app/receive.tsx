@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Package, PackagePlus } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Package, PackagePlus } from 'lucide-react-native';
 import { Button, EmptyState, Screen, Text } from '../components/ui';
 import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
@@ -21,6 +21,7 @@ import { stagedCostTotal, stagedUnitTotal, type StagedItem } from '../components
 import { TextField } from '../components/ui/Field';
 import { ApiError, api } from '../lib/api-client';
 import { useBranch } from '../lib/branch';
+import { usePermission } from '../lib/permissions';
 import { useAuth } from '../hooks/useAuth';
 import {
   holdPendingIntake,
@@ -630,19 +631,24 @@ export default function ReceiveScreen() {
             headerShown: true,
             title: t('receive.title'),
             headerBackVisible: false,
-            // Arrow only, like every other screen; it still asks before a delivery is left behind.
-            headerLeft: () => (
-              <IconButton
-                icon={isRTL() ? ArrowRight : ArrowLeft}
-                accessibilityLabel={t('action.back')}
-                onPress={confirmLeave}
-              />
-            ),
+            /*
+              Two header controls, and their sides are decided here rather than
+              left to the navigator.
+
+              A native header MIRRORS itself in Arabic: whatever is given as
+              `headerRight` is drawn on the left. The file button has to stay at
+              the physical top right in every language, so in Arabic it is
+              passed as `headerLeft` — which is the side the navigator then
+              draws on the right — and the back arrow takes the other side,
+              still pointing the way it should.
+            */
+            headerLeft: () => (isRTL() ? <FileImportButton /> : <BackButton onPress={confirmLeave} />),
+            headerRight: () => (isRTL() ? <BackButton onPress={confirmLeave} /> : <FileImportButton />),
           }}
         />
 
         {staged.length === 0 && partialUnits === null ? (
-          <EmptyState icon={PackagePlus} title={t('receive.empty.title')} body={t('receive.empty.body')} />
+          <EmptyState icon={PackagePlus} title={t('receive.empty.title')} body={t('receive.empty.file')} />
         ) : (
           <ScrollView
             contentContainerStyle={styles.list}
@@ -759,6 +765,38 @@ function RefusedNotice({ lines, retry = false }: { lines: RejectedLine[]; retry?
     <InlineNotice tone="danger" title={t('receive.refused.title')}>
       {retry ? `${body}\n${t('receive.refused.retry')}` : body}
     </InlineNotice>
+  );
+}
+
+/** The back arrow, which still asks before a part-built delivery is left. */
+function BackButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  return <IconButton icon={isRTL() ? ArrowRight : ArrowLeft} accessibilityLabel={t('action.back')} onPress={onPress} />;
+}
+
+/**
+ * Receiving a whole delivery from a file.
+ *
+ * In the header rather than beside the scanner: it starts a different way of
+ * working — a hundred phones at once — and is not one more thing to do to the
+ * phone in your hand. Scanning and typing are untouched below it.
+ *
+ * Owner-only, the same restriction the stock-file import already carries
+ * (`import.run`, Owner-only since `0073`); the server refuses it too.
+ */
+function FileImportButton() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const canImport = usePermission('import.run');
+  const canReceive = usePermission('purchase.manage');
+  if (!canImport || !canReceive) return null;
+  return (
+    <IconButton
+      icon={FileSpreadsheet}
+      variant="plain"
+      accessibilityLabel={t('receive.file.action')}
+      onPress={() => router.push('/receive/pick' as never)}
+    />
   );
 }
 
