@@ -12,14 +12,28 @@ export * from './file-receiving-rules';
 export function useParseReceivingFile() {
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
-    mutationFn: async (input: { uri: string; name: string; mimeType?: string; sheet?: string; mapping?: Record<string, number> }) => {
+    mutationFn: async (input: {
+      uri: string;
+      name: string;
+      mimeType?: string;
+      /** The picker hands web a real File; a phone hands us a uri. */
+      file?: unknown;
+      sheet?: string;
+      mapping?: Record<string, number>;
+    }) => {
       const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
       const form = new FormData();
-      form.append('file', {
-        uri: input.uri,
-        name: input.name,
-        type: input.mimeType ?? 'application/octet-stream',
-      } as unknown as Blob);
+      // On a phone the multipart part is built from the file's uri; on web the
+      // picker already handed us the file itself, and a uri part would upload
+      // nothing.
+      if (input.file) form.append('file', input.file as Blob, input.name);
+      else {
+        form.append('file', {
+          uri: input.uri,
+          name: input.name,
+          type: input.mimeType ?? 'application/octet-stream',
+        } as unknown as Blob);
+      }
       if (input.sheet) form.append('sheet', input.sheet);
       if (input.mapping) form.append('mapping', JSON.stringify(input.mapping));
 
