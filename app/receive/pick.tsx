@@ -8,6 +8,7 @@ import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
+import { useBranch } from '../../lib/branch';
 import { useFileBatch } from '../../lib/file-batch-store';
 import { useParseReceivingFile, type ParseResult } from '../../lib/file-receiving';
 
@@ -27,11 +28,13 @@ export default function PickReceivingFileScreen() {
   const router = useRouter();
   const parse = useParseReceivingFile();
   const start = useFileBatch((s) => s.start);
-  const [picked, setPicked] = useState<{ uri: string; name: string; mimeType?: string } | null>(null);
+  /** Stock is received into a branch, and the server resolves permissions per branch. */
+  const branchId = useBranch((s) => s.branchId);
+  const [picked, setPicked] = useState<{ uri: string; name: string; mimeType?: string; file?: unknown } | null>(null);
   const [result, setResult] = useState<ParseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const read = (file: { uri: string; name: string; mimeType?: string }, sheet?: string) => {
+  const read = (file: { uri: string; name: string; mimeType?: string; file?: unknown }, sheet?: string) => {
     setError(null);
     parse.mutate(
       { ...file, sheet },
@@ -65,7 +68,7 @@ export default function PickReceivingFileScreen() {
     });
     if (chosen.canceled || !chosen.assets?.[0]) return;
     const asset = chosen.assets[0];
-    const file = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType };
+    const file = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, file: (asset as { file?: unknown }).file };
     setPicked(file);
     read(file);
   };
@@ -83,11 +86,12 @@ export default function PickReceivingFileScreen() {
           <Text variant="caption" tone="tertiary">
             {t('fileReceive.pick.nothingYet')}
           </Text>
+          {!branchId ? <InlineNotice tone="info">{t('branch.select.title')}</InlineNotice> : null}
           <Button
             title={t('fileReceive.pick.action')}
             icon={Upload}
             fullWidth
-            disabled={parse.isPending}
+            disabled={parse.isPending || !branchId}
             onPress={() => void pick()}
           />
         </Card>
