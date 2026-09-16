@@ -15,8 +15,12 @@ import {
   entryState,
   groupEntries,
   purchaseItems,
+  groupCandidates,
+  groupSummary,
   parseFailureKey,
+  previewBulkCost,
   remainingProblems,
+  reviewComplete,
   type BatchState,
   type FileEntry,
   type ParseResult,
@@ -373,6 +377,198 @@ it('a retry reuses the cached copy when the picker cannot give the file again', 
   const src = code(read('./file-receiving.ts'));
   assert.match(src, /destination\.exists && \(destination\.size \?\? 0\) > 0/, 'an existing good copy is reused');
   assert.match(src, /reused: true/);
+});
+
+// ── the review screen, as a staged workflow ─────────────────────────────────
+//
+// On the iPhone the first version put the whole payment section under a list
+// where nothing was ready to pay for, hid the reason each phone was held up,
+// printed IMEIs as an unlabelled column, and let "Exclude all 100" sit on top
+// of the sentence explaining what to do. These keep the shape that replaced it.
+
+const groupOf = (b: BatchState) => groupEntries(b)[0];
+
+it('a group reports its own counts, subtotal and the reason it is held up', () => {
+  const b = batchOf([
+    entry({ key: 'a', problems: ['product_unknown'] }),
+    entry({ key: 'b', problems: ['product_unknown'] }),
+    entry({ key: 'c' }),
+  ]);
+  const summary = groupSummary(b, groupOf(b));
+  assert.equal(summary.phones, 3);
+  assert.equal(summary.needsAttention, 2);
+  assert.equal(summary.ready, 1);
+  assert.equal(summary.subtotal, 37500);
+  assert.equal(summary.reason, 'product_unknown', 'one shared reason is named');
+  assert.deepEqual(summary.matchableKeys, ['a', 'b'], 'one product choice would fix both');
+});
+
+it('a group whose phones are held up for different reasons names no single one', () => {
+  const b = batchOf([
+    entry({ key: 'a', problems: ['product_unknown'] }),
+    entry({ key: 'b', problems: ['duplicate_in_stock'] }),
+  ]);
+  const summary = groupSummary(b, groupOf(b));
+  assert.equal(summary.reason, null);
+  assert.deepEqual(summary.matchableKeys, [], 'a duplicate is not fixed by choosing a product');
+});
+
+it('an excluded phone leaves the subtotal and is counted apart', () => {
+  const b = batchOf([entry({ key: 'a' }), entry({ key: 'b' })]);
+  b.excluded = ['b'];
+  const summary = groupSummary(b, groupOf(b));
+  assert.equal(summary.excluded, 1);
+  assert.equal(summary.ready, 1);
+  assert.equal(summary.subtotal, 12500, 'only what will actually be received');
+});
+
+it('a group-level match fixes exactly that group, and the counts follow at once', () => {
+  const b = batchOf([
+    entry({ key: 'a', problems: ['product_unknown'] }),
+    entry({ key: 'b', problems: ['product_unknown'] }),
+    // A different variant: its own group, and untouched by the first group's fix.
+    entry({ key: 'c', problems: ['product_unknown'], extracted: { ...entry({ key: 'c' }).extracted, storage: '256' } }),
+  ]);
+  assert.equal(batchCounts(b).needsAttention, 3);
+
+  const first = groupEntries(b).find((g) => g.variant?.startsWith('128'))!;
+  for (const key of groupSummary(b, first).matchableKeys) b.corrections[key] = { productId: 'p7' };
+
+  assert.equal(batchCounts(b).needsAttention, 1, 'only the other variant is still waiting');
+  assert.equal(batchCounts(b).ready, 2);
+  assert.equal(batchCounts(b).selectedCost, 25000, 'the total prices what is ready, not what is still held up');
+  const other = groupEntries(b).find((g) => g.variant?.startsWith('256'))!;
+  assert.equal(groupSummary(b, other).needsAttention, 1, 'the other group was not touched');
+});
+
+it('only products every phone in the group matched are offered for all of them', () => {
+  const b = batchOf([entry({ key: 'a' }), entry({ key: 'b' })]);
+  const p = (id: string) => ({ id, brand: 'Apple', model: 'iPhone 12', variant: null });
+  b.parsed.matches.a = { productId: null, candidates: [p('p1'), p('p2')], exact: false };
+  b.parsed.matches.b = { productId: null, candidates: [p('p2'), p('p3')], exact: false };
+  assert.deepEqual(groupCandidates(b, groupOf(b)).map((c) => c.id), ['p2']);
+});
+
+it('two IMEIs are one phone, in the group count and in the total', () => {
+  const b = batchOf([
+    entry({ key: 'a', extracted: { ...entry({ key: 'a' }).extracted, imei2: '990001000000026' } }),
+  ]);
+  assert.equal(groupSummary(b, groupOf(b)).phones, 1);
+  assert.equal(batchCounts(b).phones, 1);
+  assert.equal(batchCounts(b).selectedCost, 12500, 'charged once, not once per identifier');
+});
+
+it('payment is out of reach until nothing is unresolved', () => {
+  const b = batchOf([entry({ key: 'a' }), entry({ key: 'b', problems: ['product_unknown'] })]);
+  assert.equal(reviewComplete(b), false);
+  assert.equal(canConfirm(b), false);
+  // Excluding it deliberately is a resolution too.
+  b.excluded = ['b'];
+  assert.equal(reviewComplete(b), true);
+  assert.equal(canConfirm(b), true);
+});
+
+it('a delivery with nothing left in it may be finished reviewing, but not bought', () => {
+  const b = batchOf([entry({ key: 'a', problems: ['duplicate_in_stock'] })]);
+  b.excluded = ['a'];
+  assert.equal(reviewComplete(b), true);
+  assert.equal(canConfirm(b), false, 'there is nothing to pay for');
+});
+
+it('a bulk cost says how many already say something different', () => {
+  const b = batchOf([
+    entry({ key: 'a' }),
+    entry({ key: 'b', extracted: { ...entry({ key: 'b' }).extracted, cost: 9000 } }),
+    entry({ key: 'c', extracted: { ...entry({ key: 'c' }).extracted, cost: null } }),
+  ]);
+  const preview = previewBulkCost(b, ['a', 'b', 'c'], 12500);
+  assert.equal(preview.affected, 3);
+  assert.equal(preview.unchanged, 1, 'a already costs this');
+  assert.equal(preview.differing, 1, 'b says 9000 — the person must be told');
+});
+
+// ── the screen itself ───────────────────────────────────────────────────────
+
+it('the screen is staged: review, then payment, then confirm', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /type Step = 'review' \| 'payment'/);
+  assert.match(src, /step === 'payment'/, 'payment is a separate step');
+  const paymentAt = src.indexOf("step === 'payment'");
+  const pickerAt = src.indexOf('<PurchasePaymentPicker');
+  assert.ok(paymentAt > 0 && pickerAt > paymentAt, 'the payment picker lives inside the payment step');
+});
+
+it('the review footer offers only Continue, and only once nothing is unresolved', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /title=\{t\('fileReceive\.continue'\)\}/);
+  assert.match(src, /disabled=\{!ready \|\| counts\.ready === 0\}/, 'blocked while anything needs attention');
+  assert.match(src, /reviewComplete\(batch\)/, 'the gate is the shared rule, not a local guess');
+  assert.match(src, /fileReceive\.footer\.ready/);
+  assert.match(src, /fileReceive\.footer\.excluded/);
+});
+
+it('the summary card stacks its parts and puts no action over the explanation', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.ready'\)\}/);
+  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.attention'\)\}/);
+  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.excluded'\)\}/);
+  assert.match(src, /fileReceive\.matchProducts/, 'the primary action addresses the actual problem');
+  assert.ok(!/position: 'absolute'/.test(src), 'nothing inside a card is positioned absolutely');
+});
+
+it('Exclude all left the warning and asks first, saying how many', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  const tailAt = src.indexOf('ListFooterComponent');
+  const excludeAt = src.indexOf("t('fileReceive.excludeAll'", tailAt);
+  assert.ok(tailAt > 0 && excludeAt > tailAt, 'it sits at the end of the review, not in the alert');
+  assert.match(src, /excludeAll\.title', \{ count: String\(attentionKeys\.length\) \}/);
+  assert.match(src, /variant="tertiary"[\s\S]{0,120}excludeAll|excludeAll[\s\S]{0,160}variant="tertiary"/, 'it is not competing with the fix');
+});
+
+it('every phone value is labelled, and the warning is not beside the price', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  for (const field of ['imei1', 'imei2', 'cost', 'source']) {
+    assert.match(src, new RegExp(`fileReceive\\.field\\.${field}`), `${field} is labelled`);
+  }
+  // The reason is its own notice; no icon rides along with the money.
+  assert.match(src, /<InlineNotice tone="warning">[\s\S]{0,160}problems\.map/, 'the reason carries the warning');
+  assert.ok(!/AlertTriangle/.test(src), 'no warning icon beside a value');
+  assert.match(src, /<Divider \/>/, 'rows are separated, so two IMEIs cannot look like one phone');
+});
+
+it('groups are collapsed first, and phones exist only while a group is open', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /<FlatList/, 'the established list, not a mapped ScrollView');
+  assert.match(src, /removeClippedSubviews/);
+  assert.match(src, /\{open$/m.test(src) ? /\{open/ : /open\s*\?/, 'rows render on open');
+  assert.match(src, /fileReceive\.group\.countCost/, 'a collapsed group shows its count and subtotal');
+  assert.match(src, /fileReceive\.group\.status/, 'and why it is held up');
+});
+
+it('opening a group or changing the filter keeps the corrections and what was open', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /setOpened\(\(open\) => \(\{ \.\.\.open, \[key\]: !open\[key\] \}\)\)/, 'open groups are kept by key');
+  // The filter only chooses what to show; it never touches the batch.
+  const filterAt = src.indexOf('setFilter(');
+  assert.ok(filterAt > 0);
+  assert.ok(!/setFilter\([^)]*\);\s*(clear|setOpened)\(/.test(src), 'filtering clears nothing');
+});
+
+it('the bulk edit says which field it changes, and is named plainly', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  assert.match(src, /fileReceive\.bulk\.fields/, 'it lists what can be changed');
+  assert.match(src, /previewBulkCost\(batch, keys, value\)/);
+  assert.match(src, /bulkCost\.bodyDiffering/, 'differing values are stated before they are overwritten');
+});
+
+it('every string the review screen uses exists in all three languages', () => {
+  const src = read('../app/receive/file.tsx');
+  const keys = [...src.matchAll(/t\('((?:fileReceive|action|home)\.[A-Za-z0-9.]+)'/g)].map((m) => m[1]);
+  assert.ok(keys.length > 30, `expected the screen's keys, found ${keys.length}`);
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    for (const key of new Set(keys)) assert.ok(cat.includes(`'${key}':`), `${locale} is missing ${key}`);
+  }
 });
 
 console.log(`file receiving: ${passed} passed`);
