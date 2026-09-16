@@ -18,6 +18,8 @@ interface FileBatchStore {
   batch: BatchState | null;
   /** Set when a file has been read and the review may open. */
   start: (parsed: ParseResult) => void;
+  /** Put back a batch saved as a draft, corrections and exclusions included. */
+  restore: (batch: BatchState) => void;
   correct: (key: string, correction: Correction) => void;
   /** An explicit bulk edit. Returns how many phones it actually changed. */
   correctMany: (keys: readonly string[], correction: Correction) => number;
@@ -29,6 +31,7 @@ interface FileBatchStore {
 export const useFileBatch = create<FileBatchStore>((set, get) => ({
   batch: null,
   start: (parsed) => set({ batch: { parsed, corrections: {}, excluded: [] } }),
+  restore: (batch) => set({ batch }),
   correct: (key, correction) =>
     set((s) =>
       s.batch
