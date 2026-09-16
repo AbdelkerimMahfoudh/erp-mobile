@@ -2810,7 +2810,7 @@ export const fr: Catalogue = {
   'fileReceive.cancel.body': 'Rien n’a été réceptionné, et vos corrections seront perdues. Une livraison en cours de scan n’est pas affectée.',
   'fileReceive.cancel.confirm': 'Abandonner',
   'fileReceive.done.title': 'Livraison réceptionnée',
-  'fileReceive.done.body': '{count} téléphones sont en stock à {branch}, payés intégralement.',
+  'fileReceive.done.body': '{count} téléphones sont en stock à {branch}. Vous avez payé {total} intégralement.',
   'fileReceive.gone.title': 'Rien à vérifier',
   'fileReceive.gone.body': 'Cette livraison a été réceptionnée ou abandonnée. Importez à nouveau le fichier pour recommencer.',
   'fileReceive.problem.imei1_missing': 'Aucun IMEI sur cette ligne',

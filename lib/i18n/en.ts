@@ -2621,7 +2621,7 @@ export const en = {
   'fileReceive.cancel.body': 'Nothing has been received, and your corrections will be lost. A delivery you were scanning is untouched.',
   'fileReceive.cancel.confirm': 'Leave it',
   'fileReceive.done.title': 'Delivery received',
-  'fileReceive.done.body': '{count} phones are now in stock at {branch}, paid in full.',
+  'fileReceive.done.body': '{count} phones are now in stock at {branch}. You paid {total} in full.',
   'fileReceive.gone.title': 'Nothing to check',
   'fileReceive.gone.body': 'This delivery was received or left. Import the file again to start over.',
   'fileReceive.problem.imei1_missing': 'No IMEI in this row',

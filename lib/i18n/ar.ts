@@ -2555,7 +2555,7 @@ export const ar: Catalogue = {
   'fileReceive.cancel.body': 'لم يُستلم شيء، وستفقد تصحيحاتك. الشحنة التي كنت تمسحها لن تتأثر.',
   'fileReceive.cancel.confirm': 'ترك',
   'fileReceive.done.title': 'تم استلام الشحنة',
-  'fileReceive.done.body': '{count} هاتفًا أصبحت في مخزون {branch}، مدفوعة بالكامل.',
+  'fileReceive.done.body': '{count} هاتفًا أصبحت في مخزون {branch}. دفعت {total} بالكامل.',
   'fileReceive.gone.title': 'لا يوجد ما يُراجَع',
   'fileReceive.gone.body': 'تم استلام هذه الشحنة أو تركها. استورد الملف مرة أخرى للبدء من جديد.',
   'fileReceive.problem.imei1_missing': 'لا يوجد IMEI في هذا السطر',
