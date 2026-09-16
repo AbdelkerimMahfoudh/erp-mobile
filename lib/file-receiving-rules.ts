@@ -322,3 +322,117 @@ export function parseFailureKey(status: number | null, code?: string | null): Fi
   if (status >= 500) return 'fileReceive.error.server';
   return 'fileReceive.failed';
 }
+
+// ── what a group of identical phones says about itself ──────────────────────
+
+export interface GroupSummary {
+  phones: number;
+  ready: number;
+  needsAttention: number;
+  excluded: number;
+  /** What the phones still in the delivery cost together. */
+  subtotal: number;
+  /**
+   * The one reason this group needs attention, when every phone needing it
+   * gives the same reason. Null when they differ — then the phones are listed
+   * and each says its own.
+   */
+  reason: EntryProblem | null;
+  /**
+   * The phones one product choice would fix.
+   *
+   * Ten rows of the same unmatched model are one decision, not ten. Empty
+   * unless every phone needing attention in this group is waiting on the same
+   * product question — a duplicate IMEI is never fixed by choosing a product.
+   */
+  matchableKeys: string[];
+}
+
+const PRODUCT_PROBLEMS: EntryProblem[] = ['product_unknown', 'product_ambiguous'];
+
+export function groupSummary(batch: BatchState, group: EntryGroup): GroupSummary {
+  let ready = 0;
+  let needsAttention = 0;
+  let excluded = 0;
+  let subtotal = 0;
+  const reasons = new Set<EntryProblem>();
+  const matchable: string[] = [];
+
+  for (const entry of group.entries) {
+    const state = entryState(batch, entry);
+    if (state === 'excluded') {
+      excluded += 1;
+      continue;
+    }
+    subtotal += effectiveCost(batch, entry) ?? 0;
+    if (state === 'ready') {
+      ready += 1;
+      continue;
+    }
+    needsAttention += 1;
+    const problems = remainingProblems(entry, batch.corrections[entry.key]);
+    for (const p of problems) reasons.add(p);
+    if (problems.length > 0 && problems.every((p) => PRODUCT_PROBLEMS.includes(p))) matchable.push(entry.key);
+  }
+
+  return {
+    phones: group.entries.length,
+    ready,
+    needsAttention,
+    excluded,
+    subtotal: Math.round(subtotal * 100) / 100,
+    reason: reasons.size === 1 ? [...reasons][0] : null,
+    // One choice may only stand for the whole group when it answers all of it.
+    matchableKeys: needsAttention > 0 && matchable.length === needsAttention ? matchable : [],
+  };
+}
+
+/** The product choices offered for a group: those every phone in it shares. */
+export function groupCandidates(batch: BatchState, group: EntryGroup): CatalogueProduct[] {
+  const lists = group.entries
+    .filter((e) => entryState(batch, e) !== 'excluded')
+    .map((e) => batch.parsed.matches[e.key]?.candidates ?? []);
+  if (lists.length === 0) return [];
+  const [first, ...rest] = lists;
+  return first.filter((c) => rest.every((list) => list.some((o) => o.id === c.id)));
+}
+
+// ── review before payment ───────────────────────────────────────────────────
+
+/**
+ * May the delivery move on to payment?
+ *
+ * Deliberately separate from `canConfirm`: the review is finished once nothing
+ * is left unresolved, even though a delivery of nothing cannot be bought. The
+ * payment step is never shown while a phone is still waiting to be corrected or
+ * excluded.
+ */
+export function reviewComplete(batch: BatchState): boolean {
+  return batchCounts(batch).needsAttention === 0;
+}
+
+// ── bulk edits, counted before they are applied ─────────────────────────────
+
+export interface BulkPreview {
+  /** Phones the edit would touch. */
+  affected: number;
+  /** Of those, how many already hold a different value — never changed silently. */
+  differing: number;
+  /** Of those, how many already hold exactly this value. */
+  unchanged: number;
+}
+
+/** What a bulk cost would do, so it can be said out loud before it is done. */
+export function previewBulkCost(batch: BatchState, keys: readonly string[], value: number): BulkPreview {
+  const byKey = new Map(batch.parsed.entries.map((e) => [e.key, e]));
+  let differing = 0;
+  let unchanged = 0;
+  for (const key of keys) {
+    const entry = byKey.get(key);
+    if (!entry) continue;
+    const current = effectiveCost(batch, entry);
+    if (current === value) unchanged += 1;
+    else if (current !== null) differing += 1;
+  }
+  return { affected: keys.length, differing, unchanged };
+}
