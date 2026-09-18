@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   Button,
   Card,
@@ -12,6 +12,7 @@ import {
   Screen,
   Section,
   SkeletonList,
+  StatusChip,
   Text,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
@@ -21,7 +22,7 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { describeWindow, policyStatus } from '../../lib/return-policy';
 import { useSale } from '../../lib/sales';
-import type { SaleDetail, SaleLine } from '../../types/api';
+import type { SaleDetail, SaleLine, SalePaymentRecord } from '../../types/api';
 
 /**
  * One sale, in full.
@@ -72,19 +73,23 @@ export default function SaleDetailScreen() {
 
 function Body({ sale }: { sale: SaleDetail }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const status = policyStatus(sale.returnPolicy, t, formatDateTime);
+  /**
+   * Whoever may take money at the counter may record money that arrives
+   * later — `sale.create`, the same permission the server checks. Offered only
+   * while something is owed on a sale that still stands.
+   */
+  const canCollect = usePermission('sale.create') && sale.balanceDue > 0 && !sale.isReversed;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Card>
         <View style={styles.headRow}>
           <Text variant="display">{formatMoney(sale.total)}</Text>
-          {sale.payStatus !== 'paid' ? (
-            <Chip
-              label={t(`sales.payStatus.${sale.payStatus}` as never)}
-              tone={sale.payStatus === 'credit' ? 'warning' : 'neutral'}
-            />
-          ) : null}
+          {/* Every state is said, "Paid in full" included: the status comes from
+              the money received, and a paid sale is an answer worth showing. */}
+          <StatusChip domain="sale" value={sale.payStatus} />
         </View>
         <Text variant="caption" tone="secondary">
           {formatDateTime(new Date(sale.soldAt))}
@@ -125,14 +130,16 @@ function Body({ sale }: { sale: SaleDetail }) {
         ) : null}
       </Card>
 
-      {sale.customer ? (
-        <Section title={t('sales.detail.customer')}>
+      {/* Who owes the balance — a customer or a partner store, one section
+          either way, because "who do I chase?" is one question. */}
+      {sale.debtor ? (
+        <Section title={t(sale.debtor.kind === 'store' ? 'saleDetail.debtor.store' : 'saleDetail.debtor.customer')}>
           <RowGroup separatorInset={space.md}>
             <View style={styles.groupedRow}>
-              <Text variant="bodyStrong">{sale.customer.name ?? ''}</Text>
-              {sale.customer.phone ? (
+              <Text variant="bodyStrong">{sale.debtor.name ?? ''}</Text>
+              {sale.debtor.phone ? (
                 <Text variant="caption" tone="secondary">
-                  {sale.customer.phone}
+                  {sale.debtor.phone}
                 </Text>
               ) : null}
             </View>
@@ -162,10 +169,10 @@ function Body({ sale }: { sale: SaleDetail }) {
           {sale.discount > 0 ? (
             <Amount label={t('sales.detail.discount')} value={-sale.discount} />
           ) : null}
-          <Amount label={t('sales.detail.total')} value={sale.total} strong />
-          <Amount label={t('sales.detail.paid')} value={sale.amountPaid} />
+          <Amount label={t('saleDetail.total')} value={sale.total} strong />
+          <Amount label={t('saleDetail.received')} value={sale.amountPaid} />
           {sale.balanceDue > 0 ? (
-            <Amount label={t('sales.detail.balanceDue')} value={sale.balanceDue} strong />
+            <Amount label={t('saleDetail.owed')} value={sale.balanceDue} strong />
           ) : null}
           {/* Absent for a caller without `cost.view` — the server never sent
               them, so there is nothing to hide here. */}
@@ -184,14 +191,26 @@ function Body({ sale }: { sale: SaleDetail }) {
         is OWED are different questions, and a counter that conflates them
         eventually hands back the wrong change.
       */}
-      <Section title={t('sales.detail.payments')}>
-        <RowGroup separatorInset={space.md}>
-          {sale.payments.map((p) => (
-            <View key={p.id} style={styles.groupedRow}>
-              <Amount label={t(`payment.${p.method}` as never)} value={p.amount} />
-            </View>
-          ))}
-        </RowGroup>
+      <Section title={t('saleDetail.history')}>
+        {sale.payments.length > 0 ? (
+          <RowGroup separatorInset={space.md}>
+            {sale.payments.map((p) => (
+              <View key={p.id} style={styles.groupedRow}>
+                <PaymentLine payment={p} />
+              </View>
+            ))}
+          </RowGroup>
+        ) : null}
+        {canCollect ? (
+          <Button
+            title={t(sale.payments.some((p) => p.kind === 'collection') ? 'saleDetail.recordAnother' : 'saleDetail.recordPayment')}
+            fullWidth
+            onPress={() => router.push(`/sales/pay/${sale.id}` as Href)}
+          />
+        ) : null}
+        <Text variant="caption" tone="tertiary">
+          {t('saleDetail.linked')}
+        </Text>
       </Section>
     </ScrollView>
   );
@@ -253,6 +272,45 @@ function Line({ line }: { line: SaleLine }) {
   );
 }
 
+/**
+ * One payment, as it happened: how much, when, into what — by the label the
+ * account had THEN — whether it came with the sale or later, the reference if
+ * one was given, and who recorded it. Renaming or closing an account later
+ * changes none of this.
+ */
+function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
+  const { t } = useTranslation();
+  const via = p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never));
+  return (
+    <View style={styles.payment}>
+      <View style={styles.amountRow}>
+        <Text variant="bodyStrong" style={styles.lineName}>
+          {via}
+        </Text>
+        <Text variant="bodyStrong">{formatMoney(p.amount)}</Text>
+      </View>
+      <Text variant="caption" tone="secondary">
+        {formatDateTime(new Date(p.paidAt))} · {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
+      </Text>
+      {p.reference ? (
+        <Text variant="caption" tone="secondary">
+          {t('saleDetail.history.ref', { reference: p.reference })}
+        </Text>
+      ) : null}
+      {p.note ? (
+        <Text variant="caption" tone="secondary">
+          {p.note}
+        </Text>
+      ) : null}
+      {p.recordedBy ? (
+        <Text variant="caption" tone="tertiary">
+          {t('saleDetail.history.by', { name: p.recordedBy })}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function Amount({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
     <View style={styles.amountRow}>
@@ -282,5 +340,6 @@ const styles = StyleSheet.create({
   lineName: { flexShrink: 1 },
   hiddenAnchor: { height: 0 },
   lineMeta: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
-  amountRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.xs },
+  amountRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.xs, gap: space.sm },
+  payment: { gap: 2 },
 });
