@@ -44,7 +44,7 @@ export function sourceKey(s: PickSource): `pick.source.${PickSource}` {
   return `pick.source.${s}`;
 }
 
-export type LookupFailure = 'invalid' | 'not_found' | 'network' | 'forbidden' | 'server';
+export type LookupFailure = 'invalid' | 'not_found' | 'not_here' | 'network' | 'forbidden' | 'server';
 
 /**
  * What went wrong asking the server, from its status and code. A request that
@@ -54,6 +54,9 @@ export type LookupFailure = 'invalid' | 'not_found' | 'network' | 'forbidden' | 
  */
 export function lookupFailure(status: number | null, code?: string | null): LookupFailure {
   if (status === null || status === 0) return 'network';
+  // The server's single answer, without branch.manage, for a number that is
+  // elsewhere or nowhere — the app never tells the two apart itself.
+  if (code === 'not_available_here') return 'not_here';
   if (status === 404 || code === 'not_found') return 'not_found';
   if (status === 400 || (code && code.startsWith('imei_'))) return 'invalid';
   if (status === 401 || status === 403) return 'forbidden';

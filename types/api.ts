@@ -1428,6 +1428,8 @@ export interface SaleSelection {
   };
   /** The price the sale will charge, by the sale's own ladder. Null when not sellable here, or unpriced. */
   price: number | null;
+  /** Where the phone is — sent by the server only to a caller with branch.manage. */
+  otherBranch: { name: string } | null;
   cost?: number;
   dateIn?: string;
 }

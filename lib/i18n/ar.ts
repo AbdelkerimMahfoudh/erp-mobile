@@ -526,6 +526,8 @@ export const ar: Catalogue = {
   'pick.failure.network': "تعذّر الوصول إلى الخادم. تحقّق من الاتصال وأعد المحاولة.",
   'pick.failure.forbidden': "صلاحيتك لا تسمح بالبيع هنا.",
   'pick.failure.server': "تعذّر البحث عن الهاتف. أعد المحاولة.",
+  'pick.failure.not_here': "هذا الهاتف غير متاح في هذا الفرع.",
+  'pick.availability.other_branch_named': "متوفر في {branch}، وليس في هذا الفرع",
   'pick.availability': "التوفر",
   'pick.availability.available': "متاح للبيع",
   'pick.availability.sold': "بيع بالفعل",

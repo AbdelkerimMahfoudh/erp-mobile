@@ -36,6 +36,7 @@ it('typed IMEI: empty, letters, length and checksum each have their own message'
 it('lookup failures map to plain outcomes, network apart', () => {
   assert.equal(lookupFailure(400, 'imei_checksum'), 'invalid');
   assert.equal(lookupFailure(404), 'not_found');
+  assert.equal(lookupFailure(404, 'not_available_here'), 'not_here');
   assert.equal(lookupFailure(403), 'forbidden');
   assert.equal(lookupFailure(0), 'network');
   assert.equal(lookupFailure(500), 'server');
@@ -80,4 +81,12 @@ it('EN, FR and AR carry every pick key', () => {
 
 it('the picker uses tokens, not raw colours', () => {
   assert.doesNotMatch(PICKER, /#[0-9a-fA-F]{3,6}\b/);
+});
+
+it('another branch is named only when the server sent it', () => {
+  // The app never infers another branch: it shows a name only when the server
+  // (branch.manage) included one, and otherwise the server's generic answer.
+  assert.ok(PICKER.includes('selection.otherBranch'));
+  assert.doesNotMatch(PICKER + QUICK_SELL, /usePermission('branch.manage')/);
+  assert.ok(read('lib/i18n/en.ts').includes("'pick.failure.not_here': \"This phone is not available in this branch.\""));
 });

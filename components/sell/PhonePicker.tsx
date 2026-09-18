@@ -206,7 +206,11 @@ export function SelectedPhoneCard({
         <StatusChip domain="unit" value={selection.status} size="sm" />
       </View>
       {selection.availability !== 'available' ? (
-        <InlineNotice tone="danger">{t(availabilityKey(selection.availability))}</InlineNotice>
+        <InlineNotice tone="danger">
+          {selection.otherBranch
+            ? t('pick.availability.other_branch_named', { branch: selection.otherBranch.name })
+            : t(availabilityKey(selection.availability))}
+        </InlineNotice>
       ) : null}
       {selection.price !== null ? <Detail label={t('pick.price')} value={formatMoney(selection.price)} /> : null}
       <Text variant="caption" tone="tertiary">

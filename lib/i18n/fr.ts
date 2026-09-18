@@ -568,6 +568,8 @@ export const fr: Catalogue = {
   'pick.failure.network': "Le serveur est injoignable. Vérifiez la connexion et réessayez.",
   'pick.failure.forbidden': "Votre rôle ne permet pas de vendre ici.",
   'pick.failure.server': "Le téléphone n’a pas pu être recherché. Réessayez.",
+  'pick.failure.not_here': "Ce téléphone n’est pas disponible dans cette boutique.",
+  'pick.availability.other_branch_named': "En stock à {branch}, pas dans cette boutique",
   'pick.availability': "Disponibilité",
   'pick.availability.available': "Disponible à la vente",
   'pick.availability.sold': "Déjà vendu",

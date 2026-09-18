@@ -535,6 +535,8 @@ export const en = {
   'pick.failure.network': "The server could not be reached. Check the connection and try again.",
   'pick.failure.forbidden': "Your role may not sell here.",
   'pick.failure.server': "The phone could not be looked up. Try again.",
+  'pick.failure.not_here': "This phone is not available in this branch.",
+  'pick.availability.other_branch_named': "In stock at {branch}, not this branch",
   'pick.availability': "Availability",
   'pick.availability.available': "Available to sell",
   'pick.availability.sold': "Already sold",
