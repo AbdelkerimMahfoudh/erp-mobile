@@ -107,7 +107,7 @@ it('Quick Sell shows the private summary only behind cost.view', () => {
   // The server strips `cost` without the permission, but the screen must not
   // render a row that reads as "this phone was free" when it does.
   assert.ok(
-    QUICK_SELL.includes('canViewCost && unit.cost !== undefined'),
+    QUICK_SELL.includes('canViewCost && picked.selection.cost !== undefined'),
     'the cost row must be gated on the permission AND on the field being present',
   );
 });

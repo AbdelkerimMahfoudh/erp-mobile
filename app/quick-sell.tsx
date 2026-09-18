@@ -43,17 +43,34 @@ import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
 import { refusalOf } from '../lib/discount-approval-state';
 import { isWarningsPending, orderWarnings, referenceKey, type WarningsPending } from '../lib/warnings';
-import type { ScanResult, Unit } from '../types/api';
+import type { SaleSelection, ScanResult } from '../types/api';
+import {
+  ManualImeiPanel,
+  PhoneChooser,
+  SelectedPhoneCard,
+  StockPicker,
+  type PickMode,
+} from '../components/sell/PhonePicker';
+import { lookupSelection, type LookupFailure, type PickSource } from '../lib/phone-selection';
 import { makeStyles } from '../lib/design/theme';
 import { selectableAccounts } from '../lib/receiving-accounts';
 import { invalidateMoney } from '../lib/money-invalidation';
 
 /**
- * Quick Sell — one phone, from Home, camera first.
+ * Quick Sell — "Sell a phone": one phone, from Home.
  *
- * Home → Sell → scanner → the exact phone → price and a private summary →
- * payment → confirmed. It is the single-item path, and it exists because that
+ * Home → Sell → find the phone → the exact phone → price and a private summary
+ * → payment → confirmed. It is the single-item path, and it exists because that
  * is what almost every sale in a phone shop actually is.
+ *
+ * ## Three ways to find the phone, one selection
+ *
+ * The sale starts with a choice: **Scan IMEI**, **Enter IMEI manually** or
+ * **Choose from stock**. All three end in the same server lookup,
+ * `GET /sales/selection/:identifier`, and the same selected-phone card, and all
+ * three continue into the same payment sheet — full or partial, with the same
+ * debt, receipt and accounting. Finding a phone never creates stock: the lookup
+ * only reads.
  *
  * ## What it deliberately does NOT do
  *
@@ -99,8 +116,15 @@ export default function QuickSellScreen() {
   const canViewCost = usePermission('cost.view');
   const canOverrideReturnPolicy = usePermission('return.policy.override');
 
-  const [unit, setUnit] = useState<Unit | null>(null);
-  const [blocked, setBlocked] = useState<string | null>(null);
+  /** Which way of finding the phone is open. */
+  const [mode, setMode] = useState<PickMode>('choose');
+  /**
+   * The phone chosen, however it was found: the server's selection, the
+   * identifier to put on the sale line, and how it was found.
+   */
+  const [picked, setPicked] = useState<{ selection: SaleSelection; identifier: string; source: PickSource } | null>(null);
+  const [lookupError, setLookupError] = useState<LookupFailure | null>(null);
+  const sellable = picked?.selection.availability === 'available';
   const [price, setPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -124,8 +148,6 @@ export default function QuickSellScreen() {
    * lost response becomes a second charge to a customer who already paid.
    */
   const clientUuid = useRef(uuidv4());
-  /** Started the moment a code is captured, so the lookup overlaps recognition. */
-  const unitLookups = useRef(new Map<string, Promise<Unit | null>>());
 
   const companyDefaultHours = useCompanyReturnWindow();
   const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
@@ -139,81 +161,58 @@ export default function QuickSellScreen() {
   const receivingAccounts = accountsQuery.data?.receivingAccounts ?? [];
 
   const proposedPrice = Number(price) > 0 ? Number(price) : null;
-  const expected = expectedGrossProfit(proposedPrice, canViewCost ? unit?.cost : undefined);
-  const age = daysInStock(unit?.dateIn);
+  const expected = expectedGrossProfit(proposedPrice, canViewCost ? picked?.selection.cost : undefined);
+  const age = daysInStock(picked?.selection.dateIn);
 
-  // ── Scanning ──────────────────────────────────────────────────────────────
+  // ── Finding the phone ─────────────────────────────────────────────────────
 
-  const onCodeCaptured = useCallback((code: string) => {
-    if (unitLookups.current.has(code)) return;
-    unitLookups.current.set(
-      code,
-      api.get<Unit>(`/units/${encodeURIComponent(code)}`).catch(() => null),
-    );
+  /**
+   * Every way of finding the phone ends here: one selection, one set of
+   * checks, one price. The server decided availability and price; this only
+   * keeps what it said.
+   */
+  const choose = useCallback((selection: SaleSelection, identifier: string, source: PickSource) => {
+    setLookupError(null);
+    setPicked({ selection, identifier, source });
+    // The price the sale will charge, from the server's own ladder. Changing
+    // it is allowed exactly as before: the server refuses anything below the
+    // floor without an owner's approval, and that refusal is handled below.
+    setPrice(selection.price != null ? String(selection.price) : '');
   }, []);
 
-  const onScanResult = useCallback(
-    async (result: ScanResult) => {
-      /*
-       * The prefetch is an OPTIMISATION, never the lookup itself.
-       *
-       * `onCodeCaptured` starts it for the inline field and for the camera, but
-       * the scanner sheet's own keypad submits through a different `useScan`
-       * instance that carries no `onCode` — and that keypad is the permanent
-       * manual-entry path, as well as the only one on a handset whose camera
-       * cannot read the label. Treating a missing prefetch as a missing phone
-       * made every typed identifier answer "no phone in stock has that number",
-       * which is the one answer that must never be wrong.
-       */
-      const pending = unitLookups.current.get(result.code);
-      unitLookups.current.delete(result.code);
-      const found =
-        (await (pending ??
-          api.get<Unit>(`/units/${encodeURIComponent(result.code)}`).catch(() => null))) ?? null;
-
-      /*
-       * Either IMEI finds the same phone — the server looks up primary,
-       * secondary and serial alike, so a dual-SIM handset scanned by its second
-       * number is the same unit and not a miss.
-       */
-      if (!found) {
-        setUnit(null);
-        setBlocked(t('quick.sell.notFound'));
+  const findAndChoose = useCallback(
+    async (code: string, source: PickSource) => {
+      const found = await lookupSelection(code);
+      if (!found.ok) {
+        setPicked(null);
+        setLookupError(found.failure);
         return;
       }
-
-      /*
-       * Availability, custody and branch are the SERVER's facts; this only
-       * reports them. A reserved unit is on somebody's transfer and a sold one
-       * is gone — selling either would be selling a phone the shop does not
-       * have to give.
-       */
-      if (found.status !== 'in_stock') {
-        setUnit(found);
-        setBlocked(t(`status.unit.${found.status}` as never));
-        return;
-      }
-      if (found.branchId && branchId && found.branchId !== branchId) {
-        setUnit(found);
-        setBlocked(t('quick.sell.unavailable'));
-        return;
-      }
-
-      setBlocked(null);
-      setUnit(found);
-      // The configured selling price, prefilled. Changing it is allowed exactly
-      // as it is on the Sell tab: the server refuses anything below the floor
-      // without an owner's approval, and that refusal is handled below.
-      setPrice(found.product?.defaultPrice != null ? String(found.product.defaultPrice) : '');
+      choose(found.selection, found.identifier, source);
     },
-    [branchId, t],
+    [choose],
   );
+
+  /*
+   * The scanner is unchanged: raw IMEI, labelled IMEI or a dual-IMEI QR, its
+   * own scan lock and paused result. Its result only feeds the shared lookup;
+   * either IMEI finds the same phone because the server looks up both.
+   */
+  const onScanResult = useCallback((result: ScanResult) => findAndChoose(result.code, 'scan'), [findAndChoose]);
+
+  /** Back to the three choices, with nothing carried over. */
+  const chooseAnother = () => {
+    setPicked(null);
+    setLookupError(null);
+    setPrice('');
+    setMode('choose');
+  };
 
   // ── Checkout ──────────────────────────────────────────────────────────────
 
   const finalize = (sale: SaleResponse, payments: PaymentEntry[]) => {
-    const identifier = unit?.imeiPrimary ?? unit?.serialNo ?? '';
-    const label = unit?.product ? `${unit.product.brand} ${unit.product.model}` : identifier;
+    const identifier = picked?.identifier ?? '';
+    const label = picked ? `${picked.selection.product.brand} ${picked.selection.product.model}` : identifier;
     /*
      * The customer's copy. It carries what was sold, for how much and how it
      * was paid — and structurally cannot carry cost or profit, because
@@ -241,7 +240,8 @@ export default function QuickSellScreen() {
 
     setDone({ sale, receipt });
     setPaymentOpen(false);
-    setUnit(null);
+    setPicked(null);
+    setMode('choose');
     setPrice('');
     setCustomer(null);
     setReturnWindowHours(null);
@@ -257,9 +257,8 @@ export default function QuickSellScreen() {
     payments: PaymentEntry[],
     options: { overrideReason?: string; acknowledgementToken?: string } = {},
   ): Promise<void> => {
-    if (!unit || proposedPrice === null) return;
-    const identifier = unit.imeiPrimary ?? unit.serialNo;
-    if (!identifier) return;
+    if (!picked || !sellable || proposedPrice === null) return;
+    const identifier = picked.identifier;
 
     try {
       const response = await api.post<SaleResponse | WarningsPending>('/sales', {
@@ -304,7 +303,7 @@ export default function QuickSellScreen() {
             heldPayments.current = payments;
             setApprovalRequest({
               unitId: body.unitId,
-              label: unit.product ? `${unit.product.brand} ${unit.product.model}` : identifier,
+              label: `${picked.selection.product.brand} ${picked.selection.product.model}`,
               identifier: body.identifier ?? identifier,
               configuredPrice: body.configuredPrice ?? null,
               proposedPrice,
@@ -440,30 +439,34 @@ export default function QuickSellScreen() {
         scroll={false}
         padded={false}
         header={
-          <ScanTarget
-            onResult={onScanResult}
-            onCodeCaptured={onCodeCaptured}
-            /* The whole point of the shortcut: the camera is already open. */
-            autoOpenCamera={Boolean(branchId)}
-            placeholder={t('sell.scan.placeholder')}
-          />
+          mode === 'scan' && !picked ? (
+            <ScanTarget
+              onResult={onScanResult}
+              /* Scan IMEI was chosen, so the camera opens straight away. */
+              autoOpenCamera={Boolean(branchId)}
+              placeholder={t('sell.scan.placeholder')}
+            />
+          ) : undefined
         }
         footer={
-          unit && !blocked ? (
+          picked ? (
             <>
-              {offline ? (
+              {offline && sellable ? (
                 <InlineNotice tone="danger" style={styles.notice}>
                   {t('sell.offline.body')}
                 </InlineNotice>
               ) : null}
-              <Button
-                title={t('quick.sell.confirm')}
-                size="lg"
-                fullWidth
-                disabled={offline || submitting || proposedPrice === null}
-                loading={submitting}
-                onPress={() => setPaymentOpen(true)}
-              />
+              {sellable ? (
+                <Button
+                  title={t('pick.continue')}
+                  size="lg"
+                  fullWidth
+                  disabled={offline || submitting || proposedPrice === null}
+                  loading={submitting}
+                  onPress={() => setPaymentOpen(true)}
+                />
+              ) : null}
+              <Button title={t('pick.another')} variant={sellable ? 'tertiary' : 'secondary'} fullWidth onPress={chooseAnother} />
             </>
           ) : undefined
         }
@@ -484,44 +487,53 @@ export default function QuickSellScreen() {
         />
 
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-          {!unit && !blocked ? (
+          {!picked ? (
             <>
-              <EmptyState icon={ScanLine} title={t('sell.empty.title')} body={t('sell.empty.body')} />
-              {/* Several items, or a cart already started: the full sale is one tap away. */}
-              <Button
-                title={t('home.shortcut.fullSale')}
-                variant="tertiary"
-                size="sm"
-                onPress={() => router.push('/(tabs)/sell')}
-              />
+              {mode === 'choose' ? (
+                <>
+                  <PhoneChooser onChoose={setMode} />
+                  {/* Several items, or a cart already started: the full sale is one tap away. */}
+                  <Button
+                    title={t('home.shortcut.fullSale')}
+                    variant="tertiary"
+                    size="sm"
+                    onPress={() => router.push('/(tabs)/sell')}
+                  />
+                </>
+              ) : mode === 'scan' ? (
+                <EmptyState icon={ScanLine} title={t('sell.empty.title')} body={t('sell.empty.body')} />
+              ) : mode === 'manual' ? (
+                <ManualImeiPanel
+                  onUse={(selection, identifier) => choose(selection, identifier, 'manual')}
+                  onStockInstead={() => {
+                    setLookupError(null);
+                    setMode('stock');
+                  }}
+                />
+              ) : (
+                <StockPicker onPick={(identifier) => void findAndChoose(identifier, 'stock')} />
+              )}
+
+              {lookupError ? (
+                <InlineNotice tone={lookupError === 'network' ? 'warning' : 'danger'}>
+                  {t(`pick.failure.${lookupError}` as never)}
+                </InlineNotice>
+              ) : null}
+
+              {mode !== 'choose' ? <Button title={t('pick.back')} variant="tertiary" onPress={chooseAnother} /> : null}
             </>
           ) : null}
 
-          {blocked ? (
-            <InlineNotice tone="danger" title={t('quick.sell.unavailable')}>
-              {blocked}
-            </InlineNotice>
+          {picked ? (
+            <SelectedPhoneCard selection={picked.selection} source={picked.source}>
+              {sellable ? (
+                <MoneyField label={t('quick.sell.price')} value={price} onChangeText={setPrice} required />
+              ) : null}
+            </SelectedPhoneCard>
           ) : null}
 
-          {unit && !blocked ? (
+          {picked && sellable ? (
             <>
-              <Card style={styles.card}>
-                <Text variant="heading">
-                  {unit.product ? `${unit.product.brand} ${unit.product.model}` : ''}
-                </Text>
-                {unit.product?.variant ? (
-                  <Text variant="body" tone="secondary">
-                    {unit.product.variant}
-                  </Text>
-                ) : null}
-
-                <MoneyField
-                  label={t('quick.sell.price')}
-                  value={price}
-                  onChangeText={setPrice}
-                  required
-                />
-              </Card>
 
               {/*
                 The private summary. Everything a seller needs to judge the
@@ -532,7 +544,7 @@ export default function QuickSellScreen() {
 
                 <SummaryRow
                   label={t('quick.sell.received')
-                    .replace('{date}', unit.dateIn ? formatDate(unit.dateIn) : '')
+                    .replace('{date}', picked.selection.dateIn ? formatDate(picked.selection.dateIn) : '')
                     .trim()}
                   value={
                     age === null
@@ -548,8 +560,8 @@ export default function QuickSellScreen() {
                   server strips the field entirely, and the row is omitted
                   rather than shown as a dash somebody reads as "free".
                 */}
-                {canViewCost && unit.cost !== undefined ? (
-                  <SummaryRow label={t('quick.sell.cost')} value={formatMoney(unit.cost)} />
+                {canViewCost && picked.selection.cost !== undefined ? (
+                  <SummaryRow label={t('quick.sell.cost')} value={formatMoney(picked.selection.cost)} />
                 ) : null}
 
                 {expected !== null ? (
