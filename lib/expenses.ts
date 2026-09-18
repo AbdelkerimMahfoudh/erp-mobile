@@ -4,6 +4,10 @@ import { useBranch } from './branch';
 import { qk } from './query-keys';
 import type { Expense, ExpensePage, ExpenseStatus } from '../types/api';
 import { invalidateMoney } from './money-invalidation';
+import { Platform } from 'react-native';
+import { File, UploadType } from 'expo-file-system';
+import { API_V1_URL, TOKEN_KEYS } from '../constants/config';
+import { getItem } from './storage';
 
 /**
  * Expenses (Milestone D).
@@ -49,6 +53,8 @@ export interface ReportExpenseBody {
   receivingAccountId?: string;
   reference?: string;
   note?: string;
+  /** The day it was spent, YYYY-MM-DD. The accounting day is still the day it is confirmed. */
+  spentOn?: string;
   clientUuid: string;
 }
 
@@ -121,4 +127,56 @@ export function expenseConflictKind(e: unknown): ExpenseConflict | null {
  */
 export function needsReasonWarning(expense: Pick<Expense, 'note'>): boolean {
   return !(expense.note ?? '').trim();
+}
+
+/** A photo chosen for a receipt: where it is, and what it is. */
+export interface ReceiptPhoto {
+  uri: string;
+  mimeType?: string | null;
+  /** On web the picker hands over the file itself. */
+  file?: unknown;
+}
+
+/**
+ * Attach a receipt photo to an expense (0074).
+ *
+ * Sent the way the file import sends a workbook: on a phone the platform's own
+ * uploader reads the photo from its uri and builds the multipart body, so a uri
+ * React Native cannot open never uploads nothing; on web the chosen File is
+ * sent as-is. The server decides from the bytes whether it is an image.
+ */
+export function useUploadReceipt() {
+  const branchId = useBranch((s) => s.branchId);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ expenseId, photo }: { expenseId: string; photo: ReceiptPhoto }) => {
+      const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
+      const url = `${API_V1_URL}/expenses/${expenseId}/receipt`;
+      const headers = {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        ...(branchId ? { 'x-branch-id': branchId } : {}),
+      };
+      const mimeType = photo.mimeType ?? 'image/jpeg';
+      if (Platform.OS === 'web' || photo.file) {
+        const form = new FormData();
+        form.append('file', photo.file as Blob, 'receipt');
+        const res = await fetch(url, { method: 'POST', headers, body: form });
+        if (!res.ok) throw new ApiError('The photo could not be uploaded', res.status);
+        return;
+      }
+      const result = await new File(photo.uri).upload(url, {
+        httpMethod: 'POST',
+        uploadType: UploadType.MULTIPART,
+        fieldName: 'file',
+        mimeType,
+        headers,
+      });
+      if (result.status < 200 || result.status >= 300) throw new ApiError('The photo could not be uploaded', result.status);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['expenses'] });
+      void qc.invalidateQueries({ queryKey: ['expense'] });
+      invalidateMoney(qc);
+    },
+  });
 }

@@ -16,13 +16,16 @@ import {
 } from '../../components/ui';
 import { api } from '../../lib/api-client';
 import { useConnectivity } from '../../lib/connectivity';
-import { space } from '../../lib/design/tokens';
+import { radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { useDraft } from '../../lib/offline/use-draft';
 import { DraftNotice } from '../../components/DraftNotice';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
-import { expenseConflictKind, useReportExpense } from '../../lib/expenses';
+import { expenseConflictKind, useReportExpense, useUploadReceipt, type ReceiptPhoto } from '../../lib/expenses';
+import { localDay } from '../../lib/sale-payment-rules';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { dialog } from '../../lib/dialog';
 
 interface SettingsResponse {
@@ -51,6 +54,11 @@ export default function NewExpenseScreen() {
   const [accountId, setAccountId] = useState<string | null>(null);
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
+  /** Today unless the person says otherwise. The accounting day is the confirmation day. */
+  const [spentOn, setSpentOn] = useState(localDay(new Date()));
+  /** Optional. Never saved in the draft: a picked photo's uri may not survive an app kill. */
+  const [receipt, setReceipt] = useState<ReceiptPhoto | null>(null);
+  const uploadReceipt = useUploadReceipt();
 
   /**
    * The expense form survives an app kill (J.1).
@@ -61,7 +69,7 @@ export default function NewExpenseScreen() {
    * stale.
    */
   const draft = useDraft('expense.form', {
-    category, amount, expenseClass, isSalary, dueDate, method, accountId, reference, note,
+    category, amount, expenseClass, isSalary, dueDate, method, accountId, reference, note, spentOn,
   }, (v) => {
     setCategory(v.category ?? '');
     setAmount(v.amount ?? '');
@@ -72,6 +80,7 @@ export default function NewExpenseScreen() {
     setAccountId(v.accountId ?? null);
     setReference(v.reference ?? '');
     setNote(v.note ?? '');
+    setSpentOn(v.spentOn ?? localDay(new Date()));
   });
 
   /**
@@ -95,11 +104,19 @@ export default function NewExpenseScreen() {
     amountValue > 0 &&
     (expenseClass === 'variable' || dueDate.length === 10) &&
     (method === 'cash' || Boolean(accountId)) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(spentOn) &&
     !offline;
+
+  const pickReceipt = async () => {
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    const asset = picked.assets[0];
+    setReceipt({ uri: asset.uri, mimeType: asset.mimeType ?? null, file: (asset as { file?: unknown }).file });
+  };
 
   const submit = async () => {
     try {
-      await report.mutateAsync({
+      const created = await report.mutateAsync({
         category: category.trim(),
         amount: amountValue,
         expenseClass,
@@ -109,8 +126,18 @@ export default function NewExpenseScreen() {
         receivingAccountId: method === 'account' ? (accountId ?? undefined) : undefined,
         reference: reference.trim() || undefined,
         note: note.trim() || undefined,
+        spentOn,
         clientUuid: requestId.current,
       });
+      // The photo is evidence, not the expense: if it fails, the expense stands
+      // and the person is told, rather than losing what they already recorded.
+      if (receipt) {
+        try {
+          await uploadReceipt.mutateAsync({ expenseId: created.id, photo: receipt });
+        } catch {
+          toast.error(t('expenses.receipt.failed'));
+        }
+      }
       toast.success(t('expenses.report.done'));
       draft.clear();
       router.back();
@@ -144,6 +171,7 @@ export default function NewExpenseScreen() {
           autoFocus
         />
         <MoneyField label={t('expenses.amount')} value={amount} onChangeText={setAmount} required />
+        <TextField label={t('expenses.date')} value={spentOn} onChangeText={setSpentOn} placeholder="2026-09-18" required />
       </Section>
 
       <Section title={t('expenses.class.label')}>
@@ -221,6 +249,20 @@ export default function NewExpenseScreen() {
         ) : null}
       </Section>
 
+      <Section title={t('expenses.receipt')}>
+        {receipt ? (
+          <View style={styles.receipt}>
+            <Image source={{ uri: receipt.uri }} style={styles.receiptImage} contentFit="cover" accessibilityLabel={t('expenses.receipt.attached')} />
+            <View style={styles.receiptActions}>
+              <Button title={t('expenses.receipt.replace')} variant="secondary" size="sm" onPress={() => void pickReceipt()} />
+              <Button title={t('expenses.receipt.remove')} variant="tertiary" size="sm" onPress={() => setReceipt(null)} />
+            </View>
+          </View>
+        ) : (
+          <Button title={t('expenses.receipt.add')} variant="secondary" onPress={() => void pickReceipt()} />
+        )}
+      </Section>
+
       <Section title={t('expenses.report.detail')}>
         <TextField label={t('expenses.reference')} value={reference} onChangeText={setReference} />
         <TextField
@@ -257,4 +299,7 @@ export default function NewExpenseScreen() {
 const styles = StyleSheet.create({
   hint: { marginTop: space.sm },
   accounts: { gap: space.sm, marginTop: space.sm },
+  receipt: { gap: space.sm },
+  receiptImage: { width: '100%', maxWidth: 320, aspectRatio: 3 / 4, borderRadius: radius.md },
+  receiptActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });
