@@ -54,7 +54,8 @@ export type IconName =
   | 'ShieldCheck'
   | 'Smartphone'
   | 'Palette'
-  | 'RefreshCw';
+  | 'RefreshCw'
+  | 'Clock';
 
 export type HubId =
   | 'sales'
@@ -165,6 +166,10 @@ export const HUBS: readonly Hub[] = [
       // drawer must reach this screen; signing the day off is gated inside it.
       { id: 'closing', route: '/closing', titleKey: 'nav.closing', icon: 'ClipboardCheck', perm: 'closing.count' },
       { id: 'loans', route: '/loans', titleKey: 'nav.loans', icon: 'HandCoins', perm: 'loan.view' },
+      // Balances customers and partner stores still owe (0074). `report.view`,
+      // like the figures: the whole branch's receivables are an Owner and
+      // Manager question. Quiet on purpose — a row, not a banner.
+      { id: 'outstanding', route: '/outstanding', titleKey: 'nav.outstanding', icon: 'Clock', perm: 'report.view' },
     ],
   },
   {
@@ -300,6 +305,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/receive': 'Started from Home and Inventory — a counter action, not a menu entry.',
   '/receive/pick': 'Choosing a stock file, from the Receive stock header. Owner-only, like the opening-inventory import.',
   '/receive/file': 'Checking a delivery read out of a file, before any of it is received.',
+  '/sales/period': 'Every sale in the Money period, from the overview’s View all sales — a detail of Money, not a menu entry.',
+  '/sales/pay/[id]': 'Recording a later payment, opened from the sale it pays for.',
   // The Home shortcut, not a second Sell. It opens the camera on one phone and
   // leaves the Sell tab's cart alone; putting it in a menu would offer two
   // entries that look like the same thing and behave differently.

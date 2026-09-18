@@ -236,9 +236,10 @@ it('an Owner sees the five business hubs — Money is a tab now, not a card', ()
     'performance',
     'business',
   ]);
-  // Moved, not removed: the Owner still reaches all four of its children.
+  // Moved, not removed: the Owner reaches all five of its children — Results,
+  // Expenses, Daily closing, Loans, and Outstanding payments (0074).
   assert.equal(hubById('money')?.placement, 'tab');
-  assert.equal(visibleChildren(hubById('money')!, OWNER).length, 4);
+  assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'closing', 'loans', 'outstanding']);
 });
 
 it('an Owner sees every destination', () => {
@@ -520,18 +521,19 @@ it('More still shows exactly the five remaining business hubs', () => {
   assert.deepEqual(onMore, ['sales', 'stock', 'network', 'performance', 'business']);
 });
 
-it('the whole hub moved — all four children, unchanged', () => {
+it('the whole hub moved — its four children unchanged, plus Outstanding payments (0074)', () => {
   const money = hubById('money');
   assert.deepEqual(
     money.children.map((c) => c.route),
-    ['/money', '/expenses', '/closing', '/loans'],
+    ['/money', '/expenses', '/closing', '/loans', '/outstanding'],
     'the complete Money section moves, not just its landing card',
   );
   // The permissions are the ones the hub always enforced. Widening any of them
   // here would hand a role a financial screen it was never given.
   assert.deepEqual(
     money.children.map((c) => c.perm),
-    ['report.view', 'expense.submit', 'closing.count', 'loan.view'],
+    // Outstanding needs report.view, like every branch-wide figure.
+    ['report.view', 'expense.submit', 'closing.count', 'loan.view', 'report.view'],
   );
 });
 
@@ -595,9 +597,9 @@ it('shows only the children a role actually holds', () => {
     visibleChildren(money, employee).map((c) => c.route),
     ['/expenses', '/closing'],
   );
-  // An Owner with everything sees all four.
+  // An Owner with everything sees all five; Outstanding comes with report.view.
   const owner = new Set(['report.view', 'expense.submit', 'closing.count', 'loan.view']);
-  assert.equal(visibleChildren(money, owner).length, 4);
+  assert.equal(visibleChildren(money, owner).length, 5);
 });
 
 it('the tab screen is a primary screen, with no header and no back label', () => {
