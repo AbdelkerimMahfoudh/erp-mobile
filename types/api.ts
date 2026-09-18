@@ -1400,3 +1400,34 @@ export interface AuthTokens {
   refreshToken: string;
   expiresIn: number;
 }
+
+/** Whether a found phone can be sold here and now — the server's word. */
+export type SaleAvailability = 'available' | 'sold' | 'faulty' | 'reserved' | 'other_branch' | 'unavailable';
+
+/**
+ * The phone about to be sold, as `GET /sales/selection/:identifier` answers it.
+ *
+ * One shape however the phone was found. It carries no full identifier (only a
+ * masked one), no margin and no history; `cost` is present only for a caller
+ * with `cost.view`.
+ */
+export interface SaleSelection {
+  unitId: string;
+  availability: SaleAvailability;
+  status: string;
+  matchedBy: 'imei1' | 'imei2' | 'serial';
+  identifierMasked: string | null;
+  hasSecondImei: boolean;
+  product: {
+    brand: string;
+    model: string;
+    variant: string | null;
+    storage: string | null;
+    colour: string | null;
+    trackingType: TrackingType;
+  };
+  /** The price the sale will charge, by the sale's own ladder. Null when not sellable here, or unpriced. */
+  price: number | null;
+  cost?: number;
+  dateIn?: string;
+}
