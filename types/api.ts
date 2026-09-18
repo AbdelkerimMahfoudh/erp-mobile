@@ -741,8 +741,24 @@ export interface SaleListRow {
   serializedCount: number;
   soldBy: string | null;
   customer: string | null;
+  /** Who owes the balance, whichever kind (0074). */
+  debtor: { kind: DebtorKind; name: string | null } | null;
+  /** What was sold, as a row can say it. The first item of the sale. */
+  product: string | null;
   paymentMethods: PaymentMethod[];
+  /** The accounts money landed in, by the label frozen at the time. */
+  accountLabels: string[];
   returnPolicy: SaleReturnPolicy;
+}
+
+/** Who owes a balance: a customer, a partner store, or — only for a pre-0074 balance — nobody named. */
+export type DebtorKind = 'customer' | 'store' | 'unknown';
+
+export interface Debtor {
+  kind: DebtorKind;
+  id: string | null;
+  name: string | null;
+  phone: string | null;
 }
 
 export interface SalePage {
@@ -768,11 +784,33 @@ export interface SaleLine {
   voided: boolean;
 }
 
+/** Money taken with the sale, or received later against its balance (0074). */
+export type SalePaymentKind = 'at_sale' | 'collection';
+
 export interface SalePaymentRecord {
   id: string;
+  kind: SalePaymentKind;
   method: PaymentMethod;
   amount: number;
+  /** When the money arrived. */
   paidAt: string;
+  reference: string | null;
+  note: string | null;
+  /** The account label as it stood when the money arrived. Never rewritten. */
+  accountLabel: string | null;
+  accountProvider: string | null;
+  recordedBy: string | null;
+}
+
+/** What POST /sales/:id/payments answers with. */
+export interface SalePaymentState {
+  id: string;
+  invoiceNo: string;
+  total: number;
+  received: number;
+  remaining: number;
+  payStatus: SalePayStatus;
+  payments: SalePaymentRecord[];
 }
 
 export interface SaleDetail {
@@ -782,6 +820,8 @@ export interface SaleDetail {
   branch: TransferBranchRef;
   soldBy: string | null;
   customer: { id: string; name: string | null; phone: string | null } | null;
+  /** Who owes the balance, as one field whichever kind it is (0074). */
+  debtor: Debtor | null;
   subtotal: number;
   discount: number;
   taxTotal: number;

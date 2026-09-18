@@ -113,6 +113,14 @@ export const qk = {
   /** Recorded money per channel for a period — branch-scoped, like the closing it reads. */
   moneyMovements: (branchId: string | null, from: string, to: string) =>
     ['money-movements', branchId, from, to] as const,
+  /** The Money screen in one read (0074): drawer now, accounts today, period sales. */
+  moneyOverview: (branchId: string | null, from: string, to: string) =>
+    ['money-overview', branchId, from, to] as const,
+  /** Every balance still owed at the branch, grouped by who owes it (0074). */
+  outstanding: (branchId: string | null) => ['outstanding', branchId] as const,
+  /** Sales per day for a period — the week and month views (0074). */
+  salesByDay: (branchId: string | null, from: string, to: string) =>
+    ['sales-by-day', branchId, from, to] as const,
   /** The consolidated period summary (L). Branch-scoped, like every read. */
   analyticsSummary: (branchId: string | null, from: string, to: string) =>
     ['analytics-summary', branchId, from, to] as const,

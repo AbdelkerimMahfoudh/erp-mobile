@@ -39,12 +39,13 @@ export function saleQueryString(filters: SaleFilters): string {
  * under one query is meaningless under another, so changing a filter must start
  * a fresh run rather than continue the previous one.
  */
-export function useSales(filters: SaleFilters) {
+export function useSales(filters: SaleFilters, opts: { enabled?: boolean } = {}) {
   const branchId = useBranch((s) => s.branchId);
   const qs = saleQueryString(filters);
 
   return useInfiniteQuery({
     queryKey: qk.sales(branchId, qs),
+    enabled: opts.enabled ?? true,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const p = new URLSearchParams(qs);
