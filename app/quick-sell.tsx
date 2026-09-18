@@ -32,6 +32,7 @@ import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
 import { formatDate, formatMoney } from '../lib/format';
 import { daysInStock, expectedGrossProfit } from '../lib/home-metrics';
+import { saleDebtorFields, type DebtorDraft } from '../lib/sale-payment-rules';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
 import type { ReceiptData } from '../lib/receipt';
@@ -113,6 +114,8 @@ export default function QuickSellScreen() {
 
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
   const heldPayments = useRef<PaymentEntry[] | null>(null);
+  /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
+  const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
 
   /**
    * One idempotency key per SALE, not per attempt.
@@ -267,7 +270,7 @@ export default function QuickSellScreen() {
           amount: p.amount,
           ...(p.receivingAccountId ? { receivingAccountId: p.receivingAccountId } : {}),
         })),
-        ...(customer ? { customerId: customer.id } : {}),
+        ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         ...(effectiveWindowHours !== companyDefaultHours
           ? { returnWindowHours: effectiveWindowHours, returnPolicyReason: returnPolicyReason.trim() }
@@ -385,7 +388,8 @@ export default function QuickSellScreen() {
     });
   };
 
-  const onComplete = async (payments: PaymentEntry[]) => {
+  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+    heldDebtor.current = debtor;
     setSubmitting(true);
     try {
       let overrideReason: string | undefined;
@@ -582,6 +586,7 @@ export default function QuickSellScreen() {
         discount={0}
         onDiscountChange={() => {}}
         onComplete={onComplete}
+        presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
         submitting={submitting}
         accounts={selectableAccounts(receivingAccounts)}
         returnPolicy={{

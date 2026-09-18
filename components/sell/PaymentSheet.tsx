@@ -9,9 +9,11 @@ import { BottomSheet } from '../overlay/BottomSheet';
 import { Button } from '../ui/Button';
 import { MoneyField } from '../ui/Field';
 import { IconButton } from '../ui/IconButton';
-import { FilterChip } from '../ui/Chip';
+import { FilterChip, StatusChip } from '../ui/Chip';
 import { Text } from '../ui/Text';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
+import { DebtorPicker } from './DebtorPicker';
+import { debtorProblem, previewSalePayment, type DebtorDraft } from '../../lib/sale-payment-rules';
 import type { PaymentEntry } from './types';
 import { makeStyles } from '../../lib/design/theme';
 
@@ -22,12 +24,11 @@ import { makeStyles } from '../../lib/design/theme';
  * sale is a single tap on Complete. Splitting across methods is available but
  * never in the way.
  *
- * The full total must be covered. The backend treats an underpayment as a
- * credit sale and demands a customer to hold the receivable — and there is no
- * customers API yet — so allowing a short payment here would only produce a
- * confusing rejection at the counter. Complete stays disabled until the
- * remainder is zero, and the reason is stated on screen rather than left as a
- * mystery.
+ * Less than the total may be taken (0074). The amount received now defaults to
+ * the whole total, so the ordinary sale is still one tap; lowering it shows
+ * what remains, what the status will be, and asks who owes the rest — a
+ * customer or a partner store. Complete stays disabled until that is answered,
+ * and more than the total can never be taken. The server recomputes all of it.
  */
 
 const METHODS = ['cash', 'card', 'mobile', 'bank'] as const;
@@ -55,7 +56,10 @@ export interface PaymentSheetProps {
   total: number;
   discount: number;
   onDiscountChange: (discount: number) => void;
-  onComplete: (payments: PaymentEntry[]) => void;
+  /** The payments taken now, and who owes whatever they leave unpaid. */
+  onComplete: (payments: PaymentEntry[], debtor: DebtorDraft) => void;
+  /** The customer already chosen for this sale, if any: the natural debtor. */
+  presetCustomer?: { id: string; name: string | null } | null;
   submitting?: boolean;
   /**
    * The shop's active receiving accounts. Empty is a real state — a shop that
@@ -87,12 +91,17 @@ export function PaymentSheet({
   submitting = false,
   accounts,
   returnPolicy,
+  presetCustomer = null,
 }: PaymentSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const [method, setMethod] = useState<Method>('cash');
   const [accountId, setAccountId] = useState<string | null>(null);
   const [split, setSplit] = useState<PaymentEntry[]>([]);
+  const [receivedText, setReceivedText] = useState(String(total));
+  const presetDebtor = (): DebtorDraft =>
+    presetCustomer ? { kind: 'customer_existing', customerId: presetCustomer.id, name: presetCustomer.name ?? '' } : { kind: 'none' };
+  const [debtor, setDebtor] = useState<DebtorDraft>(presetDebtor);
 
   // Reset each time it opens: a half-built split from a previous sale must
   // never carry into the next one.
@@ -101,7 +110,11 @@ export function PaymentSheet({
       setMethod('cash');
       setAccountId(null);
       setSplit([]);
+      setReceivedText(String(total));
+      setDebtor(presetDebtor());
     }
+    // Reset on OPEN only; the total and the preset are read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   /** The provider and label, said in full before the sale is completed. */
@@ -155,9 +168,13 @@ export function PaymentSheet({
     [split],
   );
   const isSplitting = split.length > 0;
-  const paid = isSplitting ? splitTotal : total;
+  const receivedNow = Number(receivedText);
+  const paid = isSplitting ? splitTotal : Number.isFinite(receivedNow) && receivedNow > 0 ? receivedNow : 0;
   const remaining = Math.round((total - paid) * 100) / 100;
-  const settled = Math.abs(remaining) < 0.005;
+  /** More than the total is never taken: change is not a payment. */
+  const overpaid = remaining < -0.005;
+  const preview = previewSalePayment(total, paid);
+  const owedBy = debtorProblem(Math.max(0, remaining), debtor);
 
   const policyChanged = returnPolicy.windowHours !== returnPolicy.companyDefaultHours;
   const policyNeedsReason = policyChanged && returnPolicy.reason.trim().length === 0;
@@ -170,7 +187,10 @@ export function PaymentSheet({
    */
   const accountsSettled = isSplitting
     ? split.every((entry) => !needsAccount(entry.method as Method) || Boolean(entry.receivingAccountId))
-    : !needsAccount(method) || Boolean(accountId);
+    : paid === 0 || !needsAccount(method) || Boolean(accountId);
+
+  // A fully paid sale owes nobody anything, whoever was picked on the way.
+  const debtorToSend: DebtorDraft = remaining > 0.005 ? debtor : { kind: 'none' };
 
   const complete = () => {
     if (isSplitting) {
@@ -185,16 +205,23 @@ export function PaymentSheet({
               ? entry.receivingAccountId
               : undefined,
           })),
+        debtorToSend,
       );
     } else {
-      onComplete([
-        {
-          key: uuidv4(),
-          method,
-          amount: total,
-          ...(needsAccount(method) && accountId ? { receivingAccountId: accountId } : {}),
-        },
-      ]);
+      onComplete(
+        // Nothing received now is a real sale: the whole total is then owed.
+        paid > 0
+          ? [
+              {
+                key: uuidv4(),
+                method,
+                amount: paid,
+                ...(needsAccount(method) && accountId ? { receivingAccountId: accountId } : {}),
+              },
+            ]
+          : [],
+        debtorToSend,
+      );
     }
   };
 
@@ -223,12 +250,16 @@ export function PaymentSheet({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={!settled || policyNeedsReason || !accountsSettled}
+            disabled={overpaid || owedBy !== null || policyNeedsReason || !accountsSettled}
             onPress={complete}
           />
-          {!settled ? (
+          {overpaid ? (
             <Text variant="caption" tone="tertiary" align="center">
               {t('sell.payment.exactOnly')}
+            </Text>
+          ) : owedBy ? (
+            <Text variant="caption" tone="tertiary" align="center">
+              {t(`sellDebt.problem.${owedBy}` as never, { amount: formatMoney(remaining) })}
             </Text>
           ) : !accountsSettled ? (
             <Text variant="caption" tone="tertiary" align="center">
@@ -250,12 +281,29 @@ export function PaymentSheet({
           <Text variant="display" align="center">
             {formatMoney(total)}
           </Text>
-          {!settled ? (
-            <Text variant="bodyStrong" tone="danger" align="center">
-              {t('sell.payment.remaining', { amount: formatMoney(remaining) })}
-            </Text>
-          ) : null}
         </View>
+
+        {!isSplitting ? (
+          <MoneyField label={t('recordPayment.amount')} value={receivedText} onChangeText={setReceivedText} />
+        ) : null}
+
+        {remaining > 0.005 ? (
+          <View style={styles.owed}>
+            <View style={styles.owedHead}>
+              <View style={styles.grow}>
+                <Text variant="caption" tone="secondary">
+                  {t('sellDebt.remaining')}
+                </Text>
+                <Text variant="title">{formatMoney(remaining)}</Text>
+              </View>
+              <StatusChip domain="sale" value={preview.status} />
+            </View>
+            <DebtorPicker value={debtor} onChange={setDebtor} onLeave={onClose} />
+            <Text variant="caption" tone="tertiary">
+              {t('sellDebt.onlyReceived', { amount: formatMoney(paid) })}
+            </Text>
+          </View>
+        ) : null}
 
         <ReturnPolicyControl {...returnPolicy} />
 
@@ -406,4 +454,12 @@ const useStyles = makeStyles((colors) => ({
   splitAmount: {
     flex: 1,
   },
+  owed: {
+    gap: space.sm,
+    padding: space.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface.sunken,
+  },
+  owedHead: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  grow: { flex: 1 },
 }));

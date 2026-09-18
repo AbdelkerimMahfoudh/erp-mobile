@@ -32,6 +32,7 @@ import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
+import { saleDebtorFields, type DebtorDraft } from '../../lib/sale-payment-rules';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import type { ReceiptData } from '../../lib/receipt';
@@ -175,6 +176,8 @@ export default function SellScreen() {
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
   /** The payments the sale was about to be charged with, held across the ask. */
   const heldPayments = useRef<PaymentEntry[] | null>(null);
+  /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
+  const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
 
   const subtotal = cartSubtotal(lines);
   const total = Math.max(0, subtotal - discount);
@@ -455,7 +458,7 @@ export default function SellScreen() {
           // Sent only when there is one: the server refuses an account on cash.
           ...(p.receivingAccountId ? { receivingAccountId: p.receivingAccountId } : {}),
         })),
-        ...(customer ? { customerId: customer.id } : {}),
+        ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(discount > 0 ? { saleDiscount: discount } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         // Omitted for an ordinary sale: re-stating the default is not an
@@ -623,7 +626,8 @@ export default function SellScreen() {
     });
   };
 
-  const onComplete = async (payments: PaymentEntry[]) => {
+  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+    heldDebtor.current = debtor;
     setSubmitting(true);
     try {
       let overrideReason: string | undefined;
@@ -850,6 +854,7 @@ export default function SellScreen() {
         discount={discount}
         onDiscountChange={setDiscount}
         onComplete={onComplete}
+        presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
         submitting={submitting}
         accounts={selectableAccounts(receivingAccounts)}
         returnPolicy={{
