@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { FileText, Store, UserRound } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -8,45 +9,53 @@ import {
   EmptyState,
   ErrorState,
   Identifier,
+  InlineNotice,
+  ListRow,
+  MoneyValue,
   RowGroup,
   Screen,
   Section,
   SkeletonList,
   StatusChip,
   Text,
+  Thumbnail,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
+import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/receipt';
+import { isFresh, useRecentSuccess } from '../../lib/recent-success';
 import { describeWindow, policyStatus } from '../../lib/return-policy';
 import { useSale } from '../../lib/sales';
+import { toast } from '../../lib/toast';
 import type { SaleDetail, SaleLine, SalePaymentRecord } from '../../types/api';
 
 /**
  * One sale, in full.
  *
- * Opened for three reasons, in this order of frequency: what was sold, what is
- * still owed, and whether it can still come back. The return policy is at the
- * top for the third — it is the question a customer is standing there asking,
- * and the answer is the server's, computed from the policy this sale was sold
- * under rather than whatever the shop offers today.
+ * Opened for three reasons, in this order of frequency: what was sold, what
+ * was paid and what is still owed, and whether it can still come back. So the
+ * phone comes first — which exact one, by its full IMEI or serial, because
+ * staff need it for warranty, returns and matching the handset — then the
+ * price and the money, then the return answer, which is the server's,
+ * computed from the policy this sale was sold under rather than whatever the
+ * shop offers today.
  *
  * Cost and profit appear only when the server sends them. Nothing is hidden
  * here: `cost.view` is enforced by the gating interceptor, so an employee's
- * response simply has no such fields.
+ * response simply has no such fields. The receipt is built from this same
+ * sale and carries none of them either — `ReceiptData` has no field for them.
  */
 export default function SaleDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useSale(id);
 
-  const title = query.data ? t('sales.invoice', { no: query.data.invoiceNo }) : t('sales.detail.title');
-
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ headerShown: true, title }} />
+      <Stack.Screen options={{ headerShown: true, title: t('sales.detail.title') }} />
 
       {query.isLoading ? (
         <View style={styles.padded}>
@@ -82,115 +91,92 @@ function Body({ sale }: { sale: SaleDetail }) {
    */
   const canCollect = usePermission('sale.create') && sale.balanceDue > 0 && !sale.isReversed;
 
+  // "Payment recorded", once, when we have just come back from recording one.
+  const recordedAt = useRecentSuccess((s) => s.at[`payment:${sale.id}`]);
+  const clear = useRecentSuccess((s) => s.clear);
+  useEffect(() => () => clear(`payment:${sale.id}`), [sale.id, clear]);
+
+  const [sharing, setSharing] = useState(false);
+  const share = async () => {
+    setSharing(true);
+    try {
+      const shared = await shareReceipt(receiptOf(sale, t));
+      if (!shared) toast.info(t('sell.done.shareFailed'));
+    } catch {
+      toast.error(t('sell.done.shareFailed'));
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const first = sale.lines.find((l) => !l.voided) ?? sale.lines[0];
+  const where = Array.from(
+    new Set(sale.payments.map((p) => (p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never))))),
+  ).join(' · ');
+  const who = sale.debtor
+    ? { kind: sale.debtor.kind, name: sale.debtor.name ?? '', phone: sale.debtor.phone ?? null }
+    : sale.customer
+      ? { kind: 'customer' as const, name: sale.customer.name ?? '', phone: sale.customer.phone }
+      : null;
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Card>
-        <View style={styles.headRow}>
-          <Text variant="display">{formatMoney(sale.total)}</Text>
+      {isFresh(recordedAt) ? <InlineNotice tone="success">{t('recordPayment.done')}</InlineNotice> : null}
+
+      {/* The phone: what was sold, which exact one, and where the sale stands. */}
+      <Card style={styles.phone}>
+        <View style={styles.phoneHead}>
+          <Thumbnail size="lg" />
+          <View style={styles.grow}>
+            <Text variant="heading">{first?.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo })}</Text>
+            <Text variant="caption" tone="secondary">
+              {t('sales.invoice', { no: sale.invoiceNo })}
+            </Text>
+          </View>
           {/* Every state is said, "Paid in full" included: the status comes from
               the money received, and a paid sale is an answer worth showing. */}
           <StatusChip domain="sale" value={sale.payStatus} />
         </View>
-        <Text variant="caption" tone="secondary">
-          {formatDateTime(new Date(sale.soldAt))}
-          {sale.soldBy ? ` · ${t('sales.detail.soldBy', { name: sale.soldBy })}` : ''}
-        </Text>
+        {sale.lines.map((line) => (
+          <Line key={line.id} line={line} alone={sale.lines.length === 1} />
+        ))}
         {sale.isReversed ? (
-          <Text variant="caption" tone="secondary" style={styles.notice}>
+          <Text variant="caption" tone="secondary">
             {t('sales.detail.reversedNotice')}
           </Text>
         ) : null}
       </Card>
 
-      {/* The return answer, near the top: it is why most people open this. */}
-      <Card>
-        <View style={styles.policyHead}>
-          <Text variant="label" tone="secondary">
-            {t('returns.policy.title')}
-          </Text>
-          <Chip label={status.label} tone={status.tone} size="sm" />
-        </View>
-        <Text variant="body">
-          {sale.returnPolicy.windowHours > 0
-            ? describeWindow(sale.returnPolicy.windowHours, t)
-            : t('returns.window.none')}
+      <Card variant="accent">
+        <Text variant="body" tone="secondary">
+          {t('saleDetail.sellingPrice')}
         </Text>
-        {status.detail ? (
-          <Text variant="caption" tone="secondary">
-            {status.detail}
-          </Text>
-        ) : null}
-        {/* Who decided this sale was different, and why. Shown only when
-            somebody actually changed it. */}
-        {sale.returnPolicy.overriddenBy ? (
-          <Text variant="caption" tone="tertiary" style={styles.notice}>
-            {t('returns.policy.changedBy', { name: sale.returnPolicy.overriddenBy })}
-            {sale.returnPolicy.overrideReason ? ` — ${sale.returnPolicy.overrideReason}` : ''}
-          </Text>
-        ) : null}
+        <MoneyValue value={sale.total} size="display" />
       </Card>
 
-      {/* Who owes the balance — a customer or a partner store, one section
-          either way, because "who do I chase?" is one question. */}
-      {sale.debtor ? (
-        <Section title={t(sale.debtor.kind === 'store' ? 'saleDetail.debtor.store' : 'saleDetail.debtor.customer')}>
-          <RowGroup separatorInset={space.md}>
-            <View style={styles.groupedRow}>
-              <Text variant="bodyStrong">{sale.debtor.name ?? ''}</Text>
-              {sale.debtor.phone ? (
-                <Text variant="caption" tone="secondary">
-                  {sale.debtor.phone}
-                </Text>
-              ) : null}
-            </View>
-          </RowGroup>
-        </Section>
+      {/* How it was paid, when, by whom. What was RECEIVED and what is OWED are
+          different questions, and a counter that conflates them eventually
+          hands back the wrong change. */}
+      <Card>
+        <Fact label={t('saleDetail.paymentMethod')} value={where || '—'} />
+        <Fact label={sale.balanceDue > 0 ? t('saleDetail.received') : t('saleDetail.amountReceived')} money={sale.amountPaid} />
+        {sale.balanceDue > 0 ? <Fact label={t('saleDetail.owed')} money={sale.balanceDue} strong /> : null}
+        <Fact label={t('saleDetail.soldOn')} value={formatDateTime(new Date(sale.soldAt))} />
+        {sale.soldBy ? <Fact label={t('saleDetail.soldBy')} value={sale.soldBy} /> : null}
+      </Card>
+
+      {/* Who bought it, or who owes the balance — a customer or a partner store,
+          one row either way, because "who do I chase?" is one question. */}
+      {who ? (
+        <ListRow
+          leading={who.kind === 'store' ? Store : UserRound}
+          title={who.name}
+          subtitle={who.phone ?? t(who.kind === 'store' ? 'saleDetail.debtor.store' : 'saleDetail.debtor.customer')}
+          chevron={false}
+        />
       ) : null}
 
-      {/*
-        The sold items — repeated records of the same kind, so one grouped
-        surface with hairlines between them. They previously shared a single
-        card and were separated by a margin, which read as one long block of
-        text with no boundary between one phone and the next.
-      */}
-      <Section title={t('sales.detail.lines')}>
-        <RowGroup separatorInset={space.md}>
-          {sale.lines.map((line) => (
-            <View key={line.id} style={styles.groupedRow}>
-              <Line line={line} />
-            </View>
-          ))}
-        </RowGroup>
-      </Section>
-
-      <Section title={t('sales.detail.totals')}>
-        <Card>
-          <Amount label={t('sales.detail.subtotal')} value={sale.subtotal} />
-          {sale.discount > 0 ? (
-            <Amount label={t('sales.detail.discount')} value={-sale.discount} />
-          ) : null}
-          <Amount label={t('saleDetail.total')} value={sale.total} strong />
-          <Amount label={t('saleDetail.received')} value={sale.amountPaid} />
-          {sale.balanceDue > 0 ? (
-            <Amount label={t('saleDetail.owed')} value={sale.balanceDue} strong />
-          ) : null}
-          {/* Absent for a caller without `cost.view` — the server never sent
-              them, so there is nothing to hide here. */}
-          {sale.totalCost !== undefined ? (
-            <Amount label={t('sales.detail.cost')} value={sale.totalCost} />
-          ) : null}
-          {sale.margin !== undefined ? (
-            <Amount label={t('sales.detail.margin')} value={sale.margin} strong />
-          ) : null}
-        </Card>
-      </Section>
-
-      {/*
-        Payments are records too — one per tender — so they group the same way.
-        Kept apart from the totals above on purpose: what was RECEIVED and what
-        is OWED are different questions, and a counter that conflates them
-        eventually hands back the wrong change.
-      */}
+      {/* Payments are records too — one per tender — so they group. */}
       <Section title={t('saleDetail.history')}>
         {sale.payments.length > 0 ? (
           <RowGroup separatorInset={space.md}>
@@ -212,11 +198,83 @@ function Body({ sale }: { sale: SaleDetail }) {
           {t('saleDetail.linked')}
         </Text>
       </Section>
+
+      {/* The return answer: the customer standing there is asking it. */}
+      <Card>
+        <View style={styles.policyHead}>
+          <Text variant="label" tone="secondary">
+            {t('returns.policy.title')}
+          </Text>
+          <Chip label={status.label} tone={status.tone} size="sm" />
+        </View>
+        <Text variant="body">
+          {sale.returnPolicy.windowHours > 0 ? describeWindow(sale.returnPolicy.windowHours, t) : t('returns.window.none')}
+        </Text>
+        {status.detail ? (
+          <Text variant="caption" tone="secondary">
+            {status.detail}
+          </Text>
+        ) : null}
+        {/* Who decided this sale was different, and why. Shown only when
+            somebody actually changed it. */}
+        {sale.returnPolicy.overriddenBy ? (
+          <Text variant="caption" tone="tertiary" style={styles.notice}>
+            {t('returns.policy.changedBy', { name: sale.returnPolicy.overriddenBy })}
+            {sale.returnPolicy.overrideReason ? ` — ${sale.returnPolicy.overrideReason}` : ''}
+          </Text>
+        ) : null}
+      </Card>
+
+      <Section title={t('sales.detail.totals')}>
+        <Card>
+          {sale.discount > 0 ? (
+            <>
+              <Amount label={t('sales.detail.subtotal')} value={sale.subtotal} />
+              <Amount label={t('sales.detail.discount')} value={-sale.discount} />
+            </>
+          ) : null}
+          <Amount label={t('saleDetail.total')} value={sale.total} strong />
+          <Amount label={t('saleDetail.received')} value={sale.amountPaid} />
+          {sale.balanceDue > 0 ? <Amount label={t('saleDetail.owed')} value={sale.balanceDue} strong /> : null}
+          {/* Absent for a caller without `cost.view` — the server never sent
+              them, so there is nothing to hide here. */}
+          {sale.totalCost !== undefined ? <Amount label={t('sales.detail.cost')} value={sale.totalCost} /> : null}
+          {sale.margin !== undefined ? <Amount label={t('sales.detail.margin')} value={sale.margin} strong /> : null}
+        </Card>
+      </Section>
+
+      {/* The customer's copy, for warranty and ownership: the exact phone and
+          what was paid, and never cost or margin. No share sheet on web. */}
+      {canShareReceipt() ? (
+        <Button title={t('saleDetail.viewReceipt')} variant="secondary" icon={FileText} fullWidth loading={sharing} onPress={() => void share()} />
+      ) : null}
     </ScrollView>
   );
 }
 
-function Line({ line }: { line: SaleLine }) {
+/** The receipt of a past sale, from the sale itself — the same shape a sale prints at the counter. */
+function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t']): ReceiptData {
+  return {
+    invoiceNo: sale.invoiceNo,
+    soldAt: new Date(sale.soldAt),
+    branchName: sale.branch.name,
+    cashierName: sale.soldBy ?? '',
+    lines: sale.lines
+      .filter((l) => !l.voided)
+      .map((l) => ({ label: l.product ?? '', identifier: l.imei ?? l.serialNo ?? undefined, quantity: l.quantity, unitPrice: l.price })),
+    subtotal: sale.subtotal,
+    discount: sale.discount,
+    total: sale.total,
+    payments: sale.payments.map((p) => ({
+      method: p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never)),
+      amount: p.amount,
+    })),
+    returnPolicy: { windowHours: sale.returnPolicy.windowHours, deadlineAt: sale.returnPolicy.deadlineAt },
+  };
+}
+
+/** One sold item. For a one-phone sale only the identifier and its actions — the name is the heading above. */
+function Line({ line, alone }: { line: SaleLine; alone: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
   const canRequestReturn = usePermission('return.request');
@@ -229,25 +287,33 @@ function Line({ line }: { line: SaleLine }) {
   const returnable = Boolean(line.unitId) && !line.voided;
 
   return (
-    <View>
-      <View style={styles.lineHead}>
-        <Text variant="body" style={styles.lineName}>
-          {line.product ?? ''}
-        </Text>
-        <Text variant="bodyStrong">{formatMoney(line.price * line.quantity)}</Text>
-      </View>
+    <View style={styles.line}>
+      {!alone ? (
+        <View style={styles.lineHead}>
+          <Text variant="body" style={styles.lineName}>
+            {line.product ?? ''}
+          </Text>
+          <Text variant="bodyStrong">{formatMoney(line.price * line.quantity)}</Text>
+        </View>
+      ) : null}
       <View style={styles.lineMeta}>
-        {/* The number printed on the thing, in LTR even in Arabic — it is a
-            code, not a sentence. */}
-        {identifier ? <Identifier>{identifier}</Identifier> : null}
+        {identifier ? (
+          <>
+            <Text variant="caption" tone="secondary">
+              {line.imei ? t('saleDetail.imei') : line.serialNo ? t('saleDetail.serial') : t('saleDetail.barcode')}
+            </Text>
+            {/* The number printed on the thing, in LTR even in Arabic — it is a
+                code, not a sentence. Shown in full: this is the record staff
+                match the handset against. */}
+            <Identifier tone="primary">{identifier}</Identifier>
+          </>
+        ) : null}
         {line.quantity > 1 ? (
           <Text variant="caption" tone="secondary">
             {t('sales.detail.quantity', { count: line.quantity })}
           </Text>
         ) : null}
-        {line.voided ? (
-          <Chip label={t('sales.detail.voidedLine')} tone="neutral" size="sm" />
-        ) : null}
+        {line.voided ? <Chip label={t('sales.detail.voidedLine')} tone="neutral" size="sm" /> : null}
       </View>
       {canRequestReturn && returnable ? (
         <Button
@@ -266,8 +332,6 @@ function Line({ line }: { line: SaleLine }) {
           }
         />
       ) : null}
-      <View style={styles.hiddenAnchor}>
-      </View>
     </View>
   );
 }
@@ -285,12 +349,13 @@ function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
     <View style={styles.payment}>
       <View style={styles.amountRow}>
         <Text variant="bodyStrong" style={styles.lineName}>
-          {via}
+          {`${formatDateTime(new Date(p.paidAt))} · ${via}`}
         </Text>
         <Text variant="bodyStrong">{formatMoney(p.amount)}</Text>
       </View>
       <Text variant="caption" tone="secondary">
-        {formatDateTime(new Date(p.paidAt))} · {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
+        {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
+        {p.recordedBy ? ` · ${t('saleDetail.history.by', { name: p.recordedBy })}` : ''}
       </Text>
       {p.reference ? (
         <Text variant="caption" tone="secondary">
@@ -302,11 +367,24 @@ function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
           {p.note}
         </Text>
       ) : null}
-      {p.recordedBy ? (
-        <Text variant="caption" tone="tertiary">
-          {t('saleDetail.history.by', { name: p.recordedBy })}
+    </View>
+  );
+}
+
+/** A fact about the sale: its label, and its value in words or money. */
+function Fact({ label, value, money, strong }: { label: string; value?: string; money?: number; strong?: boolean }) {
+  return (
+    <View style={styles.amountRow}>
+      <Text variant="body" tone="secondary" style={styles.factLabel}>
+        {label}
+      </Text>
+      {money !== undefined ? (
+        <MoneyValue value={money} size={strong ? 'default' : 'small'} />
+      ) : (
+        <Text variant="bodyStrong" align="end" style={styles.factValue}>
+          {value}
         </Text>
-      ) : null}
+      )}
     </View>
   );
 }
@@ -327,7 +405,9 @@ const styles = StyleSheet.create({
   /** Padding for a bespoke row placed inside a RowGroup, which has none. */
   groupedRow: { padding: space.md, gap: 2 },
   content: { padding: space.base, paddingBottom: space['3xl'], gap: space.base },
-  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  phone: { gap: space.md },
+  phoneHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  grow: { flex: 1, minWidth: 0 },
   notice: { marginTop: space.xs },
   policyHead: {
     flexDirection: 'row',
@@ -336,10 +416,12 @@ const styles = StyleSheet.create({
     marginBottom: space.xs,
     gap: space.sm,
   },
+  line: { gap: space.xs },
   lineHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   lineName: { flexShrink: 1 },
-  hiddenAnchor: { height: 0 },
-  lineMeta: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
-  amountRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: space.xs, gap: space.sm },
+  lineMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.xs, gap: space.sm },
+  factLabel: { flexShrink: 0 },
+  factValue: { flex: 1 },
   payment: { gap: 2 },
 });

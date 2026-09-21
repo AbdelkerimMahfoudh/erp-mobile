@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { CalendarDays, Coins } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -14,14 +15,18 @@ import {
   SkeletonList,
   Text,
   TextField,
+  Thumbnail,
+  THUMB_SIZE,
 } from '../../../components/ui';
+import { ReceivedVia, type MoneySource } from '../../../components/money/ReceivedVia';
 import { toErrorMessage } from '../../../lib/errors';
 import { dialog } from '../../../lib/dialog';
-import { space } from '../../../lib/design/tokens';
-import { makeStyles } from '../../../lib/design/theme';
+import { radius, space } from '../../../lib/design/tokens';
+import { makeStyles, useColors } from '../../../lib/design/theme';
 import { formatMoney } from '../../../lib/format';
 import { useTranslation } from '../../../lib/i18n';
 import { useRecordSalePayment, useSelectableAccounts } from '../../../lib/money-overview';
+import { useRecentSuccess } from '../../../lib/recent-success';
 import {
   collectionProblem,
   localDay,
@@ -43,12 +48,14 @@ import type { PaymentMethod } from '../../../types/api';
  * The screen shows who owes, for what, how much before and how much after — and
  * asks once more before saving, because this is money the shop says it holds.
  * One key covers the whole attempt, so a timeout followed by a retry cannot
- * record the payment twice.
+ * record the payment twice. Back on the sale, "Payment recorded" is said once.
  */
 export default function RecordPaymentScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const sale = useSale(id);
+
+  if (sale.data && sale.data.balanceDue > 0 && !sale.data.isReversed) return <Form sale={sale.data} />;
 
   return (
     <Screen scroll gap="lg">
@@ -58,28 +65,24 @@ export default function RecordPaymentScreen() {
       ) : sale.isError ? (
         <ErrorState error={sale.error} onRetry={() => void sale.refetch()} />
       ) : sale.data ? (
-        sale.data.balanceDue > 0 && !sale.data.isReversed ? (
-          <Form sale={sale.data} />
-        ) : (
-          <EmptyState title={t('recordPayment.nothingOwed')} />
-        )
+        <EmptyState title={t('recordPayment.nothingOwed')} />
       ) : null}
     </Screen>
   );
 }
 
-type Via = { kind: 'cash' } | { kind: 'account'; id: string; label: string; method: PaymentMethod };
-
 function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> }) {
   const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const record = useRecordSalePayment(sale.id);
   const { accounts } = useSelectableAccounts();
+  const mark = useRecentSuccess((s) => s.mark);
 
   const now = new Date();
   const [amount, setAmount] = useState('');
-  const [via, setVia] = useState<Via>({ kind: 'cash' });
+  const [source, setSource] = useState<MoneySource>({ kind: 'cash' });
   const [date, setDate] = useState(localDay(now));
   const [time, setTime] = useState(localTime(now));
   const [reference, setReference] = useState('');
@@ -87,16 +90,17 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
 
   const product = sale.lines.find((l) => !l.voided)?.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo });
   const paidAt = paidAtFrom(date, time);
-  const method: PaymentMethod = via.kind === 'cash' ? 'cash' : via.method;
+  const account = source.kind === 'account' ? (accounts.find((a) => a.id === source.accountId) ?? null) : null;
+  const method: PaymentMethod = source.kind === 'cash' ? 'cash' : methodForAccount(account?.provider ?? 'other');
   const problem = collectionProblem({
     amountText: amount,
     remaining: sale.balanceDue,
     method,
-    accountId: via.kind === 'account' ? via.id : null,
+    accountId: account?.id ?? null,
     paidAt,
   });
   const after = remainingAfter(sale.balanceDue, amount);
-  const viaLabel = via.kind === 'cash' ? t('payment.cash') : via.label;
+  const viaLabel = source.kind === 'cash' ? t('payment.cash') : (account?.label ?? '');
 
   const submit = async () => {
     if (problem) return;
@@ -123,14 +127,15 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
       {
         amount: value,
         method,
-        receivingAccountId: via.kind === 'account' ? via.id : null,
+        receivingAccountId: account?.id ?? null,
         paidAt: paidAt ? paidAt.toISOString() : null,
         reference,
         note,
       },
       {
         onSuccess: () => {
-          void dialog.alert({ title: t('recordPayment.done') });
+          // The sale says it, once, when we get back there.
+          mark(`payment:${sale.id}`);
           router.back();
         },
       },
@@ -138,50 +143,60 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
   };
 
   return (
-    <>
-      <Card style={styles.card}>
-        <Text variant="bodyStrong">{sale.debtor?.name ?? t('outstanding.kind.unknown')}</Text>
-        <Text variant="caption" tone="secondary">
-          {t('sales.invoice', { no: sale.invoiceNo })} · {product}
-        </Text>
-        <View style={styles.line}>
-          <Text variant="body" tone="secondary" style={styles.grow}>
-            {t('recordPayment.before')}
+    <Screen
+      scroll
+      gap="lg"
+      footer={
+        <Button
+          title={t('recordPayment.review')}
+          size="lg"
+          fullWidth
+          disabled={problem !== null}
+          loading={record.isPending}
+          onPress={() => void submit()}
+        />
+      }
+    >
+      <Stack.Screen options={{ headerShown: true, title: t('recordPayment.title') }} />
+
+      {/* Who owes, for which sale, for what. */}
+      <Card style={styles.who}>
+        <Thumbnail />
+        <View style={styles.grow}>
+          <Text variant="bodyStrong" numberOfLines={2}>
+            {`${sale.debtor?.name ?? t('outstanding.kind.unknown')} · ${t('sales.invoice', { no: sale.invoiceNo })}`}
           </Text>
-          <MoneyValue value={sale.balanceDue} />
+          <Text variant="caption" tone="secondary" numberOfLines={2}>
+            {product}
+          </Text>
         </View>
       </Card>
 
-      <Section gap="sm">
-        <MoneyField label={t('recordPayment.amount')} value={amount} onChangeText={setAmount} required />
-
-        <Text variant="label">{t('recordPayment.method')}</Text>
-        <View style={styles.choices}>
-          <Button
-            title={t('payment.cash')}
-            variant={via.kind === 'cash' ? 'primary' : 'secondary'}
-            onPress={() => setVia({ kind: 'cash' })}
-          />
-          {accounts.map((a) => (
-            <Button
-              key={a.id}
-              title={a.label}
-              variant={via.kind === 'account' && via.id === a.id ? 'primary' : 'secondary'}
-              onPress={() => setVia({ kind: 'account', id: a.id, label: a.label, method: methodForAccount(a.provider) })}
-            />
-          ))}
+      <Card variant="warning" style={styles.who}>
+        <View style={styles.coin}>
+          <Coins color={colors.intent.warning.fg} size={22} />
         </View>
+        <View style={styles.grow}>
+          <Text variant="caption" tone="secondary">
+            {t('recordPayment.before')}
+          </Text>
+          <MoneyValue value={sale.balanceDue} size="large" />
+        </View>
+      </Card>
+
+      <Section gap="md">
+        <MoneyField label={t('recordPayment.amount')} value={amount} onChangeText={setAmount} required autoFocus />
+        <ReceivedVia label={t('recordPayment.method')} value={source} onChange={setSource} accounts={accounts} />
         {accounts.length === 0 ? (
           <Text variant="caption" tone="tertiary">
             {t('recordPayment.noAccounts')}
           </Text>
         ) : null}
-
         <View style={styles.row}>
           <View style={styles.grow}>
-            <TextField label={t('recordPayment.date')} value={date} onChangeText={setDate} placeholder="2026-09-18" />
+            <TextField label={t('recordPayment.date')} icon={CalendarDays} value={date} onChangeText={setDate} placeholder="2026-09-18" />
           </View>
-          <View style={styles.grow}>
+          <View style={styles.time}>
             <TextField label={t('recordPayment.time')} value={time} onChangeText={setTime} placeholder="15:10" />
           </View>
         </View>
@@ -189,18 +204,19 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
         <TextField label={t('recordPayment.note')} value={note} onChangeText={setNote} />
       </Section>
 
-      <Card style={styles.card}>
-        <View style={styles.line}>
-          <Text variant="body" tone="secondary" style={styles.grow}>
+      {/* This payment beside what will still be owed — the two numbers the person checks before tapping. */}
+      <Card variant="accent" style={styles.pair}>
+        <View style={styles.grow}>
+          <Text variant="caption" tone="secondary">
             {t('recordPayment.this')}
           </Text>
-          <MoneyValue value={Number(amount) > 0 ? Number(amount) : 0} />
+          <MoneyValue value={Number(amount) > 0 ? Number(amount) : 0} size="large" />
         </View>
-        <View style={styles.line}>
-          <Text variant="body" tone="secondary" style={styles.grow}>
+        <View style={styles.grow}>
+          <Text variant="caption" tone="secondary">
             {t('recordPayment.after')}
           </Text>
-          <MoneyValue value={after} />
+          <MoneyValue value={after} size="large" />
         </View>
       </Card>
 
@@ -211,25 +227,25 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
       ) : null}
       {record.isError ? <InlineNotice tone="danger">{toErrorMessage(record.error)}</InlineNotice> : null}
 
-      <Text variant="caption" tone="tertiary">
+      <Text variant="caption" tone="tertiary" align="center">
         {t('recordPayment.onlyReceived')}
       </Text>
-      <Button
-        title={t('recordPayment.review')}
-        size="lg"
-        fullWidth
-        disabled={problem !== null}
-        loading={record.isPending}
-        onPress={() => void submit()}
-      />
-    </>
+    </Screen>
   );
 }
 
-const useStyles = makeStyles(() => ({
-  card: { gap: space.xs },
-  line: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  grow: { flex: 1 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+const useStyles = makeStyles((colors) => ({
+  who: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  coin: {
+    width: THUMB_SIZE.md,
+    height: THUMB_SIZE.md,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface.card,
+  },
+  grow: { flex: 1, minWidth: 0 },
+  row: { flexDirection: 'row', gap: space.sm },
+  time: { width: 112 },
+  pair: { flexDirection: 'row', gap: space.lg },
 }));

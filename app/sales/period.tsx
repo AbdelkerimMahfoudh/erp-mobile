@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
-import { Stack, useRouter, type Href } from 'expo-router';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
-import { Button, Card, EmptyState, InlineNotice, MoneyValue, Screen, Section, SkeletonStat, Text } from '../../components/ui';
+import { FlatList, View } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { Button, Card, EmptyState, InlineNotice, MoneyValue, Screen, SkeletonList, SkeletonStat, Text } from '../../components/ui';
+import { DayRow } from '../../components/money/DayRow';
 import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
-import { space } from '../../lib/design/tokens';
+import { radius, space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { formatDate, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -13,90 +13,146 @@ import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-
 import { periodRange, usePeriod } from '../../lib/period';
 import { usePermission } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
+import type { SaleListRow } from '../../types/api';
 
 /**
- * Every sale in the selected period (0074).
+ * Every phone sold in the selected period (0074).
  *
- * Today is a plain list. Seven days or a month is read a DAY at a time: one line
- * per day with its count, its value and what is still owed on it, and a day's
- * sales are fetched only when that day is opened. A month is thirty short lines,
- * never hundreds of rows mounted at once.
+ * Today is a list of sales. Seven days or a month is read a DAY at a time: one
+ * line per day with its phones, its value and what is still owed on it, and a
+ * day's sales are fetched only when that day is opened. A month is thirty
+ * short lines, never hundreds of rows mounted at once — and the list is
+ * virtualised either way.
  *
  * The period is the one Money and Results already share, so arriving here from
- * the Money overview shows the same days.
+ * the Money overview shows the same days; arriving from one of its day lines
+ * opens that day.
  */
 export default function SalesForPeriodScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
+  const router = useRouter();
+  const { day: openDay } = useLocalSearchParams<{ day?: string }>();
   const key = usePeriod((s) => s.key);
   const range = periodRange(key);
   const canViewFigures = usePermission('report.view');
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
   const days = useSalesByDay(range.from, range.to, { enabled: key !== 'today' });
+  const sales = useSales({ from: range.from, to: range.to }, { enabled: key === 'today' });
+  const rows = sales.data?.pages.flatMap((p) => p.rows) ?? [];
+
+  const header = (
+    <View style={styles.header}>
+      <PeriodSelector />
+      {canViewFigures ? (
+        overview.data ? (
+          <Card variant="accent" style={styles.summary}>
+            <Text variant="body" tone="secondary">
+              {t('salesPeriod.total')}
+            </Text>
+            <MoneyValue value={overview.data.period.salesValue} size="display" />
+            <Text variant="caption" tone="secondary">
+              {t('salesPeriod.phones', { count: String(overview.data.period.phonesSold) })}
+            </Text>
+            <View style={styles.pair}>
+              <Mini label={t('moneyOverview.collected')} value={overview.data.period.collected} />
+              <Mini label={t('moneyOverview.outstanding')} value={overview.data.period.outstanding} />
+            </View>
+          </Card>
+        ) : overview.isPending ? (
+          <SkeletonStat />
+        ) : null
+      ) : null}
+    </View>
+  );
+
+  const hint =
+    (key === 'today' ? rows.length : (days.data?.days.length ?? 0)) > 0 ? (
+      <Text variant="caption" tone="tertiary" style={styles.hint}>
+        {t('salesPeriod.tapSale')}
+      </Text>
+    ) : null;
 
   return (
-    <Screen scroll gap="lg">
+    <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('salesPeriod.title') }} />
-      <PeriodSelector />
-
-      {canViewFigures && overview.data ? (
-        <Card style={styles.summary}>
-          <Text variant="body" tone="secondary">
-            {t('moneyOverview.salesValue')}
-          </Text>
-          <MoneyValue value={overview.data.period.salesValue} size="display" />
-          <Text variant="caption" tone="secondary">
-            {t('salesPeriod.phones', { count: String(overview.data.period.phonesSold) })}
-          </Text>
-        </Card>
-      ) : canViewFigures && overview.isPending ? (
-        <SkeletonStat />
-      ) : null}
 
       {key === 'today' ? (
-        <DaySales day={range.from} />
-      ) : days.isPending ? (
-        <SkeletonStat />
-      ) : days.isError ? (
-        <InlineNotice
-          tone="warning"
-          action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void days.refetch()} />}
-        >
-          {t('moneyTab.unavailable')}
-        </InlineNotice>
-      ) : (days.data?.days.length ?? 0) === 0 ? (
-        <EmptyState title={t('salesPeriod.none')} />
+        <FlatList
+          data={rows}
+          keyExtractor={(r) => r.id}
+          ListHeaderComponent={header}
+          contentContainerStyle={styles.list}
+          renderItem={({ item, index }) => (
+            <View style={[styles.rowShell, index === 0 ? styles.first : null, index === rows.length - 1 ? styles.last : null]}>
+              <SaleRow sale={item} onPress={() => router.push(`/sales/${item.id}` as Href)} />
+            </View>
+          )}
+          ListEmptyComponent={sales.isPending ? <SkeletonList count={4} /> : <EmptyState title={t('salesPeriod.none')} />}
+          onEndReachedThreshold={0.4}
+          onEndReached={() => {
+            if (sales.hasNextPage && !sales.isFetchingNextPage) void sales.fetchNextPage();
+          }}
+          ListFooterComponent={sales.isFetchingNextPage ? <SkeletonList count={2} /> : hint}
+        />
       ) : (
-        <Section title={t('salesPeriod.byDay')} subtitle={t('salesPeriod.tapDay')} gap="xs">
-          {days.data!.days.map((d) => (
-            <DayGroup key={d.day} day={d} />
-          ))}
-        </Section>
+        <FlatList
+          data={days.data?.days ?? []}
+          keyExtractor={(d) => d.day}
+          ListHeaderComponent={header}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={styles.gap} />}
+          renderItem={({ item }) => <DayGroup day={item} initiallyOpen={item.day === openDay} />}
+          ListEmptyComponent={
+            days.isPending ? (
+              <SkeletonList count={4} />
+            ) : days.isError ? (
+              <InlineNotice
+                tone="warning"
+                action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void days.refetch()} />}
+              >
+                {t('moneyTab.unavailable')}
+              </InlineNotice>
+            ) : (
+              <EmptyState title={t('salesPeriod.none')} />
+            )
+          }
+          ListFooterComponent={hint}
+        />
       )}
     </Screen>
   );
 }
 
+/** A small figure beside another, under the headline. */
+function Mini({ label, value }: { label: string; value: number }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.mini}>
+      <Text variant="caption" tone="secondary">
+        {label}
+      </Text>
+      <MoneyValue value={value} size="small" />
+    </View>
+  );
+}
+
 /** One day: its line, and its sales once opened. */
-function DayGroup({ day }: { day: SalesDay }) {
+function DayGroup({ day, initiallyOpen }: { day: SalesDay; initiallyOpen: boolean }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
 
   return (
     <Card style={styles.day}>
-      <Button
+      <DayRow
         title={formatDate(`${day.day}T00:00:00Z`)}
-        variant="tertiary"
-        icon={open ? ChevronDown : ChevronRight}
+        caption={t('salesPeriod.dayLine', { count: String(day.phones) })}
+        value={day.value}
+        open={open}
+        divider={open}
         onPress={() => setOpen((v) => !v)}
-        accessibilityState={{ expanded: open }}
       />
-      <View style={styles.dayLine}>
-        <Text variant="caption" tone="secondary" style={styles.grow}>
-          {t('salesPeriod.dayLine', { count: String(day.sales), value: formatMoney(day.value) })}
-        </Text>
-      </View>
       {day.outstanding > 0 ? (
         <Text variant="caption" tone="warning">
           {t('saleRow.owed', { amount: formatMoney(day.outstanding) })}
@@ -109,11 +165,10 @@ function DayGroup({ day }: { day: SalesDay }) {
 
 /** The sales of one day, paged by the server. Mounted only when shown. */
 function DaySales({ day }: { day: string }) {
-  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const sales = useSales({ from: day, to: day });
-  const rows = sales.data?.pages.flatMap((p) => p.rows) ?? [];
+  const rows: SaleListRow[] = sales.data?.pages.flatMap((p) => p.rows) ?? [];
 
   if (sales.isPending) return <SkeletonStat />;
   if (rows.length === 0) {
@@ -124,7 +179,7 @@ function DaySales({ day }: { day: string }) {
     );
   }
   return (
-    <View style={styles.rows}>
+    <View>
       {rows.map((s) => (
         <SaleRow key={s.id} sale={s} onPress={() => router.push(`/sales/${s.id}` as Href)} />
       ))}
@@ -140,10 +195,23 @@ function DaySales({ day }: { day: string }) {
   );
 }
 
-const useStyles = makeStyles(() => ({
-  summary: { gap: space.xs },
+const useStyles = makeStyles((colors) => ({
+  header: { gap: space.md, paddingBottom: space.md },
+  summary: { gap: 2 },
+  pair: { flexDirection: 'row', gap: space.lg, paddingTop: space.sm },
+  mini: { flex: 1, gap: 2 },
+  list: { paddingBottom: space['3xl'] },
+  /** The rows of a virtualised list still read as one card: each row carries a slice of it. */
+  rowShell: {
+    paddingHorizontal: space.base,
+    backgroundColor: colors.surface.card,
+    borderColor: colors.border.subtle,
+    borderStartWidth: 1,
+    borderEndWidth: 1,
+  },
+  first: { borderTopWidth: 1, borderTopStartRadius: radius.lg, borderTopEndRadius: radius.lg, paddingTop: space.xs },
+  last: { borderBottomWidth: 1, borderBottomStartRadius: radius.lg, borderBottomEndRadius: radius.lg, paddingBottom: space.xs },
+  gap: { height: space.sm },
   day: { gap: space.xs },
-  dayLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  grow: { flex: 1 },
-  rows: { gap: 0 },
+  hint: { textAlign: 'center', paddingVertical: space.md },
 }));
