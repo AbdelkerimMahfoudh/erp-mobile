@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { Plus, Receipt, Smartphone, Wallet } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -14,24 +15,31 @@ import {
   SkeletonStat,
   TabHeader,
   Text,
+  Thumbnail,
+  THUMB_SIZE,
 } from '../../components/ui';
+import { DayRow } from '../../components/money/DayRow';
+import { ExpenseLine } from '../../components/money/ExpenseLine';
+import { LinkRow } from '../../components/money/LinkRow';
 import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
-import { space } from '../../lib/design/tokens';
-import { makeStyles } from '../../lib/design/theme';
-import { formatMoney } from '../../lib/format';
+import { radius, space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
+import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
-import { useMoneyOverview, type AccountToday, type ExpenseToday } from '../../lib/money-overview';
+import { useMoneyOverview, useSalesByDay, type AccountToday, type SalesDay } from '../../lib/money-overview';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
-import { periodRange, usePeriod } from '../../lib/period';
+import { periodRange, usePeriod, type PeriodKey } from '../../lib/period';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
 
 /** How many sales the overview previews before "View all sales". */
 const SALES_PREVIEW = 3;
+/** How many recent days a month shows before the rest fold into one line. */
+const DAYS_PREVIEW = 3;
 
 /**
  * Money — the operational financial hub, a primary tab.
@@ -39,15 +47,16 @@ const SALES_PREVIEW = 3;
  * Four questions, answered in the order a shopkeeper asks them, each with its
  * own words so none is mistaken for another:
  *
- * 1. **Right now** — the cash the drawer should hold, and what moved through
+ * 1. **Right now** — the cash the store should hold, and what moved through
  *    each account today. The cash figure is the daily closing's own expected
  *    drawer, so Money and the closing cannot disagree. Accounts show what was
  *    recorded, never a "balance": the app does not see the account itself.
  * 2. **This period** — phones sold, the full sales value, what was actually
  *    collected, and what is still owed. "Sales value" is never called money
  *    received, and a later collection never raises the sales figures.
- * 3. **Short previews** — a few sales and today's expenses, each with a way to
- *    see everything. A month of sales is never mounted here.
+ * 3. **Short previews** — today's sales, or a week or month a day at a time,
+ *    and today's expenses, each with a way to see everything. A month of sales
+ *    is never mounted here, and the phone never adds days up itself.
  * 4. **Where to go** — Results, Expenses, Daily closing, Loans and Outstanding
  *    payments, from the navigation registry so the tab cannot drift from it.
  *
@@ -58,6 +67,7 @@ const SALES_PREVIEW = 3;
  */
 export default function MoneyTabScreen() {
   const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const { branchName } = useBranch();
@@ -68,13 +78,15 @@ export default function MoneyTabScreen() {
   const key = usePeriod((s) => s.key);
   const range = periodRange(key);
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
-  const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures });
+  const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
+  const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });
 
   const hub = tabHub();
   const actions = hub ? visibleChildren(hub, granted) : [];
   const expenses = actions.find((c) => c.id === 'expenses');
   const data = overview.data;
   const preview = (sales.data?.pages[0]?.rows ?? []).slice(0, SALES_PREVIEW);
+  const openSales = (day?: string) => router.push((day ? `/sales/period?day=${day}` : '/sales/period') as Href);
 
   return (
     <Screen
@@ -84,7 +96,7 @@ export default function MoneyTabScreen() {
         canViewFigures
           ? () => {
               void overview.refetch();
-              void sales.refetch();
+              void (key === 'today' ? sales.refetch() : days.refetch());
             }
           : undefined
       }
@@ -93,15 +105,12 @@ export default function MoneyTabScreen() {
       <TabHeader context={branchName} title={t('tab.money')} />
 
       {canViewFigures ? (
-        <Section gap="sm">
-          <PeriodSelector />
+        <Section gap="md">
           {offline ? <InlineNotice tone="warning">{t('money.offline')}</InlineNotice> : null}
 
+          {/* 1. Right now: the cash the store should hold, and the accounts one tap away. */}
           {overview.isPending ? (
-            <View style={styles.statRow}>
-              <SkeletonStat />
-              <SkeletonStat />
-            </View>
+            <SkeletonStat />
           ) : overview.isError || !data ? (
             <InlineNotice
               tone="warning"
@@ -111,108 +120,152 @@ export default function MoneyTabScreen() {
               {t('moneyTab.unavailable.body')}
             </InlineNotice>
           ) : (
-            <>
-              {/* 1. Right now: the drawer, and the accounts one tap away. */}
-              <Card style={styles.card}>
-                <Text variant="label" tone="secondary">
-                  {t('moneyOverview.now')}
-                </Text>
-                <Text variant="body" tone="secondary">
-                  {t('moneyOverview.cashNow')}
-                </Text>
-                <MoneyValue value={data.cashNow} size="display" />
-                <Text variant="caption" tone="tertiary">
-                  {t('moneyOverview.cashNow.hint')}
-                </Text>
-                <Disclosure title={t('moneyTab.channels')}>
-                  <Text variant="caption" tone="secondary">
-                    {t('moneyOverview.accounts.hint')}
+            <Card variant="accent" style={styles.cash}>
+              <View style={styles.head}>
+                <View style={styles.cashIcon}>
+                  <Wallet color={colors.text.accent} size={22} />
+                </View>
+                <View style={styles.grow}>
+                  <Text variant="body" tone="secondary">
+                    {t('moneyOverview.cashNow')}
                   </Text>
-                  {data.accountsToday.length === 0 ? (
-                    <Text variant="caption" tone="tertiary">
-                      {t('moneyOverview.accounts.none')}
-                    </Text>
-                  ) : (
-                    data.accountsToday.map((a) => <AccountLine key={a.accountId ?? 'unattributed'} account={a} />)
-                  )}
+                  <MoneyValue value={data.cashNow} size="display" />
                   <Text variant="caption" tone="tertiary">
-                    {t('moneyTab.recorded')}
+                    {t('moneyOverview.cashNow.hint')}
                   </Text>
-                </Disclosure>
-              </Card>
-
-              {/* 2. The period: four facts, never merged into one. */}
-              <Card style={styles.card}>
-                <Text variant="label" tone="secondary">
-                  {t('moneyOverview.period')}
+                </View>
+              </View>
+              <Disclosure title={t('moneyTab.channels')}>
+                <Text variant="caption" tone="secondary">
+                  {t('moneyOverview.accounts.hint')}
                 </Text>
-                <Line label={t('moneyOverview.phonesSold')}>
-                  <Text variant="bodyStrong">{String(data.period.phonesSold)}</Text>
-                </Line>
-                <Line label={t('moneyOverview.salesValue')} hint={t('moneyOverview.salesValue.hint')}>
-                  <MoneyValue value={data.period.salesValue} size="small" />
-                </Line>
-                <Line label={t('moneyOverview.collected')} hint={t('moneyOverview.collected.hint')}>
-                  <MoneyValue value={data.period.collected} size="small" />
-                </Line>
-                <Line label={t('moneyOverview.outstanding')} hint={t('moneyOverview.outstanding.hint')}>
-                  <MoneyValue value={data.period.outstanding} size="small" />
-                </Line>
-                {data.period.refunds > 0 ? (
-                  <Line label={t('moneyOverview.refunds')}>
-                    <MoneyValue value={-data.period.refunds} size="small" />
-                  </Line>
-                ) : null}
-              </Card>
-            </>
+                {data.accountsToday.length === 0 ? (
+                  <Text variant="caption" tone="tertiary">
+                    {t('moneyOverview.accounts.none')}
+                  </Text>
+                ) : (
+                  data.accountsToday.map((a) => <AccountLine key={a.accountId ?? 'unattributed'} account={a} />)
+                )}
+                <Text variant="caption" tone="tertiary">
+                  {t('moneyTab.recorded')}
+                </Text>
+              </Disclosure>
+            </Card>
           )}
 
-          {/* 3a. A few sales, and the way to all of them. */}
-          <Section title={t('moneyOverview.sales')} gap="xs">
-            {preview.length === 0 && !sales.isPending ? (
-              <Text variant="caption" tone="tertiary">
-                {t('moneyOverview.noSales')}
-              </Text>
-            ) : (
-              <Card style={styles.list}>
-                {preview.map((s) => (
-                  <SaleRow key={s.id} sale={s} showDate={key !== 'today'} onPress={() => router.push(`/sales/${s.id}` as Href)} />
-                ))}
-              </Card>
-            )}
-            <Button
-              title={t('moneyOverview.viewAllSales')}
-              variant="secondary"
-              fullWidth
-              onPress={() => router.push('/sales/period' as Href)}
-            />
-          </Section>
+          <PeriodSelector />
 
-          {/* 3b. What was paid out today, and from where. */}
+          {/* 2. The period: four facts, never merged into one. */}
           {data ? (
-            <Section title={t('moneyOverview.expensesToday')} gap="xs">
+            <Card style={styles.figures}>
+              <View style={styles.grid}>
+                <Figure label={t('moneyOverview.phonesSold')} count={data.period.phonesSold} />
+                <Figure label={t('moneyOverview.salesValue')} value={data.period.salesValue} />
+                <Figure label={t('moneyOverview.collected')} value={data.period.collected} />
+                <Figure label={t('moneyOverview.outstanding')} value={data.period.outstanding} />
+              </View>
+              {data.period.refunds > 0 ? (
+                <View style={styles.line}>
+                  <Text variant="caption" tone="secondary" style={styles.grow}>
+                    {t('moneyOverview.refunds')}
+                  </Text>
+                  <MoneyValue value={-data.period.refunds} size="small" />
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
+          {/* 3a. Today's sales, or the week or month a day at a time — and the way to all of them. */}
+          {key === 'today' ? (
+            <Card style={styles.block}>
+              <View style={styles.head}>
+                <Thumbnail icon={Smartphone} />
+                <View style={styles.grow}>
+                  <Text variant="bodyStrong">{t('moneyOverview.phoneSales')}</Text>
+                  {data ? <MoneyValue value={data.period.salesValue} size="large" /> : null}
+                  {data ? (
+                    <Text variant="caption" tone="secondary">
+                      {t('moneyOverview.phones', { count: String(data.period.phonesSold) })}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              {sales.isPending ? (
+                <SkeletonStat />
+              ) : preview.length === 0 ? (
+                <Text variant="caption" tone="tertiary">
+                  {t('moneyOverview.noSales')}
+                </Text>
+              ) : (
+                <View>
+                  {preview.map((s) => (
+                    <SaleRow key={s.id} sale={s} onPress={() => router.push(`/sales/${s.id}` as Href)} />
+                  ))}
+                </View>
+              )}
+              <LinkRow title={t('moneyOverview.viewAllSales')} onPress={() => openSales()} />
+            </Card>
+          ) : (
+            <Section title={t('moneyOverview.salesByDay')} gap="xs">
+              <Card style={styles.list}>
+                {days.isPending ? (
+                  <SkeletonStat />
+                ) : days.isError || !days.data ? (
+                  <InlineNotice
+                    tone="warning"
+                    action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void days.refetch()} />}
+                  >
+                    {t('moneyTab.unavailable')}
+                  </InlineNotice>
+                ) : days.data.days.length === 0 ? (
+                  <Text variant="caption" tone="tertiary">
+                    {t('moneyOverview.noSales')}
+                  </Text>
+                ) : (
+                  <DaysPreview days={days.data.days} periodKey={key} from={range.from} onOpen={openSales} />
+                )}
+                <LinkRow title={t('moneyOverview.viewAllSales')} onPress={() => openSales()} />
+              </Card>
+            </Section>
+          )}
+
+          {/* 3b. What was paid out today, from where — and the way to add one. */}
+          {data ? (
+            <Card style={styles.block}>
+              <View style={styles.head}>
+                <Thumbnail icon={Receipt} />
+                <View style={styles.grow}>
+                  <Text variant="bodyStrong">{t('moneyOverview.dailyExpenses')}</Text>
+                  <MoneyValue value={data.expensesToday.total} size="large" />
+                </View>
+              </View>
+              {expenses ? (
+                <Button
+                  title={t('moneyOverview.addExpense')}
+                  icon={Plus}
+                  fullWidth
+                  onPress={() => router.push(`${expenses.route}/new` as Href)}
+                />
+              ) : null}
               {data.expensesToday.rows.length === 0 ? (
                 <Text variant="caption" tone="tertiary">
                   {t('moneyOverview.noExpenses')}
                 </Text>
               ) : (
-                <Card style={styles.list}>
+                <View>
                   {data.expensesToday.rows.map((e) => (
-                    <ExpenseLine key={e.id} expense={e} />
+                    <ExpenseLine
+                      key={e.id}
+                      expense={e}
+                      onPress={expenses ? () => router.push(`${expenses.route}/${e.id}` as Href) : undefined}
+                    />
                   ))}
-                </Card>
+                </View>
               )}
               {expenses ? (
-                <View style={styles.buttons}>
-                  <Button
-                    title={t('moneyOverview.addExpense')}
-                    variant="secondary"
-                    onPress={() => router.push(`${expenses.route}/new` as Href)}
-                  />
-                  <Button title={t('moneyOverview.viewAllExpenses')} variant="tertiary" onPress={() => router.push(expenses.route as Href)} />
-                </View>
+                <LinkRow title={t('moneyOverview.viewAllExpenses')} onPress={() => router.push(expenses.route as Href)} />
               ) : null}
-            </Section>
+            </Card>
           ) : null}
         </Section>
       ) : null}
@@ -245,21 +298,57 @@ export default function MoneyTabScreen() {
   );
 }
 
-/** A labelled figure. The label wraps; the figure never overlaps it. */
-function Line({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+/** One of the period's four facts: its own label, its own figure. */
+function Figure({ label, count, value }: { label: string; count?: number; value?: number }) {
   const styles = useStyles();
   return (
-    <View style={styles.line}>
-      <View style={styles.lineLabel}>
-        <Text variant="body">{label}</Text>
-        {hint ? (
-          <Text variant="caption" tone="tertiary">
-            {hint}
-          </Text>
-        ) : null}
-      </View>
-      {children}
+    <View style={styles.figure}>
+      <Text variant="body" tone="secondary">
+        {label}
+      </Text>
+      {value !== undefined ? <MoneyValue value={value} size="large" /> : <Text variant="title">{String(count ?? 0)}</Text>}
     </View>
+  );
+}
+
+/**
+ * A week is every day; a month is its latest days and one line for the rest.
+ * The folded line names its span and how many days it holds — never a sum,
+ * because the phone does not add figures up.
+ */
+function DaysPreview({
+  days,
+  periodKey,
+  from,
+  onOpen,
+}: {
+  days: SalesDay[];
+  periodKey: PeriodKey;
+  from: string;
+  onOpen: (day?: string) => void;
+}) {
+  const { t } = useTranslation();
+  const shown = periodKey === 'week' ? days : days.slice(0, DAYS_PREVIEW);
+  const folded = days.length - shown.length;
+  return (
+    <>
+      {shown.map((d) => (
+        <DayRow
+          key={d.day}
+          title={formatDate(`${d.day}T00:00:00Z`)}
+          caption={t('moneyOverview.phones', { count: String(d.phones) })}
+          value={d.value}
+          onPress={() => onOpen(d.day)}
+        />
+      ))}
+      {folded > 0 ? (
+        <DayRow
+          title={formatDayRange(from, days[shown.length].day)}
+          caption={t('moneyOverview.earlierDays', { count: String(folded) })}
+          onPress={() => onOpen()}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -270,7 +359,7 @@ function AccountLine({ account: a }: { account: AccountToday }) {
   return (
     <View style={styles.account}>
       <View style={styles.line}>
-        <Text variant="bodyStrong" style={styles.lineLabel}>
+        <Text variant="bodyStrong" style={styles.grow}>
           {a.isUnattributed ? t('moneyOverview.account.unattributed') : a.label}
         </Text>
         <MoneyValue value={a.net} size="small" tone="auto" signed />
@@ -282,30 +371,24 @@ function AccountLine({ account: a }: { account: AccountToday }) {
   );
 }
 
-/** One expense paid today: what for, where it came from, how much. */
-function ExpenseLine({ expense: e }: { expense: ExpenseToday }) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  return (
-    <View style={styles.expense}>
-      <View style={styles.lineLabel}>
-        <Text variant="body">{e.description}</Text>
-        <Text variant="caption" tone="secondary">
-          {e.method === 'cash' ? t('moneyOverview.paidFromCash') : e.accountLabel}
-        </Text>
-      </View>
-      <MoneyValue value={-e.amount} size="small" />
-    </View>
-  );
-}
-
-const useStyles = makeStyles(() => ({
-  statRow: { flexDirection: 'row', gap: space.sm },
-  card: { gap: space.sm },
-  list: { gap: 0, paddingVertical: space.xs },
-  line: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
-  lineLabel: { flex: 1, gap: 2 },
+const useStyles = makeStyles((colors) => ({
+  cash: { gap: space.md },
+  cashIcon: {
+    width: THUMB_SIZE.md,
+    height: THUMB_SIZE.md,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface.card,
+  },
+  head: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  grow: { flex: 1, minWidth: 0 },
+  figures: { gap: space.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
+  /** Two to a row where they fit, one under the other on a narrow phone. */
+  figure: { flexGrow: 1, flexBasis: '40%', minWidth: 132, gap: 2 },
+  block: { gap: space.md },
+  list: { gap: space.xs },
+  line: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   account: { gap: 2, paddingVertical: space.xs },
-  expense: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, paddingVertical: space.xs },
-  buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 }));
