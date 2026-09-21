@@ -124,6 +124,8 @@ export default function QuickSellScreen() {
    */
   const [picked, setPicked] = useState<{ selection: SaleSelection; identifier: string; source: PickSource } | null>(null);
   const [lookupError, setLookupError] = useState<LookupFailure | null>(null);
+  /** The shelf row picked, by its identifier, before the server is asked about it. */
+  const [stockPick, setStockPick] = useState<string | null>(null);
   const sellable = picked?.selection.availability === 'available';
   const [price, setPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -204,9 +206,21 @@ export default function QuickSellScreen() {
   const chooseAnother = () => {
     setPicked(null);
     setLookupError(null);
+    setStockPick(null);
     setPrice('');
     setMode('choose');
   };
+
+  /** Each way in is its own screen, with its own name over it. */
+  const title = picked
+    ? t('pick.review.title')
+    : mode === 'manual'
+      ? t('pick.manual.title')
+      : mode === 'stock'
+        ? t('pick.stock.title')
+        : mode === 'scan'
+          ? t('pick.scan')
+          : t('quick.sell.title');
 
   // ── Checkout ──────────────────────────────────────────────────────────────
 
@@ -468,19 +482,22 @@ export default function QuickSellScreen() {
               ) : null}
               <Button title={t('pick.another')} variant={sellable ? 'tertiary' : 'secondary'} fullWidth onPress={chooseAnother} />
             </>
+          ) : mode === 'stock' && stockPick ? (
+            <Button title={t('pick.stock.continue')} size="lg" fullWidth onPress={() => void findAndChoose(stockPick, 'stock')} />
           ) : undefined
         }
       >
         <Stack.Screen
           options={{
             headerShown: true,
-            title: t('quick.sell.title'),
+            title,
             headerBackVisible: false,
+            // Back from a way in, or from the review, is back to the three choices.
             headerLeft: () => (
               <IconButton
                 icon={isRTL() ? ArrowRight : ArrowLeft}
                 accessibilityLabel={t('action.back')}
-                onPress={() => router.back()}
+                onPress={() => (picked || mode !== 'choose' ? chooseAnother() : router.back())}
               />
             ),
           }}
@@ -511,7 +528,7 @@ export default function QuickSellScreen() {
                   }}
                 />
               ) : (
-                <StockPicker onPick={(identifier) => void findAndChoose(identifier, 'stock')} />
+                <StockPicker selected={stockPick} onSelect={setStockPick} />
               )}
 
               {lookupError ? (
@@ -520,16 +537,18 @@ export default function QuickSellScreen() {
                 </InlineNotice>
               ) : null}
 
-              {mode !== 'choose' ? <Button title={t('pick.back')} variant="tertiary" onPress={chooseAnother} /> : null}
             </>
           ) : null}
 
           {picked ? (
-            <SelectedPhoneCard selection={picked.selection} source={picked.source}>
-              {sellable ? (
-                <MoneyField label={t('quick.sell.price')} value={price} onChangeText={setPrice} required />
-              ) : null}
-            </SelectedPhoneCard>
+            <>
+              <SelectedPhoneCard selection={picked.selection} source={picked.source}>
+                {sellable ? (
+                  <MoneyField label={t('quick.sell.price')} value={price} onChangeText={setPrice} required />
+                ) : null}
+              </SelectedPhoneCard>
+              {sellable ? <InlineNotice tone="info">{t('pick.review.note')}</InlineNotice> : null}
+            </>
           ) : null}
 
           {picked && sellable ? (
@@ -598,6 +617,9 @@ export default function QuickSellScreen() {
         discount={0}
         onDiscountChange={() => {}}
         onComplete={onComplete}
+        summary={
+          picked ? [`${picked.selection.product.brand} ${picked.selection.product.model}`, picked.selection.product.variant].filter(Boolean).join(' · ') : null
+        }
         presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
         submitting={submitting}
         accounts={selectableAccounts(receivingAccounts)}
