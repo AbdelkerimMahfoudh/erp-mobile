@@ -83,6 +83,21 @@ export function useConfirmExpense(id: string) {
   });
 }
 
+/**
+ * Confirming an expense the same person has just recorded. The id is only
+ * known once the report has answered, so unlike `useConfirmExpense` this takes
+ * it per call. Confirmation is still the Owner's explicit act — the review
+ * screen says what the drawer will do before this is sent.
+ */
+export function useConfirmRecordedExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string; expectedVersion: number; reasonOmitted?: boolean }) =>
+      api.post<Expense>(`/expenses/${id}/confirm`, body),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
 export function useRejectExpense(id: string) {
   const qc = useQueryClient();
   return useMutation({
