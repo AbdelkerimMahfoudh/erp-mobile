@@ -106,8 +106,8 @@ export function SegmentedControl<T extends string>({
             <Text
               variant={selected ? 'labelStrong' : 'label'}
               align="center"
-              numberOfLines={1}
-              style={{ color: foreground }}
+              numberOfLines={buttons ? 2 : 1}
+              style={[{ color: foreground }, buttons ? styles.buttonLabel : null]}
             >
               {option.label}
             </Text>
@@ -165,6 +165,9 @@ const useStyles = makeStyles((colors) => ({
   button: {
     borderRadius: radius.md,
     borderWidth: 1,
+  },
+  buttonLabel: {
+    flexShrink: 1,
   },
   selected: elevation.xs,
 }));

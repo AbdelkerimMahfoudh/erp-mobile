@@ -302,7 +302,7 @@ function PaymentSheetBody({
         {remaining > 0.005 ? (
           <>
             <Card variant="warning" style={styles.owed}>
-              <View style={styles.grow}>
+              <View style={styles.owedFigure}>
                 <Text variant="caption" tone="secondary">
                   {t('sellDebt.remaining')}
                 </Text>
@@ -392,7 +392,9 @@ const useStyles = makeStyles((colors) => ({
     borderRadius: radius.lg,
     backgroundColor: colors.surface.sunken,
   },
-  owed: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  owed: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
+  /** Wide enough for the figure; the chip wraps beneath when the phone is narrow. */
+  owedFigure: { flexGrow: 1, minWidth: 150 },
   more: { gap: space.base, paddingTop: space.sm },
   group: {
     gap: space.sm,
