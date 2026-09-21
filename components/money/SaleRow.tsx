@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { MoneyValue, StatusChip, Text } from '../ui';
+import { MoneyValue, StatusChip, Text, Thumbnail } from '../ui';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDateTime, formatMoney, formatTime } from '../../lib/format';
@@ -11,10 +11,10 @@ import type { SaleListRow } from '../../types/api';
 /**
  * One sale, as the Money screens list it (0074).
  *
- * The selling price is the headline; what was received, and what is still
- * owed and by whom, sit under it only when a balance remains — a fully paid
- * sale is one line, a part-paid one says what matters. Status is colour AND
- * words, and the method or account names where the money went.
+ * The phone and its selling price are the headline; when it was sold and where
+ * the money went sit under them. What was received, and what is still owed and
+ * by whom, appear only when a balance remains — a fully paid sale is a short
+ * row, a part-paid one says what matters. Status is colour AND words.
  *
  * Every figure is the server's. Nothing here adds or subtracts.
  */
@@ -42,9 +42,10 @@ export function SaleRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
+      <Thumbnail />
       <View style={styles.body}>
         <View style={styles.top}>
-          <Text variant="bodyStrong" style={styles.title}>
+          <Text variant="bodyStrong" style={styles.title} numberOfLines={2}>
             {sale.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo })}
           </Text>
           <MoneyValue value={sale.total} size="small" />
@@ -80,16 +81,18 @@ export function SaleRow({
   );
 }
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
+    gap: space.md,
     paddingVertical: space.sm,
-    minHeight: touch.min,
+    minHeight: touch.comfortable,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border.subtle,
   },
   pressed: { opacity: 0.6 },
-  body: { flex: 1, gap: 2 },
+  body: { flex: 1, minWidth: 0, gap: 2 },
   top: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
   title: { flex: 1 },
   chip: { flexDirection: 'row', paddingTop: 2 },

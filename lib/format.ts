@@ -1,6 +1,7 @@
 import { format as formatDateFns, formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
 import { getLanguage } from './i18n';
 import { dateLocaleFor } from './date-locale';
+import { dayRangeShape } from './day-range';
 
 /**
  * Formatting — money, quantities and dates, in one place.
@@ -43,6 +44,26 @@ export function formatTime(value: string | number | Date): string {
 /** Calendar date, no time. */
 export function formatDate(value: string | number | Date): string {
   return formatDateFns(toDate(value), 'd MMM yyyy', { locale: dateLocale() });
+}
+
+/**
+ * A span of days the short way a person says it: "14–18 Sep 2026" inside one
+ * month, "28 Aug – 3 Sep 2026" across two, both dates in full across a year.
+ * One day is just that day. Deliberately not LTR-isolated: a localised date
+ * carries its own month word (see `PeriodSelector`).
+ */
+export function formatDayRange(from: string, to: string): string {
+  const day = (d: string, pattern: string) => formatDateFns(toDate(`${d}T00:00:00Z`), pattern, { locale: dateLocale() });
+  switch (dayRangeShape(from, to)) {
+    case 'day':
+      return day(from, 'd MMM yyyy');
+    case 'month':
+      return `${day(from, 'd')}–${day(to, 'd MMM yyyy')}`;
+    case 'year':
+      return `${day(from, 'd MMM')} – ${day(to, 'd MMM yyyy')}`;
+    default:
+      return `${day(from, 'd MMM yyyy')} – ${day(to, 'd MMM yyyy')}`;
+  }
 }
 
 export function formatDateTime(value: string | number | Date): string {
