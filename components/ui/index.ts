@@ -55,6 +55,7 @@ export {
 } from './WorkflowTimeline';
 export { Toggle, type ToggleProps } from './Toggle';
 export { StatTile, type StatTileProps, type StatTrend } from './StatTile';
+export { Thumbnail, THUMB_SIZE, type ThumbnailProps } from './Thumbnail';
 export { TabHeader, type TabHeaderProps } from './TabHeader';
 export { Disclosure, type DisclosureProps } from './Disclosure';
 

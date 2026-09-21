@@ -12,7 +12,12 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * a screen full of drop shadows reads as consumer app, not business software.
  */
 
-export type SurfaceVariant = 'card' | 'sunken' | 'plain' | 'outlined';
+/**
+ * `accent` and `warning` are washes: the one figure a screen is opened for
+ * (cash in the store, a sale's price) and the one that needs attention (what is
+ * still owed). A wash carries meaning, so it is used once per screen at most.
+ */
+export type SurfaceVariant = 'card' | 'sunken' | 'plain' | 'outlined' | 'accent' | 'warning';
 
 export interface CardProps extends ViewProps {
   variant?: SurfaceVariant;
@@ -39,7 +44,11 @@ export function Card({
         ? { backgroundColor: colors.surface.sunken }
         : variant === 'outlined'
           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.default }
-          : { backgroundColor: 'transparent' };
+          : variant === 'accent'
+            ? { backgroundColor: colors.intent.info.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.intent.info.border }
+            : variant === 'warning'
+              ? { backgroundColor: colors.intent.warning.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.intent.warning.border }
+              : { backgroundColor: 'transparent' };
 
   return (
     <View

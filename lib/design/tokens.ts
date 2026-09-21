@@ -70,6 +70,8 @@ export const type = {
     fontVariant: ['tabular-nums'],
   },
   money: { fontSize: 17, lineHeight: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  /** A card's headline figure: read across a counter, yet two fit side by side. */
+  moneyLarge: { fontSize: 22, lineHeight: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
   moneySmall: { fontSize: 15, lineHeight: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
 } as const;
 

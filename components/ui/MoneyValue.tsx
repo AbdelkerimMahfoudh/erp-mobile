@@ -29,7 +29,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * only the glyphs stay put.
  */
 
-export type MoneySize = 'display' | 'default' | 'small';
+export type MoneySize = 'display' | 'large' | 'default' | 'small';
 
 /**
  * How to read the number, not what kind of number it is.
@@ -68,7 +68,7 @@ export interface MoneyValueProps {
  * the type scale stays the single source of truth.
  */
 const tabular = (
-  t: typeof type.moneyDisplay | typeof type.money | typeof type.moneySmall,
+  t: typeof type.moneyDisplay | typeof type.moneyLarge | typeof type.money | typeof type.moneySmall,
 ): TextStyle => ({
   fontSize: t.fontSize,
   lineHeight: t.lineHeight,
@@ -78,6 +78,7 @@ const tabular = (
 
 const SIZE_STYLE: Record<MoneySize, TextStyle> = {
   display: tabular(type.moneyDisplay),
+  large: tabular(type.moneyLarge),
   default: tabular(type.money),
   small: tabular(type.moneySmall),
 };
