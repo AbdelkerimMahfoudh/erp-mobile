@@ -174,6 +174,7 @@ export default function ExpensesScreen() {
 }
 
 function ExpenseRow({ expense, onPress }: { expense: Expense; onPress: () => void }) {
+  const styles = useStyles();
   const { t } = useTranslation();
 
   /**
@@ -195,8 +196,13 @@ function ExpenseRow({ expense, onPress }: { expense: Expense; onPress: () => voi
       ]
         .filter(Boolean)
         .join(' · ')}
-      value={<MoneyValue value={expense.amount} size="small" />}
-      accessory={<Chip tone={tone} label={t(`expenses.status.${expense.status}`)} size="sm" dot />}
+      // The amount and its status stack at the end, so the description keeps the width to be read.
+      value={
+        <View style={styles.valueBlock}>
+          <MoneyValue value={expense.amount} size="small" />
+          <Chip tone={tone} label={t(`expenses.status.${expense.status}`)} size="sm" dot />
+        </View>
+      }
       onPress={onPress}
     />
   );
@@ -217,5 +223,6 @@ const useStyles = makeStyles((colors) => ({
   todayCard: { gap: space.xs },
   line: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingBottom: space.xs },
   controls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  valueBlock: { alignItems: 'flex-end', gap: space.xs },
   list: { paddingBottom: space['3xl'] },
 }));

@@ -45,7 +45,7 @@ export function SaleRow({
       <Thumbnail />
       <View style={styles.body}>
         <View style={styles.top}>
-          <Text variant="bodyStrong" style={styles.title} numberOfLines={3}>
+          <Text variant="bodyStrong" style={styles.title}>
             {sale.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo })}
           </Text>
           <MoneyValue value={sale.total} size="small" />

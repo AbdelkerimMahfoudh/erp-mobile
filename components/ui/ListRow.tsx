@@ -102,11 +102,11 @@ export function ListRow({
       <Leading leading={leading} />
 
       <View style={styles.body}>
-        <Text variant="bodyStrong" numberOfLines={1}>
+        <Text variant="bodyStrong" numberOfLines={2}>
           {title}
         </Text>
         {subtitle ? (
-          <Text variant="caption" tone="tertiary" numberOfLines={1}>
+          <Text variant="caption" tone="tertiary" numberOfLines={2}>
             {subtitle}
           </Text>
         ) : null}
