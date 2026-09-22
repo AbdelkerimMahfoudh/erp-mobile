@@ -139,6 +139,18 @@ export const ar: Catalogue = {
   'closing.signOff.incomplete': 'بعض القنوات لم تُعدّ. الإغلاق الآن يسجّلها كأنها لم تُراجَع.',
   'closing.signOff.notYours': 'تم حفظ ما عددته. سيُكمل الإغلاق من يملك صلاحيته.',
   'closing.locked.body': 'هذا اليوم مغلق. الأرقام لم تعد تتغيّر.',
+  'closing.summary.expected': 'الإجمالي المتوقع',
+  'closing.summary.counted': 'ما تم عدّه',
+  'closing.summary.difference': 'الفرق',
+  'closing.summary.progress': 'تم عدّ {done} من {total}',
+  'closing.section.channels': 'الصندوق والحسابات',
+  'closing.row.save': 'حفظ',
+  'closing.review': 'مراجعة وإقفال',
+  'closing.review.blocked': 'احفظ كل عملية عدّ قبل إقفال اليوم.',
+  'closing.review.title': 'إقفال يوم {date}؟',
+  'closing.review.body': 'المتوقع {expected}، المعدود {counted}، الفرق {difference}. الإقفال يثبّت الأرقام.',
+  'closing.review.confirm': 'إقفال اليوم',
+  'closing.differences.link': 'فروقات غير مسوّاة',
 
   // ── فرق يحتاج إلى جواب ────────────────────────────────────────────────────
   // الصياغة ليست اتهامًا: النظام رأى فرقًا، ولم يقرّر من تسبّب فيه.

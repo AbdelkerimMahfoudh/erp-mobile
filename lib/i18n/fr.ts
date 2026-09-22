@@ -151,6 +151,18 @@ export const fr: Catalogue = {
   'closing.signOff.notYours':
     'Vos comptages sont enregistrés. Quelqu’un ayant le droit de clôturer terminera la journée.',
   'closing.locked.body': 'Cette journée est validée. Les chiffres ne changent plus.',
+  'closing.summary.expected': 'Attendu au total',
+  'closing.summary.counted': 'Compté jusqu’ici',
+  'closing.summary.difference': 'Écart',
+  'closing.summary.progress': '{done} sur {total} comptés',
+  'closing.section.channels': 'Caisse et comptes',
+  'closing.row.save': 'Enregistrer',
+  'closing.review': 'Vérifier et clôturer',
+  'closing.review.blocked': 'Enregistrez chaque comptage avant de clôturer la journée.',
+  'closing.review.title': 'Clôturer le {date} ?',
+  'closing.review.body': 'Attendu {expected}, compté {counted}, écart {difference}. La clôture fige les chiffres.',
+  'closing.review.confirm': 'Clôturer la journée',
+  'closing.differences.link': 'Écarts non réglés',
 
   // ── A difference that has to be answered for (Milestone E) ────────────────
   // Never worded as an accusation: the system saw a difference, it did not

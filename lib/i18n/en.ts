@@ -138,6 +138,18 @@ export const en = {
   'closing.signOff.incomplete': 'Some channels have not been counted. Closing now records them as never checked.',
   'closing.signOff.notYours': 'Your counts are saved. Someone with authority to close the day will finish it.',
   'closing.locked.body': 'This day is signed off. The figures no longer change.',
+  'closing.summary.expected': 'Expected in total',
+  'closing.summary.counted': 'Counted so far',
+  'closing.summary.difference': 'Difference',
+  'closing.summary.progress': '{done} of {total} counted',
+  'closing.section.channels': 'Cash and accounts',
+  'closing.row.save': 'Save',
+  'closing.review': 'Review and close',
+  'closing.review.blocked': 'Save every count before closing the day.',
+  'closing.review.title': 'Close {date}?',
+  'closing.review.body': 'Expected {expected}, counted {counted}, difference {difference}. Closing locks the figures.',
+  'closing.review.confirm': 'Close the day',
+  'closing.differences.link': 'Unsettled differences',
 
   // ── A difference that has to be answered for (Milestone E) ────────────────
   // Never worded as an accusation: the system saw a difference, it did not
