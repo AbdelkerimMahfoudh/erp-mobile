@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -49,23 +49,21 @@ import { useFileBatch } from '../../lib/file-batch-store';
 import {
   batchCounts,
   batchFingerprint,
-  canAccept,
   canConfirm,
   effectiveCost,
-  effectiveImei2,
   entryState,
   groupCandidates,
   groupEntries,
-  groupSummary,
   previewBulkCost,
   purchaseItems,
-  remainingProblems,
   reviewComplete,
   type CatalogueProduct,
   type EntryGroup,
   type EntryState,
   type FileEntry,
+  type SourceRef,
 } from '../../lib/file-receiving';
+import { groupSummaries, reviewRows, toggleOpenGroup, type ReviewFilter, type ReviewRowData } from '../../lib/file-review-rows';
 import type { PurchaseOutcome } from '../../lib/receive-outcome';
 
 /**
@@ -85,13 +83,21 @@ import type { PurchaseOutcome } from '../../lib/receive-outcome';
  * footer carries the only numbers that matter — how many are ready, how many are
  * out, and what the ready ones cost.
  *
- * ## Why groups come first
+ * ## Why groups come first, and why the list is flat
  *
  * A hundred rows of the same iPhone with the same missing product are one
- * decision, not a hundred. The list shows one collapsed card per exact variant
+ * decision, not a hundred. The list shows one collapsed header per exact variant
  * with its count, its subtotal and the reason it is held up, and a group whose
  * every problem is the same product question can be matched once for all of
- * them. Individual phones are rendered only when their group is opened.
+ * them.
+ *
+ * The list itself is ONE virtualized sequence — group headers, then the rows of
+ * the single open group — built by `reviewRows`. The earlier shape, a card per
+ * group mapping its own rows inside itself, meant the open group was one list
+ * item however many rows it held, and any correction re-rendered every card
+ * because each received the whole batch. Rows now receive only the primitives
+ * they show, and re-render only when those change: correcting one phone in a
+ * hundred re-renders that phone.
  *
  * Three rules it exists to keep:
  *
@@ -124,14 +130,14 @@ export default function FileReviewScreen() {
   const restore = useFileBatch((s) => s.restore);
 
   const [step, setStep] = useState<Step>('review');
-  const [filter, setFilter] = useState<'all' | EntryState>('all');
+  const [filter, setFilter] = useState<ReviewFilter>('all');
   /**
    * The one open group, by key — never more than one.
    *
    * A hundred phones do not fit on a screen, and a file of two thousand must
-   * cost no more to scroll than one of ten. Only the open group's phones are
-   * mounted, and opening a group closes whichever was open, so the number of
-   * mounted rows never grows with the delivery.
+   * cost no more to scroll than one of ten. Only the open group's phones are in
+   * the list at all, and opening a group closes whichever was open, so the
+   * number of mounted rows never grows with the delivery.
    */
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
@@ -147,15 +153,26 @@ export default function FileReviewScreen() {
    *
    * Scoped to this person, company and branch by the shared draft mechanism, so
    * a half-checked delivery is still there tomorrow — and it is a SEPARATE key
-   * from the scanned delivery's draft, which is left exactly as it was.
+   * from the scanned delivery's draft, which is left exactly as it was. It is
+   * written when the batch changes — a correction, an exclusion — and never
+   * while the list merely scrolls or re-renders.
    */
   const draft = useDraft('receive.file', batch, (saved) => { if (saved?.parsed) restore(saved); }, { enabled: !done });
 
-  const counts = batch ? batchCounts(batch) : null;
+  // Everything derived from the batch is computed once per change, not once per
+  // render and never once per row.
+  const counts = useMemo(() => (batch ? batchCounts(batch) : null), [batch]);
   const groups = useMemo(() => (batch ? groupEntries(batch) : []), [batch]);
-  const items = batch ? purchaseItems(batch) : [];
+  const summaries = useMemo(() => (batch ? groupSummaries(batch, groups) : new Map()), [batch, groups]);
+  const rows = useMemo(() => (batch ? reviewRows(batch, groups, summaries, openKey, filter) : []), [batch, groups, summaries, openKey, filter]);
+  const items = useMemo(() => (batch ? purchaseItems(batch) : []), [batch]);
   /** Bound to the payload: editing the batch changes the key, so a stale replay cannot answer. */
-  const clientUuid = batch ? batchFingerprint(items, { method: payment.method, receivingAccountId: payment.receivingAccountId }) : '';
+  const clientUuid = useMemo(
+    () => (batch ? batchFingerprint(items, { method: payment.method, receivingAccountId: payment.receivingAccountId }) : ''),
+    [batch, items, payment.method, payment.receivingAccountId],
+  );
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
 
   const receive = useMutation({
     mutationFn: () =>
@@ -183,18 +200,28 @@ export default function FileReviewScreen() {
   });
 
   const toggleGroup = useCallback((key: string) => {
-    setOpenKey((current) => (current === key ? null : key));
+    setOpenKey((current) => toggleOpenGroup(current, key));
+  }, []);
+
+  const matchGroupByKey = useCallback((key: string) => {
+    const group = groupsRef.current.find((g) => g.key === key);
+    if (group) setMatching(group);
   }, []);
 
   /**
-   * The three per-row actions, as stable callbacks so a memoised row does not
-   * re-render when an unrelated one changes. Each reads the live batch from the
-   * store rather than closing over it, which keeps the callback identity fixed.
+   * The three per-row actions, as stable callbacks keyed by the row, so a
+   * memoised row does not re-render when an unrelated one changes. Each reads
+   * the live batch from the store rather than closing over it, which keeps the
+   * callback identity fixed.
    */
+  const entryOf = (key: string): FileEntry | null =>
+    useFileBatch.getState().batch?.parsed.entries.find((e) => e.key === key) ?? null;
+
   const acceptEntry = useCallback(
-    async (entry: FileEntry) => {
+    async (key: string) => {
       const live = useFileBatch.getState().batch;
-      if (!live) return;
+      const entry = entryOf(key);
+      if (!live || !entry) return;
       const product = [entry.extracted.brand, entry.extracted.model].filter(Boolean).join(' ') || t('fileReceive.noIdentifier');
       const identifier = entry.extracted.imei1 ?? entry.extracted.serial ?? t('fileReceive.noIdentifier');
       const cost = effectiveCost(live, entry);
@@ -204,18 +231,19 @@ export default function FileReviewScreen() {
         message: `${detail}\n\n${t('fileReceive.accept.body')}`,
         confirmLabel: t('fileReceive.accept'),
       });
-      if (ok) setAcknowledged(entry.key, true);
+      if (ok) setAcknowledged(key, true);
     },
     [t, setAcknowledged],
   );
 
   const removeEntry = useCallback(
-    async (entry: FileEntry) => {
+    async (key: string) => {
       const live = useFileBatch.getState().batch;
-      if (!live) return;
+      const entry = entryOf(key);
+      if (!live || !entry) return;
       // Restoring is not destructive, so it needs no speed bump.
       if (entryState(live, entry) === 'excluded') {
-        setExcluded(entry.key, false);
+        setExcluded(key, false);
         return;
       }
       const ok = await dialog.confirm({
@@ -224,12 +252,65 @@ export default function FileReviewScreen() {
         confirmLabel: t('fileReceive.remove'),
         tone: 'danger',
       });
-      if (ok) setExcluded(entry.key, true);
+      if (ok) setExcluded(key, true);
     },
     [t, setExcluded],
   );
 
-  const editEntry = useCallback((entry: FileEntry) => setEditing(entry), []);
+  const editEntry = useCallback((key: string) => setEditing(entryOf(key)), []);
+
+  /**
+   * One record, one row. Group headers and phones are siblings in the same
+   * list, and each receives only the values it shows.
+   */
+  const renderRow: ListRenderItem<ReviewRowData> = useCallback(
+    ({ item }) => {
+      if (item.type === 'group') {
+        const { summary } = item;
+        const status = summary.needsAttention === 0
+          ? summary.excluded === summary.phones
+            ? t('fileReceive.state.excluded')
+            : t('fileReceive.group.ready')
+          : summary.reason
+            ? t(`fileReceive.problem.${summary.reason}` as never)
+            : t('fileReceive.group.mixed', { count: String(summary.needsAttention) });
+        return (
+          <GroupRow
+            groupKey={item.groupKey}
+            label={item.label}
+            subtitle={item.variant}
+            countCost={t('fileReceive.group.countCost', { count: String(summary.phones), total: formatMoney(summary.subtotal) })}
+            status={t('fileReceive.group.status', { status })}
+            held={summary.needsAttention > 0}
+            matchable={summary.matchableKeys.length}
+            shown={item.shown}
+            open={item.open}
+            onToggle={toggleGroup}
+            onMatch={matchGroupByKey}
+          />
+        );
+      }
+      const problems = item.problems;
+      return (
+        <EntryRow
+          entryKey={item.entryKey}
+          source={item.source}
+          identifier={item.identifier}
+          imei2={item.imei2}
+          cost={item.cost}
+          extractedCost={item.extractedCost}
+          corrected={item.corrected}
+          state={item.state}
+          problemsText={problems.map((p) => t(`fileReceive.problem.${p}` as never)).join(' · ')}
+          acceptable={item.acceptable}
+          onAccept={acceptEntry}
+          onEdit={editEntry}
+          onRemove={removeEntry}
+        />
+      );
+    },
+    [t, toggleGroup, matchGroupByKey, acceptEntry, editEntry, removeEntry],
+  );
 
   if (done) {
     return (
@@ -268,14 +349,9 @@ export default function FileReviewScreen() {
   /** Every held-up phone is waiting on a product, so "Match products" is the one thing to do. */
   const productHeld = attentionKeys.length > 0
     && groups.every((g) => {
-      const summary = groupSummary(batch, g);
-      return summary.needsAttention === 0 || summary.matchableKeys.length > 0;
+      const summary = summaries.get(g.key);
+      return !summary || summary.needsAttention === 0 || summary.matchableKeys.length > 0;
     });
-
-  const visibleGroups = groups.filter((group) => {
-    if (filter === 'all') return true;
-    return group.entries.some((e) => entryState(batch, e) === filter);
-  });
 
   const excludeAllProblems = async () => {
     const ok = await dialog.confirm({
@@ -289,7 +365,7 @@ export default function FileReviewScreen() {
 
   /** A group's whole product question, answered once. */
   const matchGroup = (group: EntryGroup, product: CatalogueProduct) => {
-    const keys = groupSummary(batch, group).matchableKeys;
+    const keys = summaries.get(group.key)?.matchableKeys ?? [];
     const changed = correctMany(keys, { productId: product.id });
     setMatching(null);
     setError(null);
@@ -415,13 +491,15 @@ export default function FileReviewScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('fileReceive.title') }} />
 
       <FlatList
-        data={visibleGroups}
-        keyExtractor={(group) => group.key}
+        data={rows}
+        keyExtractor={(row) => row.key}
+        renderItem={renderRow}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
-        // Collapsed cards are cheap; a group's phones exist only while it is open.
-        initialNumToRender={8}
-        windowSize={7}
+        // Every record is one small row, so the window can stay small.
+        initialNumToRender={12}
+        maxToRenderPerBatch={8}
+        windowSize={5}
         removeClippedSubviews
         ListHeaderComponent={
           <View style={styles.header}>
@@ -463,7 +541,7 @@ export default function FileReviewScreen() {
                   fullWidth
                   onPress={() => {
                     setFilter('needs_attention');
-                    const first = groups.find((g) => groupSummary(batch, g).matchableKeys.length > 0);
+                    const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0);
                     if (first) setMatching(first);
                   }}
                 />
@@ -523,20 +601,6 @@ export default function FileReviewScreen() {
             </Card>
           </View>
         }
-        extraData={{ openKey, filter, batch }}
-        renderItem={({ item: group }) => (
-          <GroupCard
-            group={group}
-            batch={batch}
-            filter={filter}
-            open={openKey === group.key}
-            onToggle={toggleGroup}
-            onMatch={setMatching}
-            onAccept={acceptEntry}
-            onEdit={editEntry}
-            onRemove={removeEntry}
-          />
-        )}
         ListFooterComponent={
           <View style={styles.tail}>
             {attentionKeys.length > 0 ? (
@@ -567,7 +631,7 @@ export default function FileReviewScreen() {
       <MatchSheet
         group={matching}
         candidates={matching ? groupCandidates(batch, matching) : []}
-        count={matching ? groupSummary(batch, matching).matchableKeys.length : 0}
+        count={matching ? (summaries.get(matching.key)?.matchableKeys.length ?? 0) : 0}
         onClose={() => setMatching(null)}
         onChoose={(product) => matching && matchGroup(matching, product)}
       />
@@ -589,101 +653,74 @@ function Breakdown({ label, value }: { label: string; value: number }) {
 }
 
 /**
- * One exact variant of phone, as the delivery lists it.
+ * One exact variant of phone, as the delivery lists it: a count, a subtotal and
+ * the reason it is held up. Its phones are the records that follow it in the
+ * list while it is open — see `reviewRows`.
  *
- * Collapsed it is a count, a subtotal and the reason it is held up. The
- * individual phones are mounted only when it is opened, so a file of two
- * thousand costs no more to scroll than one of ten.
+ * Memoised on primitives: a correction elsewhere in the delivery leaves this
+ * header's values unchanged and so does not re-render it.
  */
-const GroupCard = React.memo(function GroupCard({
-  group,
-  batch,
-  filter,
+const GroupRow = React.memo(function GroupRow({
+  groupKey,
+  label,
+  subtitle,
+  countCost,
+  status,
+  held,
+  matchable,
+  shown,
   open,
   onToggle,
   onMatch,
-  onAccept,
-  onEdit,
-  onRemove,
 }: {
-  group: EntryGroup;
-  batch: Parameters<typeof groupSummary>[0];
-  filter: 'all' | EntryState;
+  groupKey: string;
+  label: string;
+  subtitle: string | null;
+  countCost: string;
+  status: string;
+  held: boolean;
+  /** How many phones one product choice would fix; 0 when none. */
+  matchable: number;
+  shown: number;
   open: boolean;
   onToggle: (key: string) => void;
-  onMatch: (group: EntryGroup) => void;
-  onAccept: (entry: FileEntry) => void;
-  onEdit: (entry: FileEntry) => void;
-  onRemove: (entry: FileEntry) => void;
+  onMatch: (key: string) => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const summary = groupSummary(batch, group);
-  const subtitle = [group.category, group.variant].filter(Boolean).join(' · ');
-  const shown = group.entries.filter((e) => filter === 'all' || entryState(batch, e) === filter);
-
-  const status = summary.needsAttention === 0
-    ? summary.excluded === summary.phones
-      ? t('fileReceive.state.excluded')
-      : t('fileReceive.group.ready')
-    : summary.reason
-      ? t(`fileReceive.problem.${summary.reason}` as never)
-      : t('fileReceive.group.mixed', { count: String(summary.needsAttention) });
 
   return (
     <Card style={styles.group}>
-      <Text variant="title">{group.label}</Text>
+      <Text variant="title">{label}</Text>
       {subtitle ? (
         <Text variant="caption" tone="secondary">
           {subtitle}
         </Text>
       ) : null}
       <Text variant="body" tone="secondary">
-        {t('fileReceive.group.countCost', { count: String(summary.phones), total: formatMoney(summary.subtotal) })}
+        {countCost}
       </Text>
-      <Text variant="body" tone={summary.needsAttention > 0 ? 'warning' : 'secondary'}>
-        {t('fileReceive.group.status', { status })}
+      <Text variant="body" tone={held ? 'warning' : 'secondary'}>
+        {status}
       </Text>
 
       <View style={styles.groupActions}>
-        {summary.matchableKeys.length > 0 ? (
+        {matchable > 0 ? (
           <Button
-            title={t('fileReceive.match.action', { count: String(summary.matchableKeys.length) })}
+            title={t('fileReceive.match.action', { count: String(matchable) })}
             variant="secondary"
             size="sm"
-            onPress={() => onMatch(group)}
+            onPress={() => onMatch(groupKey)}
           />
         ) : null}
         <Button
-          title={open ? t('fileReceive.group.hide') : t('fileReceive.group.review', { count: String(shown.length) })}
+          title={open ? t('fileReceive.group.hide') : t('fileReceive.group.review', { count: String(shown) })}
           variant="tertiary"
           size="sm"
           icon={open ? ChevronDown : ChevronRight}
-          onPress={() => onToggle(group.key)}
+          onPress={() => onToggle(groupKey)}
         />
       </View>
-
-      {/* The phones exist only while the group is open — see the openKey note. */}
-      {open
-        ? shown.map((entry) => {
-            const problems = remainingProblems(entry, batch.corrections[entry.key]);
-            return (
-              <EntryCard
-                key={entry.key}
-                entry={entry}
-                state={entryState(batch, entry)}
-                cost={effectiveCost(batch, entry)}
-                imei2={effectiveImei2(batch, entry)}
-                corrected={Boolean(batch.corrections[entry.key])}
-                problemsText={problems.map((p) => t(`fileReceive.problem.${p}` as never)).join(' · ')}
-                acceptable={canAccept(batch, entry)}
-                onAccept={onAccept}
-                onEdit={onEdit}
-                onRemove={onRemove}
-              />
-            );
-          })
-        : null}
     </Card>
   );
 });
@@ -693,7 +730,7 @@ const GroupCard = React.memo(function GroupCard({
  *
  * Every value is labelled, because an unlabelled column of fifteen digits is
  * unreadable and two IMEIs printed one under the other look like two phones.
- * They are one: IMEI 2 is named as such, under the same card, above the same
+ * They are one: IMEI 2 is named as such, under the same row, above the same
  * cost.
  *
  * Three actions, always in the same place: **Accept** (a check) marks the phone
@@ -704,37 +741,43 @@ const GroupCard = React.memo(function GroupCard({
  * reason, never beside the price: a correct price on a phone whose product is
  * unknown is still a correct price.
  *
- * Memoised, and given only primitive props, so correcting one phone re-renders
- * that phone and not the rest of the open group.
+ * Memoised, and given only primitive props and callbacks keyed by the row, so
+ * correcting one phone re-renders that phone and not the rest of the open group.
  */
-const EntryCard = React.memo(function EntryCard({
-  entry,
-  state,
-  cost,
+const EntryRow = React.memo(function EntryRow({
+  entryKey,
+  source,
+  identifier,
   imei2,
+  cost,
+  extractedCost,
   corrected,
+  state,
   problemsText,
   acceptable,
   onAccept,
   onEdit,
   onRemove,
 }: {
-  entry: FileEntry;
-  state: EntryState;
-  cost: number | null;
+  entryKey: string;
+  source: SourceRef;
+  identifier: string | null;
   imei2: string | null;
+  cost: number | null;
+  extractedCost: number | null;
   corrected: boolean;
+  state: EntryState;
   problemsText: string;
   acceptable: boolean;
-  onAccept: (entry: FileEntry) => void;
-  onEdit: (entry: FileEntry) => void;
-  onRemove: (entry: FileEntry) => void;
+  onAccept: (key: string) => void;
+  onEdit: (key: string) => void;
+  onRemove: (key: string) => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const source = entry.source.sheet
-    ? t('fileReceive.source.row', { sheet: entry.source.sheet, row: String(entry.source.row ?? '') })
-    : t('fileReceive.source.page', { page: String(entry.source.page ?? '') });
+  const from = source.sheet
+    ? t('fileReceive.source.row', { sheet: source.sheet, row: String(source.row ?? '') })
+    : t('fileReceive.source.page', { page: String(source.page ?? '') });
 
   const excluded = state === 'excluded';
   const statusWord =
@@ -748,10 +791,10 @@ const EntryCard = React.memo(function EntryCard({
   return (
     <View style={styles.entry}>
       <Divider />
-      <Field label={t('fileReceive.field.imei1')} value={entry.extracted.imei1 ?? entry.extracted.serial ?? t('fileReceive.noIdentifier')} />
+      <Field label={t('fileReceive.field.imei1')} value={identifier ?? t('fileReceive.noIdentifier')} />
       {imei2 ? <Field label={t('fileReceive.field.imei2')} value={imei2} /> : null}
       <Field label={t('fileReceive.field.cost')} value={cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')} />
-      <Field label={t('fileReceive.field.source')} value={source} />
+      <Field label={t('fileReceive.field.source')} value={from} />
 
       {/* Status in words as well as colour — never colour alone. */}
       <Text variant="caption" tone={statusTone}>
@@ -759,9 +802,7 @@ const EntryCard = React.memo(function EntryCard({
       </Text>
       {corrected ? (
         <Text variant="caption" tone="accent">
-          {t('fileReceive.corrected', {
-            cost: entry.extracted.cost !== null ? formatMoney(entry.extracted.cost) : '—',
-          })}
+          {t('fileReceive.corrected', { cost: extractedCost !== null ? formatMoney(extractedCost) : '—' })}
         </Text>
       ) : null}
       {problemsText ? <InlineNotice tone="warning">{problemsText}</InlineNotice> : null}
@@ -772,7 +813,7 @@ const EntryCard = React.memo(function EntryCard({
             icon={RotateCcw}
             variant="sunken"
             accessibilityLabel={t('fileReceive.restore.a11y')}
-            onPress={() => onRemove(entry)}
+            onPress={() => onRemove(entryKey)}
           />
         ) : (
           <>
@@ -781,19 +822,19 @@ const EntryCard = React.memo(function EntryCard({
               variant="sunken"
               disabled={!acceptable}
               accessibilityLabel={t('fileReceive.accept.a11y')}
-              onPress={() => onAccept(entry)}
+              onPress={() => onAccept(entryKey)}
             />
             <IconButton
               icon={Pencil}
               variant="sunken"
               accessibilityLabel={t('fileReceive.edit.a11y')}
-              onPress={() => onEdit(entry)}
+              onPress={() => onEdit(entryKey)}
             />
             <IconButton
               icon={Trash2}
               variant="sunken"
               accessibilityLabel={t('fileReceive.remove.a11y')}
-              onPress={() => onRemove(entry)}
+              onPress={() => onRemove(entryKey)}
             />
           </>
         )}
@@ -936,16 +977,17 @@ function EntrySheet({
   );
 }
 
-const useStyles = makeStyles(() => ({
-  list: { gap: space.base, paddingBottom: space['3xl'] },
-  header: { gap: space.base },
+const useStyles = makeStyles((colors) => ({
+  list: { gap: space.sm, paddingBottom: space['3xl'] },
+  header: { gap: space.base, paddingBottom: space.xs },
   stack: { gap: space.sm },
   breakdown: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   breakdownLabel: { flexShrink: 1 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  group: { gap: space.xs },
+  group: { gap: space.xs, marginTop: space.xs },
   groupActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingTop: space.xs },
-  entry: { gap: space.xs, paddingTop: space.sm },
+  // A phone sits under its group's header, on the same surface, set in from the edge.
+  entry: { gap: space.xs, paddingHorizontal: space.base, paddingBottom: space.sm, backgroundColor: colors.surface.card },
   field: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: space.xs },
   fieldLabel: { minWidth: 72 },
   fieldValue: { flexShrink: 1 },

@@ -181,6 +181,15 @@ export function effectiveProductId(batch: BatchState, entry: FileEntry): string 
   return batch.corrections[entry.key]?.productId ?? batch.parsed.matches[entry.key]?.productId ?? null;
 }
 
+/**
+ * An identifier as the review list shows it: the last four characters behind
+ * dots. The list is where a hundred are on screen at once; the whole value is
+ * one tap away, in the item's own sheet, where somebody actually checks it.
+ */
+export function maskIdentifier(identifier: string): string {
+  return identifier.length > 4 ? `•••• ${identifier.slice(-4)}` : identifier;
+}
+
 export function effectiveImei2(batch: BatchState, entry: FileEntry): string | null {
   const correction = batch.corrections[entry.key];
   return correction && 'imei2' in correction ? correction.imei2 ?? null : entry.extracted.imei2;

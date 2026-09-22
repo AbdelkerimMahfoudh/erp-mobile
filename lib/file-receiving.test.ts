@@ -593,7 +593,9 @@ it('groups are collapsed first, and phones exist only while a group is open', ()
   const src = code(read('../app/receive/file.tsx'));
   assert.match(src, /<FlatList/, 'the established list, not a mapped ScrollView');
   assert.match(src, /removeClippedSubviews/);
-  assert.match(src, /\{open$/m.test(src) ? /\{open/ : /open\s*\?/, 'rows render on open');
+  // The rows of the open group are records in the same list — built by the
+  // flattening rule, which is proved in file-review-rows.test.ts.
+  assert.match(src, /reviewRows\(batch, groups, summaries, openKey, filter\)/, 'rows exist only for the open group');
   assert.match(src, /fileReceive\.group\.countCost/, 'a collapsed group shows its count and subtotal');
   assert.match(src, /fileReceive\.group\.status/, 'and why it is held up');
 });
@@ -602,7 +604,7 @@ it('one group opens at a time, and changing the filter keeps the corrections and
   const src = code(read('../app/receive/file.tsx'));
   // Single-open: opening a group closes whichever was open, so the mounted
   // rows never grow with the delivery.
-  assert.match(src, /setOpenKey\(\(current\) => \(current === key \? null : key\)\)/, 'one group open at a time, by key');
+  assert.match(src, /setOpenKey\(\(current\) => toggleOpenGroup\(current, key\)\)/, 'one group open at a time, by key');
   // The filter only chooses what to show; it never touches the batch or collapses the open group.
   const filterAt = src.indexOf('setFilter(');
   assert.ok(filterAt > 0);
