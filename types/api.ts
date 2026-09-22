@@ -11,6 +11,11 @@ export interface AuthUser {
   login: string;
   companyId: string;
   /**
+   * The business's name, for the customer's invoice. Optional because a
+   * session restored from before it was sent has a stored `me` without it.
+   */
+  companyName?: string;
+  /**
    * Public Store Account ID (Stage 3.2) — the client namespaces its device
    * credential by this, at login and on a restored session. NOT a secret.
    */

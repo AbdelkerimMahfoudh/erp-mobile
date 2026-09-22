@@ -20,6 +20,7 @@ import {
   Text,
   Thumbnail,
 } from '../../components/ui';
+import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { formatDateTime, formatMoney } from '../../lib/format';
@@ -96,11 +97,12 @@ function Body({ sale }: { sale: SaleDetail }) {
   const clear = useRecentSuccess((s) => s.clear);
   useEffect(() => () => clear(`payment:${sale.id}`), [sale.id, clear]);
 
+  const { user } = useAuth();
   const [sharing, setSharing] = useState(false);
   const share = async () => {
     setSharing(true);
     try {
-      const shared = await shareReceipt(receiptOf(sale, t));
+      const shared = await shareReceipt(receiptOf(sale, t, user?.companyName ?? null));
       if (!shared) toast.info(t('sell.done.shareFailed'));
     } catch {
       toast.error(t('sell.done.shareFailed'));
@@ -252,23 +254,41 @@ function Body({ sale }: { sale: SaleDetail }) {
   );
 }
 
-/** The receipt of a past sale, from the sale itself — the same shape a sale prints at the counter. */
-function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t']): ReceiptData {
+/**
+ * The customer's invoice for a past sale, from the sale the server holds —
+ * everything on it is a confirmed figure: what was sold and to whom, what was
+ * paid by which method and when, and who owes the rest. Never cost or margin;
+ * `ReceiptData` has no field for either.
+ */
+function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t'], storeName: string | null): ReceiptData {
   return {
     invoiceNo: sale.invoiceNo,
     soldAt: new Date(sale.soldAt),
+    storeName,
     branchName: sale.branch.name,
     cashierName: sale.soldBy ?? '',
+    customer: sale.customer?.name ? { name: sale.customer.name, phone: sale.customer.phone } : null,
     lines: sale.lines
       .filter((l) => !l.voided)
-      .map((l) => ({ label: l.product ?? '', identifier: l.imei ?? l.serialNo ?? undefined, quantity: l.quantity, unitPrice: l.price })),
+      .map((l) => ({ label: l.product ?? '', identifier: l.imei ?? l.serialNo ?? null, quantity: l.quantity, unitPrice: l.price })),
     subtotal: sale.subtotal,
     discount: sale.discount,
     total: sale.total,
+    amountPaid: sale.amountPaid,
+    balanceDue: sale.balanceDue,
+    // The server's `credit` is a sale nothing has been paid on yet.
+    payStatus: sale.payStatus === 'credit' ? 'unpaid' : sale.payStatus,
     payments: sale.payments.map((p) => ({
-      method: p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never)),
+      method: t(`payment.${p.method}` as never),
+      account: p.accountLabel,
       amount: p.amount,
+      kind: p.kind,
+      paidAt: new Date(p.paidAt),
     })),
+    debtor:
+      sale.balanceDue > 0 && sale.debtor?.name
+        ? { kind: sale.debtor.kind === 'store' ? 'store' : 'customer', name: sale.debtor.name, phone: sale.debtor.phone }
+        : null,
     returnPolicy: { windowHours: sale.returnPolicy.windowHours, deadlineAt: sale.returnPolicy.deadlineAt },
   };
 }

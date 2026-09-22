@@ -28,7 +28,8 @@ const it = (name: string, fn: () => void) => {
 
 const read = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-const RECEIPT = read('./receipt.ts');
+/** The document builder — the one generator behind every share and print. */
+const RECEIPT = read('./receipt-html.ts');
 const QUICK_SELL = read('../app/quick-sell.tsx');
 
 /** The `ReceiptData` interface body — the only thing that reaches a customer. */
@@ -64,7 +65,7 @@ it('a receipt line carries a selling price and nothing behind it', () => {
 
 it('the printed receipt never renders a cost or margin', () => {
   /*
-   * `buildHtml` is what goes to the printer and into the shared file.
+   * `buildReceiptHtml` is what goes to the printer and into the shared file.
    *
    * Checked against what is actually PRINTED — every `${...}` interpolation —
    * rather than against the source text. The first version of this test
@@ -72,7 +73,8 @@ it('the printed receipt never renders a cost or margin', () => {
    * `margin:` in the receipt's own stylesheet: a false alarm that would have
    * taught the next person to loosen the assertion rather than trust it.
    */
-  const start = RECEIPT.indexOf('function buildHtml');
+  const start = RECEIPT.indexOf('export function buildReceiptHtml');
+  assert.ok(start >= 0, 'the builder was not found');
   const html = RECEIPT.slice(start);
   const printed = html.match(/\$\{[^}]*\}/g) ?? [];
   assert.ok(printed.length > 0, 'the receipt builder should interpolate something');
@@ -88,6 +90,17 @@ it('the printed receipt never renders a cost or margin', () => {
 });
 
 // ── The Quick Sell screen that builds it ────────────────────────────────────
+
+it('the share wrapper adds nothing of its own to the document', () => {
+  // One generator. `receipt.ts` may only feed it language and formatters.
+  const wrapper = read('./receipt.ts');
+  assert.ok(wrapper.includes("from './receipt-html'"), 'the wrapper must use the one builder');
+  assert.equal(wrapper.includes('<html'), false, 'no second HTML template may exist');
+  // "margins" is the page's, and legitimately here; the shop's margin is not.
+  for (const financial of ['cost', 'profit', 'cogs']) {
+    assert.equal(wrapper.toLowerCase().includes(financial), false, `the wrapper must not mention ${financial}`);
+  }
+});
 
 it('Quick Sell builds the receipt without passing cost or profit into it', () => {
   const start = QUICK_SELL.indexOf('const receipt: ReceiptData = {');
