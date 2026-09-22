@@ -1,13 +1,14 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Smartphone } from 'lucide-react-native';
+import { Pencil, Smartphone } from 'lucide-react-native';
 import {
   Card,
   EmptyState,
   ErrorState,
   Identifier,
+  IconButton,
   MoneyValue,
   Screen,
   SkeletonList,
@@ -16,6 +17,7 @@ import {
 } from '../../components/ui';
 import { ActivityTimeline } from '../../components/inventory/ActivityTimeline';
 import { api, ApiError } from '../../lib/api-client';
+import { usePermission } from '../../lib/permissions';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDateTime } from '../../lib/format';
@@ -56,8 +58,10 @@ interface UnitDetail {
 export default function UnitDetailScreen() {
   const styles = useStyles();
   const colors = useColors();
+  const router = useRouter();
   const { t } = useTranslation();
   const { identifier } = useLocalSearchParams<{ identifier: string }>();
+  const canEditUnits = usePermission('unit.add');
 
   const query = useQuery({
     queryKey: ['unit', identifier],
@@ -69,10 +73,30 @@ export default function UnitDetailScreen() {
   const tracking = data?.product?.trackingType ?? (data?.imeiPrimary ? 'imei' : 'serial');
   const title = data?.product ? `${data.product.brand} ${data.product.model}` : (identifier ?? '');
   const hasPurchase = Boolean(data?.dateIn || data?.purchase?.referenceNo || data?.cost !== undefined);
+  // The correction affordance appears only when the server would allow it: the
+  // caller may add units and the unit is still in stock. A committed unit has
+  // its own workflows, never a silent edit.
+  const canEdit = canEditUnits && data?.status === 'in_stock';
 
   return (
     <Screen scroll={Boolean(data)} gap="base">
-      <Stack.Screen options={{ headerShown: true, title: t('unit.title') }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: t('unit.title'),
+          headerRight: canEdit
+            ? () => (
+                <IconButton
+                  icon={Pencil}
+                  accessibilityLabel={t('unit.edit.action')}
+                  onPress={() =>
+                    router.push({ pathname: '/unit/edit', params: { identifier: identifier ?? '' } })
+                  }
+                />
+              )
+            : undefined,
+        }}
+      />
 
       {query.isLoading ? (
         <SkeletonList count={4} />

@@ -313,6 +313,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/quick-sell': 'The scan-first shortcut on Home — a counter action, not a menu entry.',
   '/quick-receive': 'The scan-first shortcut on Home — a counter action, not a menu entry. The full delivery workflow is /receive.',
   '/unit/[identifier]': 'Where a scan lands.',
+  '/unit/edit': 'Correcting one unit, opened from the pencil on its detail — never a menu entry.',
   '/pricing/unit': 'Opened from a unit or the catalog.',
   '/pricing/history': 'Opened from a price.',
   '/discrepancies': 'Opened from the daily closing that raised the difference.',
