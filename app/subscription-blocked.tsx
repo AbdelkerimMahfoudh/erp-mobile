@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { Button, InlineNotice, Screen, Text } from '../components/ui';
+import { Button, Screen, Text } from '../components/ui';
+import { useAuth } from '../hooks/useAuth';
 import { space } from '../lib/design/tokens';
 import { makeStyles } from '../lib/design/theme';
 import { useTranslation } from '../lib/i18n';
 import { useEntitlement } from '../lib/entitlement';
-import { useAccountPortal } from '../hooks/useAccountPortal';
 
 /**
  * The shop cannot get in, and this screen says why.
@@ -16,41 +16,38 @@ import { useAccountPortal } from '../hooks/useAccountPortal';
  * that can be made to decide wrongly, and a shopkeeper told the wrong reason
  * makes the wrong phone call.
  *
- * The three states are deliberately distinct. "Waiting for activation" and
- * "subscription ended" are completely different situations, and telling a brand
- * new shop that something expired would be both confusing and untrue.
+ * Four situations, deliberately distinct: waiting for approval, refused,
+ * suspended (or cancelled), and ended. Telling a brand-new shop that something
+ * expired would be both confusing and untrue; telling a refused one that its
+ * subscription ended would be a lie about a subscription it never had.
  *
- * There is always a way forward: a link to the account page, and a way to
- * re-check without reinstalling the app or clearing its storage — which is what
- * somebody does after we activate them.
+ * What is deliberately absent: a website, a payment link, a price. Activation
+ * and extension are decided by the platform's administrators; the app says whom
+ * to contact and offers to check again — which is what somebody does after we
+ * activate them, without reinstalling or signing out.
  */
 export default function SubscriptionBlocked() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
+  const { signOut } = useAuth();
   const query = useEntitlement();
   const entitlement = query.data;
 
   const [checking, setChecking] = useState(false);
-  /*
-   * The same handoff the app uses after registration, not a second one.
-   *
-   * This screen used to open the account URL directly, with no ticket — so the
-   * one place somebody actually taps "manage my subscription" was the one place
-   * that landed an authenticated Owner on a password form.
-   */
-  const portal = useAccountPortal();
 
   const state = entitlement?.state ?? 'pending';
 
-  // One of three, from the server. No fourth "unknown" copy: if the state is
+  // One of four, from the server. No fifth "unknown" copy: if the state is
   // something else entirely, the app should not be on this screen at all.
   const key =
-    state === 'suspended' || state === 'cancelled'
-      ? 'suspended'
-      : state === 'pending'
-        ? 'pending'
-        : 'expired';
+    state === 'rejected'
+      ? 'rejected'
+      : state === 'suspended' || state === 'cancelled'
+        ? 'suspended'
+        : state === 'pending'
+          ? 'pending'
+          : 'expired';
 
   const onRecheck = async () => {
     if (checking) return;
@@ -75,28 +72,15 @@ export default function SubscriptionBlocked() {
         <Text tone="secondary" align="center" style={styles.body}>
           {t(`sub.${key}.body` as never)}
         </Text>
+        <Text variant="caption" tone="tertiary" align="center">
+          {t('sub.contact')}
+        </Text>
 
         <View style={styles.actions}>
           <Button title={t('sub.recheck')} onPress={() => void onRecheck()} loading={checking} />
-          <Button
-            title={t('sub.manage')}
-            variant="secondary"
-            onPress={() => void portal.open()}
-            loading={portal.opening}
-          />
+          {/* Another person's shop may be the one this phone should be signed in to. */}
+          <Button title={t('action.signOut')} variant="tertiary" onPress={() => void signOut()} />
         </View>
-
-        {/*
-          A failed handoff is not a failed session. The shop is still signed in
-          and still on this screen; only the browser did not open.
-        */}
-        {portal.message ? (
-          <InlineNotice tone="warning" title={portal.message}>
-            <Text variant="caption" tone="secondary">
-              {t('sub.recheck')}
-            </Text>
-          </InlineNotice>
-        ) : null}
       </View>
     </Screen>
   );

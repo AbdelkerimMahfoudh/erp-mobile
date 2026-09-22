@@ -304,48 +304,29 @@ it('the continuation lives only in secure storage', () => {
   assert.match(store, /export async function forgetContinuation/);
 });
 
-it('the portal URL carries the one-time ticket and nothing else', () => {
-  const portal = withoutComments(source('lib/portal.ts'));
-  assert.match(portal, /portal-session\?t=/);
-  for (const banned of ['accessToken', 'refreshToken', 'password', 'code=']) {
-    assert.ok(!portal.includes(banned), `the portal URL must not carry ${banned}`);
-  }
-});
-
-it('a fresh ticket every time — a spent or uncertain one is never reused', () => {
-  const portal = withoutComments(source('lib/portal.ts'));
-  assert.match(portal, /api\.post<HandoffTicket>\('\/platform\/portal-handoff'/);
-  assert.ok(!/cache|stored ticket|savedTicket/i.test(portal));
-});
-
-it('a browser that will not open never costs the account', () => {
+it('verification installs the session, then goes to the state screen, and opens nothing else', () => {
   /*
-    By the time the portal is opened the account exists and the session is
-    installed. A refused browser must leave both alone — restarting a
-    registration because a browser would not launch is the one unforgivable
-    outcome here.
+    The website is no longer included from the app (2026-09-22): nothing here
+    mints a handoff or opens a browser — see `website-deferred.test.ts`. What
+    stays true is the order that protected the account when it did: the
+    session is installed first, and no path afterwards may delete it.
   */
   const verify = withoutComments(source('app/(auth)/verify.tsx'));
-  // Call sites, not imports: the import of one naturally precedes the other.
-  const opened = verify.indexOf('await adoptSession(');
-  const portal = verify.indexOf('await openAccountPortal(');
-  assert.ok(opened > -1 && portal > opened, 'the session must be installed BEFORE the browser is tried');
+  const adopted = verify.indexOf('await adoptSession(');
+  const next = verify.indexOf("router.replace('/subscription-blocked'");
+  assert.ok(adopted > -1 && next > adopted, 'the session must be installed BEFORE moving on');
   assert.ok(!/clearSession|signOut/.test(verify), 'no failure path may delete a valid session');
+  assert.ok(!/portal|Linking/.test(verify), 'nothing opens a browser');
 });
 
-it('the portal URL is configured, never hardcoded to a real domain', () => {
+it('no website address is configured or hardcoded in the app', () => {
   const config = withoutComments(source('constants/config.ts'));
-  assert.match(config, /EXPO_PUBLIC_PORTAL_URL/);
+  assert.ok(!/PORTAL_URL|SIGNUP_URL/.test(config), 'no website address is configured');
   // No production domain baked into the bundle.
   assert.ok(
     !/https?:\/\/[a-z0-9-]+\.(com|mr|net|org)/i.test(config),
     'no real domain may be hardcoded in the app config',
   );
-});
-
-it('only http(s) is ever opened', () => {
-  const portal = withoutComments(source('lib/portal.ts'));
-  assert.match(portal, /protocol === 'http:' \|\| u\.protocol === 'https:'/);
 });
 
 it('the blocked screen never decides the state itself', () => {
@@ -363,13 +344,14 @@ it('the blocked screen never decides the state itself', () => {
 it('and always offers a way forward', () => {
   const code = withoutComments(source('app/subscription-blocked.tsx'));
   assert.match(code, /sub\.recheck/);
-  assert.match(code, /sub\.manage/);
+  // Whom to contact, in words — not a website, a payment link or a price.
+  assert.match(code, /sub\.contact/);
   // Re-checking must let a newly activated shop straight in.
   assert.match(code, /router\.replace\('\/'\)/);
 });
 
 it('no new screen mentions a Store ID or a personal ID', () => {
-  for (const f of ['app/(auth)/login.tsx', 'app/subscription-blocked.tsx', 'lib/signup.ts']) {
+  for (const f of ['app/(auth)/login.tsx', 'app/subscription-blocked.tsx']) {
     const code = withoutComments(source(f));
     for (const banned of ['storeId', 'storeAccountId', 'personalId', 'personal_id']) {
       assert.ok(!code.includes(banned), `${f} must not mention ${banned}`);

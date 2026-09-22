@@ -10,7 +10,6 @@ import { useTranslation } from '../../lib/i18n';
 import { useColors } from '../../lib/design/theme';
 import { space } from '../../lib/design/tokens';
 import { forgetContinuation, readContinuation } from '../../lib/registration-session';
-import { openAccountPortal } from '../../lib/portal';
 import type { AuthTokens } from '../../types/api';
 
 /** How long before the code may be asked for again. Presentation only. */
@@ -96,12 +95,8 @@ export default function VerifyScreen() {
       await adoptSession(tokens);
       await forgetContinuation();
 
-      /*
-       * The portal is opened as a convenience, not as a step that can fail the
-       * registration. If the browser refuses, the account still exists, the
-       * session is still valid, and the pending screen offers to try again.
-       */
-      await openAccountPortal();
+      // A new business is pending until an administrator approves it. The
+      // screen that says so is the next thing to see; nothing opens a browser.
       router.replace('/subscription-blocked' as never);
     } catch (e) {
       setFailure(e instanceof ApiError && e.message ? e.message : t('register.verify.wrong'));

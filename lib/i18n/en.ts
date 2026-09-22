@@ -1072,9 +1072,9 @@ export const en = {
   'subscription.countdown': 'Subscription ends in {days} days. It can be extended through our official website provided via WhatsApp.',
   'subscription.endsToday': 'Subscription ends today. It can be extended through our official website provided via WhatsApp.',
   'subscription.grace': 'Your subscription ended. You have {hours} hours left before the app stops accepting changes.',
-  'subscription.grace.hint': 'Everything still works for now. It can be extended through our official website provided via WhatsApp.',
+  'subscription.grace.hint': 'Everything still works for now. Contact your administrator to extend it.',
   'subscription.expired': 'Your subscription has ended. You can still read and export everything, but nothing new can be saved.',
-  'subscription.expired.hint': 'Nothing has been deleted. It can be extended through our official website provided via WhatsApp.',
+  'subscription.expired.hint': 'Nothing has been deleted. Contact your administrator to extend it.',
   'subscription.complimentary': 'This shop has been given complimentary access.',
   'subscription.stale': 'Showing what this phone last knew. It could not be checked with the server just now.',
   'subscription.seats': 'Staff places',
@@ -1823,11 +1823,13 @@ export const en = {
   'sub.pending.title': 'Waiting for activation',
   'sub.pending.body': 'Your business is registered. The app opens once we activate it. There is no free trial.',
   'sub.suspended.title': 'Access suspended',
-  'sub.suspended.body': 'This business has been suspended. Open your account page to see why.',
+  'sub.suspended.body': 'This business has been suspended. Contact your administrator to find out why.',
   'sub.expired.title': 'Subscription ended',
   'sub.expired.body': 'You can still read everything you own. New entries are paused until you renew.',
-  'sub.manage': 'Manage your account',
   'sub.recheck': 'Check again',
+  'sub.rejected.title': 'Registration not approved',
+  'sub.rejected.body': 'This registration was reviewed and not approved. Nothing has been charged and nothing is stored beyond what you entered.',
+  'sub.contact': 'Activation and extension are handled by the administrator who set up your account. Contact them directly.',
   // Non-enumerating: never reveals which field was wrong.
   /*
    * Names what can be wrong, never WHICH one is wrong.
@@ -2523,8 +2525,6 @@ export const en = {
   'register.done.body': 'Next, open the subscription page to see what to pay.',
   // Nothing is active yet, and the screen says so rather than implying it is.
   'register.done.pending': 'Your subscription is not active yet.',
-  'register.portal.open': 'Open subscription portal',
-  'register.portal.failed': 'We could not open the subscription page. Your account is safe — try again.',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
   'status.approval.pending': 'Waiting for the Owner',

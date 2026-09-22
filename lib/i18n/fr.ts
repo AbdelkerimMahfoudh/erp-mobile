@@ -1962,10 +1962,12 @@ export const fr: Catalogue = {
   'sub.pending.title': 'En attente d’activation',
   'sub.pending.body': 'Votre entreprise est enregistrée. L’application s’ouvre dès l’activation. Il n’y a pas d’essai gratuit.',
   'sub.suspended.title': 'Accès suspendu',
-  'sub.suspended.body': 'Cette entreprise a été suspendue. Ouvrez votre page de compte pour savoir pourquoi.',
+  'sub.rejected.title': 'Inscription non approuvée',
+  'sub.rejected.body': 'Cette inscription a été examinée et n’a pas été approuvée. Rien n’a été facturé et rien n’est conservé au-delà de ce que vous avez saisi.',
+  'sub.contact': 'L’activation et la prolongation sont gérées par l’administrateur qui a créé votre compte. Contactez-le directement.',
+  'sub.suspended.body': 'Cette entreprise a été suspendue. Contactez votre administrateur pour en connaître la raison.',
   'sub.expired.title': 'Abonnement terminé',
   'sub.expired.body': 'Vous pouvez toujours consulter tout ce qui vous appartient. Les nouvelles saisies sont suspendues.',
-  'sub.manage': 'Gérer votre compte',
   'sub.recheck': 'Vérifier à nouveau',
   // Non-enumerating: never reveals which field was wrong.
   'auth.error.failed':
@@ -2712,8 +2714,6 @@ export const fr: Catalogue = {
   'register.done.title': 'Votre compte est prêt',
   'register.done.body': 'Ensuite, ouvrez la page d’abonnement pour voir le montant.',
   'register.done.pending': 'Votre abonnement n’est pas encore actif.',
-  'register.portal.open': 'Ouvrir la page d’abonnement',
-  'register.portal.failed': 'Impossible d’ouvrir la page d’abonnement. Votre compte est intact — réessayez.',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
   'status.approval.pending': 'En attente du propriétaire',

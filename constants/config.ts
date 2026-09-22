@@ -58,40 +58,13 @@ export function isStagingBuild(): boolean {
   return appEnvironment() === 'staging';
 }
 
-
-/**
- * Where somebody goes to create an account.
- *
- * Configured, never hardcoded to a localhost or a production domain: the same
- * build runs against a developer machine, a LAN address and, eventually, a real
- * site, and baking one of those in would make the button wrong for the other
- * two.
- *
- * Returns null when nothing is configured, so the caller can say so plainly
- * rather than opening a URL that does not exist.
+/*
+ * No website address lives here any more. Registration happens in the app,
+ * and a shop's subscription is activated and extended by the platform's
+ * administrators — the app shows the server's state and says whom to contact.
+ * The control website is a separate product and is not included from here
+ * (docs/21, 2026-09-22).
  */
-export function signupUrl(): string | null {
-  const configured = process.env.EXPO_PUBLIC_SIGNUP_URL?.trim();
-  if (configured) return configured;
-
-  /*
-   * A sensible development fallback: the control website beside this API, on
-   * the same host. Deliberately NOT a production guess — if this resolves to
-   * something that is not running, the caller reports it.
-   */
-  const host = resolveHost();
-  if (!host) return null;
-  return `http://${host}:5173/public/register`;
-}
-
-/** Where an Owner manages their subscription. Same rules as above. */
-export function accountPortalUrl(): string | null {
-  const configured = process.env.EXPO_PUBLIC_PORTAL_URL?.trim();
-  if (configured) return configured;
-  const host = resolveHost();
-  if (!host) return null;
-  return `http://${host}:5173/account`;
-}
 
 export const TOKEN_KEYS = {
   ACCESS_TOKEN: 'erp.accessToken',
