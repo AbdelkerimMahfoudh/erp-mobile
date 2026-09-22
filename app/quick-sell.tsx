@@ -13,6 +13,7 @@ import {
   MoneyField,
   MoneyValue,
   Screen,
+  Stepper,
   Text,
 } from '../components/ui';
 import { ScanTarget } from '../components/scanner';
@@ -52,25 +53,31 @@ import {
   type PickMode,
 } from '../components/sell/PhonePicker';
 import { lookupSelection, type LookupFailure, type PickSource } from '../lib/phone-selection';
+import { classifySubmitFailure, maySubmit, quantityProblem, saleLineFor, saleTotal } from '../lib/sale-submission';
+import { recoverUncertainSale, refreshAfterUncertainty } from '../lib/sale-recovery';
 import { makeStyles } from '../lib/design/theme';
 import { selectableAccounts } from '../lib/receiving-accounts';
 import { invalidateMoney } from '../lib/money-invalidation';
 
 /**
- * Quick Sell — "Sell a phone": one phone, from Home.
+ * Quick Sell — "Sell an item": one item, from Home.
  *
- * Home → Sell → find the phone → the exact phone → price and a private summary
+ * Home → Sell → find the item → the exact item → price and a private summary
  * → payment → confirmed. It is the single-item path, and it exists because that
- * is what almost every sale in a phone shop actually is.
+ * is what almost every sale in the shop actually is.
  *
- * ## Three ways to find the phone, one selection
+ * ## Three ways to find the item, one selection
  *
- * The sale starts with a choice: **Scan IMEI**, **Enter IMEI manually** or
+ * The sale starts with a choice: **Scan a code**, **Enter an identifier** or
  * **Choose from stock**. All three end in the same server lookup,
- * `GET /sales/selection/:identifier`, and the same selected-phone card, and all
+ * `GET /sales/selection/:identifier`, and the same selected-item card, and all
  * three continue into the same payment sheet — full or partial, with the same
- * debt, receipt and accounting. Finding a phone never creates stock: the lookup
+ * debt, receipt and accounting. Finding an item never creates stock: the lookup
  * only reads.
+ *
+ * A phone is found by either IMEI, a camera or console by its serial number,
+ * and an accessory by its product barcode. The first two are one exact unit; the
+ * last is a counted product, so the review asks how many.
  *
  * ## What it deliberately does NOT do
  *
@@ -85,9 +92,16 @@ import { invalidateMoney } from '../lib/money-invalidation';
  * of arithmetic it does is `expectedGrossProfit`, which quotes a sale that has
  * not happened from two numbers the server supplied.
  *
+ * ## One sale, one key, however many taps
+ *
+ * `clientUuid` names the sale, not the attempt. A lost answer is treated as
+ * unknown: the server is asked what the key recorded before anyone is told
+ * "not sent", and the key is never rotated while that is unknown — see
+ * `sale-submission.ts` for the rules and `sale-recovery.ts` for the question.
+ *
  * ## The private summary
  *
- * Cost, days in stock and expected profit are for the person holding the phone.
+ * Cost, days in stock and expected profit are for the person holding the item.
  * None of it is on the receipt: `ReceiptData` has no cost and no margin field,
  * so what is shared cannot carry them — see `quick-sell-privacy.test.ts`.
  */
@@ -116,18 +130,21 @@ export default function QuickSellScreen() {
   const canViewCost = usePermission('cost.view');
   const canOverrideReturnPolicy = usePermission('return.policy.override');
 
-  /** Which way of finding the phone is open. */
+  /** Which way of finding the item is open. */
   const [mode, setMode] = useState<PickMode>('choose');
   /**
-   * The phone chosen, however it was found: the server's selection, the
+   * The item chosen, however it was found: the server's selection, the
    * identifier to put on the sale line, and how it was found.
    */
   const [picked, setPicked] = useState<{ selection: SaleSelection; identifier: string; source: PickSource } | null>(null);
   const [lookupError, setLookupError] = useState<LookupFailure | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
   /** The shelf row picked, by its identifier, before the server is asked about it. */
   const [stockPick, setStockPick] = useState<string | null>(null);
   const sellable = picked?.selection.availability === 'available';
   const [price, setPrice] = useState('');
+  /** How many of a counted product. A serialized unit is always exactly one. */
+  const [quantity, setQuantity] = useState(1);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);
@@ -139,9 +156,20 @@ export default function QuickSellScreen() {
   const createCustomer = useCreateCustomer();
 
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+  /**
+   * An approval the server asked for, waiting for the payment sheet to leave
+   * the screen. Two sheets stacked is the one arrangement iOS does not reliably
+   * show, so the second opens only once the first has reported itself closed.
+   */
+  const pendingApproval = useRef<ApprovalRequest | null>(null);
   const heldPayments = useRef<PaymentEntry[] | null>(null);
   /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
   const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
+  /**
+   * A submission in flight, as a ref rather than state: a second tap arrives
+   * before React has re-rendered the button disabled, and must find this.
+   */
+  const inFlight = useRef(false);
 
   /**
    * One idempotency key per SALE, not per attempt.
@@ -165,17 +193,22 @@ export default function QuickSellScreen() {
   const proposedPrice = Number(price) > 0 ? Number(price) : null;
   const expected = expectedGrossProfit(proposedPrice, canViewCost ? picked?.selection.cost : undefined);
   const age = daysInStock(picked?.selection.dateIn);
+  /** How many the branch has of a counted product; a unit has no such figure. */
+  const available = picked?.selection.kind === 'product' ? picked.selection.quantityAvailable : undefined;
+  const quantityIssue = quantityProblem(quantity, available);
+  const total = proposedPrice === null ? null : saleTotal(proposedPrice, quantity);
 
-  // ── Finding the phone ─────────────────────────────────────────────────────
+  // ── Finding the item ──────────────────────────────────────────────────────
 
   /**
-   * Every way of finding the phone ends here: one selection, one set of
+   * Every way of finding the item ends here: one selection, one set of
    * checks, one price. The server decided availability and price; this only
    * keeps what it said.
    */
   const choose = useCallback((selection: SaleSelection, identifier: string, source: PickSource) => {
     setLookupError(null);
     setPicked({ selection, identifier, source });
+    setQuantity(1);
     // The price the sale will charge, from the server's own ladder. Changing
     // it is allowed exactly as before: the server refuses anything below the
     // floor without an owner's approval, and that refusal is handled below.
@@ -184,13 +217,18 @@ export default function QuickSellScreen() {
 
   const findAndChoose = useCallback(
     async (code: string, source: PickSource) => {
-      const found = await lookupSelection(code);
-      if (!found.ok) {
-        setPicked(null);
-        setLookupError(found.failure);
-        return;
+      setLookingUp(true);
+      try {
+        const found = await lookupSelection(code);
+        if (!found.ok) {
+          setPicked(null);
+          setLookupError(found.failure);
+          return;
+        }
+        choose(found.selection, found.identifier, source);
+      } finally {
+        setLookingUp(false);
       }
-      choose(found.selection, found.identifier, source);
     },
     [choose],
   );
@@ -208,6 +246,7 @@ export default function QuickSellScreen() {
     setLookupError(null);
     setStockPick(null);
     setPrice('');
+    setQuantity(1);
     setMode('choose');
   };
 
@@ -237,8 +276,8 @@ export default function QuickSellScreen() {
       soldAt: new Date(sale.soldAt),
       branchName: branchName ?? '',
       cashierName: user?.name ?? '',
-      lines: [{ label, identifier, quantity: 1, unitPrice: proposedPrice ?? sale.total }],
-      subtotal: proposedPrice ?? sale.total,
+      lines: [{ label, identifier, quantity, unitPrice: proposedPrice ?? sale.total }],
+      subtotal: total ?? sale.total,
       discount: 0,
       total: sale.total,
       payments: payments.map((p) => ({
@@ -257,6 +296,7 @@ export default function QuickSellScreen() {
     setPicked(null);
     setMode('choose');
     setPrice('');
+    setQuantity(1);
     setCustomer(null);
     setReturnWindowHours(null);
     setReturnPolicyReason('');
@@ -267,18 +307,62 @@ export default function QuickSellScreen() {
     invalidateMoney(qc);
   };
 
+  /** The payment sheet has left the screen; an approval it made way for may open now. */
+  const onPaymentClosed = () => {
+    setPaymentOpen(false);
+    const next = pendingApproval.current;
+    if (next) {
+      pendingApproval.current = null;
+      setApprovalRequest(next);
+    }
+  };
+
+  /**
+   * A submission that ended in neither a sale nor a refusal the server named.
+   *
+   * The case that matters is a lost answer: the sale MAY have been recorded, so
+   * the server is asked what this key recorded before anyone is told anything,
+   * and everything a sale moves is re-read either way. Only a key the server
+   * says it already spent on a different sale is ever replaced.
+   */
+  const reportFailure = async (error: unknown, payments: PaymentEntry[]) => {
+    const failure = classifySubmitFailure(error);
+    switch (failure.kind) {
+      case 'uncertain': {
+        toast.info(t('sell.submit.checking'));
+        const recovered = await recoverUncertainSale<SaleResponse>(clientUuid.current);
+        refreshAfterUncertainty(qc, branchId);
+        if (recovered.kind === 'found') {
+          toast.success(t('sell.submit.recovered'));
+          finalize(recovered.sale, payments);
+          return;
+        }
+        if (recovered.kind === 'not_found') toast.warning(t('sell.submit.notRecorded'));
+        else toast.error(t('sell.submit.unknown'));
+        return;
+      }
+      case 'idempotency_conflict':
+        refreshAfterUncertainty(qc, branchId);
+        clientUuid.current = uuidv4();
+        setPaymentOpen(false);
+        chooseAnother();
+        toast.error(t('sell.submit.conflict'));
+        return;
+      case 'offline':
+        toast.error(t('sell.submit.offline'));
+        return;
+      default:
+        toast.error(toErrorMessage(error));
+    }
+  };
+
   const attempt = async (
     payments: PaymentEntry[],
     options: { overrideReason?: string; acknowledgementToken?: string } = {},
   ): Promise<void> => {
     if (!picked || !sellable || proposedPrice === null) return;
     const identifier = picked.identifier;
-    // A serialized unit is sold by its identifier; a counted product by its id
-    // and a quantity of one. The same checkout, the same endpoint.
-    const line =
-      picked.selection.kind === 'product' && picked.selection.productId
-        ? { productId: picked.selection.productId, quantity: 1, price: proposedPrice }
-        : { identifier, price: proposedPrice };
+    const line = saleLineFor(picked.selection, identifier, quantity, proposedPrice);
 
     try {
       const response = await api.post<SaleResponse | WarningsPending>('/sales', {
@@ -321,14 +405,16 @@ export default function QuickSellScreen() {
               return;
             }
             heldPayments.current = payments;
-            setApprovalRequest({
+            // The approval sheet opens from `onPaymentClosed`, once this one is gone.
+            pendingApproval.current = {
               unitId: body.unitId,
               label: `${picked.selection.product.brand} ${picked.selection.product.model}`,
               identifier: body.identifier ?? identifier,
               configuredPrice: body.configuredPrice ?? null,
               proposedPrice,
               belowCost: Boolean(body.belowCost),
-            });
+            };
+            setPaymentOpen(false);
             return;
           }
           case 'approval_price_changed':
@@ -370,7 +456,7 @@ export default function QuickSellScreen() {
           return;
         }
       }
-      toast.error(toErrorMessage(e));
+      await reportFailure(e, payments);
     }
   };
 
@@ -408,6 +494,8 @@ export default function QuickSellScreen() {
   };
 
   const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+    if (!maySubmit({ inFlight: inFlight.current, sellable: Boolean(sellable), price: proposedPrice, quantity, available })) return;
+    inFlight.current = true;
     heldDebtor.current = debtor;
     setSubmitting(true);
     try {
@@ -426,6 +514,22 @@ export default function QuickSellScreen() {
       }
       await attempt(payments, { overrideReason });
     } finally {
+      inFlight.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  /** The Owner said yes: the SAME sale goes again, under the same key. */
+  const onApproved = async () => {
+    const payments = heldPayments.current;
+    setApprovalRequest(null);
+    if (!payments || inFlight.current) return;
+    inFlight.current = true;
+    setSubmitting(true);
+    try {
+      await attempt(payments);
+    } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -453,6 +557,12 @@ export default function QuickSellScreen() {
     );
   }
 
+  const lookupNotice = lookupError ? (
+    <InlineNotice tone={lookupError === 'network' ? 'warning' : 'danger'} style={styles.notice}>
+      {t(`pick.failure.${lookupError}` as never)}
+    </InlineNotice>
+  ) : null;
+
   return (
     <>
       <Screen
@@ -462,7 +572,7 @@ export default function QuickSellScreen() {
           mode === 'scan' && !picked ? (
             <ScanTarget
               onResult={onScanResult}
-              /* Scan IMEI was chosen, so the camera opens straight away. */
+              /* Scan was chosen, so the camera opens straight away. */
               autoOpenCamera={Boolean(branchId)}
               placeholder={t('sell.scan.placeholder')}
             />
@@ -481,15 +591,32 @@ export default function QuickSellScreen() {
                   title={t('pick.continue')}
                   size="lg"
                   fullWidth
-                  disabled={offline || submitting || proposedPrice === null}
+                  disabled={offline || submitting || proposedPrice === null || quantityIssue !== null}
                   loading={submitting}
                   onPress={() => setPaymentOpen(true)}
                 />
               ) : null}
               <Button title={t('pick.another')} variant={sellable ? 'tertiary' : 'secondary'} fullWidth onPress={chooseAnother} />
             </>
-          ) : mode === 'stock' && stockPick ? (
-            <Button title={t('pick.stock.continue')} size="lg" fullWidth onPress={() => void findAndChoose(stockPick, 'stock')} />
+          ) : mode === 'stock' && (stockPick || lookupError) ? (
+            /*
+             * The shelf's answer lives with its button. A notice at the foot of
+             * a thirty-row list, under this footer, is how "Continue" came to
+             * look like it did nothing.
+             */
+            <>
+              {lookupNotice}
+              {stockPick ? (
+                <Button
+                  title={t('pick.stock.continue')}
+                  size="lg"
+                  fullWidth
+                  loading={lookingUp}
+                  disabled={lookingUp}
+                  onPress={() => void findAndChoose(stockPick, 'stock')}
+                />
+              ) : null}
+            </>
           ) : undefined
         }
       >
@@ -537,12 +664,7 @@ export default function QuickSellScreen() {
                 <StockPicker selected={stockPick} onSelect={setStockPick} />
               )}
 
-              {lookupError ? (
-                <InlineNotice tone={lookupError === 'network' ? 'warning' : 'danger'}>
-                  {t(`pick.failure.${lookupError}` as never)}
-                </InlineNotice>
-              ) : null}
-
+              {mode !== 'stock' ? lookupNotice : null}
             </>
           ) : null}
 
@@ -550,7 +672,30 @@ export default function QuickSellScreen() {
             <>
               <SelectedPhoneCard selection={picked.selection} source={picked.source}>
                 {sellable ? (
-                  <MoneyField label={t('quick.sell.price')} value={price} onChangeText={setPrice} required />
+                  <>
+                    {picked.selection.kind === 'product' ? (
+                      <View style={styles.row}>
+                        <View style={styles.grow}>
+                          <Text variant="labelStrong">{t('pick.quantity')}</Text>
+                          {available !== undefined ? (
+                            <Text variant="caption" tone="secondary">
+                              {quantityIssue === 'too_many'
+                                ? t('pick.quantity.tooMany', { count: String(available) })
+                                : t('pick.quantity.available', { count: String(available) })}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Stepper
+                          value={quantity}
+                          onChange={setQuantity}
+                          min={1}
+                          max={available ?? 9999}
+                          accessibilityLabel={t('pick.quantity')}
+                        />
+                      </View>
+                    ) : null}
+                    <MoneyField label={t('quick.sell.price')} value={price} onChangeText={setPrice} required />
+                  </>
                 ) : null}
               </SelectedPhoneCard>
               {sellable ? <InlineNotice tone="info">{t('pick.review.note')}</InlineNotice> : null}
@@ -618,13 +763,21 @@ export default function QuickSellScreen() {
 
       <PaymentSheet
         open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        total={proposedPrice ?? 0}
+        onClose={onPaymentClosed}
+        total={total ?? 0}
         discount={0}
         onDiscountChange={() => {}}
         onComplete={onComplete}
         summary={
-          picked ? [`${picked.selection.product.brand} ${picked.selection.product.model}`, picked.selection.product.variant].filter(Boolean).join(' · ') : null
+          picked
+            ? [
+                `${picked.selection.product.brand} ${picked.selection.product.model}`,
+                picked.selection.product.variant,
+                quantity > 1 ? `× ${quantity}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : null
         }
         presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
         submitting={submitting}
@@ -679,13 +832,7 @@ export default function QuickSellScreen() {
           setApprovalRequest(null);
           heldPayments.current = null;
         }}
-        onApproved={() => {
-          const payments = heldPayments.current;
-          setApprovalRequest(null);
-          if (!payments) return;
-          setSubmitting(true);
-          void attempt(payments).finally(() => setSubmitting(false));
-        }}
+        onApproved={() => void onApproved()}
       />
     </>
   );
@@ -707,6 +854,7 @@ const useStyles = makeStyles(() => ({
   list: { padding: space.base, gap: space.sm, paddingBottom: space['3xl'] },
   card: { gap: space.sm },
   notice: { marginBottom: space.sm },
+  grow: { flex: 1 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

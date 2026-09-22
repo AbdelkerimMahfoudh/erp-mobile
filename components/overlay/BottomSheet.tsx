@@ -23,9 +23,11 @@ import { motionPlan } from '../../lib/design/motion';
 import { easing } from '../../lib/design/motion-easing';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
 import { useTranslation } from '../../lib/i18n';
+import { useSheetStack } from '../../lib/sheet-stack';
 import { IconButton } from '../ui/IconButton';
 import { Text } from '../ui/Text';
 import { makeStyles } from '../../lib/design/theme';
+import { SheetDialogLayer } from './DialogHost';
 
 /**
  * Bottom sheet — the app's standard way to ask for one thing without leaving
@@ -45,6 +47,8 @@ import { makeStyles } from '../../lib/design/theme';
 const DISMISS_DISTANCE = 110;
 /** Fling speed that dismisses regardless of distance travelled. */
 const DISMISS_VELOCITY = 800;
+
+let nextSheetId = 0;
 
 export interface BottomSheetProps {
   open: boolean;
@@ -86,6 +90,21 @@ export function BottomSheet({
   const [mounted, setMounted] = useState(open);
   const translateY = useSharedValue(screenHeight);
   const backdrop = useSharedValue(0);
+
+  /*
+   * While mounted, the sheet is on the open-sheet stack, and a dialog raised
+   * meanwhile is drawn INSIDE this modal by `SheetDialogLayer` below rather
+   * than as a second native modal over it — which iOS does not reliably show,
+   * leaving the question unanswered and the sale's button loading for ever.
+   */
+  const [sheetId] = useState(() => `sheet-${++nextSheetId}`);
+  const pushSheet = useSheetStack((s) => s.push);
+  const removeSheet = useSheetStack((s) => s.remove);
+  useEffect(() => {
+    if (!mounted) return;
+    pushSheet(sheetId);
+    return () => removeSheet(sheetId);
+  }, [mounted, sheetId, pushSheet, removeSheet]);
 
   const finishClose = useCallback(() => {
     setMounted(false);
@@ -228,6 +247,8 @@ export function BottomSheet({
 
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </Animated.View>
+
+        <SheetDialogLayer sheetId={sheetId} />
       </View>
     </Modal>
   );

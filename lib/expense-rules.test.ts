@@ -1,6 +1,6 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
-import { previewCashAfterExpense } from './expense-rules';
+import { previewCashAfterExpense } from './expense-rules.ts';
 
 it('the review previews the drawer after a cash expense, and never below what was typed', () => {
   assert.deepEqual(previewCashAfterExpense(26_200, 200), { before: 26_200, expense: 200, after: 26_000 });

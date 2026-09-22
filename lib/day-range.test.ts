@@ -1,6 +1,6 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayRangeShape } from './day-range';
+import { dayRangeShape } from './day-range.ts';
 
 it('a span of days says only what it has to', () => {
   assert.equal(dayRangeShape('2026-09-18', '2026-09-18'), 'day');

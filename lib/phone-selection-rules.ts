@@ -15,9 +15,19 @@ import type { SaleAvailability } from '../types/api';
 /** How the phone was found. Shown on the selection, never used to decide anything. */
 export type PickSource = 'scan' | 'manual' | 'stock';
 
-/** Presentation characters only — spaces, dashes, dots, slashes. */
+/**
+ * The identifier as it must be sent for lookup.
+ *
+ * Presentation characters — spaces, dashes, dots, slashes — are removed ONLY
+ * when what remains is an IMEI (fifteen digits). A serial number keeps every
+ * character it was given: `CAN-1662030-0019` is a serial, and stripping its
+ * dashes produced a value no unit carries, which is exactly why no serial-tracked
+ * item could be found to sell. Mirrors the server's `normalizeIdentifier`.
+ */
 export function normalizeImeiInput(raw: string): string {
-  return raw.trim().replace(/[\s\-./]+/g, '');
+  const trimmed = raw.trim();
+  const digitsOnly = trimmed.replace(/[\s\-./]+/g, '');
+  return /^\d{15}$/.test(digitsOnly) ? digitsOnly : trimmed;
 }
 
 export type ManualImeiProblem = 'empty' | 'not_digits' | 'length' | 'checksum';

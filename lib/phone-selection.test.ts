@@ -26,6 +26,14 @@ it('typed IMEI: only presentation characters are removed', () => {
   assert.equal(normalizeImeiInput(' 49 0154-2032.37518 '), '490154203237518');
 });
 
+it('a serial number is sent whole — its dashes are part of it', () => {
+  // The live defect: the shelf sent CAN-1662030-0019 as CAN16620300019, and no
+  // unit carries that, so "Continue" on any serial-tracked item found nothing.
+  assert.equal(normalizeImeiInput('CAN-1662030-0019'), 'CAN-1662030-0019');
+  assert.equal(normalizeImeiInput('  SN-AB12 '), 'SN-AB12');
+  assert.equal(normalizeImeiInput('6901234567890'), '6901234567890');
+});
+
 it('typed IMEI: empty, letters, length and checksum each have their own message', () => {
   assert.equal(manualImeiProblem(''), 'empty');
   assert.equal(manualImeiProblem('49015420323751O'), 'not_digits');
@@ -104,8 +112,19 @@ it('another branch is named only when the server sent it', () => {
 });
 
 it('a counted product is sold by id and a quantity; a serialized unit by its identifier', () => {
-  // The one lookup returns a kind; the checkout sends the right line for each.
-  assert.ok(QUICK_SELL.includes("picked.selection.kind === 'product'"));
-  assert.ok(QUICK_SELL.includes('productId: picked.selection.productId'));
-  assert.ok(QUICK_SELL.includes('{ identifier, price: proposedPrice }'));
+  // The one lookup returns a kind; the checkout sends the right line for each
+  // through the one rule in `sale-submission`, which is proved on its own.
+  assert.ok(QUICK_SELL.includes('saleLineFor(picked.selection, identifier, quantity, proposedPrice)'));
+  // No quantity is ever hard-coded: a counted product sells how many was chosen.
+  assert.doesNotMatch(QUICK_SELL, /quantity:\s*1\b/);
+  assert.ok(QUICK_SELL.includes('<Stepper'));
+});
+
+it('the shelf never answers Continue with silence: a lookup failure is shown where the button is', () => {
+  const start = QUICK_SELL.indexOf('footer={');
+  const footer = QUICK_SELL.slice(start, QUICK_SELL.indexOf('<Stack.Screen', start));
+  assert.ok(footer.includes("mode === 'stock'"));
+  assert.ok(footer.includes('{lookupNotice}'), 'the failure notice is in the footer, with the button');
+  assert.match(QUICK_SELL, /const lookupNotice = lookupError \? \(/, 'and it is the lookup failure, in words');
+  assert.ok(footer.includes('loading={lookingUp}'));
 });

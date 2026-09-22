@@ -53,6 +53,8 @@ import { useAuth } from '../../hooks/useAuth';
 import type { ProductSuggestion, ScanResult, Unit } from '../../types/api';
 import { selectableAccounts } from '../../lib/receiving-accounts';
 import { invalidateMoney } from '../../lib/money-invalidation';
+import { classifySubmitFailure } from '../../lib/sale-submission';
+import { recoverUncertainSale, refreshAfterUncertainty } from '../../lib/sale-recovery';
 
 /**
  * Sell — the fastest screen in the app.
@@ -174,10 +176,21 @@ export default function SellScreen() {
    * ladder's answer and only the server resolves it.
    */
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
+  /**
+   * An approval the server asked for, waiting for the payment sheet to leave
+   * the screen. Two sheets stacked is the one arrangement iOS does not reliably
+   * show, so the second opens only once the first has reported itself closed.
+   */
+  const pendingApproval = useRef<ApprovalRequest | null>(null);
   /** The payments the sale was about to be charged with, held across the ask. */
   const heldPayments = useRef<PaymentEntry[] | null>(null);
   /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
   const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
+  /**
+   * A submission in flight, as a ref rather than state: a second tap arrives
+   * before React has re-rendered the button disabled, and must find this.
+   */
+  const inFlight = useRef(false);
 
   const subtotal = cartSubtotal(lines);
   const total = Math.max(0, subtotal - discount);
@@ -513,14 +526,16 @@ export default function SellScreen() {
               return;
             }
             heldPayments.current = payments;
-            setApprovalRequest({
+            // The approval sheet opens from `onPaymentClosed`, once this one is gone.
+            pendingApproval.current = {
               unitId: body.unitId,
               label: line?.label ?? body.identifier ?? t('approvals.item'),
               identifier: body.identifier ?? line?.identifier ?? null,
               configuredPrice: body.configuredPrice ?? null,
               proposedPrice: line?.price ?? 0,
               belowCost: Boolean(body.belowCost),
-            });
+            };
+            setPaymentOpen(false);
             return;
           }
           case 'approval_price_changed':
@@ -567,7 +582,56 @@ export default function SellScreen() {
           return;
         }
       }
-      toast.error(toErrorMessage(e));
+      await reportFailure(e, payments);
+    }
+  };
+
+  /**
+   * A submission that ended in neither a sale nor a refusal the server named.
+   *
+   * The case that matters is a lost answer: the sale MAY have been recorded, so
+   * the server is asked what this key recorded before anyone is told anything,
+   * and everything a sale moves is re-read either way. Only a key the server
+   * says it already spent on a different sale is ever replaced — the cart is
+   * kept, and the next attempt is a new sale.
+   */
+  const reportFailure = async (error: unknown, payments: PaymentEntry[]) => {
+    const failure = classifySubmitFailure(error);
+    switch (failure.kind) {
+      case 'uncertain': {
+        toast.info(t('sell.submit.checking'));
+        const recovered = await recoverUncertainSale<SaleResponse>(clientUuid.current);
+        refreshAfterUncertainty(qc, branchId);
+        if (recovered.kind === 'found') {
+          toast.success(t('sell.submit.recovered'));
+          finalize(recovered.sale, payments);
+          return;
+        }
+        if (recovered.kind === 'not_found') toast.warning(t('sell.submit.notRecorded'));
+        else toast.error(t('sell.submit.unknown'));
+        return;
+      }
+      case 'idempotency_conflict':
+        refreshAfterUncertainty(qc, branchId);
+        clientUuid.current = uuidv4();
+        setPaymentOpen(false);
+        toast.error(t('sell.submit.conflict'));
+        return;
+      case 'offline':
+        toast.error(t('sell.submit.offline'));
+        return;
+      default:
+        toast.error(toErrorMessage(error));
+    }
+  };
+
+  /** The payment sheet has left the screen; an approval it made way for may open now. */
+  const onPaymentClosed = () => {
+    setPaymentOpen(false);
+    const next = pendingApproval.current;
+    if (next) {
+      pendingApproval.current = null;
+      setApprovalRequest(next);
     }
   };
 
@@ -627,6 +691,9 @@ export default function SellScreen() {
   };
 
   const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+    // A second tap while the first is on its way must not start another sale.
+    if (inFlight.current) return;
+    inFlight.current = true;
     heldDebtor.current = debtor;
     setSubmitting(true);
     try {
@@ -649,6 +716,7 @@ export default function SellScreen() {
 
       await attempt(payments, { overrideReason });
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -684,12 +752,14 @@ export default function SellScreen() {
   const onApproved = async () => {
     const payments = heldPayments.current;
     setApprovalRequest(null);
-    if (!payments) return;
+    if (!payments || inFlight.current) return;
+    inFlight.current = true;
     toast.success(t('sell.approval.ready'));
     setSubmitting(true);
     try {
       await attempt(payments);
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
@@ -849,7 +919,7 @@ export default function SellScreen() {
 
       <PaymentSheet
         open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
+        onClose={onPaymentClosed}
         total={total}
         discount={discount}
         onDiscountChange={setDiscount}
