@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckCircle2, ChevronRight, Keyboard, Package, ScanBarcode, SlidersHorizontal } from 'lucide-react-native';
+import { Check, CheckCircle2, Keyboard, Package, ScanBarcode, SlidersHorizontal } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -11,6 +11,8 @@ import {
   FilterChip,
   Identifier,
   InlineNotice,
+  ListRow,
+  RowGroup,
   SearchInput,
   SkeletonList,
   StatusChip,
@@ -23,7 +25,7 @@ import { useBranch } from '../../lib/branch';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatMoney } from '../../lib/format';
-import { isRTL, useTranslation } from '../../lib/i18n';
+import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import {
   availabilityKey,
@@ -61,47 +63,31 @@ function trackingLabelKey(tracking: TrackingType): 'tracking.imei' | 'tracking.s
   return tracking === 'imei' ? 'tracking.imei' : tracking === 'serial' ? 'tracking.serial' : 'tracking.quantity';
 }
 
-/** The three choices the sale starts with. */
+/**
+ * The three ways in, as one section: three rows on one surface, each an icon,
+ * a name, one line saying what it means, and a chevron — the whole row is the
+ * target. The rows are the design system's own, so they sit, divide and mirror
+ * exactly as every other list in the app does.
+ */
 export function PhoneChooser({ onChoose }: { onChoose: (mode: Exclude<PickMode, 'choose'>) => void }) {
   const styles = useStyles();
   const { t } = useTranslation();
+  const ways: { mode: Exclude<PickMode, 'choose'>; icon: IconComponent; title: string; hint: string }[] = [
+    { mode: 'scan', icon: ScanBarcode, title: t('pick.scan'), hint: t('pick.scan.hint') },
+    { mode: 'manual', icon: Keyboard, title: t('pick.manual'), hint: t('pick.manual.hint') },
+    { mode: 'stock', icon: Package, title: t('pick.stock'), hint: t('pick.stock.hint') },
+  ];
   return (
     <View style={styles.stack}>
       <Text variant="body" tone="secondary">
         {t('pick.choose.title')}
       </Text>
-      <ChoiceCard icon={ScanBarcode} title={t('pick.scan')} hint={t('pick.scan.hint')} onPress={() => onChoose('scan')} />
-      <ChoiceCard icon={Keyboard} title={t('pick.manual')} hint={t('pick.manual.hint')} onPress={() => onChoose('manual')} />
-      <ChoiceCard icon={Package} title={t('pick.stock')} hint={t('pick.stock.hint')} onPress={() => onChoose('stock')} />
+      <RowGroup>
+        {ways.map((way) => (
+          <ListRow key={way.mode} flat leading={way.icon} title={way.title} subtitle={way.hint} onPress={() => onChoose(way.mode)} />
+        ))}
+      </RowGroup>
     </View>
-  );
-}
-
-/** One way in: a big target with an icon, a name and one line saying what it means. */
-function ChoiceCard({ icon: Icon, title, hint, onPress }: { icon: IconComponent; title: string; hint: string; onPress: () => void }) {
-  const styles = useStyles();
-  const colors = useColors();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityHint={hint}
-      onPress={onPress}
-      style={({ pressed }) => [styles.choice, pressed && styles.pressed]}
-    >
-      <View style={styles.choiceIcon}>
-        <Icon color={colors.text.accent} size={28} />
-      </View>
-      <View style={styles.grow}>
-        <Text variant="heading">{title}</Text>
-        <Text variant="body" tone="secondary">
-          {hint}
-        </Text>
-      </View>
-      <View style={isRTL() ? styles.flip : undefined}>
-        <ChevronRight size={20} color={colors.text.tertiary} />
-      </View>
-    </Pressable>
   );
 }
 
@@ -594,26 +580,6 @@ const useStyles = makeStyles((colors) => ({
   stack: { gap: space.md },
   grow: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.7 },
-  flip: { transform: [{ scaleX: -1 }] },
-  choice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    minHeight: 96,
-    padding: space.base,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
-  choiceIcon: {
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    backgroundColor: colors.intent.info.bg,
-  },
   filterBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   phoneHead: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   imeiLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },

@@ -516,11 +516,11 @@ export const en = {
   'quick.sell.title': 'Sell an item',
   'pick.choose.title': 'Choose how to find the item',
   'pick.scan': 'Scan a code',
-  'pick.scan.hint': 'Scan the item’s barcode, IMEI or QR code',
+  'pick.scan.hint': 'IMEI, barcode or QR code',
   'pick.manual': 'Enter an identifier',
-  'pick.manual.hint': 'Type an IMEI, serial number or barcode',
+  'pick.manual.hint': 'IMEI, serial number or barcode',
   'pick.stock': "Choose from stock",
-  'pick.stock.hint': 'Browse items in stock at this store',
+  'pick.stock.hint': 'Browse the items available here',
   'pick.manual.label': 'IMEI, serial or barcode',
   'pick.manual.either': 'An IMEI, a serial number or a barcode all work.',
   'pick.manual.find': 'Find item',
@@ -911,7 +911,7 @@ export const en = {
   'counterparty.kind.employee': 'Employee',
 
   // ── Partners ───────────────────────────────────────────────────────────────
-  'home.shortcut.fullSale': 'Sale with several items',
+  'home.shortcut.fullSale': 'Sell several items',
   'partners.tab.a11y': 'Partners, {count} requests waiting for you',
   'partners.intro': 'Stores you do business with',
   'partners.add': 'Add a store',

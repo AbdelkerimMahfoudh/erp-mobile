@@ -507,11 +507,11 @@ export const ar: Catalogue = {
   'quick.sell.title': 'بيع عنصر',
   'pick.choose.title': 'اختر طريقة العثور على العنصر',
   'pick.scan': 'مسح رمز',
-  'pick.scan.hint': 'امسح الباركود أو IMEI أو رمز QR للعنصر',
+  'pick.scan.hint': 'IMEI أو باركود أو رمز QR',
   'pick.manual': 'إدخال مُعرّف',
-  'pick.manual.hint': 'أدخل IMEI أو رقمًا تسلسليًا أو باركود',
+  'pick.manual.hint': 'IMEI أو رقم تسلسلي أو باركود',
   'pick.stock': "الاختيار من المخزون",
-  'pick.stock.hint': 'تصفّح العناصر المتوفرة في هذا المتجر',
+  'pick.stock.hint': 'تصفّح العناصر المتوفرة هنا',
   'pick.manual.label': 'IMEI أو تسلسلي أو باركود',
   'pick.manual.either': 'يصلح IMEI أو رقم تسلسلي أو باركود.',
   'pick.manual.find': 'البحث عن العنصر',
@@ -901,7 +901,7 @@ export const ar: Catalogue = {
   'counterparty.kind.employee': 'موظّف',
 
   // ── الشركاء ───────────────────────────────────────────────────────────────
-  'home.shortcut.fullSale': 'بيع عدة قطع',
+  'home.shortcut.fullSale': 'بيع عدة عناصر',
   'partners.tab.a11y': 'الشركاء، {count} طلبات بانتظار ردّك',
   'partners.intro': 'المتاجر التي تتعامل معها',
   'partners.add': 'إضافة متجر',

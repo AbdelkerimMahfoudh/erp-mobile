@@ -645,8 +645,8 @@ export default function QuickSellScreen() {
                   {/* Several items, or a cart already started: the full sale is one tap away. */}
                   <Button
                     title={t('home.shortcut.fullSale')}
-                    variant="tertiary"
-                    size="sm"
+                    variant="secondary"
+                    fullWidth
                     onPress={() => router.push('/(tabs)/sell')}
                   />
                 </>

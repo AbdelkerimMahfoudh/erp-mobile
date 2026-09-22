@@ -120,6 +120,18 @@ it('a counted product is sold by id and a quantity; a serialized unit by its ide
   assert.ok(QUICK_SELL.includes('<Stepper'));
 });
 
+it('Sell an item: three ways on one surface, each a row with an icon, words and a chevron — no pictures', () => {
+  const chooser = PICKER.slice(PICKER.indexOf('export function PhoneChooser'), PICKER.indexOf('export function ManualImeiPanel'));
+  assert.equal((chooser.match(/<RowGroup>/g) ?? []).length, 1, 'one section');
+  assert.ok(chooser.includes('<ListRow key={way.mode} flat leading={way.icon} title={way.title} subtitle={way.hint} onPress='), 'rows are the design system row: icon, title, hint, chevron');
+  assert.equal((chooser.match(/mode: '(scan|manual|stock)'/g) ?? []).length, 3);
+  assert.doesNotMatch(PICKER, /Thumbnail|<Image|placeholder\.png/, 'no product pictures or placeholders');
+  assert.doesNotMatch(chooser, /<Card/, 'no card nested in the section');
+  // The one action under the section, for several items: outlined and full width.
+  const under = QUICK_SELL.slice(QUICK_SELL.indexOf('<PhoneChooser'), QUICK_SELL.indexOf("mode === 'scan' ?"));
+  assert.match(under, /variant="secondary"[\s\S]{0,60}fullWidth/, 'a restrained outlined full-width action');
+});
+
 it('the shelf never answers Continue with silence: a lookup failure is shown where the button is', () => {
   const start = QUICK_SELL.indexOf('footer={');
   const footer = QUICK_SELL.slice(start, QUICK_SELL.indexOf('<Stack.Screen', start));

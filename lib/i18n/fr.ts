@@ -549,11 +549,11 @@ export const fr: Catalogue = {
   'quick.sell.title': 'Vendre un article',
   'pick.choose.title': 'Choisissez comment trouver l’article',
   'pick.scan': 'Scanner un code',
-  'pick.scan.hint': 'Scannez le code-barres, l’IMEI ou le QR de l’article',
+  'pick.scan.hint': 'IMEI, code-barres ou code QR',
   'pick.manual': 'Saisir un identifiant',
-  'pick.manual.hint': 'Saisissez un IMEI, un numéro de série ou un code-barres',
+  'pick.manual.hint': 'IMEI, numéro de série ou code-barres',
   'pick.stock': "Choisir dans le stock",
-  'pick.stock.hint': 'Parcourir les articles en stock dans ce magasin',
+  'pick.stock.hint': 'Parcourir les articles disponibles ici',
   'pick.manual.label': 'IMEI, série ou code-barres',
   'pick.manual.either': 'Un IMEI, un numéro de série ou un code-barres conviennent.',
   'pick.manual.find': 'Trouver l’article',
@@ -971,7 +971,7 @@ export const fr: Catalogue = {
   'counterparty.kind.employee': 'Employé',
 
   // ── Partenaires ────────────────────────────────────────────────────────────
-  'home.shortcut.fullSale': 'Vente de plusieurs articles',
+  'home.shortcut.fullSale': 'Vendre plusieurs articles',
   'partners.tab.a11y': 'Partenaires, {count} demandes en attente de votre réponse',
   'partners.intro': 'Les boutiques avec qui vous travaillez',
   'partners.add': 'Ajouter une boutique',
