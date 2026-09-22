@@ -1,27 +1,35 @@
 import React from 'react';
 import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { TriangleAlert } from 'lucide-react-native';
-import { Button, EmptyState, InlineNotice, Section, Text } from '../ui';
+import { Button, EmptyState, InlineNotice, RowGroup, Section, Text } from '../ui';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
-import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
-import { formatMoney, formatSmartDateTime } from '../../lib/format';
+import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { useConnectivity } from '../../lib/connectivity';
-import { toast } from '../../lib/toast';
-import { useAnomalies, useDismissAnomaly, type Anomaly } from '../../lib/anomalies';
+import { attentionPreview } from '../../lib/attention-rules';
+import { useAnomalies } from '../../lib/anomalies';
+import { AlertRow, useAcknowledge } from './AlertRow';
 
 /**
- * "Needs your attention" — the six deterministic rules (A3).
+ * "Needs your attention" — the newest three, and a way to the rest (A3).
  *
  * ## What this is not
  *
- * Not a score, not a ranking, not a prediction. Six sentences, each carrying
+ * Not a score, not a ranking, not a prediction. A few sentences, each carrying
  * the numbers that produced it, so a shopkeeper can check the claim instead of
- * trusting it. The server decides which of the six this person may see — the
- * two involving margin and cost never leave it for anybody else — so this
- * component renders whatever arrives and gates nothing itself.
+ * trusting it. The server decides which rules this person may see — the two
+ * involving margin and cost never leave it for anybody else — and it orders
+ * them, newest first; this component renders what arrives and re-sorts nothing.
+ *
+ * ## Three, not all
+ *
+ * The overview is for glancing. Twelve warnings in a column of notices pushed
+ * every chart off the screen, and a panel somebody has to scroll past is a
+ * panel nobody reads. So: the three newest in one compact surface, and "View
+ * all 12" only when there is a fourth.
  *
  * ## Blank when offline, deliberately
  *
@@ -29,51 +37,46 @@ import { useAnomalies, useDismissAnomaly, type Anomaly } from '../../lib/anomali
  * claim about yesterday's cash, and a stale warning about money is worse than
  * none — so disconnected this says why it is empty rather than showing
  * something that used to be true.
- *
- * ## Dismissing is a snooze
- *
- * Seven days, for the whole shop, audited. It is how a false positive stops
- * being noise without anybody having to pretend it was wrong.
  */
 export function AttentionList() {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
+  const router = useRouter();
   const online = useConnectivity((s) => s.online);
   const query = useAnomalies();
-  const dismiss = useDismissAnomaly();
+  const { acknowledge, pendingKey } = useAcknowledge();
 
-  const rows = query.data?.rows ?? [];
-
-  const onDismiss = async (row: Anomaly) => {
-    const confirmed = await dialog.confirm({
-      title: t('attention.dismissTitle'),
-      message: t('attention.dismissBody'),
-      confirmLabel: t('attention.dismiss'),
-    });
-    if (!confirmed) return;
-    try {
-      await dismiss.mutateAsync(row.key);
-      toast.success(t('attention.dismissed'));
-    } catch (e) {
-      toast.error(toErrorMessage(e));
-    }
-  };
+  const preview = attentionPreview(query.data?.rows ?? [], query.data?.total ?? 0);
 
   return (
     <Section
       icon={<TriangleAlert size={18} color={colors.semantic.warning} />}
       title={t('attention.title')}
+      action={
+        preview.showAll ? (
+          <Button
+            title={t('attention.viewAll', { count: String(preview.total) })}
+            variant="tertiary"
+            size="sm"
+            onPress={() => router.push('/alerts' as never)}
+          />
+        ) : undefined
+      }
     >
       {!online ? (
         <InlineNotice tone="neutral">{t('attention.offline')}</InlineNotice>
-      ) : rows.length === 0 ? (
-        <EmptyState title={t('attention.empty')} body={t('attention.emptyBody')} />
+      ) : query.isError ? (
+        <InlineNotice tone="danger">{toErrorMessage(query.error)}</InlineNotice>
+      ) : preview.shown.length === 0 ? (
+        <EmptyState title={t('attention.empty')} body={t('attention.emptyBody')} size="inline" />
       ) : (
         <View style={styles.list}>
-          {rows.map((row) => (
-            <Row key={row.key} row={row} onDismiss={() => void onDismiss(row)} />
-          ))}
+          <RowGroup separatorInset={0}>
+            {preview.shown.map((row) => (
+              <AlertRow key={row.key} row={row} pending={pendingKey === row.key} onAcknowledge={(r) => void acknowledge(r)} />
+            ))}
+          </RowGroup>
           {query.data?.generatedAt ? (
             /*
              * When this was worked out. A panel of figures with no timestamp
@@ -89,35 +92,6 @@ export function AttentionList() {
   );
 }
 
-function Row({ row, onDismiss }: { row: Anomaly; onDismiss: () => void }) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-
-  /*
-   * Money in the parameters is formatted here, not by the server. The server
-   * sends a number; how many decimals and which separator a reader expects is a
-   * question about their locale, and it already has one answer in `formatMoney`.
-   */
-  const values: Record<string, string | number> = {};
-  for (const [key, value] of Object.entries(row.params)) {
-    values[key] = key === 'amount' && typeof value === 'number' ? formatMoney(value) : value;
-  }
-
-  return (
-    <View style={styles.row}>
-      <InlineNotice
-        tone={row.severity === 'caution' ? 'warning' : 'info'}
-        action={
-          <Button title={t('attention.dismiss')} variant="tertiary" size="sm" onPress={onDismiss} />
-        }
-      >
-        {t(row.messageKey as never, values)}
-      </InlineNotice>
-    </View>
-  );
-}
-
 const useStyles = makeStyles(() => ({
   list: { gap: space.sm },
-  row: {},
 }));

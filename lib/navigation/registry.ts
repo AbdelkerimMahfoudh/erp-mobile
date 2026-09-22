@@ -302,6 +302,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/subscription-blocked': 'Subscription state screen, reached when the server refuses operational access.',
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
+  '/alerts': 'Every alert to review, newest first — the rest of the Analyses overview’s "Needs your attention", reached from its "View all".',
   '/receive': 'Started from Home and Inventory — a counter action, not a menu entry.',
   '/receive/pick': 'Choosing a stock file, from the Receive stock header. Owner-only, like the opening-inventory import.',
   '/receive/file': 'Checking a delivery read out of a file, before any of it is received.',

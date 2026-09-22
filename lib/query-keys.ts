@@ -176,5 +176,11 @@ export const qk = {
    * drawer and sellers — and because the server returns a different list to a
    * different branch. Never cached across a branch switch.
    */
-  anomalies: (branchId: string | null) => ['anomalies', branchId] as const,
+  /**
+   * Bare, the prefix every anomaly query shares — what an invalidation names.
+   * With a page, one slice of the ordered list: the overview's three, or a
+   * page of the full list (`'all'` marks the infinite list's own cache).
+   */
+  anomalies: (branchId: string | null, page?: { limit: number; page: number | 'all' }) =>
+    page ? (['anomalies', branchId, page.limit, page.page] as const) : (['anomalies', branchId] as const),
 };
