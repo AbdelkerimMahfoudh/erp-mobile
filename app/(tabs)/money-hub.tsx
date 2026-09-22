@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Plus, Receipt, Smartphone, Wallet } from 'lucide-react-native';
+import { Package, Plus, Receipt, Wallet } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -179,7 +179,7 @@ export default function MoneyTabScreen() {
           {key === 'today' ? (
             <Card style={styles.block}>
               <View style={styles.head}>
-                <Thumbnail icon={Smartphone} />
+                <Thumbnail icon={Package} />
                 <View style={styles.grow}>
                   <Text variant="bodyStrong">{t('moneyOverview.phoneSales')}</Text>
                   {data ? <MoneyValue value={data.period.salesValue} size="large" /> : null}
@@ -237,6 +237,11 @@ export default function MoneyTabScreen() {
                 <View style={styles.grow}>
                   <Text variant="bodyStrong">{t('moneyOverview.dailyExpenses')}</Text>
                   <MoneyValue value={data.expensesToday.total} size="large" />
+                  {/* Today's figure, whatever the period switch above says — it
+                      controls sales, never this. */}
+                  <Text variant="caption" tone="tertiary">
+                    {t('moneyOverview.dailyExpenses.hint')}
+                  </Text>
                 </View>
               </View>
               {expenses ? (
