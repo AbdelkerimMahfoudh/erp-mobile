@@ -558,13 +558,85 @@ it('the review footer offers only Continue, and only once nothing is unresolved'
   assert.match(src, /fileReceive\.footer\.excluded/);
 });
 
-it('the summary card stacks its parts and puts no action over the explanation', () => {
+it('the summary is three figures with their words, and the one action addresses the actual problem', () => {
   const src = code(read('../app/receive/file.tsx'));
-  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.ready'\)\}/);
-  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.attention'\)\}/);
-  assert.match(src, /<Breakdown label=\{t\('fileReceive\.filter\.excluded'\)\}/);
+  assert.match(src, /<SummaryTile label=\{t\('fileReceive\.filter\.ready'\)\} value=\{counts\.ready\}/);
+  assert.match(src, /<SummaryTile label=\{t\('fileReceive\.filter\.attention'\)\} value=\{counts\.needsAttention\}/);
+  assert.match(src, /<SummaryTile label=\{t\('fileReceive\.filter\.excluded'\)\} value=\{counts\.excluded\}/);
   assert.match(src, /fileReceive\.matchProducts/, 'the primary action addresses the actual problem');
   assert.ok(!/position: 'absolute'/.test(src), 'nothing inside a card is positioned absolutely');
+  // One row of filters that scrolls sideways — never a wrapping wall.
+  assert.match(src, /<ScrollView horizontal[^>]*contentContainerStyle=\{styles\.filters\}/);
+  assert.doesNotMatch(src, /filters: \{[^}]*flexWrap/);
+});
+
+it('a row says where it came from, which one it is (masked), what it costs and where it stands — in words', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  const row = src.slice(src.indexOf('const EntryRow = React.memo'), src.indexOf('function Field('));
+  assert.match(row, /t\('fileReceive\.row', \{ row: String\(source\.row \?\? ''\) \}\)/, 'the spreadsheet row');
+  assert.match(row, /maskIdentifier\(identifier\)/, 'the identifier masked to its last four');
+  assert.match(row, /identifierKind === 'serial' \? t\('fileReceive\.field\.serial'\) : t\('fileReceive\.field\.imei1'\)/, 'labelled by its kind, never a fake IMEI');
+  assert.match(row, /t\('fileReceive\.twoImeis'\)/, 'a second IMEI is indicated, not printed as another phone');
+  assert.match(row, /formatMoney\(cost\)/);
+  assert.match(row, /tone=\{statusTone\}[\s\S]{0,80}\{status\}/, 'status in colour AND words');
+  assert.doesNotMatch(row, /<InlineNotice/, 'no warning card repeated on every row');
+  assert.doesNotMatch(src, /AlertTriangle/, 'no warning icon beside a value');
+  assert.match(src, /ItemSeparatorComponent=\{Separator\}/, 'thin dividers between records');
+});
+
+it('Accept, Edit and Exclude carry their names, and Accept waits until nothing blocks the item', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  const row = src.slice(src.indexOf('const EntryRow = React.memo'), src.indexOf('function Field('));
+  assert.match(row, /title=\{t\('fileReceive\.action\.accept'\)\}[\s\S]{0,200}disabled=\{!acceptable\}/, 'Accept is named and disabled while a blocking issue remains');
+  assert.match(row, /title=\{t\('fileReceive\.action\.edit'\)\}/);
+  assert.match(row, /title=\{t\('fileReceive\.remove'\)\}/);
+  assert.doesNotMatch(row, /<IconButton/, 'no unexplained icon boxes');
+  // Accept confirms natively, naming the item, and marks it ready — nothing else.
+  const accept = src.slice(src.indexOf('const acceptEntry'), src.indexOf('const removeEntry'));
+  assert.match(accept, /canAccept\(live, entry\)/);
+  assert.match(accept, /dialog\.confirm\(/);
+  assert.match(accept, /fileReceive\.accept\.body/);
+  assert.match(accept, /if \(ok\) setAcknowledged\(key, true\)/);
+  // Exclude confirms destructively and removes only that row; restoring needs no confirmation.
+  const exclude = src.slice(src.indexOf('const removeEntry'), src.indexOf('const editEntry'));
+  assert.match(exclude, /tone: 'danger'/);
+  assert.match(exclude, /if \(ok\) setExcluded\(key, true\)/);
+  assert.match(exclude, /setExcluded\(key, false\);\s*return;/);
+});
+
+it('accepting, editing and excluding change the draft only — stock is created by the final confirmation alone', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  const posts = src.match(/api\.post</g) ?? [];
+  assert.equal(posts.length, 1, 'one request writes anything');
+  assert.match(src, /api\.post<PurchaseOutcome>\('\/purchases'/);
+  assert.doesNotMatch(src, /post\([^)]*(units|inventory|products)/);
+});
+
+it('the item sheet shows the whole identifiers, the source, the product, the cost and what blocks it, and returns to the same list', () => {
+  const src = code(read('../app/receive/file.tsx'));
+  const sheet = src.slice(src.indexOf('function ItemSheet('), src.indexOf('const useStyles'));
+  assert.match(sheet, /value=\{entry\.extracted\.imei1\} identifier/, 'IMEI 1 whole');
+  assert.match(sheet, /value=\{imei2\} identifier/, 'IMEI 2 whole');
+  assert.match(sheet, /value=\{entry\.extracted\.serial\} identifier/, 'a serial whole');
+  assert.match(sheet, /fileReceive\.field\.source/);
+  assert.match(sheet, /fileReceive\.detail\.product/);
+  assert.match(sheet, /fileReceive\.detail\.issue/);
+  assert.match(sheet, /fileReceive\.field\.cost/);
+  assert.match(sheet, /onAccept/); assert.match(sheet, /onExclude/); assert.match(sheet, /onSave\(\{ cost: Number\(cost\) \}\)/);
+  // The sheet is keyed by the item and closes back onto the same list: the list itself is never remounted or scrolled.
+  assert.match(src, /<ItemSheet\s+key=\{detailKey \?\? 'none'\}/);
+  assert.doesNotMatch(src, /scrollToOffset|scrollToIndex|key=\{[^}]*\}\s*data=\{rows\}/);
+});
+
+it('every short status exists for every problem, in all three languages', () => {
+  const problems = ['imei1_missing', 'imei1_invalid', 'imei1_rounded', 'imei2_invalid', 'imei2_same_as_imei1', 'imei2_rounded', 'model_missing', 'cost_missing', 'cost_invalid', 'duplicate_in_file', 'duplicate_in_stock', 'product_unknown', 'product_ambiguous', 'formula_value'];
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    for (const p of problems) {
+      assert.ok(cat.includes(`'fileReceive.short.${p}':`), `${locale} is missing the short status for ${p}`);
+      assert.ok(cat.includes(`'fileReceive.problem.${p}':`), `${locale} is missing the full sentence for ${p}`);
+    }
+  }
 });
 
 it('Exclude all left the warning and asks first, saying how many', () => {
@@ -576,19 +648,6 @@ it('Exclude all left the warning and asks first, saying how many', () => {
   assert.match(src, /variant="tertiary"[\s\S]{0,120}excludeAll|excludeAll[\s\S]{0,160}variant="tertiary"/, 'it is not competing with the fix');
 });
 
-it('every phone value is labelled, and the warning is not beside the price', () => {
-  const src = code(read('../app/receive/file.tsx'));
-  for (const field of ['imei1', 'imei2', 'cost', 'source']) {
-    assert.match(src, new RegExp(`fileReceive\\.field\\.${field}`), `${field} is labelled`);
-  }
-  // The reason is its own notice, built from the row's problems in the group
-  // (kept as a primitive so a memoised row does not rebuild the rest).
-  assert.match(src, /<InlineNotice tone="warning">\{problemsText\}<\/InlineNotice>/, 'the reason is its own notice');
-  assert.match(src, /problems\.map\(\(p\) => t\(`fileReceive\.problem\.\$\{p\}`/, 'the notice carries the row problems');
-  assert.ok(!/AlertTriangle/.test(src), 'no warning icon beside a value');
-  assert.match(src, /<Divider \/>/, 'rows are separated, so two IMEIs cannot look like one phone');
-});
-
 it('groups are collapsed first, and phones exist only while a group is open', () => {
   const src = code(read('../app/receive/file.tsx'));
   assert.match(src, /<FlatList/, 'the established list, not a mapped ScrollView');
@@ -596,8 +655,8 @@ it('groups are collapsed first, and phones exist only while a group is open', ()
   // The rows of the open group are records in the same list — built by the
   // flattening rule, which is proved in file-review-rows.test.ts.
   assert.match(src, /reviewRows\(batch, groups, summaries, openKey, filter\)/, 'rows exist only for the open group');
-  assert.match(src, /fileReceive\.group\.countCost/, 'a collapsed group shows its count and subtotal');
-  assert.match(src, /fileReceive\.group\.status/, 'and why it is held up');
+  assert.match(src, /count=\{summary\.phones\}[\s\S]{0,80}subtotal=\{formatMoney\(summary\.subtotal\)\}/, 'a collapsed group shows its count and subtotal');
+  assert.match(src, /fileReceive\.short\.\$\{summary\.reason\}/, 'and why it is held up, in a few words');
 });
 
 it('one group opens at a time, and changing the filter keeps the corrections and what was open', () => {

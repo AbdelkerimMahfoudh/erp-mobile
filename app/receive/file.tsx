@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, View, type ListRenderItem } from 'react-native';
+import { FlatList, Pressable, ScrollView, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,12 +15,13 @@ import {
 import {
   Button,
   Card,
-  Divider,
+  Disclosure,
   EmptyState,
   FilterChip,
-  IconButton,
+  Identifier,
   InlineNotice,
   ListRow,
+  ListSeparator,
   MoneyField,
   RowGroup,
   Screen,
@@ -35,12 +36,12 @@ import {
 } from '../../components/receive/PurchasePaymentPicker';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { space } from '../../lib/design/tokens';
-import { makeStyles } from '../../lib/design/theme';
+import { radius, space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
-import { useTranslation } from '../../lib/i18n';
+import { isRTL, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { invalidateMoney } from '../../lib/money-invalidation';
 import { useDraft } from '../../lib/offline/use-draft';
@@ -49,14 +50,19 @@ import { useFileBatch } from '../../lib/file-batch-store';
 import {
   batchCounts,
   batchFingerprint,
+  canAccept,
   canConfirm,
   effectiveCost,
+  effectiveImei2,
   entryState,
   groupCandidates,
   groupEntries,
+  maskIdentifier,
   previewBulkCost,
   purchaseItems,
+  remainingProblems,
   reviewComplete,
+  type BatchState,
   type CatalogueProduct,
   type EntryGroup,
   type EntryState,
@@ -70,49 +76,60 @@ import type { PurchaseOutcome } from '../../lib/receive-outcome';
  * Reviewing a delivery read out of a file.
  *
  * Nothing has been received at this point — the file was only read. This screen
- * is where a person sees every phone, fixes what is wrong, deliberately excludes
+ * is where a person sees every item, fixes what is wrong, deliberately excludes
  * what they will not take, and only then buys the rest.
  *
  * ## Why it is staged
  *
- * A hundred phones do not fit on a phone screen, and the first version put the
+ * A hundred items do not fit on a phone screen, and the first version put the
  * whole payment section under a list where nothing was ready to pay for yet: the
  * shop was asked how it would like to pay before it had been told what was
- * wrong. Review and payment are now two steps. Payment appears only once every
- * phone is either corrected or deliberately excluded, and until then a compact
- * footer carries the only numbers that matter — how many are ready, how many are
- * out, and what the ready ones cost.
+ * wrong. Review and payment are two steps. Payment appears only once every item
+ * is either corrected or deliberately excluded, and until then a compact footer
+ * carries the only numbers that matter — how many are ready, what they cost,
+ * and how many remain.
  *
  * ## Why groups come first, and why the list is flat
  *
  * A hundred rows of the same iPhone with the same missing product are one
- * decision, not a hundred. The list shows one collapsed header per exact variant
+ * decision, not a hundred. The list shows one compact header per exact variant
  * with its count, its subtotal and the reason it is held up, and a group whose
- * every problem is the same product question can be matched once for all of
- * them.
+ * every problem is the same product question is matched once for all of them.
  *
  * The list itself is ONE virtualized sequence — group headers, then the rows of
  * the single open group — built by `reviewRows`. The earlier shape, a card per
  * group mapping its own rows inside itself, meant the open group was one list
  * item however many rows it held, and any correction re-rendered every card
  * because each received the whole batch. Rows now receive only the primitives
- * they show, and re-render only when those change: correcting one phone in a
- * hundred re-renders that phone.
+ * they show, and re-render only when those change: correcting one item in a
+ * hundred re-renders that item.
+ *
+ * ## What a row is
+ *
+ * One line says where it came from and which one it is — the spreadsheet row,
+ * the identifier masked to its last four, and whether a second IMEI rides on it.
+ * The next says what it costs and where it stands, in words. Then three actions
+ * with their names on them: Accept, Edit, Exclude. The whole identifier, the
+ * product, the file's own words and every action are one tap away in the item's
+ * sheet, where somebody actually checks a phone against the thing in hand.
  *
  * Three rules it exists to keep:
  *
- * 1. **Nothing is received quietly.** A phone with a problem must be corrected
+ * 1. **Nothing is received quietly.** An item with a problem must be corrected
  *    or excluded; the app never receives "the good rows" and drops the rest.
  * 2. **The file's own words are never overwritten.** A correction sits beside
- *    what was extracted, and a bulk edit says how many phones it will change —
+ *    what was extracted, and a bulk edit says how many items it will change —
  *    and how many already say something different — before it changes them.
  * 3. **Confirmation is an ordinary purchase**, paid in full through
  *    `POST /purchases`, with a key bound to exactly what is being received — so
  *    a double tap or a retry after a timeout returns the same receipt instead of
- *    buying the delivery twice.
+ *    buying the delivery twice. Accepting, editing and excluding change the
+ *    draft only; stock exists when the delivery is confirmed, and not before.
  */
 
 type Step = 'review' | 'payment';
+
+const Separator = () => <ListSeparator inset={false} />;
 
 export default function FileReviewScreen() {
   const styles = useStyles();
@@ -134,16 +151,16 @@ export default function FileReviewScreen() {
   /**
    * The one open group, by key — never more than one.
    *
-   * A hundred phones do not fit on a screen, and a file of two thousand must
-   * cost no more to scroll than one of ten. Only the open group's phones are in
+   * A hundred items do not fit on a screen, and a file of two thousand must
+   * cost no more to scroll than one of ten. Only the open group's rows are in
    * the list at all, and opening a group closes whichever was open, so the
    * number of mounted rows never grows with the delivery.
    */
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
-  const [editing, setEditing] = useState<FileEntry | null>(null);
+  /** The item whose sheet is open, by key — the sheet reads the live item from the batch. */
+  const [detailKey, setDetailKey] = useState<string | null>(null);
   const [matching, setMatching] = useState<EntryGroup | null>(null);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkCost, setBulkCost] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ units: number; total: number } | null>(null);
@@ -217,12 +234,13 @@ export default function FileReviewScreen() {
   const entryOf = (key: string): FileEntry | null =>
     useFileBatch.getState().batch?.parsed.entries.find((e) => e.key === key) ?? null;
 
+  /** Accept: a native confirmation naming the item, then the row is marked ready. Nothing else changes. */
   const acceptEntry = useCallback(
     async (key: string) => {
       const live = useFileBatch.getState().batch;
       const entry = entryOf(key);
-      if (!live || !entry) return;
-      const product = [entry.extracted.brand, entry.extracted.model].filter(Boolean).join(' ') || t('fileReceive.noIdentifier');
+      if (!live || !entry || !canAccept(live, entry)) return;
+      const product = productWords(entry) || t('fileReceive.noIdentifier');
       const identifier = entry.extracted.imei1 ?? entry.extracted.serial ?? t('fileReceive.noIdentifier');
       const cost = effectiveCost(live, entry);
       const detail = [identifier, cost !== null ? formatMoney(cost) : null].filter(Boolean).join('  ·  ');
@@ -236,12 +254,12 @@ export default function FileReviewScreen() {
     [t, setAcknowledged],
   );
 
+  /** Exclude: a destructive confirmation, then only this row leaves the draft. Restoring needs no speed bump. */
   const removeEntry = useCallback(
     async (key: string) => {
       const live = useFileBatch.getState().batch;
       const entry = entryOf(key);
       if (!live || !entry) return;
-      // Restoring is not destructive, so it needs no speed bump.
       if (entryState(live, entry) === 'excluded') {
         setExcluded(key, false);
         return;
@@ -257,10 +275,10 @@ export default function FileReviewScreen() {
     [t, setExcluded],
   );
 
-  const editEntry = useCallback((key: string) => setEditing(entryOf(key)), []);
+  const editEntry = useCallback((key: string) => setDetailKey(key), []);
 
   /**
-   * One record, one row. Group headers and phones are siblings in the same
+   * One record, one row. Group headers and items are siblings in the same
    * list, and each receives only the values it shows.
    */
   const renderRow: ListRenderItem<ReviewRowData> = useCallback(
@@ -269,39 +287,45 @@ export default function FileReviewScreen() {
         const { summary } = item;
         const status = summary.needsAttention === 0
           ? summary.excluded === summary.phones
-            ? t('fileReceive.state.excluded')
+            ? t('fileReceive.status.excluded')
             : t('fileReceive.group.ready')
           : summary.reason
-            ? t(`fileReceive.problem.${summary.reason}` as never)
+            ? t(`fileReceive.short.${summary.reason}` as never)
             : t('fileReceive.group.mixed', { count: String(summary.needsAttention) });
         return (
           <GroupRow
             groupKey={item.groupKey}
             label={item.label}
             subtitle={item.variant}
-            countCost={t('fileReceive.group.countCost', { count: String(summary.phones), total: formatMoney(summary.subtotal) })}
-            status={t('fileReceive.group.status', { status })}
+            count={summary.phones}
+            subtotal={formatMoney(summary.subtotal)}
+            status={status}
             held={summary.needsAttention > 0}
-            matchable={summary.matchableKeys.length}
-            shown={item.shown}
+            matchable={summary.matchableKeys.length > 0}
             open={item.open}
             onToggle={toggleGroup}
             onMatch={matchGroupByKey}
           />
         );
       }
-      const problems = item.problems;
       return (
         <EntryRow
           entryKey={item.entryKey}
           source={item.source}
           identifier={item.identifier}
-          imei2={item.imei2}
+          identifierKind={item.identifierKind}
+          twoImeis={Boolean(item.imei2)}
           cost={item.cost}
           extractedCost={item.extractedCost}
           corrected={item.corrected}
           state={item.state}
-          problemsText={problems.map((p) => t(`fileReceive.problem.${p}` as never)).join(' · ')}
+          status={
+            item.state === 'ready'
+              ? t('fileReceive.status.ready')
+              : item.state === 'excluded'
+                ? t('fileReceive.status.excluded')
+                : item.problems.map((p) => t(`fileReceive.short.${p}` as never)).join(' · ')
+          }
           acceptable={item.acceptable}
           onAccept={acceptEntry}
           onEdit={editEntry}
@@ -346,7 +370,7 @@ export default function FileReviewScreen() {
 
   const ready = reviewComplete(batch);
   const attentionKeys = batch.parsed.entries.filter((e) => entryState(batch, e) === 'needs_attention').map((e) => e.key);
-  /** Every held-up phone is waiting on a product, so "Match products" is the one thing to do. */
+  /** Every held-up item is waiting on a product, so "Match products" is the one thing to do. */
   const productHeld = attentionKeys.length > 0
     && groups.every((g) => {
       const summary = summaries.get(g.key);
@@ -392,7 +416,6 @@ export default function FileReviewScreen() {
     if (!ok) return;
     const changed = correctMany(keys, { cost: value });
     setBulkCost('');
-    setBulkOpen(false);
     setError(null);
     void dialog.alert({ title: t('fileReceive.bulkCost.done', { count: String(changed) }) });
   };
@@ -457,21 +480,23 @@ export default function FileReviewScreen() {
   }
 
   // ── the review step ───────────────────────────────────────────────────────
+  const detailEntry = detailKey ? batch.parsed.entries.find((e) => e.key === detailKey) ?? null : null;
+
   return (
     <Screen
       scroll={false}
+      padded={false}
       footer={
         <View style={styles.footer}>
           <View style={styles.footerCounts}>
-            <Text variant="caption" tone="secondary">
-              {t('fileReceive.footer.ready', { count: String(counts.ready) })}
+            <Text variant="label">
+              {t('fileReceive.footer.readyTotal', { count: String(counts.ready), total: formatMoney(counts.selectedCost) })}
             </Text>
             {counts.excluded > 0 ? (
               <Text variant="caption" tone="secondary">
                 {t('fileReceive.footer.excluded', { count: String(counts.excluded) })}
               </Text>
             ) : null}
-            <Text variant="label">{formatMoney(counts.selectedCost)}</Text>
           </View>
           <Button
             title={t('fileReceive.continue')}
@@ -482,7 +507,7 @@ export default function FileReviewScreen() {
           />
           {!ready ? (
             <Text variant="caption" tone="secondary" align="center">
-              {t('fileReceive.continueBlocked', { count: String(counts.needsAttention) })}
+              {t('fileReceive.footer.remaining', { count: String(counts.needsAttention) })}
             </Text>
           ) : null}
         </View>
@@ -494,6 +519,7 @@ export default function FileReviewScreen() {
         data={rows}
         keyExtractor={(row) => row.key}
         renderItem={renderRow}
+        ItemSeparatorComponent={Separator}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
         // Every record is one small row, so the window can stay small.
@@ -505,48 +531,31 @@ export default function FileReviewScreen() {
           <View style={styles.header}>
             <DraftNotice draft={draft} onDiscard={() => { clear(); router.back(); }} />
 
-            <Card style={styles.stack}>
-              <Text variant="label" tone="secondary">
-                {t('fileReceive.step', { current: '1', total: '3' })}
-              </Text>
-              <Text variant="title">
-                {counts.needsAttention > 0
-                  ? t('fileReceive.attention.title', { count: String(counts.needsAttention) })
-                  : t('fileReceive.allReady.title', { count: String(counts.ready) })}
-              </Text>
-              <Text variant="body" tone="secondary">
-                {counts.needsAttention > 0 ? t('fileReceive.attention.body') : t('fileReceive.allReady.body')}
-              </Text>
+            {/* The three figures, and nothing else, at a glance. */}
+            <View style={styles.tiles}>
+              <SummaryTile label={t('fileReceive.filter.ready')} value={counts.ready} tone="success" />
+              <SummaryTile label={t('fileReceive.filter.attention')} value={counts.needsAttention} tone={counts.needsAttention > 0 ? 'warning' : 'primary'} />
+              <SummaryTile label={t('fileReceive.filter.excluded')} value={counts.excluded} tone="primary" />
+            </View>
+            <Text variant="caption" tone="tertiary">
+              {[
+                batch.parsed.filename,
+                t('fileReceive.summary', { phones: String(counts.phones), sheet: batch.parsed.sheets.find((s) => s.selected)?.name ?? '—' }),
+                t('fileReceive.branch', { branch: branchName ?? t('home.branch.unknown') }),
+              ].join(' · ')}
+            </Text>
 
-              <Divider />
-              <Breakdown label={t('fileReceive.filter.ready')} value={counts.ready} />
-              <Breakdown label={t('fileReceive.filter.attention')} value={counts.needsAttention} />
-              <Breakdown label={t('fileReceive.filter.excluded')} value={counts.excluded} />
-              <Divider />
-
-              <Text variant="caption" tone="tertiary">
-                {batch.parsed.filename} ·{' '}
-                {t('fileReceive.summary', {
-                  phones: String(counts.phones),
-                  sheet: batch.parsed.sheets.find((s) => s.selected)?.name ?? '—',
-                })}
-              </Text>
-              <Text variant="caption" tone="secondary">
-                {t('fileReceive.branch', { branch: branchName ?? t('home.branch.unknown') })}
-              </Text>
-
-              {productHeld ? (
-                <Button
-                  title={t('fileReceive.matchProducts')}
-                  fullWidth
-                  onPress={() => {
-                    setFilter('needs_attention');
-                    const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0);
-                    if (first) setMatching(first);
-                  }}
-                />
-              ) : null}
-            </Card>
+            {productHeld ? (
+              <Button
+                title={t('fileReceive.matchProducts')}
+                fullWidth
+                onPress={() => {
+                  setFilter('needs_attention');
+                  const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0);
+                  if (first) setMatching(first);
+                }}
+              />
+            ) : null}
 
             {batch.parsed.imageOnlyPages.length > 0 ? (
               <InlineNotice tone="warning" title={t('fileReceive.imageOnly.title')}>
@@ -556,7 +565,8 @@ export default function FileReviewScreen() {
 
             {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
-            <View style={styles.filters}>
+            {/* One row of filters, scrolling sideways rather than wrapping into a wall. */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} keyboardShouldPersistTaps="handled">
               <FilterChip label={t('fileReceive.filter.all')} count={counts.phones} selected={filter === 'all'} onPress={() => setFilter('all')} />
               <FilterChip label={t('fileReceive.filter.ready')} count={counts.ready} selected={filter === 'ready'} onPress={() => setFilter('ready')} />
               <FilterChip
@@ -571,34 +581,25 @@ export default function FileReviewScreen() {
                 selected={filter === 'excluded'}
                 onPress={() => setFilter('excluded')}
               />
-            </View>
+            </ScrollView>
 
-            <Card style={styles.stack}>
-              <Button
-                title={t('fileReceive.bulk.title')}
-                variant="secondary"
-                fullWidth
-                icon={bulkOpen ? ChevronDown : ChevronRight}
-                onPress={() => setBulkOpen((open) => !open)}
-              />
-              {bulkOpen ? (
-                <>
-                  <Text variant="caption" tone="secondary">
-                    {t('fileReceive.bulk.fields')}
-                  </Text>
-                  <Text variant="caption" tone="secondary">
-                    {t('fileReceive.bulk.scope')}
-                  </Text>
-                  <MoneyField label={t('fileReceive.bulkCost.label')} value={bulkCost} onChangeText={setBulkCost} />
-                  <Button
-                    title={t('fileReceive.bulkCost.apply')}
-                    variant="secondary"
-                    disabled={!(Number(bulkCost) > 0)}
-                    onPress={() => void applyBulkCost()}
-                  />
-                </>
-              ) : null}
-            </Card>
+            <Disclosure title={t('fileReceive.bulk.title')}>
+              <View style={styles.stack}>
+                <Text variant="caption" tone="secondary">
+                  {t('fileReceive.bulk.fields')}
+                </Text>
+                <Text variant="caption" tone="secondary">
+                  {t('fileReceive.bulk.scope')}
+                </Text>
+                <MoneyField label={t('fileReceive.bulkCost.label')} value={bulkCost} onChangeText={setBulkCost} />
+                <Button
+                  title={t('fileReceive.bulkCost.apply')}
+                  variant="secondary"
+                  disabled={!(Number(bulkCost) > 0)}
+                  onPress={() => void applyBulkCost()}
+                />
+              </View>
+            </Disclosure>
           </View>
         }
         ListFooterComponent={
@@ -616,16 +617,17 @@ export default function FileReviewScreen() {
         }
       />
 
-      <EntrySheet
-        key={editing?.key ?? 'none'}
-        entry={editing}
-        onClose={() => setEditing(null)}
+      <ItemSheet
+        key={detailKey ?? 'none'}
+        batch={batch}
+        entry={detailEntry}
+        onClose={() => setDetailKey(null)}
         onSave={(correction) => {
-          if (editing) correct(editing.key, correction);
-          setEditing(null);
+          if (detailKey) correct(detailKey, correction);
+          setDetailKey(null);
         }}
-        candidates={editing ? batch.parsed.matches[editing.key]?.candidates ?? [] : []}
-        currentCost={editing ? effectiveCost(batch, editing) : null}
+        onAccept={() => detailKey && void acceptEntry(detailKey)}
+        onExclude={() => detailKey && void removeEntry(detailKey)}
       />
 
       <MatchSheet
@@ -639,23 +641,31 @@ export default function FileReviewScreen() {
   );
 }
 
-/** One line of the summary breakdown: a word and a number, never overlapping. */
-function Breakdown({ label, value }: { label: string; value: number }) {
+/** "Apple iPhone 12" as the file names it — brand and model, whichever it has. */
+function productWords(entry: FileEntry): string {
+  return [entry.extracted.brand, entry.extracted.model].filter(Boolean).join(' ');
+}
+
+/** One figure of the summary: a number and the word for it, never colour alone. */
+function SummaryTile({ label, value, tone }: { label: string; value: number; tone: 'success' | 'warning' | 'primary' }) {
   const styles = useStyles();
   return (
-    <View style={styles.breakdown}>
-      <Text variant="body" tone="secondary" style={styles.breakdownLabel}>
+    <View style={styles.tile}>
+      <Text variant="title" tone={tone}>
+        {String(value)}
+      </Text>
+      <Text variant="caption" tone="secondary">
         {label}
       </Text>
-      <Text variant="body">{String(value)}</Text>
     </View>
   );
 }
 
 /**
- * One exact variant of phone, as the delivery lists it: a count, a subtotal and
- * the reason it is held up. Its phones are the records that follow it in the
- * list while it is open — see `reviewRows`.
+ * One exact variant, as the delivery lists it: a name, how many, what they
+ * cost together, and in a few words why it is held up. Tapping it opens its
+ * rows beneath; a group waiting on one product question carries the one
+ * action that answers it.
  *
  * Memoised on primitives: a correction elsewhere in the delivery leaves this
  * header's values unchanged and so does not re-render it.
@@ -664,11 +674,11 @@ const GroupRow = React.memo(function GroupRow({
   groupKey,
   label,
   subtitle,
-  countCost,
+  count,
+  subtotal,
   status,
   held,
   matchable,
-  shown,
   open,
   onToggle,
   onMatch,
@@ -676,84 +686,81 @@ const GroupRow = React.memo(function GroupRow({
   groupKey: string;
   label: string;
   subtitle: string | null;
-  countCost: string;
+  count: number;
+  subtotal: string;
   status: string;
   held: boolean;
-  /** How many phones one product choice would fix; 0 when none. */
-  matchable: number;
-  shown: number;
+  matchable: boolean;
   open: boolean;
   onToggle: (key: string) => void;
   onMatch: (key: string) => void;
 }) {
   const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
+  const Chevron = open ? ChevronDown : ChevronRight;
 
   return (
-    <Card style={styles.group}>
-      <Text variant="title">{label}</Text>
-      {subtitle ? (
-        <Text variant="caption" tone="secondary">
-          {subtitle}
-        </Text>
+    <View style={styles.group}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={label}
+        onPress={() => onToggle(groupKey)}
+        style={({ pressed }) => [styles.groupHead, pressed && styles.pressed]}
+      >
+        <View style={styles.grow}>
+          <Text variant="bodyStrong">{label}</Text>
+          {subtitle ? (
+            <Text variant="caption" tone="secondary">
+              {subtitle}
+            </Text>
+          ) : null}
+          <Text variant="caption" tone={held ? 'warning' : 'secondary'}>
+            {status}
+          </Text>
+        </View>
+        <View style={styles.groupTrail}>
+          <Text variant="bodyStrong" align="end">
+            {String(count)}
+          </Text>
+          <Text variant="caption" tone="secondary" align="end">
+            {subtotal}
+          </Text>
+        </View>
+        <View style={!open && isRTL() ? styles.flip : undefined}>
+          <Chevron size={20} color={colors.text.tertiary} />
+        </View>
+      </Pressable>
+      {matchable ? (
+        <View style={styles.groupAction}>
+          <Button title={t('fileReceive.group.match')} variant="secondary" size="sm" onPress={() => onMatch(groupKey)} />
+        </View>
       ) : null}
-      <Text variant="body" tone="secondary">
-        {countCost}
-      </Text>
-      <Text variant="body" tone={held ? 'warning' : 'secondary'}>
-        {status}
-      </Text>
-
-      <View style={styles.groupActions}>
-        {matchable > 0 ? (
-          <Button
-            title={t('fileReceive.match.action', { count: String(matchable) })}
-            variant="secondary"
-            size="sm"
-            onPress={() => onMatch(groupKey)}
-          />
-        ) : null}
-        <Button
-          title={open ? t('fileReceive.group.hide') : t('fileReceive.group.review', { count: String(shown) })}
-          variant="tertiary"
-          size="sm"
-          icon={open ? ChevronDown : ChevronRight}
-          onPress={() => onToggle(groupKey)}
-        />
-      </View>
-    </Card>
+    </View>
   );
 });
 
 /**
- * One physical phone.
- *
- * Every value is labelled, because an unlabelled column of fifteen digits is
- * unreadable and two IMEIs printed one under the other look like two phones.
- * They are one: IMEI 2 is named as such, under the same row, above the same
- * cost.
- *
- * Three actions, always in the same place: **Accept** (a check) marks the phone
- * ready when only an advisory flag stood in the way; **Edit** (a pencil) opens
- * the correction sheet; **Remove** (a bin) excludes it from the delivery. Accept
- * is dimmed when there is nothing to accept — a phone already ready, or one with
- * a real problem that must be fixed or removed. A warning sits beside the
- * reason, never beside the price: a correct price on a phone whose product is
- * unknown is still a correct price.
+ * One item: where it came from and which one it is, what it costs and where
+ * it stands, and three named actions. Accept is offered only when accepting is
+ * the one thing between the item and ready; an item with a real problem must
+ * be edited or excluded.
  *
  * Memoised, and given only primitive props and callbacks keyed by the row, so
- * correcting one phone re-renders that phone and not the rest of the open group.
+ * correcting one item re-renders that item and not the rest of the open group.
  */
 const EntryRow = React.memo(function EntryRow({
   entryKey,
   source,
   identifier,
-  imei2,
+  identifierKind,
+  twoImeis,
   cost,
   extractedCost,
   corrected,
   state,
-  problemsText,
+  status,
   acceptable,
   onAccept,
   onEdit,
@@ -762,12 +769,13 @@ const EntryRow = React.memo(function EntryRow({
   entryKey: string;
   source: SourceRef;
   identifier: string | null;
-  imei2: string | null;
+  identifierKind: 'imei' | 'serial' | null;
+  twoImeis: boolean;
   cost: number | null;
   extractedCost: number | null;
   corrected: boolean;
   state: EntryState;
-  problemsText: string;
+  status: string;
   acceptable: boolean;
   onAccept: (key: string) => void;
   onEdit: (key: string) => void;
@@ -775,67 +783,54 @@ const EntryRow = React.memo(function EntryRow({
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const from = source.sheet
-    ? t('fileReceive.source.row', { sheet: source.sheet, row: String(source.row ?? '') })
-    : t('fileReceive.source.page', { page: String(source.page ?? '') });
-
+  const from = source.sheet ? t('fileReceive.row', { row: String(source.row ?? '') }) : t('fileReceive.page', { page: String(source.page ?? '') });
   const excluded = state === 'excluded';
-  const statusWord =
-    state === 'ready'
-      ? t('fileReceive.status.ready')
-      : excluded
-        ? t('fileReceive.status.excluded')
-        : t('fileReceive.status.needsCorrection');
   const statusTone = state === 'ready' ? 'success' : excluded ? 'tertiary' : 'warning';
 
   return (
-    <View style={styles.entry}>
-      <Divider />
-      <Field label={t('fileReceive.field.imei1')} value={identifier ?? t('fileReceive.noIdentifier')} />
-      {imei2 ? <Field label={t('fileReceive.field.imei2')} value={imei2} /> : null}
-      <Field label={t('fileReceive.field.cost')} value={cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')} />
-      <Field label={t('fileReceive.field.source')} value={from} />
-
-      {/* Status in words as well as colour — never colour alone. */}
-      <Text variant="caption" tone={statusTone}>
-        {statusWord}
-      </Text>
+    <View style={[styles.entry, excluded ? styles.entryExcluded : null]}>
+      <View style={styles.entryLine}>
+        <Text variant="caption" tone="tertiary">
+          {from}
+        </Text>
+        <Text variant="caption" tone="secondary">
+          {identifierKind === 'serial' ? t('fileReceive.field.serial') : t('fileReceive.field.imei1')}
+        </Text>
+        <Identifier>{identifier ? maskIdentifier(identifier) : t('fileReceive.noIdentifier')}</Identifier>
+        {twoImeis ? (
+          <Text variant="caption" tone="secondary">
+            {t('fileReceive.twoImeis')}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.entryLine}>
+        <Text variant="bodyStrong">{cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')}</Text>
+        {/* Status in words as well as colour — never colour alone. */}
+        <Text variant="caption" tone={statusTone} style={styles.grow}>
+          {status}
+        </Text>
+      </View>
       {corrected ? (
         <Text variant="caption" tone="accent">
           {t('fileReceive.corrected', { cost: extractedCost !== null ? formatMoney(extractedCost) : '—' })}
         </Text>
       ) : null}
-      {problemsText ? <InlineNotice tone="warning">{problemsText}</InlineNotice> : null}
 
-      <View style={styles.rowActions}>
+      <View style={styles.entryActions}>
         {excluded ? (
-          <IconButton
-            icon={RotateCcw}
-            variant="sunken"
-            accessibilityLabel={t('fileReceive.restore.a11y')}
-            onPress={() => onRemove(entryKey)}
-          />
+          <Button title={t('fileReceive.include')} variant="tertiary" size="sm" icon={RotateCcw} onPress={() => onRemove(entryKey)} />
         ) : (
           <>
-            <IconButton
+            <Button
+              title={t('fileReceive.action.accept')}
+              variant="tertiary"
+              size="sm"
               icon={CheckCircle2}
-              variant="sunken"
               disabled={!acceptable}
-              accessibilityLabel={t('fileReceive.accept.a11y')}
               onPress={() => onAccept(entryKey)}
             />
-            <IconButton
-              icon={Pencil}
-              variant="sunken"
-              accessibilityLabel={t('fileReceive.edit.a11y')}
-              onPress={() => onEdit(entryKey)}
-            />
-            <IconButton
-              icon={Trash2}
-              variant="sunken"
-              accessibilityLabel={t('fileReceive.remove.a11y')}
-              onPress={() => onRemove(entryKey)}
-            />
+            <Button title={t('fileReceive.action.edit')} variant="tertiary" size="sm" icon={Pencil} onPress={() => onEdit(entryKey)} />
+            <Button title={t('fileReceive.remove')} variant="tertiary" size="sm" icon={Trash2} onPress={() => onRemove(entryKey)} />
           </>
         )}
       </View>
@@ -843,17 +838,15 @@ const EntryRow = React.memo(function EntryRow({
   );
 });
 
-/** A labelled value, wrapping rather than clipping however long it is. */
-function Field({ label, value }: { label: string; value: string }) {
+/** A labelled value in the item sheet, wrapping rather than clipping however long it is. */
+function Field({ label, value, identifier = false }: { label: string; value: string; identifier?: boolean }) {
   const styles = useStyles();
   return (
     <View style={styles.field}>
       <Text variant="caption" tone="tertiary" style={styles.fieldLabel}>
         {label}
       </Text>
-      <Text variant="body" style={styles.fieldValue}>
-        {value}
-      </Text>
+      {identifier ? <Identifier tone="primary">{value}</Identifier> : <Text variant="body" style={styles.fieldValue}>{value}</Text>}
     </View>
   );
 }
@@ -861,7 +854,7 @@ function Field({ label, value }: { label: string; value: string }) {
 /**
  * Choosing the product for a whole group at once.
  *
- * Only products every phone in the group already matched are offered, and
+ * Only products every item in the group already matched are offered, and
  * nothing is created here: an unknown model still goes through Create product.
  */
 function MatchSheet({
@@ -911,43 +904,97 @@ function MatchSheet({
 }
 
 /**
- * Correcting one phone.
- *
- * Two things a person can fix here: which product it is (from the candidates
- * the server found — never a product invented from the file's label), and what
- * it cost. What the file said stays visible above, because a correction is a
- * second opinion, not a replacement of the record.
+ * One item, in full: where it came from, what the file called it, every
+ * identifier whole, what it costs, and what still blocks it — then the ways
+ * to change that. Which product it is comes from the candidates the server
+ * found (never a product invented from the file's label); the cost is typed.
+ * What the file said stays visible, because a correction is a second opinion,
+ * not a replacement of the record. Closing it returns to the same place in the
+ * same open group.
  */
-function EntrySheet({
+function ItemSheet({
+  batch,
   entry,
-  candidates,
-  currentCost,
   onClose,
   onSave,
+  onAccept,
+  onExclude,
 }: {
+  batch: BatchState;
   entry: FileEntry | null;
-  candidates: CatalogueProduct[];
-  currentCost: number | null;
   onClose: () => void;
   onSave: (correction: { productId?: string; cost?: number }) => void;
+  onAccept: () => void;
+  onExclude: () => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  // Mounted fresh per phone (see the key below), so the field simply starts
-  // from what that phone currently costs.
+  const currentCost = entry ? effectiveCost(batch, entry) : null;
+  // Mounted fresh per item (see the key on it), so the field simply starts
+  // from what that item currently costs.
   const [cost, setCost] = useState(currentCost !== null ? String(currentCost) : '');
 
   if (!entry) return null;
 
+  const candidates = batch.parsed.matches[entry.key]?.candidates ?? [];
+  const state = entryState(batch, entry);
+  const problems = remainingProblems(entry, batch.corrections[entry.key]);
+  const chosen = batch.corrections[entry.key]?.productId ?? batch.parsed.matches[entry.key]?.productId ?? null;
+  const chosenProduct = candidates.find((c) => c.id === chosen) ?? null;
+  const imei2 = effectiveImei2(batch, entry);
+  const source = entry.source.sheet
+    ? t('fileReceive.source.row', { sheet: entry.source.sheet, row: String(entry.source.row ?? '') })
+    : t('fileReceive.source.page', { page: String(entry.source.page ?? '') });
+  const variant = [entry.extracted.storage ? `${entry.extracted.storage} GB` : null, entry.extracted.colour].filter(Boolean).join(' · ');
+
   return (
-    <BottomSheet open onClose={onClose} title={t('fileReceive.fix')}>
-      <View style={styles.sheet}>
-        <Text variant="caption" tone="secondary">
-          {t('fileReceive.extracted', {
-            model: entry.extracted.model ?? '—',
-            cost: entry.extracted.cost !== null ? formatMoney(entry.extracted.cost) : '—',
-          })}
-        </Text>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={t('fileReceive.detail.title')}
+      footer={
+        <View style={styles.sheetActions}>
+          {state !== 'excluded' && canAccept(batch, entry) ? (
+            <Button title={t('fileReceive.action.accept')} icon={CheckCircle2} fullWidth onPress={onAccept} />
+          ) : null}
+          <Button
+            title={state === 'excluded' ? t('fileReceive.include') : t('fileReceive.remove')}
+            variant={state === 'excluded' ? 'secondary' : 'danger'}
+            icon={state === 'excluded' ? RotateCcw : Trash2}
+            fullWidth
+            onPress={onExclude}
+          />
+        </View>
+      }
+    >
+      <ScrollView contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled">
+        <Field label={t('fileReceive.field.source')} value={source} />
+        <Field
+          label={t('fileReceive.detail.product')}
+          value={[chosenProduct ? `${chosenProduct.brand} ${chosenProduct.model}` : productWords(entry) || '—', variant].filter(Boolean).join(' · ')}
+        />
+        {entry.extracted.imei1 ? <Field label={t('fileReceive.field.imei1')} value={entry.extracted.imei1} identifier /> : null}
+        {imei2 ? <Field label={t('fileReceive.field.imei2')} value={imei2} identifier /> : null}
+        {entry.extracted.serial ? <Field label={t('fileReceive.field.serial')} value={entry.extracted.serial} identifier /> : null}
+        <Field label={t('fileReceive.field.cost')} value={currentCost !== null ? formatMoney(currentCost) : t('fileReceive.field.noCost')} />
+        {batch.corrections[entry.key] ? (
+          <Text variant="caption" tone="accent">
+            {t('fileReceive.extracted', {
+              model: entry.extracted.model ?? '—',
+              cost: entry.extracted.cost !== null ? formatMoney(entry.extracted.cost) : '—',
+            })}
+          </Text>
+        ) : null}
+        <Field
+          label={t('fileReceive.detail.issue')}
+          value={
+            state === 'excluded'
+              ? t('fileReceive.status.excluded')
+              : problems.length === 0
+                ? t('fileReceive.detail.none')
+                : problems.map((p) => t(`fileReceive.problem.${p}` as never)).join('\n')
+          }
+        />
 
         {candidates.length > 0 ? (
           <>
@@ -959,6 +1006,7 @@ function EntrySheet({
                   flat
                   title={`${c.brand} ${c.model}`}
                   subtitle={c.variant ?? undefined}
+                  selected={c.id === chosen}
                   onPress={() => onSave({ productId: c.id })}
                 />
               ))}
@@ -971,29 +1019,37 @@ function EntrySheet({
         )}
 
         <MoneyField label={t('fileReceive.cost.label')} value={cost} onChangeText={setCost} />
-        <Button title={t('action.save')} disabled={!(Number(cost) > 0)} onPress={() => onSave({ cost: Number(cost) })} />
-      </View>
+        <Button title={t('action.save')} variant="secondary" disabled={!(Number(cost) > 0)} onPress={() => onSave({ cost: Number(cost) })} />
+      </ScrollView>
     </BottomSheet>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
-  list: { gap: space.sm, paddingBottom: space['3xl'] },
-  header: { gap: space.base, paddingBottom: space.xs },
+  list: { paddingBottom: space['3xl'] },
+  header: { gap: space.md, paddingHorizontal: space.base, paddingTop: space.base, paddingBottom: space.md },
   stack: { gap: space.sm },
-  breakdown: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  breakdownLabel: { flexShrink: 1 },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  group: { gap: space.xs, marginTop: space.xs },
-  groupActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingTop: space.xs },
-  // A phone sits under its group's header, on the same surface, set in from the edge.
-  entry: { gap: space.xs, paddingHorizontal: space.base, paddingBottom: space.sm, backgroundColor: colors.surface.card },
+  tiles: { flexDirection: 'row', gap: space.sm },
+  tile: { flex: 1, gap: 2, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.surface.card },
+  filters: { flexDirection: 'row', gap: space.xs, paddingVertical: space.xs },
+  grow: { flex: 1, minWidth: 0 },
+  flip: { transform: [{ scaleX: -1 }] },
+  pressed: { opacity: 0.7 },
+  // Group headers and rows share one surface; hairlines between records do the separating.
+  group: { backgroundColor: colors.surface.card },
+  groupHead: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingHorizontal: space.base, paddingVertical: space.sm },
+  groupTrail: { alignItems: 'flex-end', flexShrink: 0 },
+  groupAction: { flexDirection: 'row', paddingHorizontal: space.base, paddingBottom: space.sm },
+  entry: { gap: space.xs, paddingVertical: space.sm, paddingStart: space.xl, paddingEnd: space.base, backgroundColor: colors.surface.card },
+  entryExcluded: { backgroundColor: colors.surface.sunken },
+  entryLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  entryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginStart: -space.md },
   field: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: space.xs },
-  fieldLabel: { minWidth: 72 },
+  fieldLabel: { minWidth: 96 },
   fieldValue: { flexShrink: 1 },
-  rowActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingTop: space.xs },
-  tail: { gap: space.sm, paddingTop: space.base },
+  tail: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base },
   footer: { gap: space.xs },
   footerCounts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  sheet: { gap: space.sm, padding: space.base },
+  sheet: { gap: space.md, padding: space.base },
+  sheetActions: { gap: space.sm },
 }));
