@@ -8,7 +8,6 @@ import {
   Chip,
   Disclosure,
   ErrorState,
-  InlineNotice,
   Screen,
   Section,
   SkeletonList,

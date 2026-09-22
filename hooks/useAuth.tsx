@@ -5,6 +5,7 @@ import { api, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
+import { useEntitlement } from '../lib/entitlement';
 import { usePermissionStore } from '../lib/permissions';
 import { clearExports } from '../lib/report-export';
 import { useSyncEngine } from '../lib/offline/use-sync';
@@ -319,11 +320,26 @@ async function onRestoredSession(me: AuthUser): Promise<void> {
 function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branchId: string | null) {
   const segments = useSegments();
   const router = useRouter();
+  /*
+   * The server's word on whether the operational app is open to this shop.
+   * Pending, suspended, cancelled and rejected close it: every read behind
+   * the tabs — the branch list included — would answer 403, so the state
+   * screen is shown instead, before any branch is chosen. Asked only once
+   * there is a session; decided by the server, never by a date on the phone.
+   */
+  const entitlement = useEntitlement(Boolean(user) && !bootstrapping);
+  const closed = Boolean(user) && entitlement.data !== undefined && !entitlement.data.canRead;
 
   useEffect(() => {
     if (bootstrapping) return;
     const inAuth = segments[0] === '(auth)';
     const onSelectBranch = segments[0] === 'select-branch';
+    const onStateScreen = segments[0] === 'subscription-blocked';
+
+    if (closed) {
+      if (!onStateScreen) router.replace('/subscription-blocked' as never);
+      return;
+    }
     /**
      * `app/index.tsx` is only a splash while auth bootstraps. Nothing renders
      * past it, so a session restored at the root — reopening the app, or a
@@ -344,10 +360,10 @@ function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branch
 
     if (!user && !inAuth) {
       router.replace('/(auth)/login');
-    } else if (user && !branchId && !onSelectBranch) {
+    } else if (user && !branchId && !onSelectBranch && !onStateScreen) {
       router.replace('/select-branch');
     } else if (user && branchId && (inAuth || onSelectBranch || atRoot)) {
       router.replace('/(tabs)');
     }
-  }, [user, bootstrapping, branchId, segments, router]);
+  }, [user, bootstrapping, branchId, segments, router, closed]);
 }

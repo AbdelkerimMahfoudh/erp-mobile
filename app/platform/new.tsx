@@ -29,7 +29,8 @@ export default function PlatformNewBusiness() {
   const router = useRouter();
   const qc = useQueryClient();
   const session = usePlatformGuard();
-  const key = useRef(`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+  // Minted on the first submit, not during render; one key for the life of the form.
+  const key = useRef<string | null>(null);
 
   const [businessName, setBusinessName] = useState('');
   const [branchName, setBranchName] = useState('');
@@ -55,6 +56,7 @@ export default function PlatformNewBusiness() {
   const submit = async () => {
     if (!ready || busy) return;
     setBusy(true);
+    if (!key.current) key.current = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     try {
       const result = await platformApi.createBusiness({
         idempotencyKey: key.current,

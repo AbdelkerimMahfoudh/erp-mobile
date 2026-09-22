@@ -1,7 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Redirect, Tabs } from 'expo-router';
-import { useEntitlement } from '../../lib/entitlement';
+import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Handshake, Boxes, Menu, Wallet } from 'lucide-react-native';
 import { useConnections } from '../../lib/consignment';
@@ -54,17 +53,6 @@ export default function TabsLayout() {
   */
   const canSeeMoney = tabHubIsVisible(granted);
   const insets = useSafeAreaInsets();
-  /*
-   * The server's word on whether the operational app is open to this shop.
-   * Pending, suspended, cancelled and rejected close it — every read behind
-   * the tabs would answer 403 — so the state screen is shown instead, and it
-   * re-checks with the server rather than trusting a date on the phone.
-   */
-  const entitlement = useEntitlement();
-
-  if (entitlement.data && !entitlement.data.canRead) {
-    return <Redirect href={'/subscription-blocked' as never} />;
-  }
 
   // Permissions failed to resolve. Without an escape here the app is a
   // permanent spinner — the tab bar cannot decide what to show, and there is

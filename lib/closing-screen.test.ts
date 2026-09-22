@@ -64,7 +64,7 @@ describe('rendering', () => {
     assert.match(code, /const ChannelLine = memo\(function ChannelLine/);
     assert.match(code, /\}, sameRow\);/);
     assert.match(COUNTING, /const submit = useCallback\(/);
-    assert.match(COUNTING, /\[record\.mutate\],/);
+    assert.match(COUNTING, /\[recordCount\],/);
   });
 
   it('saving names one row, so the other rows are left alone', () => {

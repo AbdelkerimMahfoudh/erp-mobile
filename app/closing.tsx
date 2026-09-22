@@ -102,7 +102,7 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
   const canSignOff = usePermission('closing.perform');
   const headerShown = useContext(HeaderShownContext);
 
-  const record = useRecordCount();
+  const { mutate: recordCount } = useRecordCount();
   const signOff = useSignOffDay();
   const [error, setError] = useState<unknown>(null);
   /** The one row being saved, by key — so the others are left alone. */
@@ -117,12 +117,12 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
     (body: RecordCountBody) => {
       setError(null);
       setSaving(rowKey({ channel: body.channel, accountId: body.accountId ?? null }));
-      record.mutate(body, {
+      recordCount(body, {
         onError: (e) => setError(e),
         onSettled: () => setSaving(null),
       });
     },
-    [record.mutate],
+    [recordCount],
   );
 
   /*

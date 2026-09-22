@@ -108,6 +108,16 @@ describe('the platform screens', () => {
 });
 
 describe('what a shop is told', () => {
+  it('a shop the server has closed is sent to the state screen before any branch is chosen', () => {
+    // Pending, suspended, cancelled, rejected: the branch list itself answers
+    // 403, so the gate sits at the root and reads only the server's answer.
+    const auth = strip(read('hooks/useAuth.tsx'));
+    assert.match(auth, /useEntitlement\(Boolean\(user\) && !bootstrapping\)/);
+    assert.match(auth, /!entitlement\.data\.canRead/);
+    assert.match(auth, /router\.replace\('\/subscription-blocked' as never\)/);
+    assert.doesNotMatch(auth, /Date\.now\(\)|getTime\(\)/);
+  });
+
   it('every closed state has its words in three languages', () => {
     for (const lang of ['en', 'fr', 'ar']) {
       const dict = read(`lib/i18n/${lang}.ts`);

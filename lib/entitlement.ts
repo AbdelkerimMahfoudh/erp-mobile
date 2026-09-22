@@ -50,10 +50,12 @@ export interface Entitlement {
   calculatedAt: string;
 }
 
-export function useEntitlement() {
+/** `enabled` lets the root gate ask only once there is a session to ask for. */
+export function useEntitlement(enabled = true) {
   return useQuery({
     queryKey: qk.entitlement(),
     queryFn: () => api.get<Entitlement>('/entitlement'),
+    enabled,
     // Checked often enough that a lapse is noticed within a shift, and cached
     // long enough that it is not asked on every screen change.
     staleTime: 5 * 60_000,
