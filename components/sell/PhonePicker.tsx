@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Check, CheckCircle2, Keyboard, Package, ScanBarcode, SlidersHorizontal } from 'lucide-react-native';
 import {
@@ -12,6 +12,7 @@ import {
   Identifier,
   InlineNotice,
   ListRow,
+  ListSeparator,
   RowGroup,
   SearchInput,
   SkeletonList,
@@ -243,6 +244,12 @@ interface StockFilter {
 }
 const NO_FILTER: StockFilter = { brand: null, tracking: null };
 
+/** The name a shelf row is known by, for the row and for "Selected: …" under the list. */
+const labelOf = (row: InventoryUnitRow) =>
+  row.product ? [`${row.product.brand} ${row.product.model}`, row.product.variant].filter(Boolean).join(' · ') : identifierOf(row);
+
+const Separator = () => <ListSeparator inset={false} />;
+
 /**
  * Picking the item off the shelf: this branch's serialized stock, searchable
  * and one page at a time.
@@ -254,12 +261,20 @@ const NO_FILTER: StockFilter = { brand: null, tracking: null };
  * items, each labelled by what identifies it — never a made-up IMEI for
  * something that has none.
  *
- * One search field and one Filter: the wrapping row of brand chips is gone,
- * replaced by a sheet that filters by brand and by type, with a Reset. Choosing
- * a row only selects it; the server is asked about the item when the person
- * continues, through the same lookup a scan uses.
+ * One search field and one Filter on one row: the wrapping wall of brand chips
+ * is gone, replaced by a sheet that filters by brand and by type, with a Reset.
+ * The rows are one virtualized list that loads the next page as the end comes
+ * into view — this is the screen's own scroller, never a list inside a scroll
+ * view. Choosing a row only selects it; the server is asked about the item when
+ * the person continues, through the same lookup a scan uses.
  */
-export function StockPicker({ selected, onSelect }: { selected: string | null; onSelect: (identifier: string) => void }) {
+export function StockPicker({
+  selected,
+  onSelect,
+}: {
+  selected: string | null;
+  onSelect: (identifier: string, label: string) => void;
+}) {
   const styles = useStyles();
   const { t } = useTranslation();
   const branchId = useBranch((s) => s.branchId);
@@ -302,62 +317,72 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
     .filter(Boolean)
     .join(' · ');
 
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = stock;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
-    <View style={styles.stack}>
-      <SearchInput
-        value={typed}
-        onChangeText={setTyped}
-        onDebouncedChange={(v) => setTerm(v.trim())}
-        placeholder={t('pick.stock.search')}
-        identifier
+    <>
+      <FlatList
+        data={rows}
+        keyExtractor={(row) => row.id}
+        renderItem={({ item: row }) => (
+          <StockOption
+            row={row}
+            price={priceOf(row.productId)}
+            selected={selected === identifierOf(row)}
+            onPress={() => onSelect(identifierOf(row), labelOf(row))}
+          />
+        )}
+        ItemSeparatorComponent={Separator}
+        contentContainerStyle={styles.shelf}
+        keyboardShouldPersistTaps="handled"
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        initialNumToRender={10}
+        windowSize={5}
+        removeClippedSubviews
+        accessibilityRole="radiogroup"
+        ListHeaderComponent={
+          <View style={styles.shelfHead}>
+            <View style={styles.searchRow}>
+              <SearchInput
+                value={typed}
+                onChangeText={setTyped}
+                onDebouncedChange={(v) => setTerm(v.trim())}
+                placeholder={t('pick.stock.search')}
+                identifier
+                style={styles.grow}
+              />
+              <Button
+                title={activeCount > 0 ? t('pick.filter.buttonActive', { count: String(activeCount) }) : t('pick.filter.button')}
+                variant={activeCount > 0 ? 'secondary' : 'tertiary'}
+                icon={SlidersHorizontal}
+                onPress={() => {
+                  setDraft(filter); // seed the sheet from the applied filter
+                  setFilterOpen(true);
+                }}
+              />
+            </View>
+            {activeSummary || rows.length > 0 ? (
+              <Text variant="caption" tone="secondary" numberOfLines={1}>
+                {[activeSummary, rows.length > 0 ? t('pick.stock.count', { count: String(rows.length) }) : null].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          stock.isPending ? (
+            <SkeletonList count={4} />
+          ) : stock.isError ? (
+            <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
+          ) : (
+            <EmptyState icon={Package} title={t('pick.stock.none')} />
+          )
+        }
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.more} /> : null}
       />
-
-      <View style={styles.filterBar}>
-        <Button
-          title={activeCount > 0 ? t('pick.filter.buttonActive', { count: String(activeCount) }) : t('pick.filter.button')}
-          variant={activeCount > 0 ? 'secondary' : 'tertiary'}
-          size="sm"
-          icon={SlidersHorizontal}
-          onPress={() => {
-            setDraft(filter); // seed the sheet from the applied filter
-            setFilterOpen(true);
-          }}
-        />
-        {activeSummary ? (
-          <Text variant="caption" tone="secondary" style={styles.grow} numberOfLines={1}>
-            {activeSummary}
-          </Text>
-        ) : null}
-      </View>
-
-      {rows.length > 0 ? (
-        <Text variant="caption" tone="secondary">
-          {t('pick.stock.count', { count: String(rows.length) })}
-        </Text>
-      ) : null}
-
-      {stock.isPending ? (
-        <SkeletonList count={4} />
-      ) : stock.isError ? (
-        <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
-      ) : rows.length === 0 ? (
-        <EmptyState icon={Package} title={t('pick.stock.none')} />
-      ) : (
-        <View style={styles.stack} accessibilityRole="radiogroup">
-          {rows.map((row) => (
-            <StockOption
-              key={row.id}
-              row={row}
-              price={priceOf(row.productId)}
-              selected={selected === identifierOf(row)}
-              onPress={() => onSelect(identifierOf(row))}
-            />
-          ))}
-        </View>
-      )}
-      {stock.hasNextPage ? (
-        <Button title={t('pick.stock.more')} variant="tertiary" loading={stock.isFetchingNextPage} onPress={() => void stock.fetchNextPage()} />
-      ) : null}
 
       <StockFilterSheet
         open={filterOpen}
@@ -374,7 +399,7 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
           setFilterOpen(false);
         }}
       />
-    </View>
+    </>
   );
 }
 
@@ -442,8 +467,13 @@ function StockFilterSheet({
   );
 }
 
-/** One item on the shelf: what it is, its last four digits labelled by type, its price, and whether it is the one picked. */
-function StockOption({
+/**
+ * One item on the shelf: what it is, its last four digits labelled by type, its
+ * price, and whether it is the one picked. A flat row on the shared surface —
+ * the price and the selection control sit side by side in one trailing column,
+ * so the control is always at the far edge and never under the price.
+ */
+const StockOption = React.memo(function StockOption({
   row,
   price,
   selected,
@@ -481,20 +511,22 @@ function StockOption({
           </Text>
           <Identifier>{`•••• ${id.slice(-4)}`}</Identifier>
         </View>
+      </View>
+      <View style={styles.trailing}>
         {price ? (
-          <Text variant="bodyStrong">
+          <Text variant="bodyStrong" align="end">
             {price.min === price.max
               ? formatMoney(price.min)
               : `${formatMoney(price.min, { showCurrency: false })} – ${formatMoney(price.max)}`}
           </Text>
         ) : null}
-      </View>
-      <View style={[styles.radio, selected ? styles.radioOn : null]}>
-        {selected ? <Check size={14} color={colors.text.inverse} /> : null}
+        <View style={[styles.radio, selected ? styles.radioOn : null]}>
+          {selected ? <Check size={14} color={colors.text.inverse} /> : null}
+        </View>
       </View>
     </Pressable>
   );
-}
+});
 
 /**
  * The item chosen, however it was found: what it is, which one by its last four
@@ -580,27 +612,29 @@ const useStyles = makeStyles((colors) => ({
   stack: { gap: space.md },
   grow: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.7 },
-  filterBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   phoneHead: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   imeiLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
   chipRow: { flexDirection: 'row', paddingTop: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   sheet: { gap: space.md, padding: space.base },
+  shelf: { paddingBottom: space['3xl'] },
+  shelfHead: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base, paddingBottom: space.sm },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  more: { paddingVertical: space.base },
+  // A flat row on the shelf's one surface: no border, no radius, a hairline between rows.
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     minHeight: touch.large,
-    padding: space.md,
-    borderRadius: radius.lg,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.base,
     backgroundColor: colors.surface.card,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
   },
   optionSelected: {
     backgroundColor: colors.intent.info.bg,
-    borderColor: colors.intent.info.solid,
   },
+  trailing: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexShrink: 0 },
   radio: {
     width: 22,
     height: 22,

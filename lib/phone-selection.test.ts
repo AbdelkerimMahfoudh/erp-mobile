@@ -132,6 +132,24 @@ it('Sell an item: three ways on one surface, each a row with an icon, words and 
   assert.match(under, /variant="secondary"[\s\S]{0,60}fullWidth/, 'a restrained outlined full-width action');
 });
 
+it('Choose from stock: one search row with the filter, one virtualized paginated list, the control in a trailing column', () => {
+  const picker = PICKER.slice(PICKER.indexOf('export function StockPicker'), PICKER.indexOf('function StockFilterSheet'));
+  assert.match(picker, /<FlatList/, 'a virtualized list');
+  assert.match(picker, /onEndReached=\{loadMore\}/, 'the next page loads as the end comes into view');
+  assert.match(picker, /style=\{styles\.searchRow\}[\s\S]{0,400}<SearchInput[\s\S]{0,300}<Button/, 'search and Filter share one row');
+  assert.doesNotMatch(picker, /flexWrap|<FilterChip/, 'no wall of wrapping chips on the picker itself');
+  assert.match(picker, /placeholder=\{t\('pick\.stock\.search'\)\}/);
+  assert.ok(read('lib/i18n/en.ts').includes("'pick.stock.search': 'Name or identifier'"));
+  const row = PICKER.slice(PICKER.indexOf('const StockOption = React.memo'), PICKER.indexOf('export function SelectedPhoneCard'));
+  assert.match(row, /<View style=\{styles\.trailing\}>[\s\S]*styles\.radio/, 'the selection control lives in the trailing column');
+  assert.match(row, /trackingLabelKey\(tracking\)/, 'the identifier is labelled by its tracking type');
+  assert.doesNotMatch(row, /Available|pick\.chip/, 'no redundant Available badge on every row');
+  // The shelf is the screen's own scroller in stock mode — never a list inside the scroll view.
+  assert.match(QUICK_SELL, /mode === 'stock' \? \(\s*<StockPicker/);
+  assert.match(QUICK_SELL, /disabled=\{!stockPick \|\| lookingUp\}/, 'Continue is enabled only for a valid selection');
+  assert.match(QUICK_SELL, /t\('pick\.stock\.selected', \{ name: stockPick\.label \}\)/, 'the selected item is named above the button');
+});
+
 it('the shelf never answers Continue with silence: a lookup failure is shown where the button is', () => {
   const start = QUICK_SELL.indexOf('footer={');
   const footer = QUICK_SELL.slice(start, QUICK_SELL.indexOf('<Stack.Screen', start));

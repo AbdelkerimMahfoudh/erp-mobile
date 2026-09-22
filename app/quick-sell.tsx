@@ -139,8 +139,8 @@ export default function QuickSellScreen() {
   const [picked, setPicked] = useState<{ selection: SaleSelection; identifier: string; source: PickSource } | null>(null);
   const [lookupError, setLookupError] = useState<LookupFailure | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
-  /** The shelf row picked, by its identifier, before the server is asked about it. */
-  const [stockPick, setStockPick] = useState<string | null>(null);
+  /** The shelf row picked — its identifier and its name — before the server is asked about it. */
+  const [stockPick, setStockPick] = useState<{ identifier: string; label: string } | null>(null);
   const sellable = picked?.selection.availability === 'available';
   const [price, setPrice] = useState('');
   /** How many of a counted product. A serialized unit is always exactly one. */
@@ -598,7 +598,7 @@ export default function QuickSellScreen() {
               ) : null}
               <Button title={t('pick.another')} variant={sellable ? 'tertiary' : 'secondary'} fullWidth onPress={chooseAnother} />
             </>
-          ) : mode === 'stock' && (stockPick || lookupError) ? (
+          ) : mode === 'stock' ? (
             /*
              * The shelf's answer lives with its button. A notice at the foot of
              * a thirty-row list, under this footer, is how "Continue" came to
@@ -607,15 +607,18 @@ export default function QuickSellScreen() {
             <>
               {lookupNotice}
               {stockPick ? (
-                <Button
-                  title={t('pick.stock.continue')}
-                  size="lg"
-                  fullWidth
-                  loading={lookingUp}
-                  disabled={lookingUp}
-                  onPress={() => void findAndChoose(stockPick, 'stock')}
-                />
+                <Text variant="caption" tone="secondary" numberOfLines={1}>
+                  {t('pick.stock.selected', { name: stockPick.label })}
+                </Text>
               ) : null}
+              <Button
+                title={t('pick.stock.continue')}
+                size="lg"
+                fullWidth
+                loading={lookingUp}
+                disabled={!stockPick || lookingUp}
+                onPress={() => stockPick && void findAndChoose(stockPick.identifier, 'stock')}
+              />
             </>
           ) : undefined
         }
@@ -636,6 +639,16 @@ export default function QuickSellScreen() {
           }}
         />
 
+        {/* The shelf is its own virtualized list, so it is the screen's scroller — never a list inside this scroll view. */}
+        {!picked && mode === 'stock' ? (
+          <StockPicker
+            selected={stockPick?.identifier ?? null}
+            onSelect={(identifier, label) => {
+              setLookupError(null);
+              setStockPick({ identifier, label });
+            }}
+          />
+        ) : (
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
           {!picked ? (
             <>
@@ -652,7 +665,7 @@ export default function QuickSellScreen() {
                 </>
               ) : mode === 'scan' ? (
                 <EmptyState icon={ScanLine} title={t('sell.empty.title')} body={t('sell.empty.body')} />
-              ) : mode === 'manual' ? (
+              ) : (
                 <ManualImeiPanel
                   onUse={(selection, identifier) => choose(selection, identifier, 'manual')}
                   onStockInstead={() => {
@@ -660,11 +673,9 @@ export default function QuickSellScreen() {
                     setMode('stock');
                   }}
                 />
-              ) : (
-                <StockPicker selected={stockPick} onSelect={setStockPick} />
               )}
 
-              {mode !== 'stock' ? lookupNotice : null}
+              {lookupNotice}
             </>
           ) : null}
 
@@ -759,6 +770,7 @@ export default function QuickSellScreen() {
             </>
           ) : null}
         </ScrollView>
+        )}
       </Screen>
 
       <PaymentSheet
