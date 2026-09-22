@@ -2820,6 +2820,19 @@ export const ar: Catalogue = {
   'fileReceive.problem.product_ambiguous': 'عدة منتجات مطابقة — اختر واحدًا',
   'fileReceive.problem.formula_value': 'هذه القيمة ناتجة عن معادلة؛ تحقّق منها',
 
+  'fileReceive.status.ready': 'جاهز',
+  'fileReceive.status.needsCorrection': 'يحتاج تصحيحًا',
+  'fileReceive.status.excluded': 'مستبعَد',
+  'fileReceive.accept': 'وضع علامة جاهز',
+  'fileReceive.accept.a11y': 'قبول هذا العنصر — وضع علامة جاهز',
+  'fileReceive.accept.body': 'ضع علامة على هذا العنصر كجاهز لهذه الشحنة.',
+  'fileReceive.edit.a11y': 'تعديل هذا العنصر',
+  'fileReceive.remove': 'إزالة',
+  'fileReceive.remove.a11y': 'إزالة هذا العنصر من الشحنة',
+  'fileReceive.remove.title': 'إزالة هذا العنصر؟',
+  'fileReceive.remove.body': 'يبقى في الملف ويمكن إعادته من مرشّح المستبعَدة. لا يُحذف شيء.',
+  'fileReceive.restore.a11y': 'إعادة هذا العنصر إلى الشحنة',
+
   // ── تصحيح عنصر في المخزون ──
   'unit.edit.title': 'تصحيح العنصر',
   'unit.edit.action': 'تصحيح هذا العنصر',

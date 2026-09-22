@@ -2885,6 +2885,19 @@ export const en = {
   'fileReceive.problem.product_ambiguous': 'Several products match — choose one',
   'fileReceive.problem.formula_value': 'This value came from a formula; check it',
 
+  'fileReceive.status.ready': 'Ready',
+  'fileReceive.status.needsCorrection': 'Needs correction',
+  'fileReceive.status.excluded': 'Excluded',
+  'fileReceive.accept': 'Mark ready',
+  'fileReceive.accept.a11y': 'Accept this item — mark it ready',
+  'fileReceive.accept.body': 'Mark this item as ready for this delivery.',
+  'fileReceive.edit.a11y': 'Edit this item',
+  'fileReceive.remove': 'Remove',
+  'fileReceive.remove.a11y': 'Remove this item from the delivery',
+  'fileReceive.remove.title': 'Remove this item?',
+  'fileReceive.remove.body': 'It stays in the file and can be brought back from the Excluded filter. Nothing is deleted.',
+  'fileReceive.restore.a11y': 'Bring this item back into the delivery',
+
   // ── Correcting an in-stock item (unit correction) ──
   'unit.edit.title': 'Correct item',
   'unit.edit.action': 'Correct this item',

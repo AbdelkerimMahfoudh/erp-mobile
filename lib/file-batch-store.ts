@@ -25,13 +25,16 @@ interface FileBatchStore {
   correctMany: (keys: readonly string[], correction: Correction) => number;
   setExcluded: (key: string, excluded: boolean) => void;
   excludeMany: (keys: readonly string[], excluded: boolean) => void;
+  /** Accept a row — reviewed and waved through its advisory flag. */
+  setAcknowledged: (key: string, acknowledged: boolean) => void;
   clear: () => void;
 }
 
 export const useFileBatch = create<FileBatchStore>((set, get) => ({
   batch: null,
-  start: (parsed) => set({ batch: { parsed, corrections: {}, excluded: [] } }),
-  restore: (batch) => set({ batch }),
+  start: (parsed) => set({ batch: { parsed, corrections: {}, excluded: [], acknowledged: [] } }),
+  // An older draft may predate acknowledgement; default it so the review opens.
+  restore: (batch) => set({ batch: { ...batch, acknowledged: batch.acknowledged ?? [] } }),
   correct: (key, correction) =>
     set((s) =>
       s.batch
@@ -67,6 +70,13 @@ export const useFileBatch = create<FileBatchStore>((set, get) => ({
         else set2.delete(k);
       }
       return { batch: { ...s.batch, excluded: [...set2] } };
+    }),
+  setAcknowledged: (key, acknowledged) =>
+    set((s) => {
+      if (!s.batch) return s;
+      const next = (s.batch.acknowledged ?? []).filter((k) => k !== key);
+      if (acknowledged) next.push(key);
+      return { batch: { ...s.batch, acknowledged: next } };
     }),
   clear: () => set({ batch: null }),
 }));

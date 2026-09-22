@@ -2,13 +2,23 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronDown, ChevronRight, FileSpreadsheet, MinusCircle, PlusCircle } from 'lucide-react-native';
+import {
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileSpreadsheet,
+  Pencil,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react-native';
 import {
   Button,
   Card,
   Divider,
   EmptyState,
   FilterChip,
+  IconButton,
   InlineNotice,
   ListRow,
   MoneyField,
@@ -39,6 +49,7 @@ import { useFileBatch } from '../../lib/file-batch-store';
 import {
   batchCounts,
   batchFingerprint,
+  canAccept,
   canConfirm,
   effectiveCost,
   effectiveImei2,
@@ -108,13 +119,21 @@ export default function FileReviewScreen() {
   const correctMany = useFileBatch((s) => s.correctMany);
   const setExcluded = useFileBatch((s) => s.setExcluded);
   const excludeMany = useFileBatch((s) => s.excludeMany);
+  const setAcknowledged = useFileBatch((s) => s.setAcknowledged);
   const clear = useFileBatch((s) => s.clear);
   const restore = useFileBatch((s) => s.restore);
 
   const [step, setStep] = useState<Step>('review');
   const [filter, setFilter] = useState<'all' | EntryState>('all');
-  /** Which groups are open. Kept by key, so filtering never closes them. */
-  const [opened, setOpened] = useState<Record<string, boolean>>({});
+  /**
+   * The one open group, by key — never more than one.
+   *
+   * A hundred phones do not fit on a screen, and a file of two thousand must
+   * cost no more to scroll than one of ten. Only the open group's phones are
+   * mounted, and opening a group closes whichever was open, so the number of
+   * mounted rows never grows with the delivery.
+   */
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
   const [editing, setEditing] = useState<FileEntry | null>(null);
   const [matching, setMatching] = useState<EntryGroup | null>(null);
@@ -164,8 +183,53 @@ export default function FileReviewScreen() {
   });
 
   const toggleGroup = useCallback((key: string) => {
-    setOpened((open) => ({ ...open, [key]: !open[key] }));
+    setOpenKey((current) => (current === key ? null : key));
   }, []);
+
+  /**
+   * The three per-row actions, as stable callbacks so a memoised row does not
+   * re-render when an unrelated one changes. Each reads the live batch from the
+   * store rather than closing over it, which keeps the callback identity fixed.
+   */
+  const acceptEntry = useCallback(
+    async (entry: FileEntry) => {
+      const live = useFileBatch.getState().batch;
+      if (!live) return;
+      const product = [entry.extracted.brand, entry.extracted.model].filter(Boolean).join(' ') || t('fileReceive.noIdentifier');
+      const identifier = entry.extracted.imei1 ?? entry.extracted.serial ?? t('fileReceive.noIdentifier');
+      const cost = effectiveCost(live, entry);
+      const detail = [identifier, cost !== null ? formatMoney(cost) : null].filter(Boolean).join('  ·  ');
+      const ok = await dialog.confirm({
+        title: product,
+        message: `${detail}\n\n${t('fileReceive.accept.body')}`,
+        confirmLabel: t('fileReceive.accept'),
+      });
+      if (ok) setAcknowledged(entry.key, true);
+    },
+    [t, setAcknowledged],
+  );
+
+  const removeEntry = useCallback(
+    async (entry: FileEntry) => {
+      const live = useFileBatch.getState().batch;
+      if (!live) return;
+      // Restoring is not destructive, so it needs no speed bump.
+      if (entryState(live, entry) === 'excluded') {
+        setExcluded(entry.key, false);
+        return;
+      }
+      const ok = await dialog.confirm({
+        title: t('fileReceive.remove.title'),
+        message: t('fileReceive.remove.body'),
+        confirmLabel: t('fileReceive.remove'),
+        tone: 'danger',
+      });
+      if (ok) setExcluded(entry.key, true);
+    },
+    [t, setExcluded],
+  );
+
+  const editEntry = useCallback((entry: FileEntry) => setEditing(entry), []);
 
   if (done) {
     return (
@@ -459,16 +523,18 @@ export default function FileReviewScreen() {
             </Card>
           </View>
         }
+        extraData={{ openKey, filter, batch }}
         renderItem={({ item: group }) => (
           <GroupCard
             group={group}
             batch={batch}
             filter={filter}
-            open={Boolean(opened[group.key])}
-            onToggle={() => toggleGroup(group.key)}
-            onMatch={() => setMatching(group)}
-            onEdit={setEditing}
-            onToggleExclude={(entry) => setExcluded(entry.key, entryState(batch, entry) !== 'excluded')}
+            open={openKey === group.key}
+            onToggle={toggleGroup}
+            onMatch={setMatching}
+            onAccept={acceptEntry}
+            onEdit={editEntry}
+            onRemove={removeEntry}
           />
         )}
         ListFooterComponent={
@@ -529,24 +595,26 @@ function Breakdown({ label, value }: { label: string; value: number }) {
  * individual phones are mounted only when it is opened, so a file of two
  * thousand costs no more to scroll than one of ten.
  */
-function GroupCard({
+const GroupCard = React.memo(function GroupCard({
   group,
   batch,
   filter,
   open,
   onToggle,
   onMatch,
+  onAccept,
   onEdit,
-  onToggleExclude,
+  onRemove,
 }: {
   group: EntryGroup;
   batch: Parameters<typeof groupSummary>[0];
   filter: 'all' | EntryState;
   open: boolean;
-  onToggle: () => void;
-  onMatch: () => void;
+  onToggle: (key: string) => void;
+  onMatch: (group: EntryGroup) => void;
+  onAccept: (entry: FileEntry) => void;
   onEdit: (entry: FileEntry) => void;
-  onToggleExclude: (entry: FileEntry) => void;
+  onRemove: (entry: FileEntry) => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -583,7 +651,7 @@ function GroupCard({
             title={t('fileReceive.match.action', { count: String(summary.matchableKeys.length) })}
             variant="secondary"
             size="sm"
-            onPress={onMatch}
+            onPress={() => onMatch(group)}
           />
         ) : null}
         <Button
@@ -591,28 +659,34 @@ function GroupCard({
           variant="tertiary"
           size="sm"
           icon={open ? ChevronDown : ChevronRight}
-          onPress={onToggle}
+          onPress={() => onToggle(group.key)}
         />
       </View>
 
+      {/* The phones exist only while the group is open — see the openKey note. */}
       {open
-        ? shown.map((entry) => (
-            <EntryCard
-              key={entry.key}
-              entry={entry}
-              state={entryState(batch, entry)}
-              cost={effectiveCost(batch, entry)}
-              imei2={effectiveImei2(batch, entry)}
-              corrected={Boolean(batch.corrections[entry.key])}
-              problems={remainingProblems(entry, batch.corrections[entry.key])}
-              onEdit={() => onEdit(entry)}
-              onToggleExclude={() => onToggleExclude(entry)}
-            />
-          ))
+        ? shown.map((entry) => {
+            const problems = remainingProblems(entry, batch.corrections[entry.key]);
+            return (
+              <EntryCard
+                key={entry.key}
+                entry={entry}
+                state={entryState(batch, entry)}
+                cost={effectiveCost(batch, entry)}
+                imei2={effectiveImei2(batch, entry)}
+                corrected={Boolean(batch.corrections[entry.key])}
+                problemsText={problems.map((p) => t(`fileReceive.problem.${p}` as never)).join(' · ')}
+                acceptable={canAccept(batch, entry)}
+                onAccept={onAccept}
+                onEdit={onEdit}
+                onRemove={onRemove}
+              />
+            );
+          })
         : null}
     </Card>
   );
-}
+});
 
 /**
  * One physical phone.
@@ -622,33 +696,54 @@ function GroupCard({
  * They are one: IMEI 2 is named as such, under the same card, above the same
  * cost.
  *
- * A warning sits beside the reason, never beside the price — a correct price on
- * a phone whose product is unknown is still a correct price.
+ * Three actions, always in the same place: **Accept** (a check) marks the phone
+ * ready when only an advisory flag stood in the way; **Edit** (a pencil) opens
+ * the correction sheet; **Remove** (a bin) excludes it from the delivery. Accept
+ * is dimmed when there is nothing to accept — a phone already ready, or one with
+ * a real problem that must be fixed or removed. A warning sits beside the
+ * reason, never beside the price: a correct price on a phone whose product is
+ * unknown is still a correct price.
+ *
+ * Memoised, and given only primitive props, so correcting one phone re-renders
+ * that phone and not the rest of the open group.
  */
-function EntryCard({
+const EntryCard = React.memo(function EntryCard({
   entry,
   state,
   cost,
   imei2,
   corrected,
-  problems,
+  problemsText,
+  acceptable,
+  onAccept,
   onEdit,
-  onToggleExclude,
+  onRemove,
 }: {
   entry: FileEntry;
   state: EntryState;
   cost: number | null;
   imei2: string | null;
   corrected: boolean;
-  problems: string[];
-  onEdit: () => void;
-  onToggleExclude: () => void;
+  problemsText: string;
+  acceptable: boolean;
+  onAccept: (entry: FileEntry) => void;
+  onEdit: (entry: FileEntry) => void;
+  onRemove: (entry: FileEntry) => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const source = entry.source.sheet
     ? t('fileReceive.source.row', { sheet: entry.source.sheet, row: String(entry.source.row ?? '') })
     : t('fileReceive.source.page', { page: String(entry.source.page ?? '') });
+
+  const excluded = state === 'excluded';
+  const statusWord =
+    state === 'ready'
+      ? t('fileReceive.status.ready')
+      : excluded
+        ? t('fileReceive.status.excluded')
+        : t('fileReceive.status.needsCorrection');
+  const statusTone = state === 'ready' ? 'success' : excluded ? 'tertiary' : 'warning';
 
   return (
     <View style={styles.entry}>
@@ -658,11 +753,10 @@ function EntryCard({
       <Field label={t('fileReceive.field.cost')} value={cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')} />
       <Field label={t('fileReceive.field.source')} value={source} />
 
-      {state === 'excluded' ? (
-        <Text variant="caption" tone="tertiary">
-          {t('fileReceive.state.excluded')}
-        </Text>
-      ) : null}
+      {/* Status in words as well as colour — never colour alone. */}
+      <Text variant="caption" tone={statusTone}>
+        {statusWord}
+      </Text>
       {corrected ? (
         <Text variant="caption" tone="accent">
           {t('fileReceive.corrected', {
@@ -670,25 +764,43 @@ function EntryCard({
           })}
         </Text>
       ) : null}
-      {problems.length > 0 ? (
-        <InlineNotice tone="warning">
-          {problems.map((p) => t(`fileReceive.problem.${p}` as never)).join(' · ')}
-        </InlineNotice>
-      ) : null}
+      {problemsText ? <InlineNotice tone="warning">{problemsText}</InlineNotice> : null}
 
       <View style={styles.rowActions}>
-        <Button title={t('fileReceive.fix')} variant="secondary" size="sm" icon={PlusCircle} onPress={onEdit} />
-        <Button
-          title={state === 'excluded' ? t('fileReceive.include') : t('fileReceive.exclude')}
-          variant="tertiary"
-          size="sm"
-          icon={MinusCircle}
-          onPress={onToggleExclude}
-        />
+        {excluded ? (
+          <IconButton
+            icon={RotateCcw}
+            variant="sunken"
+            accessibilityLabel={t('fileReceive.restore.a11y')}
+            onPress={() => onRemove(entry)}
+          />
+        ) : (
+          <>
+            <IconButton
+              icon={CheckCircle2}
+              variant="sunken"
+              disabled={!acceptable}
+              accessibilityLabel={t('fileReceive.accept.a11y')}
+              onPress={() => onAccept(entry)}
+            />
+            <IconButton
+              icon={Pencil}
+              variant="sunken"
+              accessibilityLabel={t('fileReceive.edit.a11y')}
+              onPress={() => onEdit(entry)}
+            />
+            <IconButton
+              icon={Trash2}
+              variant="sunken"
+              accessibilityLabel={t('fileReceive.remove.a11y')}
+              onPress={() => onRemove(entry)}
+            />
+          </>
+        )}
       </View>
     </View>
   );
-}
+});
 
 /** A labelled value, wrapping rather than clipping however long it is. */
 function Field({ label, value }: { label: string; value: string }) {

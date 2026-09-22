@@ -3074,6 +3074,19 @@ export const fr: Catalogue = {
   'fileReceive.problem.product_ambiguous': 'Plusieurs produits correspondent — choisissez',
   'fileReceive.problem.formula_value': 'Cette valeur vient d’une formule ; vérifiez-la',
 
+  'fileReceive.status.ready': 'Prêt',
+  'fileReceive.status.needsCorrection': 'À corriger',
+  'fileReceive.status.excluded': 'Exclu',
+  'fileReceive.accept': 'Marquer prêt',
+  'fileReceive.accept.a11y': 'Accepter cet article — le marquer prêt',
+  'fileReceive.accept.body': 'Marquer cet article comme prêt pour cette livraison.',
+  'fileReceive.edit.a11y': 'Modifier cet article',
+  'fileReceive.remove': 'Retirer',
+  'fileReceive.remove.a11y': 'Retirer cet article de la livraison',
+  'fileReceive.remove.title': 'Retirer cet article ?',
+  'fileReceive.remove.body': 'Il reste dans le fichier et peut être rétabli depuis le filtre Exclus. Rien n’est supprimé.',
+  'fileReceive.restore.a11y': 'Rétablir cet article dans la livraison',
+
   // ── Correction d’un article en stock ──
   'unit.edit.title': 'Corriger l’article',
   'unit.edit.action': 'Corriger cet article',

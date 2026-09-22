@@ -96,6 +96,12 @@ export interface BatchState {
   parsed: ParseResult;
   corrections: Record<string, Correction>;
   excluded: string[];
+  /**
+   * Rows the person has explicitly accepted — reviewed and waved through
+   * despite an advisory flag. Kept apart from corrections, which change a value:
+   * accepting changes nothing about the phone, only that somebody has looked.
+   */
+  acknowledged: string[];
 }
 
 // ── what the review shows ───────────────────────────────────────────────────
@@ -114,9 +120,57 @@ export function remainingProblems(entry: FileEntry, correction: Correction | und
   });
 }
 
+/**
+ * Advisory problems — a request to check, not a blocker.
+ *
+ * `formula_value` is the whole set today: the cell held a value produced by a
+ * spreadsheet formula, so the number is present and usually right, but it was
+ * worth a second look. Nothing else is advisory — a missing IMEI, a rounded
+ * one, a duplicate, an unknown product must be corrected or the row excluded.
+ *
+ * The distinction earns its place: before it, a formula-derived cost could only
+ * be **excluded**, because no correction clears `formula_value` and any problem
+ * held the row out of the delivery. A phone with a perfectly good price was
+ * un-receivable. Accepting the row is how a person says "I looked, it is right."
+ */
+export const ADVISORY_PROBLEMS: readonly EntryProblem[] = ['formula_value'];
+
+export function isAdvisory(problem: EntryProblem): boolean {
+  return ADVISORY_PROBLEMS.includes(problem);
+}
+
+/** Remaining problems that block receiving — everything a person must fix or exclude. */
+export function hardProblems(entry: FileEntry, correction: Correction | undefined): EntryProblem[] {
+  return remainingProblems(entry, correction).filter((p) => !isAdvisory(p));
+}
+
+/** Remaining problems that only ask for a check — waivable by accepting the row. */
+export function advisoryProblems(entry: FileEntry, correction: Correction | undefined): EntryProblem[] {
+  return remainingProblems(entry, correction).filter(isAdvisory);
+}
+
 export function entryState(batch: BatchState, entry: FileEntry): EntryState {
   if (batch.excluded.includes(entry.key)) return 'excluded';
-  return remainingProblems(entry, batch.corrections[entry.key]).length === 0 ? 'ready' : 'needs_attention';
+  const correction = batch.corrections[entry.key];
+  if (hardProblems(entry, correction).length > 0) return 'needs_attention';
+  const acknowledged = (batch.acknowledged ?? []).includes(entry.key);
+  if (!acknowledged && advisoryProblems(entry, correction).length > 0) return 'needs_attention';
+  return 'ready';
+}
+
+/**
+ * May this row be accepted — reviewed and marked ready?
+ *
+ * Only when acknowledging its advisory flags is the one thing between it and
+ * ready. A row with a hard problem cannot be accepted (fix it or exclude it); a
+ * row already ready has nothing to accept.
+ */
+export function canAccept(batch: BatchState, entry: FileEntry): boolean {
+  if (batch.excluded.includes(entry.key)) return false;
+  const correction = batch.corrections[entry.key];
+  if (hardProblems(entry, correction).length > 0) return false;
+  if ((batch.acknowledged ?? []).includes(entry.key)) return false;
+  return advisoryProblems(entry, correction).length > 0;
 }
 
 export function effectiveCost(batch: BatchState, entry: FileEntry): number | null {

@@ -8,12 +8,15 @@ import { readFileSync, existsSync } from 'node:fs';
 import {
   batchCounts,
   batchFingerprint,
+  canAccept,
   canConfirm,
   effectiveCost,
   effectiveImei2,
   effectiveProductId,
   entryState,
   groupEntries,
+  hardProblems,
+  advisoryProblems,
   purchaseItems,
   groupCandidates,
   groupSummary,
@@ -52,6 +55,7 @@ const batchOf = (entries: FileEntry[], matches: Record<string, string | null> = 
   } as ParseResult,
   corrections: {},
   excluded: [],
+  acknowledged: [],
 });
 
 // ── states ──────────────────────────────────────────────────────────────────
@@ -104,6 +108,53 @@ it('an empty selection cannot be confirmed either', () => {
   const b = batchOf([entry({ key: 'a' })]);
   b.excluded = ['a'];
   assert.equal(canConfirm(b), false);
+});
+
+// ── accepting an advisory flag (Accept / mark ready) ─────────────────────────
+
+it('a formula-derived value only needs a look; accepting it makes the phone ready', () => {
+  const b = batchOf([entry({ key: 'a', problems: ['formula_value'] })]);
+  assert.equal(entryState(b, b.parsed.entries[0]), 'needs_attention');
+  assert.deepEqual(advisoryProblems(b.parsed.entries[0], undefined), ['formula_value']);
+  assert.deepEqual(hardProblems(b.parsed.entries[0], undefined), []);
+  assert.equal(canAccept(b, b.parsed.entries[0]), true);
+
+  const accepted = { ...b, acknowledged: ['a'] };
+  assert.equal(entryState(accepted, accepted.parsed.entries[0]), 'ready');
+  assert.equal(canAccept(accepted, accepted.parsed.entries[0]), false); // nothing left to accept
+});
+
+it('a hard problem can never be accepted — it must be corrected or excluded', () => {
+  const b = batchOf([entry({ key: 'a', problems: ['imei1_missing'] })]);
+  assert.equal(canAccept(b, b.parsed.entries[0]), false);
+  // Even if the acknowledgement flag were set, a hard problem still blocks.
+  const forced = { ...b, acknowledged: ['a'] };
+  assert.equal(entryState(forced, forced.parsed.entries[0]), 'needs_attention');
+});
+
+it('a clean phone is already ready, with nothing to accept', () => {
+  const b = batchOf([entry({ key: 'a' })]);
+  assert.equal(entryState(b, b.parsed.entries[0]), 'ready');
+  assert.equal(canAccept(b, b.parsed.entries[0]), false);
+});
+
+it('acceptance is per phone, and the delivery confirms only once every advisory row is looked at', () => {
+  const b = {
+    ...batchOf([entry({ key: 'a', problems: ['formula_value'] }), entry({ key: 'b', problems: ['formula_value'] })]),
+    acknowledged: ['a'],
+  };
+  assert.equal(entryState(b, b.parsed.entries[0]), 'ready');
+  assert.equal(entryState(b, b.parsed.entries[1]), 'needs_attention');
+  assert.equal(canConfirm(b), false);
+
+  const both = { ...b, acknowledged: ['a', 'b'] };
+  assert.equal(canConfirm(both), true);
+  assert.deepEqual(batchCounts(both), { phones: 2, ready: 2, needsAttention: 0, excluded: 0, selectedCost: 25000 });
+});
+
+it('an excluded row is never acceptable', () => {
+  const b = { ...batchOf([entry({ key: 'a', problems: ['formula_value'] })]), excluded: ['a'] };
+  assert.equal(canAccept(b, b.parsed.entries[0]), false);
 });
 
 // ── what is sent ────────────────────────────────────────────────────────────
@@ -530,8 +581,10 @@ it('every phone value is labelled, and the warning is not beside the price', () 
   for (const field of ['imei1', 'imei2', 'cost', 'source']) {
     assert.match(src, new RegExp(`fileReceive\\.field\\.${field}`), `${field} is labelled`);
   }
-  // The reason is its own notice; no icon rides along with the money.
-  assert.match(src, /<InlineNotice tone="warning">[\s\S]{0,160}problems\.map/, 'the reason carries the warning');
+  // The reason is its own notice, built from the row's problems in the group
+  // (kept as a primitive so a memoised row does not rebuild the rest).
+  assert.match(src, /<InlineNotice tone="warning">\{problemsText\}<\/InlineNotice>/, 'the reason is its own notice');
+  assert.match(src, /problems\.map\(\(p\) => t\(`fileReceive\.problem\.\$\{p\}`/, 'the notice carries the row problems');
   assert.ok(!/AlertTriangle/.test(src), 'no warning icon beside a value');
   assert.match(src, /<Divider \/>/, 'rows are separated, so two IMEIs cannot look like one phone');
 });
@@ -545,13 +598,15 @@ it('groups are collapsed first, and phones exist only while a group is open', ()
   assert.match(src, /fileReceive\.group\.status/, 'and why it is held up');
 });
 
-it('opening a group or changing the filter keeps the corrections and what was open', () => {
+it('one group opens at a time, and changing the filter keeps the corrections and what was open', () => {
   const src = code(read('../app/receive/file.tsx'));
-  assert.match(src, /setOpened\(\(open\) => \(\{ \.\.\.open, \[key\]: !open\[key\] \}\)\)/, 'open groups are kept by key');
-  // The filter only chooses what to show; it never touches the batch.
+  // Single-open: opening a group closes whichever was open, so the mounted
+  // rows never grow with the delivery.
+  assert.match(src, /setOpenKey\(\(current\) => \(current === key \? null : key\)\)/, 'one group open at a time, by key');
+  // The filter only chooses what to show; it never touches the batch or collapses the open group.
   const filterAt = src.indexOf('setFilter(');
   assert.ok(filterAt > 0);
-  assert.ok(!/setFilter\([^)]*\);\s*(clear|setOpened)\(/.test(src), 'filtering clears nothing');
+  assert.ok(!/setFilter\([^)]*\);\s*(clear|setOpenKey)\(/.test(src), 'filtering clears nothing');
 });
 
 it('the bulk edit says which field it changes, and is named plainly', () => {
