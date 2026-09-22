@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Check, CheckCircle2, ChevronRight, Keyboard, Package, ScanBarcode } from 'lucide-react-native';
+import { Check, CheckCircle2, ChevronRight, Keyboard, Package, ScanBarcode, SlidersHorizontal } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -16,8 +16,8 @@ import {
   StatusChip,
   Text,
   TextField,
-  Thumbnail,
 } from '../ui';
+import { BottomSheet } from '../overlay/BottomSheet';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { radius, space, touch } from '../../lib/design/tokens';
@@ -27,32 +27,39 @@ import { isRTL, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import {
   availabilityKey,
+  identifierProblem,
   lookupSelection,
-  manualImeiProblem,
   sourceKey,
   useStockPhones,
   type LookupFailure,
   type PickSource,
 } from '../../lib/phone-selection';
 import type { IconComponent } from '../ui';
-import type { InventoryUnitRow, SaleSelection, StockSummaryRow } from '../../types/api';
+import type { InventoryUnitRow, SaleSelection, StockSummaryRow, TrackingType } from '../../types/api';
 
 /**
- * Finding the phone to sell — three ways in, one selection out.
+ * Finding the item to sell — three ways in, one selection out.
  *
- * Scan, type or pick; whichever it was, the result is the same existing Unit,
+ * Scan, type or pick; whichever it was, the result is the same existing thing,
  * looked up by the server through ONE endpoint, and the sale continues through
  * the same payment flow. None of these creates a Product, a Unit or stock.
  *
- * What each screen shows of the IMEI follows the confirmed policy: the person
- * typing sees the complete number they typed, and so does the found card they
- * check against the handset; the shelf and the review before payment show only
- * its last four digits.
+ * An item is a serialized unit (a phone by its IMEI, a device by its serial) or
+ * a counted product (an accessory by its barcode). What each screen shows of an
+ * identifier follows the confirmed policy: the person typing sees the complete
+ * value they typed, and so does the found card they check against the thing in
+ * hand; the shelf and the review before payment show only its last four digits.
+ * A barcode is a product code, not a personal identifier, and is shown whole.
  */
 
 export type PickMode = 'choose' | 'scan' | 'manual' | 'stock';
 
 type Found = { selection: SaleSelection; identifier: string };
+
+/** The identifier label for a tracking type — never a fake IMEI for what has none. */
+function trackingLabelKey(tracking: TrackingType): 'tracking.imei' | 'tracking.serial' | 'tracking.quantity' {
+  return tracking === 'imei' ? 'tracking.imei' : tracking === 'serial' ? 'tracking.serial' : 'tracking.quantity';
+}
 
 /** The three choices the sale starts with. */
 export function PhoneChooser({ onChoose }: { onChoose: (mode: Exclude<PickMode, 'choose'>) => void }) {
@@ -99,11 +106,13 @@ function ChoiceCard({ icon: Icon, title, hint, onPress }: { icon: IconComponent;
 }
 
 /**
- * Typing the IMEI. Validated as it is typed — fifteen digits, correct
- * checksum — and looked up on the server the moment it is a real IMEI, so
- * there is no button between the fifteenth digit and seeing the phone. Either
- * IMEI finds the same phone. Finding it only locates existing stock: nothing
- * is ever added.
+ * Typing an identifier — an IMEI, a serial number or a product barcode.
+ *
+ * A fifteen-digit number is treated as an IMEI and validated as it is typed,
+ * then looked up the moment it is a real one, so there is no button between the
+ * fifteenth digit and seeing the item. Anything else — a serial, a barcode — is
+ * looked up when the person asks, because it has no fixed length to know it is
+ * finished. Finding an item only locates existing stock: nothing is ever added.
  */
 export function ManualImeiPanel({
   onUse,
@@ -119,11 +128,13 @@ export function ManualImeiPanel({
   const [busy, setBusy] = useState(false);
   const [found, setFound] = useState<Found | null>(null);
   const [failure, setFailure] = useState<LookupFailure | null>(null);
-  /** Which lookup is the current one: an answer to an earlier number is dropped. */
+  /** Which lookup is the current one: an answer to an earlier value is dropped. */
   const request = useRef(0);
-  const problem = manualImeiProblem(text);
+  const problem = identifierProblem(text);
   const typing = text.trim().length > 0;
-  const valid = typing && problem === null;
+  const ready = typing && problem === null;
+  // A complete, valid IMEI looks itself up; other identifiers wait for "Find".
+  const isCompleteImei = /^\d{15}$/.test(text.replace(/\D/g, '')) && problem === null;
 
   const lookUp = (raw: string) => {
     const mine = ++request.current;
@@ -146,13 +157,12 @@ export function ManualImeiPanel({
 
   const onChange = (raw: string) => {
     setText(raw);
-    if (raw.trim().length > 0 && manualImeiProblem(raw) === null) {
+    request.current += 1; // any prior lookup's answer is now stale
+    setBusy(false);
+    setFound(null);
+    setFailure(null);
+    if (/^\d{15}$/.test(raw.replace(/\D/g, '')) && identifierProblem(raw) === null) {
       lookUp(raw);
-    } else {
-      request.current += 1;
-      setBusy(false);
-      setFound(null);
-      setFailure(null);
     }
   };
 
@@ -164,30 +174,29 @@ export function ManualImeiPanel({
         label={t('pick.manual.label')}
         value={text}
         onChangeText={onChange}
-        keyboardType="number-pad"
-        placeholder="000000000000000"
+        keyboardType="default"
+        placeholder={t('pick.manual.placeholder')}
         variant="identifier"
         autoFocus
-        trailing={valid ? <CheckCircle2 color={colors.intent.success.fg} size={20} /> : undefined}
+        onSubmitEditing={() => ready && !isCompleteImei && lookUp(text)}
+        trailing={ready && isCompleteImei ? <CheckCircle2 color={colors.intent.success.fg} size={20} /> : undefined}
       />
-      {typing && problem ? (
+      {typing && problem === 'checksum' ? (
         <Text variant="caption" tone="warning">
-          {t(`pick.problem.${problem}` as never)}
+          {t('pick.problem.checksum')}
         </Text>
-      ) : valid ? (
-        <View style={styles.validLine}>
-          <CheckCircle2 color={colors.intent.success.fg} size={16} />
-          <Text variant="caption" tone="success">
-            {t('pick.manual.valid')}
-          </Text>
-        </View>
       ) : (
         <Text variant="caption" tone="secondary">
           {t('pick.manual.either')}
         </Text>
       )}
 
-      {busy ? <ActivityIndicator color={colors.brand[600]} /> : null}
+      {/* A serial or barcode is looked up on request; a valid IMEI already has been. */}
+      {ready && !isCompleteImei && !found ? (
+        <Button title={t('pick.manual.find')} variant="secondary" fullWidth onPress={() => lookUp(text)} loading={busy} />
+      ) : null}
+
+      {busy && isCompleteImei ? <ActivityIndicator color={colors.brand[600]} /> : null}
 
       {failure ? (
         <InlineNotice
@@ -204,25 +213,27 @@ export function ManualImeiPanel({
 
       {found ? (
         <Card style={styles.stack}>
-          <View style={styles.phoneHead}>
-            <Thumbnail size="lg" />
-            <View style={styles.grow}>
-              <Text variant="heading">{`${found.selection.product.brand} ${found.selection.product.model}`}</Text>
-              {found.selection.product.variant ? (
-                <Text variant="body" tone="secondary">
-                  {found.selection.product.variant}
-                </Text>
-              ) : null}
-              {/* The complete number, for the person checking it against the phone in hand. */}
-              <View style={styles.imeiLine}>
-                <Text variant="caption" tone="secondary">
-                  {t('pick.imei')}
-                </Text>
-                <Identifier tone="primary">{found.identifier}</Identifier>
-              </View>
-              <View style={styles.chipRow}>
-                <AvailabilityChip selection={found.selection} />
-              </View>
+          <View style={styles.grow}>
+            <Text variant="heading">{`${found.selection.product.brand} ${found.selection.product.model}`}</Text>
+            {found.selection.product.variant ? (
+              <Text variant="body" tone="secondary">
+                {found.selection.product.variant}
+              </Text>
+            ) : null}
+            {/* The complete value, for the person checking it against the thing in hand. */}
+            <View style={styles.imeiLine}>
+              <Text variant="caption" tone="secondary">
+                {t(trackingLabelKey(found.selection.product.trackingType))}
+              </Text>
+              <Identifier tone="primary">{found.identifier}</Identifier>
+            </View>
+            {found.selection.kind === 'product' && found.selection.quantityAvailable !== undefined ? (
+              <Text variant="caption" tone="secondary">
+                {t('pick.stock.inStock', { count: String(found.selection.quantityAvailable) })}
+              </Text>
+            ) : null}
+            <View style={styles.chipRow}>
+              <AvailabilityChip selection={found.selection} />
             </View>
           </View>
           {!sellable ? <InlineNotice tone="danger">{unavailableWords(found.selection, t)}</InlineNotice> : null}
@@ -240,12 +251,26 @@ export function ManualImeiPanel({
 /** The identifier a shelf row is sold by: its first IMEI, else its serial. */
 const identifierOf = (row: InventoryUnitRow) => row.imeiPrimary ?? row.serialNo ?? row.identifier;
 
+interface StockFilter {
+  brand: string | null;
+  tracking: TrackingType | null;
+}
+const NO_FILTER: StockFilter = { brand: null, tracking: null };
+
 /**
- * Picking the phone off the shelf: this branch's phones in stock, searchable
- * by model, colour or either IMEI, filterable by brand, one page at a time.
- * The count and every price are the server's — the price from the same
- * summary the Stock tab lists, which is the sale's own ladder. Choosing a row
- * only selects it; the server is asked about the phone when the person
+ * Picking the item off the shelf: this branch's serialized stock, searchable
+ * and one page at a time.
+ *
+ * A specific unit is what you pick from a list — a phone by its IMEI, a device
+ * by its serial. Counted accessories are not picked one by one from a list;
+ * they are added by scanning their barcode (the Scan and Enter ways), because
+ * "which cable" is a question with no answer. So this list shows serialized
+ * items, each labelled by what identifies it — never a made-up IMEI for
+ * something that has none.
+ *
+ * One search field and one Filter: the wrapping row of brand chips is gone,
+ * replaced by a sheet that filters by brand and by type, with a Reset. Choosing
+ * a row only selects it; the server is asked about the item when the person
  * continues, through the same lookup a scan uses.
  */
 export function StockPicker({ selected, onSelect }: { selected: string | null; onSelect: (identifier: string) => void }) {
@@ -254,8 +279,11 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
   const branchId = useBranch((s) => s.branchId);
   const [typed, setTyped] = useState('');
   const [term, setTerm] = useState('');
-  const [brand, setBrand] = useState<string | null>(null);
-  const stock = useStockPhones(term || brand || '', true);
+  const [filter, setFilter] = useState<StockFilter>(NO_FILTER);
+  /** The filter being edited in the sheet — seeded from the applied one on open. */
+  const [draft, setDraft] = useState<StockFilter>(NO_FILTER);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const stock = useStockPhones(term, true);
   const summary = useQuery({
     queryKey: qk.inventorySummary(branchId),
     queryFn: () => api.get<StockSummaryRow[]>('/inventory/summary'),
@@ -267,47 +295,58 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
     return (productId: string) => byProduct.get(productId) ?? null;
   }, [summary.data]);
 
-  // The brands on the shelf, read from the rows. Pinned the moment one is
-  // chosen, so choosing a brand does not empty the row of chips it came from.
-  const derived = useMemo(() => [...new Set(stock.phones.map((p) => p.product?.brand).filter((b): b is string => Boolean(b)))].sort(), [stock.phones]);
-  const [pinned, setPinned] = useState<string[] | null>(null);
-  const brands = pinned ?? derived;
+  // The brands on the shelf, read from the loaded rows.
+  const brands = useMemo(
+    () => [...new Set(stock.phones.map((p) => p.product?.brand).filter((b): b is string => Boolean(b)))].sort(),
+    [stock.phones],
+  );
 
-  const count = stock.data?.pages[0]?.totals.units;
+  const rows = useMemo(
+    () =>
+      stock.phones.filter(
+        (r) =>
+          (filter.brand === null || r.product?.brand === filter.brand) &&
+          (filter.tracking === null || r.product?.trackingType === filter.tracking),
+      ),
+    [stock.phones, filter],
+  );
+
+  const activeCount = (filter.brand ? 1 : 0) + (filter.tracking ? 1 : 0);
+  const activeSummary = [filter.brand, filter.tracking ? t(trackingLabelKey(filter.tracking)) : null]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <View style={styles.stack}>
       <SearchInput
         value={typed}
         onChangeText={setTyped}
-        onDebouncedChange={(v) => {
-          setTerm(v.trim());
-          if (v.trim()) setBrand(null);
-        }}
+        onDebouncedChange={(v) => setTerm(v.trim())}
         placeholder={t('pick.stock.search')}
         identifier
       />
-      {brands.length > 0 ? (
-        <View style={styles.chips} accessibilityRole="radiogroup">
-          <FilterChip label={t('pick.stock.all')} selected={brand === null} onPress={() => setBrand(null)} />
-          {brands.map((b) => (
-            <FilterChip
-              key={b}
-              label={b}
-              selected={brand === b}
-              onPress={() => {
-                if (!pinned) setPinned(derived);
-                setBrand(b);
-                setTyped('');
-                setTerm('');
-              }}
-            />
-          ))}
-        </View>
-      ) : null}
-      {count !== undefined ? (
+
+      <View style={styles.filterBar}>
+        <Button
+          title={activeCount > 0 ? t('pick.filter.buttonActive', { count: String(activeCount) }) : t('pick.filter.button')}
+          variant={activeCount > 0 ? 'secondary' : 'tertiary'}
+          size="sm"
+          icon={SlidersHorizontal}
+          onPress={() => {
+            setDraft(filter); // seed the sheet from the applied filter
+            setFilterOpen(true);
+          }}
+        />
+        {activeSummary ? (
+          <Text variant="caption" tone="secondary" style={styles.grow} numberOfLines={1}>
+            {activeSummary}
+          </Text>
+        ) : null}
+      </View>
+
+      {rows.length > 0 ? (
         <Text variant="caption" tone="secondary">
-          {t('pick.stock.count', { count: String(count) })}
+          {t('pick.stock.count', { count: String(rows.length) })}
         </Text>
       ) : null}
 
@@ -315,11 +354,11 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
         <SkeletonList count={4} />
       ) : stock.isError ? (
         <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
-      ) : stock.phones.length === 0 ? (
+      ) : rows.length === 0 ? (
         <EmptyState icon={Package} title={t('pick.stock.none')} />
       ) : (
         <View style={styles.stack} accessibilityRole="radiogroup">
-          {stock.phones.map((row) => (
+          {rows.map((row) => (
             <StockOption
               key={row.id}
               row={row}
@@ -333,11 +372,91 @@ export function StockPicker({ selected, onSelect }: { selected: string | null; o
       {stock.hasNextPage ? (
         <Button title={t('pick.stock.more')} variant="tertiary" loading={stock.isFetchingNextPage} onPress={() => void stock.fetchNextPage()} />
       ) : null}
+
+      <StockFilterSheet
+        open={filterOpen}
+        draft={draft}
+        onChange={setDraft}
+        brands={brands}
+        onClose={() => setFilterOpen(false)}
+        onApply={() => {
+          setFilter(draft);
+          setFilterOpen(false);
+        }}
+        onReset={() => {
+          setFilter(NO_FILTER);
+          setFilterOpen(false);
+        }}
+      />
     </View>
   );
 }
 
-/** One phone on the shelf: what it is, its last four digits, its price, and whether it is the one picked. */
+/** One Filter sheet: brand and type, with a Reset. Replaces the wrapping chips. */
+function StockFilterSheet({
+  open,
+  draft,
+  onChange,
+  brands,
+  onClose,
+  onApply,
+  onReset,
+}: {
+  open: boolean;
+  draft: StockFilter;
+  onChange: (next: StockFilter) => void;
+  brands: string[];
+  onClose: () => void;
+  onApply: () => void;
+  onReset: () => void;
+}) {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  const trackings: TrackingType[] = ['imei', 'serial'];
+
+  return (
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={t('pick.filter.title')}
+      footer={
+        <View style={styles.stack}>
+          <Button title={t('pick.filter.apply')} size="lg" fullWidth onPress={onApply} />
+          <Button title={t('pick.filter.reset')} variant="tertiary" fullWidth onPress={onReset} />
+        </View>
+      }
+    >
+      <View style={styles.sheet}>
+        {brands.length > 0 ? (
+          <>
+            <Text variant="label">{t('pick.filter.brand')}</Text>
+            <View style={styles.chips} accessibilityRole="radiogroup">
+              <FilterChip label={t('pick.filter.all')} selected={draft.brand === null} onPress={() => onChange({ ...draft, brand: null })} />
+              {brands.map((b) => (
+                <FilterChip key={b} label={b} selected={draft.brand === b} onPress={() => onChange({ ...draft, brand: b })} />
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        <Text variant="label">{t('pick.filter.type')}</Text>
+        <View style={styles.chips} accessibilityRole="radiogroup">
+          <FilterChip label={t('pick.filter.all')} selected={draft.tracking === null} onPress={() => onChange({ ...draft, tracking: null })} />
+          {trackings.map((tr) => (
+            <FilterChip
+              key={tr}
+              label={t(trackingLabelKey(tr))}
+              selected={draft.tracking === tr}
+              onPress={() => onChange({ ...draft, tracking: tr })}
+            />
+          ))}
+        </View>
+      </View>
+    </BottomSheet>
+  );
+}
+
+/** One item on the shelf: what it is, its last four digits labelled by type, its price, and whether it is the one picked. */
 function StockOption({
   row,
   price,
@@ -354,6 +473,7 @@ function StockOption({
   const { t } = useTranslation();
   const id = identifierOf(row);
   const name = row.product ? `${row.product.brand} ${row.product.model}` : id;
+  const tracking = row.product?.trackingType ?? 'imei';
   return (
     <Pressable
       accessibilityRole="radio"
@@ -362,7 +482,6 @@ function StockOption({
       onPress={onPress}
       style={({ pressed }) => [styles.option, selected ? styles.optionSelected : null, pressed && styles.pressed]}
     >
-      <Thumbnail size="lg" />
       <View style={styles.grow}>
         <Text variant="bodyStrong">{name}</Text>
         {row.product?.variant ? (
@@ -372,7 +491,7 @@ function StockOption({
         ) : null}
         <View style={styles.imeiLine}>
           <Text variant="caption" tone="secondary">
-            {t('pick.imei')}
+            {t(trackingLabelKey(tracking))}
           </Text>
           <Identifier>{`•••• ${id.slice(-4)}`}</Identifier>
         </View>
@@ -384,20 +503,17 @@ function StockOption({
           </Text>
         ) : null}
       </View>
-      <View style={styles.optionEnd}>
-        <Chip label={t('pick.chip.available')} tone="success" size="sm" />
-        <View style={[styles.radio, selected ? styles.radioOn : null]}>
-          {selected ? <Check size={14} color={colors.text.inverse} /> : null}
-        </View>
+      <View style={[styles.radio, selected ? styles.radioOn : null]}>
+        {selected ? <Check size={14} color={colors.text.inverse} /> : null}
       </View>
     </Pressable>
   );
 }
 
 /**
- * The phone chosen, however it was found: what it is, which one by its last
- * four digits, whether it can be sold here, and how it was found. The price
- * field is the sale's own — prefilled with the server's ladder price.
+ * The item chosen, however it was found: what it is, which one by its last four
+ * digits, whether it can be sold here, and how it was found. The price field is
+ * the sale's own — prefilled with the server's ladder price.
  */
 export function SelectedPhoneCard({
   selection,
@@ -416,7 +532,6 @@ export function SelectedPhoneCard({
   return (
     <Card style={styles.stack}>
       <View style={styles.phoneHead}>
-        <Thumbnail size="lg" />
         <View style={styles.grow}>
           <Text variant="heading">{`${p.brand} ${p.model}`}</Text>
           {variant ? (
@@ -426,10 +541,15 @@ export function SelectedPhoneCard({
           ) : null}
           <View style={styles.imeiLine}>
             <Text variant="caption" tone="secondary">
-              {t('pick.imei')}
+              {t(trackingLabelKey(p.trackingType))}
             </Text>
             <Identifier>{selection.identifierMasked ?? '—'}</Identifier>
           </View>
+          {selection.kind === 'product' && selection.quantityAvailable !== undefined ? (
+            <Text variant="caption" tone="secondary">
+              {t('pick.stock.inStock', { count: String(selection.quantityAvailable) })}
+            </Text>
+          ) : null}
         </View>
         <AvailabilityChip selection={selection} />
       </View>
@@ -451,7 +571,7 @@ function AvailabilityChip({ selection }: { selection: SaleSelection }) {
   );
 }
 
-/** Why the phone cannot be sold here — naming another branch only when the server did. */
+/** Why the item cannot be sold here — naming another branch only when the server did. */
 function unavailableWords(selection: SaleSelection, t: ReturnType<typeof useTranslation>['t']): string {
   return selection.otherBranch
     ? t('pick.availability.other_branch_named', { branch: selection.otherBranch.name })
@@ -494,11 +614,12 @@ const useStyles = makeStyles((colors) => ({
     borderRadius: radius.md,
     backgroundColor: colors.intent.info.bg,
   },
-  validLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  filterBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   phoneHead: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   imeiLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
   chipRow: { flexDirection: 'row', paddingTop: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  sheet: { gap: space.md, padding: space.base },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -514,7 +635,6 @@ const useStyles = makeStyles((colors) => ({
     backgroundColor: colors.intent.info.bg,
     borderColor: colors.intent.info.solid,
   },
-  optionEnd: { alignItems: 'flex-end', justifyContent: 'space-between', gap: space.sm, alignSelf: 'stretch' },
   radio: {
     width: 22,
     height: 22,

@@ -1405,17 +1405,27 @@ export interface AuthTokens {
 export type SaleAvailability = 'available' | 'sold' | 'faulty' | 'reserved' | 'other_branch' | 'unavailable';
 
 /**
- * The phone about to be sold, as `GET /sales/selection/:identifier` answers it.
+ * The item about to be sold, as `GET /sales/selection/:identifier` answers it.
  *
- * One shape however the phone was found. It carries no full identifier (only a
- * masked one), no margin and no history; `cost` is present only for a caller
- * with `cost.view`.
+ * One shape however the item was found — by IMEI, by serial, or (for a counted
+ * accessory) by product barcode. It carries no full identifier (only a masked
+ * one), no margin and no history; `cost` is present only for a caller with
+ * `cost.view`.
+ *
+ * `kind` says what was found: a specific `unit` (a phone or serialized device,
+ * with a `unitId`) or a counted `product` (an accessory sold by the piece, with
+ * a `productId` and how many are `quantityAvailable`). The sale sends an
+ * identifier for a unit, or a product id and a quantity for a product.
  */
 export interface SaleSelection {
-  unitId: string;
+  kind: 'unit' | 'product';
+  /** The specific unit — present for a `unit`, null for a counted `product`. */
+  unitId: string | null;
+  /** The catalogue product — present for a counted `product` selection. */
+  productId?: string;
   availability: SaleAvailability;
   status: string;
-  matchedBy: 'imei1' | 'imei2' | 'serial';
+  matchedBy: 'imei1' | 'imei2' | 'serial' | 'barcode';
   identifierMasked: string | null;
   hasSecondImei: boolean;
   product: {
@@ -1428,8 +1438,10 @@ export interface SaleSelection {
   };
   /** The price the sale will charge, by the sale's own ladder. Null when not sellable here, or unpriced. */
   price: number | null;
-  /** Where the phone is — sent by the server only to a caller with branch.manage. */
+  /** Where the item is — sent by the server only to a caller with branch.manage. */
   otherBranch: { name: string } | null;
   cost?: number;
   dateIn?: string;
+  /** How many can be sold here now — for a counted `product` selection only. */
+  quantityAvailable?: number;
 }

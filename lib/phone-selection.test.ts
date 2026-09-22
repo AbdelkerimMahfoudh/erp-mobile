@@ -6,17 +6,18 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   availabilityKey,
+  identifierProblem,
   lookupFailure,
   manualImeiProblem,
   normalizeImeiInput,
   sourceKey,
-} from './phone-selection-rules';
+} from './phone-selection-rules.ts';
 
-const root = join(__dirname, '..');
-const read = (p: string) => readFileSync(join(root, p), 'utf8');
+// Resolve against this file's URL — `__dirname` does not exist under the ESM
+// type-stripping the pure suites run on.
+const read = (p: string) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const QUICK_SELL = read('app/quick-sell.tsx');
 const PICKER = read('components/sell/PhonePicker.tsx');
 const LIB = read('lib/phone-selection.ts');
@@ -31,6 +32,17 @@ it('typed IMEI: empty, letters, length and checksum each have their own message'
   assert.equal(manualImeiProblem('49015420323751'), 'length');
   assert.equal(manualImeiProblem('490154203237519'), 'checksum');
   assert.equal(manualImeiProblem('490154203237518'), null);
+});
+
+it('a typed identifier accepts a serial or barcode, and refuses only empty or a bad 15-digit IMEI', () => {
+  assert.equal(identifierProblem(''), 'empty');
+  // A serial (letters) and a barcode (13 or other-length digits) are looked up.
+  assert.equal(identifierProblem('C02XK1ABJHD5'), null);
+  assert.equal(identifierProblem('6901234567890'), null);
+  assert.equal(identifierProblem('49015420323751'), null);
+  // A 15-digit number with a bad checksum is a mistyped IMEI, never a barcode.
+  assert.equal(identifierProblem('490154203237519'), 'checksum');
+  assert.equal(identifierProblem('490154203237518'), null);
 });
 
 it('lookup failures map to plain outcomes, network apart', () => {
@@ -88,5 +100,12 @@ it('another branch is named only when the server sent it', () => {
   // (branch.manage) included one, and otherwise the server's generic answer.
   assert.ok(PICKER.includes('selection.otherBranch'));
   assert.doesNotMatch(PICKER + QUICK_SELL, /usePermission('branch.manage')/);
-  assert.ok(read('lib/i18n/en.ts').includes("'pick.failure.not_here': \"This phone is not available in this branch.\""));
+  assert.ok(read('lib/i18n/en.ts').includes("'pick.failure.not_here': 'This item is not available in this branch.'"));
+});
+
+it('a counted product is sold by id and a quantity; a serialized unit by its identifier', () => {
+  // The one lookup returns a kind; the checkout sends the right line for each.
+  assert.ok(QUICK_SELL.includes("picked.selection.kind === 'product'"));
+  assert.ok(QUICK_SELL.includes('productId: picked.selection.productId'));
+  assert.ok(QUICK_SELL.includes('{ identifier, price: proposedPrice }'));
 });

@@ -9,7 +9,7 @@
  * Pure: no React, no network.
  */
 
-import { isValidLuhn } from './imei';
+import { isValidLuhn } from './imei.ts';
 import type { SaleAvailability } from '../types/api';
 
 /** How the phone was found. Shown on the selection, never used to decide anything. */
@@ -32,6 +32,25 @@ export function manualImeiProblem(raw: string): ManualImeiProblem | null {
   if (!/^\d+$/.test(imei)) return 'not_digits';
   if (imei.length !== 15) return 'length';
   if (!isValidLuhn(imei)) return 'checksum';
+  return null;
+}
+
+export type IdentifierProblem = 'empty' | 'checksum';
+
+/**
+ * Why a typed IDENTIFIER cannot be looked up yet, or null when it can.
+ *
+ * An item can be found three ways — an IMEI, a serial number, or a product
+ * barcode — so this is looser than {@link manualImeiProblem}: it refuses only
+ * nothing at all, and a fifteen-digit number whose checksum is wrong. That
+ * second rule is the important one and mirrors the server: a mistyped IMEI is an
+ * **invalid IMEI**, said so, never quietly looked up as a barcode. A serial, a
+ * barcode, or any other length of number is left for the server to resolve.
+ */
+export function identifierProblem(raw: string): IdentifierProblem | null {
+  const value = normalizeImeiInput(raw);
+  if (value.length === 0) return 'empty';
+  if (/^\d{15}$/.test(value) && !isValidLuhn(value)) return 'checksum';
   return null;
 }
 

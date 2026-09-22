@@ -273,11 +273,17 @@ export default function QuickSellScreen() {
   ): Promise<void> => {
     if (!picked || !sellable || proposedPrice === null) return;
     const identifier = picked.identifier;
+    // A serialized unit is sold by its identifier; a counted product by its id
+    // and a quantity of one. The same checkout, the same endpoint.
+    const line =
+      picked.selection.kind === 'product' && picked.selection.productId
+        ? { productId: picked.selection.productId, quantity: 1, price: proposedPrice }
+        : { identifier, price: proposedPrice };
 
     try {
       const response = await api.post<SaleResponse | WarningsPending>('/sales', {
         clientUuid: clientUuid.current,
-        lines: [{ identifier, price: proposedPrice }],
+        lines: [line],
         payments: payments.map((p) => ({
           method: p.method,
           amount: p.amount,
