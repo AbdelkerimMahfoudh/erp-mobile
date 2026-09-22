@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -188,8 +188,11 @@ export default function FileReviewScreen() {
     () => (batch ? batchFingerprint(items, { method: payment.method, receivingAccountId: payment.receivingAccountId }) : ''),
     [batch, items, payment.method, payment.receivingAccountId],
   );
+  // The groups the stable match callback reads; written after render, never during it.
   const groupsRef = useRef(groups);
-  groupsRef.current = groups;
+  useEffect(() => {
+    groupsRef.current = groups;
+  }, [groups]);
 
   const receive = useMutation({
     mutationFn: () =>
