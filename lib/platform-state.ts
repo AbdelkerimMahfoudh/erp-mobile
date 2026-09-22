@@ -78,3 +78,44 @@ export function periodEndValid(value: string, now: Date): boolean {
 export function periodEndInstant(value: string): string {
   return new Date(`${value.trim()}T23:59:59.000Z`).toISOString();
 }
+
+/**
+ * The catalogue key that names an audit action in words. Actions that are
+ * lifecycle acts reuse the action labels; the rest have their own. Unknown
+ * actions fall back to the code itself, so nothing is hidden.
+ */
+export function auditActionKey(action: string): string | null {
+  switch (action) {
+    case 'subscription.approve':
+      return 'platform.action.approve';
+    case 'subscription.reject':
+      return 'platform.action.reject';
+    case 'subscription.extend':
+      return 'platform.action.extend';
+    case 'subscription.set_period':
+      return 'platform.action.period';
+    case 'subscription.suspend':
+      return 'platform.action.suspend';
+    case 'subscription.reinstate':
+      return 'platform.action.reinstate';
+    case 'subscription.cancel':
+      return 'platform.action.cancel';
+    case 'subscription.activate_grant':
+      return 'platform.event.administrative_grant';
+    case 'owner_invitation.issue':
+      return 'platform.action.invite';
+    case 'owner_invitation.accept':
+      return 'platform.auditAction.invitationAccepted';
+    case 'business.create':
+      return 'platform.new.title';
+    case 'admin.sign_in':
+      return 'platform.auditAction.signIn';
+    case 'payment.record':
+    case 'payment.record_and_confirm':
+      return 'platform.auditAction.paymentRecorded';
+    case 'plan.schedule':
+      return 'platform.auditAction.planScheduled';
+    default:
+      return null;
+  }
+}

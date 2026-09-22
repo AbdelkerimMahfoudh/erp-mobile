@@ -8,6 +8,7 @@ import { makeStyles } from '../../lib/design/theme';
 import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { platformApi, platformKeys, usePlatformGuard, type PlatformAuditRow } from '../../lib/platform-admin';
+import { auditActionKey } from '../../lib/platform-state';
 
 /** The platform's own trail: who did what to which business, and why. Append-only on the server. */
 export default function PlatformAudit() {
@@ -48,7 +49,8 @@ export default function PlatformAudit() {
           keyExtractor={(r) => r.id}
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Text variant="bodyStrong">{`${item.action}${item.targetLabel ? ` · ${item.targetLabel}` : ''}`}</Text>
+              {/* The act in words; an action this build does not know is shown as its code rather than hidden. */}
+              <Text variant="bodyStrong">{`${auditActionKey(item.action) ? t(auditActionKey(item.action) as never) : item.action}${item.targetLabel ? ` · ${item.targetLabel}` : ''}`}</Text>
               <Text variant="caption" tone="secondary">
                 {`${formatDateTime(item.createdAt)} · ${t('platform.audit.by', { actor: item.actor })}`}
               </Text>
