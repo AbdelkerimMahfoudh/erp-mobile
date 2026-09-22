@@ -237,6 +237,7 @@ export function ProductForm({
               produce a rejection the employee did not cause and cannot fix.
             */
             <ListRow
+              flat
               title={t(`catalog.form.tracking.derived.${derivedTracking}` as never)}
               subtitle={t('catalog.form.tracking.derived.from', { category: selected!.name })}
             />

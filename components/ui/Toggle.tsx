@@ -26,6 +26,13 @@ export interface ToggleProps {
   onLabel?: string;
   offLabel?: string;
   disabled?: boolean;
+  /**
+   * Drop the box: no border, no radius, for a toggle that is one row inside a
+   * shared surface (a `RowGroup`, or a `Card` that owns the edge). The same
+   * reason `ListRow` has a `flat` — the container draws the border once, so a
+   * settings row does not read as a card floating inside a card.
+   */
+  flat?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -37,6 +44,7 @@ export function Toggle({
   onLabel = 'On',
   offLabel = 'Off',
   disabled = false,
+  flat = false,
   style,
 }: ToggleProps) {
   const styles = useStyles();
@@ -57,6 +65,7 @@ export function Toggle({
           backgroundColor: pressed && !disabled ? colors.surface.hover : colors.surface.card,
           borderColor: colors.border.subtle,
         },
+        flat ? styles.flat : null,
         disabled ? styles.disabled : null,
         style,
       ]}
@@ -108,6 +117,8 @@ const useStyles = makeStyles((colors) => ({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.lg,
   },
+  // One row inside a shared surface: the container owns the edge (see `flat` above).
+  flat: { borderWidth: 0, borderRadius: 0 },
   text: { flex: 1 },
   hint: { marginTop: space.xs },
   control: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

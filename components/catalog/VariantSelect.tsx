@@ -234,6 +234,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
       {/* ── Storage ───────────────────────────────────────────────────────── */}
       <Card style={styles.card}>
         <ListRow
+          flat
           title={t('catalog.form.storage')}
           value={storageLabel || t('catalog.select.choose')}
           valueTone={storageLabel ? 'primary' : 'secondary'}
@@ -270,6 +271,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
       {/* ── Colour ────────────────────────────────────────────────────────── */}
       <Card style={styles.card}>
         <ListRow
+          flat
           title={t('catalog.form.colour')}
           value={colourLabel || t('catalog.select.choose')}
           valueTone={colourLabel ? 'primary' : 'secondary'}

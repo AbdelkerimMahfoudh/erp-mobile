@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { Card, EmptyState, ListRow, Screen, Text } from '../../components/ui';
+import { EmptyState, ListRow, RowGroup, Screen, Text } from '../../components/ui';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
@@ -71,16 +71,17 @@ export default function HubScreen() {
           body={t('state.error.permission.body')}
         />
       ) : (
-        <Card style={styles.list}>
+        <RowGroup>
           {children.map((child) => (
             <ListRow
+              flat
               key={child.id}
               title={t(child.titleKey)}
               leading={HUB_ICONS[child.icon]}
               onPress={() => router.push(child.route as Href)}
             />
           ))}
-        </Card>
+        </RowGroup>
       )}
 
     </Screen>
@@ -89,5 +90,4 @@ export default function HubScreen() {
 
 const styles = StyleSheet.create({
   intro: { marginBottom: space.md },
-  list: { paddingVertical: space.xs },
 });

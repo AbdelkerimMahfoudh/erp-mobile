@@ -175,7 +175,7 @@ export function BrandModelSelect({
     <View style={styles.wrap}>
       {/* ── Brand ─────────────────────────────────────────────────────────── */}
       <Card style={styles.card}>
-        <ListRow
+        <ListRow flat
           title={t('catalog.form.brand')}
           value={value.brand.trim() || t('catalog.select.choose')}
           valueTone={value.brand.trim() ? 'primary' : 'secondary'}
@@ -190,7 +190,7 @@ export function BrandModelSelect({
               placeholder={t('catalog.select.searchBrand')}
             />
             {visibleBrands.map((b) => (
-              <ListRow
+              <ListRow flat
                 key={b.key}
                 title={b.name}
                 // Marked, never carried by colour alone.
@@ -233,7 +233,7 @@ export function BrandModelSelect({
 
       {/* ── Model ─────────────────────────────────────────────────────────── */}
       <Card style={styles.card}>
-        <ListRow
+        <ListRow flat
           title={t('catalog.form.model')}
           value={
             value.model.trim() ||
@@ -252,7 +252,7 @@ export function BrandModelSelect({
               placeholder={t('catalog.select.searchModel')}
             />
             {visibleModels.map((m) => (
-              <ListRow
+              <ListRow flat
                 key={m.id}
                 title={m.name}
                 subtitle={m.family}
@@ -272,7 +272,7 @@ export function BrandModelSelect({
               />
             ))}
             {/* Always last, always present, never an error state. */}
-            <ListRow
+            <ListRow flat
               title={t('catalog.select.otherModel')}
               chevron={false}
               onPress={() => {

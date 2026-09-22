@@ -1,9 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Card, Screen, Text, Toggle } from '../components/ui';
+import { InlineNotice, RowGroup, Screen, Text, Toggle } from '../components/ui';
 import { LanguageRow } from '../components/navigation/LanguageRow';
 import { space } from '../lib/design/tokens';
-import { useTranslation } from '../lib/i18n';
+import { useI18n, useTranslation } from '../lib/i18n';
 import { makeStyles, useTheme } from '../lib/design/theme';
 
 /**
@@ -15,9 +15,14 @@ import { makeStyles, useTheme } from '../lib/design/theme';
  * than in store-wide Settings, where a change means "this is how the shop
  * works" and everybody inherits it.
  *
- * The language selector MOVED here; it is not a second copy. It used to be
- * rendered inline by the Account hub, which was the only sensible home before
- * this screen existed.
+ * ## One panel, not two cards
+ *
+ * The two preferences sit in a single bordered surface — a dark-mode row and a
+ * language row, separated by a hairline. They used to be a card wrapping a
+ * bordered toggle and, beneath it, a second card wrapping the language rows:
+ * boxes inside boxes. One `RowGroup` with flat rows is the whole panel now, and
+ * the restart notice a language change may raise sits outside it, because a
+ * bordered notice inside the panel would be the same nesting again.
  *
  * ## Why the dark control is a switch and not three options
  *
@@ -30,15 +35,15 @@ import { makeStyles, useTheme } from '../lib/design/theme';
  * ## Whose preference is it
  *
  * The theme is stored on the DEVICE, not against the account. A shop's counter
- * phone is shared, and the person who prefers dark is choosing for that
- * handset in that lighting, not for themselves everywhere. It is also not
- * sensitive: it reveals nothing about the account, so signing out deliberately
+ * phone is shared, and the person who prefers dark is choosing for that handset
+ * in that lighting, not for themselves everywhere. Signing out deliberately
  * leaves it alone rather than resetting the screen somebody just set up.
  */
 export default function AppearanceScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const { isDark, setTheme } = useTheme();
+  const restartRequired = useI18n((s) => s.restartRequired);
 
   return (
     <Screen>
@@ -49,8 +54,9 @@ export default function AppearanceScreen() {
         </Text>
       </View>
 
-      <Card style={styles.card}>
+      <RowGroup>
         <Toggle
+          flat
           label={t('appearance.darkMode')}
           hint={t('appearance.darkMode.hint')}
           value={isDark}
@@ -58,14 +64,21 @@ export default function AppearanceScreen() {
           onLabel={t('appearance.dark')}
           offLabel={t('appearance.light')}
         />
-      </Card>
+        <LanguageRow />
+      </RowGroup>
 
-      <LanguageRow />
+      {restartRequired ? (
+        <InlineNotice tone="warning" title={t('settings.language.restartTitle')} style={styles.notice}>
+          <Text variant="caption" tone="secondary">
+            {t('settings.language.restartBody')}
+          </Text>
+        </InlineNotice>
+      ) : null}
     </Screen>
   );
 }
 
 const useStyles = makeStyles(() => ({
   intro: { gap: space.xs, marginBottom: space.md },
-  card: { padding: space.md, marginBottom: space.md },
+  notice: { marginTop: space.md },
 }));

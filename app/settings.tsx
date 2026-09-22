@@ -415,6 +415,7 @@ export default function SettingsScreen() {
           <View style={styles.lockList}>
             {AUTO_LOCK_CHOICES.map((seconds) => (
               <ListRow
+                flat
                 key={seconds}
                 title={autoLockLabel(seconds, t)}
                 selected={draft?.autoLockMaxSeconds === seconds}
