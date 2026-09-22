@@ -18,14 +18,17 @@ export type EntitlementState =
   | 'expired'
   | 'complimentary'
   | 'suspended'
-  | 'cancelled';
+  | 'cancelled'
+  /** Refused at registration. Not "ended": nothing was ever granted. */
+  | 'rejected';
 
 /** Where an administrator has put the subscription. Distinct from the state. */
 export type SubscriptionStatus =
   | 'pending_activation'
   | 'activated'
   | 'suspended'
-  | 'cancelled';
+  | 'cancelled'
+  | 'rejected';
 
 export interface Entitlement {
   state: EntitlementState;

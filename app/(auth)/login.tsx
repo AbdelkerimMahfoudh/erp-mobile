@@ -250,6 +250,18 @@ export default function Login() {
                 being unable to start the task.
               */}
               <AuthLanguageSwitch />
+
+              {/*
+                Platform administration: a separate identity with its own
+                sign-in, for the platform's own people. Discreet, at the very
+                end, and never part of a shop's navigation.
+              */}
+              <Button
+                title={t('auth.action.platform')}
+                variant="tertiary"
+                size="sm"
+                onPress={() => router.push('/platform/sign-in' as never)}
+              />
             </View>
           )}
         </View>

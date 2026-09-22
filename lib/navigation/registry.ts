@@ -300,6 +300,14 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   // Shown INSTEAD of the app when the server says the subscription blocks
   // operational access. Not a destination anybody navigates to on purpose.
   '/subscription-blocked': 'Subscription state screen, reached when the server refuses operational access.',
+  // Platform administration: a separate identity with its own sign-in and
+  // session, never a shop's. Reached from a discreet link on the sign-in
+  // screen only; nothing in the shop's navigation leads here.
+  '/platform': 'Platform administration overview — businesses by state, search and filters. Platform identity only.',
+  '/platform/sign-in': 'Platform administrator sign-in. Not a shop credential.',
+  '/platform/[id]': 'One business as the platform sees it — subscription state, people, history, controlled actions.',
+  '/platform/new': 'Creating a business for a shop, with its Owner’s one-time invitation.',
+  '/platform/audit': 'The platform audit trail.',
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
   '/alerts': 'Every alert to review, newest first — the rest of the Analyses overview’s "Needs your attention", reached from its "View all".',

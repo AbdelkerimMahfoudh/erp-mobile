@@ -334,6 +334,13 @@ function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branch
     // The design-system gallery renders without a session so components can be
     // reviewed without a login. It is a development route only.
     if (segments[0] === 'dev') return;
+    /*
+     * Platform administration is a separate identity: it has its own sign-in
+     * and its own session, and never a shop's. The tenant redirects leave it
+     * alone in both directions — no shop session is needed to reach it, and
+     * holding one does not open it.
+     */
+    if (segments[0] === 'platform') return;
 
     if (!user && !inAuth) {
       router.replace('/(auth)/login');
