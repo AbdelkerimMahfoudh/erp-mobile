@@ -85,19 +85,32 @@ export default function InventoryScreen() {
   const canViewTransfers = usePermission('transfer.view');
 
   // Arriving from a product's detail screen: that exact product's units.
-  const { productId: productIdParam } = useLocalSearchParams<{ productId?: string }>();
+  const { productId: productIdParam, category: categoryParam, status: statusParam, sort: sortParam } = useLocalSearchParams<{
+    productId?: string;
+    category?: string;
+    status?: string;
+    sort?: string;
+  }>();
+  /*
+   * Home's "Latest phones received" deep-link (0076): Phones, every status,
+   * newest received first — the same three phones Home showed, first. The
+   * server orders by intake already; the phone only preselects the filters
+   * and asks for units of the phone tracking type.
+   */
+  const deepLinked = categoryParam === 'phone' && (statusParam === 'all' || sortParam === 'received');
   /** A variant tapped here. Takes precedence over the route parameter. */
   const [focus, setFocus] = useState<{ id: string; label: string } | null>(null);
   const focusId = focus?.id ?? (productIdParam ? String(productIdParam) : undefined);
 
-  const [category, setCategory] = useState<Category>('all');
-  const [status, setStatus] = useState<StatusFilter>('in_stock');
+  const [category, setCategory] = useState<Category>(deepLinked ? 'phone' : 'all');
+  const [status, setStatus] = useState<StatusFilter>(deepLinked ? '' : 'in_stock');
+  const [phonesByArrival, setPhonesByArrival] = useState(deepLinked);
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const searching = debounced.length > 0;
-  const mode: 'summary' | 'units' = searching || focusId ? 'units' : 'summary';
+  const mode: 'summary' | 'units' = searching || focusId || phonesByArrival ? 'units' : 'summary';
 
   /*
    * A branch switch starts from the whole shelf of the NEW branch. A focus or a
@@ -133,11 +146,12 @@ export default function InventoryScreen() {
   });
 
   const inventory = useInfiniteQuery({
-    queryKey: qk.inventory(branchId, status, debounced, focusId),
+    queryKey: qk.inventory(branchId, status, debounced, focusId, phonesByArrival ? 'imei' : undefined),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (status) params.set('status', status);
+      if (phonesByArrival) params.set('trackingType', 'imei');
       if (debounced) params.set('search', debounced);
       if (focusId) params.set('productId', focusId);
       if (pageParam) params.set('cursor', pageParam);
@@ -202,6 +216,13 @@ export default function InventoryScreen() {
   const clearFocus = () => {
     setFocus(null);
     if (productIdParam) router.setParams({ productId: undefined });
+  };
+
+  const leaveArrivals = () => {
+    setPhonesByArrival(false);
+    setCategory('all');
+    setStatus('in_stock');
+    router.setParams({ category: undefined, status: undefined, sort: undefined });
   };
 
   const openVariant = (row: StockSummaryRow) => {
@@ -304,6 +325,14 @@ export default function InventoryScreen() {
         </ScrollView>
       ) : (
         <>
+          {phonesByArrival ? (
+            <View style={styles.focusRow}>
+              <Text variant="bodyStrong" style={styles.focusText}>
+                {t('stock.category.phone')}
+              </Text>
+              <IconButton icon={X} accessibilityLabel={t('stock.clearProduct')} onPress={leaveArrivals} />
+            </View>
+          ) : null}
           {focusId ? (
             <View style={styles.focusRow}>
               <Text variant="caption" tone="secondary" style={styles.focusText} numberOfLines={2}>
@@ -311,6 +340,11 @@ export default function InventoryScreen() {
               </Text>
               <IconButton icon={X} accessibilityLabel={t('stock.clearProduct')} onPress={clearFocus} />
             </View>
+          ) : null}
+          {phonesByArrival ? (
+            <Text variant="caption" tone="secondary">
+              {t('stock.newestReceived')}
+            </Text>
           ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filters}>

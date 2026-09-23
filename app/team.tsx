@@ -304,6 +304,7 @@ function EditSheet({
           )}
 
           <PriceEditDelegation user={user} />
+          <ClosingDelegation user={user} />
 
           <Text variant="caption" tone="tertiary">
             {t('team.detail.lastLogin')}: {lastLogin}
@@ -425,6 +426,88 @@ function PriceEditDelegation({ user }: { user: TeamUser }) {
       <Text variant="caption" tone="tertiary">
         {t('team.delegation.notYet')}
       </Text>
+    </View>
+  );
+}
+
+/** The second delegatable key. Mirrors the server's allow-list. */
+const CLOSING = 'closing.perform';
+
+/**
+ * Per-branch closing delegation (0076).
+ *
+ * The Owner plus at most two people per branch may count, close, reopen and
+ * close the business day again; a manager or an employee alike. Same shape as
+ * price editing — one explicit switch per eligible branch — and the limit is
+ * the server's: a third delegate is refused with a 409 that names it, and the
+ * screen repeats the rule beside the switches rather than in a confirmation
+ * people learn to dismiss. Starting the next day early stays the Owner's and
+ * is not delegated here.
+ */
+function ClosingDelegation({ user }: { user: TeamUser }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [pendingBranch, setPendingBranch] = useState<string | null>(null);
+
+  const eligible = user.delegatablePermissions?.includes(CLOSING) ? user.branches.filter((b) => b.canDelegateClosing) : [];
+
+  const mutate = useMutation({
+    mutationFn: ({ branchId, next }: { branchId: string; next: boolean }) => {
+      const path = `/users/${user.id}/branches/${branchId}/delegations/closing`;
+      return next ? api.put<TeamUser>(path, {}) : api.delete<TeamUser>(path);
+    },
+    onSuccess: (fresh, { branchId, next }) => {
+      const branch = user.branches.find((b) => b.branchId === branchId);
+      queryClient.setQueryData<TeamUser[]>(qk.users, (list) => (list ? list.map((u) => (u.id === fresh.id ? fresh : u)) : list));
+      void queryClient.invalidateQueries({ queryKey: qk.users });
+      void queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast.success(t(next ? 'team.closing.granted' : 'team.closing.revoked', { branch: branch?.branchName ?? '' }));
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        // The seat limit, or an assignment that stopped being eligible. Both are the server's call.
+        toast.error(/closing_delegates_limit/.test(String((error as { code?: string }).code ?? error.message)) ? t('team.closing.limit') : t('team.closing.conflict'));
+        void queryClient.invalidateQueries({ queryKey: qk.users });
+        return;
+      }
+      toast.error(toFriendlyError(error).body);
+    },
+    onSettled: () => setPendingBranch(null),
+  });
+
+  if (eligible.length === 0) return null;
+
+  const onToggle = async (branchId: string, branchName: string, next: boolean) => {
+    const ok = await dialog.confirm({
+      title: t(next ? 'team.closing.confirmOnTitle' : 'team.closing.confirmOffTitle', { name: user.name }),
+      message: t(next ? 'team.closing.confirmOnBody' : 'team.closing.confirmOffBody', { name: user.name, branch: branchName }),
+      confirmLabel: t(next ? 'team.closing.confirmOn' : 'team.closing.confirmOff'),
+      cancelLabel: t('action.cancel'),
+      tone: next ? 'default' : 'danger',
+    });
+    if (!ok) return;
+    setPendingBranch(branchId);
+    mutate.mutate({ branchId, next });
+  };
+
+  return (
+    <View style={styles.delegation}>
+      <Text variant="label">{t('team.closing.section')}</Text>
+      <Text variant="caption" tone="secondary">
+        {t('team.closing.hint')}
+      </Text>
+      {eligible.map((b) => (
+        <Toggle
+          key={b.branchId}
+          label={t('team.closing.allow', { branch: b.branchName })}
+          hint={t('team.closing.allowHint')}
+          onLabel={t('settings.toggle.on')}
+          offLabel={t('settings.toggle.off')}
+          value={b.grantedPermissions.includes(CLOSING)}
+          disabled={mutate.isPending && pendingBranch === b.branchId}
+          onValueChange={(next) => void onToggle(b.branchId, b.branchName, next)}
+        />
+      ))}
     </View>
   );
 }

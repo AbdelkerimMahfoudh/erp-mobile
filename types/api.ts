@@ -465,6 +465,8 @@ export interface TeamUserBranch {
    * role string, or the two definitions drift.
    */
   canDelegate: boolean;
+  /** Whether this assignment may be one of the branch’s two closing delegates (0076). */
+  canDelegateClosing: boolean;
   /**
    * Delegated permissions currently granted on THIS branch assignment. Empty
    * for almost every assignment. Authority is per branch, so the same person
