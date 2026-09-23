@@ -7,8 +7,9 @@ import { create } from 'zustand';
  * two screens quietly answer different questions. So the choice lives here,
  * outside either screen, and both read it.
  *
- * Days are calendar days in UTC, the way the server keys `daily_rollups`, the
- * closing and every period endpoint. "This month" is month-to-date, the same
+ * Days are the branch's BUSINESS dates (0076), the way the server keys every
+ * rollup, the closing and every period endpoint; `usePeriodRange` (in `lib/home.ts`,
+ * so this file stays importable under bare node) asks the server which day it is. "This month" is month-to-date, the same
  * window Home's four figures use.
  */
 
@@ -21,9 +22,15 @@ export interface DayRange {
   readonly to: string;
 }
 
-/** The inclusive day range a period covers, ending today. Pure, for tests. */
-export function periodRange(key: PeriodKey, now: Date = new Date()): DayRange {
-  const to = now.toISOString().slice(0, 10);
+/**
+ * The inclusive day range a period covers, ending on `today`. Pure, for tests.
+ *
+ * `today` is the branch's BUSINESS date when the caller knows it (0076: the
+ * server's 06:00 rule, never the phone's midnight); the UTC calendar date is
+ * only the fallback while that answer is still loading.
+ */
+export function periodRange(key: PeriodKey, now: Date = new Date(), today?: string): DayRange {
+  const to = today ?? now.toISOString().slice(0, 10);
   if (key === 'today') return { from: to, to };
   if (key === 'month') return { from: `${to.slice(0, 7)}-01`, to };
   const from = new Date(Date.parse(`${to}T00:00:00.000Z`) - 6 * 86_400_000).toISOString().slice(0, 10);

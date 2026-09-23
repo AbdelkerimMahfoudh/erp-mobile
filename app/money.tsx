@@ -24,7 +24,8 @@ import { formatMoney } from '../lib/format';
 import { useConnectivity } from '../lib/connectivity';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
-import { periodDays, periodRange, usePeriod } from '../lib/period';
+import { periodDays, usePeriod } from '../lib/period';
+import { usePeriodRange } from '../lib/home';
 import { usePeriodSummary, type PeriodSummary } from '../lib/analytics-summary';
 import { resultLines } from '../lib/results';
 
@@ -49,7 +50,7 @@ export default function ResultsScreen() {
   const canView = usePermission('report.view');
   const offline = !useConnectivity((s) => s.online);
   const key = usePeriod((s) => s.key);
-  const range = periodRange(key);
+  const range = usePeriodRange(key);
   const query = usePeriodSummary(range.from, range.to, { enabled: canView });
 
   const header = (

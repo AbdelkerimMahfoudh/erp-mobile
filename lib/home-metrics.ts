@@ -23,17 +23,13 @@ export interface DayWindow {
 }
 
 /**
- * ⚠️ Period boundaries are UTC.
+ * ⚠️ A fallback only, since 0076.
  *
- * There is no business-timezone setting anywhere in this product — the server
- * keys every rollup on a UTC `day` (`dayKey`), and `windowOf` slices a UTC
- * ISO string. Computing the month locally here would put the phone and the
- * server on different days either side of midnight, so this matches the server
- * rather than being independently "more correct".
- *
- * That agreement is the honest short answer, not the right long one: a shop
- * trading late in a UTC+2 evening has its takings land on tomorrow's figures.
- * Recorded as a contract gap rather than papered over — see `docs/21`.
+ * The server now keys every rollup, the closing and every period endpoint on
+ * the branch's BUSINESS date (06:00 local, `docs/50`), and Home reads its
+ * ranges from `/home` rather than computing them. This UTC month-to-date is
+ * what a caller falls back to while the server's business date is still
+ * loading (`usePeriodRange` in `lib/period.ts`); it is never the final answer.
  */
 export function monthToDate(now: Date = new Date()): DayWindow {
   const to = now.toISOString().slice(0, 10);

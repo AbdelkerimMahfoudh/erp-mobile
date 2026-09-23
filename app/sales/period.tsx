@@ -10,7 +10,8 @@ import { makeStyles } from '../../lib/design/theme';
 import { formatDate, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-overview';
-import { periodRange, usePeriod } from '../../lib/period';
+import { usePeriod } from '../../lib/period';
+import { usePeriodRange } from '../../lib/home';
 import { usePermission } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
 import type { SaleListRow } from '../../types/api';
@@ -34,7 +35,7 @@ export default function SalesForPeriodScreen() {
   const router = useRouter();
   const { day: openDay } = useLocalSearchParams<{ day?: string }>();
   const key = usePeriod((s) => s.key);
-  const range = periodRange(key);
+  const range = usePeriodRange(key);
   const canViewFigures = usePermission('report.view');
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
   const days = useSalesByDay(range.from, range.to, { enabled: key !== 'today' });

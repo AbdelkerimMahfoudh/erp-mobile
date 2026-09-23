@@ -9,7 +9,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { periodDays, periodRange } from './period.ts';
-import { homeFigures } from './home-figures.ts';
 import { resultLines } from './results.ts';
 import { movementTotals } from './money-movement-rules.ts';
 import { MONEY_QUERY_PREFIXES, invalidateMoney } from './money-invalidation.ts';
@@ -47,7 +46,8 @@ it('Money and Results read the same period store and the same selector', () => {
   const results = code(read('../app/money.tsx'));
   for (const src of [money, results]) {
     assert.match(src, /usePeriod\(\(s\) => s\.key\)/);
-    assert.match(src, /periodRange\(key\)/);
+    // 0076: the range ends on the branch's business date, asked of the server.
+    assert.match(src, /usePeriodRange\(key\)/);
     assert.match(src, /<PeriodSelector \/>/);
   }
 });
@@ -65,37 +65,44 @@ it('Home: Sell and Receive side by side, with the several-items link under them'
   assert.match(read('../app/(tabs)/index.tsx'), /actionRow: \{ flexDirection: 'row'/);
 });
 
-it('Home shows exactly the four approved figures, and no stock or menu section', () => {
+it('Home shows exactly the four figures of the business-date contract, and no stock or menu section', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
-  const labels = [...home.matchAll(/t\('home\.figure\.(\w+)'\)/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(labels)].sort(), ['collected', 'expenses', 'profit', 'sales']);
-  for (const gone of ['home.stock.', 'home.more.title', 'lowStock', 'supplier', 'inventoryValue']) {
+  const labels = [...home.matchAll(/t\('home\.sales\.(\w+)'\)/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(labels)].sort(), ['collected', 'expenses', 'owed', 'value']);
+  // The scope of "still owed" is said, not implied.
+  assert.match(home, /t\('home\.sales\.owed\.scope'\)/);
+  for (const gone of ['home.stock.', 'home.more.title', 'lowStock', 'supplier', 'inventoryValue', 'home.figure.', 'monthToDate', 'usePeriodSummary']) {
     assert.ok(!home.includes(gone), `Home must not contain ${gone}`);
   }
   assert.match(home, /<TabHeader[\s\S]*?bell/);
+  // The three cards the reference names, each with its way onwards.
+  assert.match(home, /t\('home\.top\.title'\)/);
+  assert.match(home, /router\.push\('\/partners\/ranking' as Href\)/);
+  assert.match(home, /t\('home\.arrivals\.title'\)/);
+  assert.match(home, /category: 'phone', status: 'all', sort: 'received'/);
+  assert.match(home, /t\('home\.closing\.review'\)/);
+  assert.match(home, /router\.push\('\/closing' as Href\)/);
 });
 
-it('without cost.view, profit and sales-after-returns are absent — never zero', () => {
-  const restricted = homeFigures({ expenseDetail: { total: 50, fixed: 0, salaries: 0, count: 1 }, collected: { total: 20, cash: 20, account: 0, count: 1 } });
-  assert.equal(restricted.profit, null);
-  assert.equal(restricted.sales, null);
-  assert.equal(restricted.expenses, 50);
-  assert.equal(restricted.collected, 20);
+it('Home is one server read per period, and the bars are the server’s', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
-  assert.match(home, /figures\.profit \? \(/, 'the profit card renders only when the server sent profit');
-  assert.match(home, /figures\.sales !== null \? \(/, 'sales renders only when the server sent it');
+  const lib = code(read('../lib/home.ts'));
+  assert.match(home, /useHome\(period/);
+  assert.match(lib, /api\.get<HomeResponse>\(`\/home\?period=\$\{period\}`\)/);
+  assert.match(home, /<SalesBars bars=\{data\.series\.bars\} unit=\{data\.series\.unit\}/);
+  // Nothing is summed, subtracted or windowed on the phone.
+  assert.ok(!/\.reduce\(\(?[a-z], ?[a-z]\)? => [a-z] \+ [a-z]\.value/.test(home), 'no client-side sum of the bars');
+  assert.ok(!home.includes('toISOString().slice(0, 10)'), 'no client-side day key');
 });
 
-it('all-zero month is one sentence, not four explanations', () => {
-  const zero = homeFigures({
-    profit: { ...PROFIT, grossSales: 0, returnsRevenue: 0, netRevenue: 0, netCogs: 0, grossProfit: 0, expenses: 0, netOperatingProfit: 0, cogs: 0, returnsCogs: 0 },
-    expenseDetail: { total: 0, fixed: 0, salaries: 0, count: 0 },
-    collected: { total: 0, cash: 0, account: 0, count: 0 },
-  });
-  assert.equal(zero.allZero, true);
-  assert.equal(homeFigures({ profit: PROFIT, expenseDetail: { total: 60, fixed: 0, salaries: 0, count: 1 } }).allZero, false);
+it('without report.view the figures are absent — never zero — and the arrivals carry no full identifier', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
-  assert.ok(!home.includes('home.month.noComparison'), 'no repeated "nothing to compare" line');
+  assert.match(home, /const figures = data\?\.figures \?\? null;/);
+  assert.match(home, /figures && data\?\.series \? \(/, 'the figures and the bars render only when the server sent them');
+  assert.match(home, /identifierLast4/);
+  assert.ok(!home.includes('imeiPrimary') && !home.includes('serialNo'), 'Home never reads a full identifier');
+  const homeLib = code(read('../lib/home.ts'));
+  assert.match(homeLib, /figures: HomeFigures \| null;/);
 });
 
 // ── Results ─────────────────────────────────────────────────────────────────

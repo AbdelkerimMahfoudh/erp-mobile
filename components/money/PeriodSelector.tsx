@@ -6,7 +6,8 @@ import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDayRange } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
-import { PERIOD_KEYS, periodRange, usePeriod, type PeriodKey } from '../../lib/period';
+import { PERIOD_KEYS, usePeriod, type PeriodKey } from '../../lib/period';
+import { usePeriodRange } from '../../lib/home';
 
 /**
  * Today / 7 days / This month, with the exact days underneath.
@@ -22,7 +23,7 @@ export function PeriodSelector() {
   const { t } = useTranslation();
   const key = usePeriod((s) => s.key);
   const setKey = usePeriod((s) => s.setKey);
-  const range = periodRange(key);
+  const range = usePeriodRange(key);
 
   return (
     <View style={styles.wrap}>

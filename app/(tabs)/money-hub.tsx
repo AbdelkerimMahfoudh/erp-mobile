@@ -32,7 +32,8 @@ import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { useMoneyOverview, useSalesByDay, type AccountToday, type SalesDay } from '../../lib/money-overview';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
-import { periodRange, usePeriod, type PeriodKey } from '../../lib/period';
+import { usePeriod, type PeriodKey } from '../../lib/period';
+import { usePeriodRange } from '../../lib/home';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
 
@@ -76,7 +77,7 @@ export default function MoneyTabScreen() {
   const offline = !useConnectivity((s) => s.online);
 
   const key = usePeriod((s) => s.key);
-  const range = periodRange(key);
+  const range = usePeriodRange(key);
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
   const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
   const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });

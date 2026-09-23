@@ -13,8 +13,8 @@ export const qk = {
    * `search` is part of the key so changing it starts a fresh pagination run —
    * a cursor issued under one query is meaningless under another.
    */
-  inventory: (branchId: string | null, status?: string, search?: string, productId?: string) =>
-    ['inventory', branchId, status ?? '', search ?? '', productId ?? ''] as const,
+  inventory: (branchId: string | null, status?: string, search?: string, productId?: string, trackingType?: string) =>
+    ['inventory', branchId, status ?? '', search ?? '', productId ?? '', trackingType ?? ''] as const,
   /**
    * Sale history is per branch, and `filters` joins search, status, method and
    * date range for the same reason the transfer key does: a cursor issued under
@@ -55,7 +55,13 @@ export const qk = {
   refundSummary: (branchId: string | null, range?: string) =>
     ['refund-summary', branchId, range ?? ''] as const,
   transferCounts: (branchId: string | null) => ['transfer-counts', branchId] as const,
-  home: (branchId: string | null) => ['home', branchId] as const,
+  /** Home's one read (docs/50): per branch and per period; `['home', branchId]` is what a mutation invalidates. */
+  home: (branchId: string | null, period?: string) =>
+    period ? (['home', branchId, period] as const) : (['home', branchId] as const),
+  /** The branch's current business date — the server's, never the phone's clock. */
+  businessDay: (branchId: string | null) => ['business-day', branchId] as const,
+  /** Partners ranked by completed-trade value, all time, per branch. */
+  partnerRanking: (branchId: string | null) => ['partner-ranking', branchId] as const,
   dashboard: (branchId: string | null) => ['dashboard', branchId] as const,
   analyticsProducts: (branchId: string | null) => ['analytics-products', branchId] as const,
   analyticsCategories: (branchId: string | null) => ['analytics-categories', branchId] as const,
