@@ -25,18 +25,18 @@ import {
   SkeletonList,
   Text,
   TextField,
-} from '../components/ui';
-import { useConnectivity } from '../lib/connectivity';
-import { radius, space } from '../lib/design/tokens';
-import { makeStyles, useColors } from '../lib/design/theme';
-import { isolateLtr } from '../lib/design/direction';
-import { dialog } from '../lib/dialog';
-import { toFriendlyError } from '../lib/errors';
-import { formatDate, formatMoney } from '../lib/format';
-import { useTranslation } from '../lib/i18n';
-import { HeaderShownContext } from '../lib/navigation/router-internals';
-import { usePermission } from '../lib/permissions';
-import { useClosingReminders } from '../lib/loans';
+} from '../../components/ui';
+import { useConnectivity } from '../../lib/connectivity';
+import { radius, space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
+import { isolateLtr } from '../../lib/design/direction';
+import { dialog } from '../../lib/dialog';
+import { toFriendlyError } from '../../lib/errors';
+import { formatDate, formatMoney } from '../../lib/format';
+import { useTranslation } from '../../lib/i18n';
+import { HeaderShownContext } from '../../lib/navigation/router-internals';
+import { usePermission } from '../../lib/permissions';
+import { useClosingReminders } from '../../lib/loans';
 import {
   useOpenClosing,
   useRecordCount,
@@ -44,7 +44,7 @@ import {
   type ChannelRow,
   type OpenClosing,
   type RecordCountBody,
-} from '../lib/closing';
+} from '../../lib/closing';
 
 /**
  * The daily closing, counted one channel at a time (Milestone E).
@@ -176,7 +176,8 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
     if (!ok) return;
     setError(null);
     signOff.mutate(undefined, {
-      onSuccess: () => router.push('/analytics' as never),
+      // Back to Closing & history, which now shows the closed day and its events.
+      onSuccess: () => router.replace('/closing' as never),
       onError: (e) => setError(e),
     });
   };

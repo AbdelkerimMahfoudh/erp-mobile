@@ -12,7 +12,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const SOURCE = readFileSync(new URL('../app/closing.tsx', import.meta.url), 'utf8');
+const SOURCE = readFileSync(new URL('../app/closing/count.tsx', import.meta.url), 'utf8');
 const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 /** The open-day component only — the locked day and the loading state keep `Screen`. */

@@ -326,6 +326,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/pricing/unit': 'Opened from a unit or the catalog.',
   '/pricing/history': 'Opened from a price.',
   '/discrepancies': 'Opened from the daily closing that raised the difference.',
+  '/closing/count': 'The counting and sign-off screen, reached from Closing & history (/closing).',
+  '/partners/ranking': 'Boutique ranking — reached from Home’s Top boutique card.',
   '/dev/gallery': 'Development-only design gallery, never linked from navigation.',
   '/hub/[id]': 'The hub container itself, generated from this registry.',
   '/approvals/[id]': 'One price approval, opened from the list or from the notification about it.',

@@ -3,6 +3,7 @@ import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
 import { invalidateMoney } from './money-invalidation';
+import type { DayStanding, ReopenMode } from './home-day';
 
 /**
  * The progressive daily closing (Milestone E).
@@ -40,13 +41,45 @@ export interface ChannelRow {
   countedAt: string | null;
 }
 
+export type ClosingStatus = 'counting' | 'counted' | 'locked' | 'reopened';
+
+/** One entry of the business day's history (0076): a count, a close, a reopen, a sale after the close. */
+export interface ClosingHistoryEntry {
+  kind: 'count_saved' | 'closed' | 'reopened' | 'auto_reopened' | 'reclosed' | 'day_started_early' | 'sale' | string;
+  at: string;
+  actor: string | null;
+  payload: Record<string, unknown>;
+}
+
 export interface OpenClosing {
   date: string;
-  status: 'counting' | 'counted' | 'locked';
+  businessDate: string;
+  /** The branch's current business date, which may differ from the day being viewed. */
+  today: string;
+  timezone: string;
+  standing: DayStanding;
+  status: ClosingStatus;
   isLocked: boolean;
-  channels: ChannelRow[];
+  channels: (ChannelRow & { openingBalance: number; stale: boolean })[];
   outstanding: number;
   complete: boolean;
+  /** The day was reopened and at least one count predates the reopen. */
+  freshCountRequired: boolean;
+  stale: string[];
+  expectedCash: number;
+  openingCash: number;
+  sinceLastCount: number | null;
+  lastCountedAt: string | null;
+  firstClosedAt: string | null;
+  closedAt: string | null;
+  reopenedAt: string | null;
+  reopenCount: number;
+  canReopen: boolean;
+  reopenRefusal: 'not_closed' | 'past_day' | 'future_day' | null;
+  reopenChoices: ReopenMode[];
+  nextDate: string;
+  history: ClosingHistoryEntry[];
+  previousDay: { businessDate: string; standing: DayStanding; needsReview: boolean } | null;
 }
 
 export function useOpenClosing(date?: string) {
@@ -92,6 +125,24 @@ export function useSignOffDay(date?: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
       void qc.invalidateQueries({ queryKey: qk.discrepancies(branchId) });
+      void qc.invalidateQueries({ queryKey: ['home', branchId] });
+      invalidateMoney(qc);
+    },
+  });
+}
+
+/**
+ * Reopen the current business day after a counted close, or — the Owner,
+ * before 06:00 — start the next one now (0076). Same authority as closing.
+ */
+export function useReopenDay(date?: string) {
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
+  return useMutation({
+    mutationFn: (mode: ReopenMode) => api.post<OpenClosing>('/closings/reopen', { mode, ...(date ? { date } : {}) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
+      void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
       void qc.invalidateQueries({ queryKey: ['home', branchId] });
       invalidateMoney(qc);
     },
