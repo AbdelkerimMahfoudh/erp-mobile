@@ -85,6 +85,10 @@ export const qk = {
    * branches counting on the same evening are two entirely separate drawers.
    */
   openClosing: (branchId: string | null, date: string) => ['open-closing', branchId, date] as const,
+  /** The Daily closing report of one business date (docs/51), per branch. */
+  dailyReport: (branchId: string | null, date: string) => ['daily-report', branchId, date] as const,
+  /** The source records behind "Correct a transaction". */
+  closingSources: (branchId: string | null, date: string) => ['closing-sources', branchId, date] as const,
   discrepancies: (branchId: string | null) => ['discrepancies', branchId] as const,
   discrepancy: (id: string) => ['discrepancy', id] as const,
   /** The signed-in person's own ledger — theirs, not a branch's. */

@@ -32,6 +32,8 @@ export interface ChannelRow {
   supplierOut: number;
   expensesOut: number;
   correctionsIn: number;
+  /** A payment reclassified out of this channel (0078). */
+  correctionsOut: number;
   expected: number;
   /** `null` means genuinely not counted yet — never the same as counted zero. */
   counted: number | null;

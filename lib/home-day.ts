@@ -16,7 +16,11 @@ export type HomePeriod = 'today' | 'week' | 'month';
 
 export const HOME_PERIODS: readonly HomePeriod[] = ['today', 'week', 'month'];
 
-export type DayStanding = 'open' | 'counting' | 'counted' | 'closed' | 'reopened' | 'needs_review';
+/**
+ * `inactive`: a past business date on which nothing at all was recorded — no
+ * sale, payment, count, opening or close (docs/51 D8). Not an overdue closing.
+ */
+export type DayStanding = 'open' | 'counting' | 'counted' | 'closed' | 'reopened' | 'needs_review' | 'inactive';
 
 export type StandingTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
