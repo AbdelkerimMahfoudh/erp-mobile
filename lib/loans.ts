@@ -125,10 +125,11 @@ export function useLoan(id: string | undefined) {
  * loan data displayed beside a closing, and it changes no figure the closing
  * computes. Keeping it separate makes that impossible to get wrong by accident.
  */
-export function useClosingReminders() {
+export function useClosingReminders(enabled = true) {
   return useQuery({
     queryKey: qk.loanReminders(),
     queryFn: () => api.get<ClosingReminders>('/loans/closing-reminders'),
+    enabled,
   });
 }
 

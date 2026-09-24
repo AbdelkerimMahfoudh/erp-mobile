@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { Banknote, Check, Lock, Smartphone } from 'lucide-react-native';
+import { ArrowLeft, Banknote, Lock, Smartphone } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -30,7 +30,6 @@ import { useConnectivity } from '../../lib/connectivity';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { isolateLtr } from '../../lib/design/direction';
-import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
 import { formatDate, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -40,17 +39,22 @@ import { useClosingReminders } from '../../lib/loans';
 import {
   useOpenClosing,
   useRecordCount,
-  useSignOffDay,
   type ChannelRow,
   type OpenClosing,
   type RecordCountBody,
 } from '../../lib/closing';
 
+/** A channel as the live view sends it: `stale` when its count predates a reopen. */
+type CheckRow = ChannelRow & { stale?: boolean };
+
 /**
- * The daily closing, counted one channel at a time (Milestone E).
+ * "Check physical cash or account balance" (docs/51 D2) — optional.
  *
- * Counting records what is in front of you and locks nothing; signing off is
- * a distinct act by somebody accountable for the day. Nothing here blurs that.
+ * The Daily closing report already knows what was recorded; this is where a
+ * person who wants to can count the drawer, or read an account's movement in
+ * its app, and compare. A count stays a count, with its difference; nothing
+ * here is required to close the day, and closing happens on the report, never
+ * here. Counting records what is in front of you and locks nothing.
  *
  * ## Why this screen does not use `Screen`
  *
@@ -75,11 +79,11 @@ export default function ClosingScreen() {
   const canCount = usePermission('closing.count');
   const view = useOpenClosing();
 
-  if (view.isLoading) return <Loading title={t('closing.title')} />;
+  if (view.isLoading) return <Loading title={t('closingCheck.title')} />;
   if (view.isError) {
     return (
       <Screen>
-        <Stack.Screen options={{ headerShown: true, title: t('closing.title') }} />
+        <Stack.Screen options={{ headerShown: true, title: t('closingCheck.title') }} />
         <ErrorState error={view.error} onRetry={() => void view.refetch()} />
       </Screen>
     );
@@ -99,11 +103,9 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
   const { t } = useTranslation();
   const router = useRouter();
   const offline = !useConnectivity((s) => s.online);
-  const canSignOff = usePermission('closing.perform');
   const headerShown = useContext(HeaderShownContext);
 
   const { mutate: recordCount } = useRecordCount();
-  const signOff = useSignOffDay();
   const [error, setError] = useState<unknown>(null);
   /** The one row being saved, by key — so the others are left alone. */
   const [saving, setSaving] = useState<string | null>(null);
@@ -136,20 +138,12 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
     setFooterHeight((prev) => (Math.abs(prev - h) > 1 ? h : prev));
   };
 
-  // Sums of the server's own per-channel figures, for the one summary surface.
-  const countable = day.channels.filter((c) => c.countable);
-  const settled = countable.filter((c) => c.counted !== null);
-  const expectedTotal = countable.reduce((s, c) => s + c.expected, 0);
-  const countedTotal = settled.reduce((s, c) => s + (c.counted ?? 0), 0);
-  const differenceTotal = settled.reduce((s, c) => s + (c.difference ?? 0), 0);
-  const done = countable.filter((c) => c.counted !== null || c.isSkipped).length;
-  const remaining = countable.length - done;
-
+  // No totals are added up here: the Daily closing report is the one place figures are summed, on the server.
   const errorText = error ? toFriendlyError(error).body || t('closing.count.failed') : null;
-  const rows = day.channels;
+  const rows: CheckRow[] = day.channels;
   const last = rows.length - 1;
 
-  const renderRow: ListRenderItem<ChannelRow> = useCallback(
+  const renderRow: ListRenderItem<CheckRow> = useCallback(
     ({ item, index }) => (
       <ChannelLine
         row={item}
@@ -163,28 +157,9 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
     [canCount, offline, saving, submit, last],
   );
 
-  const review = async () => {
-    const ok = await dialog.confirm({
-      title: t('closing.review.title', { date: formatDate(day.date) }),
-      message: t('closing.review.body', {
-        expected: isolateLtr(formatMoney(expectedTotal)),
-        counted: isolateLtr(formatMoney(countedTotal)),
-        difference: isolateLtr(formatMoney(differenceTotal, { signed: true })),
-      }),
-      confirmLabel: t('closing.review.confirm'),
-    });
-    if (!ok) return;
-    setError(null);
-    signOff.mutate(undefined, {
-      // Back to Closing & history, which now shows the closed day and its events.
-      onSuccess: () => router.replace('/closing' as never),
-      onError: (e) => setError(e),
-    });
-  };
-
   return (
     <SafeAreaView style={styles.safe} edges={headerShown ? ['bottom'] : ['top', 'bottom']}>
-      <Stack.Screen options={{ headerShown: true, title: t('closing.title') }} />
+      <Stack.Screen options={{ headerShown: true, title: t('closingCheck.title') }} />
       <KeyboardAvoidingView
         style={styles.fill}
         // iOS only. Android's window already resizes for the keyboard.
@@ -202,69 +177,32 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
               {errorText ? <InlineNotice tone="danger">{errorText}</InlineNotice> : null}
 
               <Card style={styles.summary}>
-                <View style={styles.summaryHead}>
-                  <Text variant="label" tone="secondary">
-                    {formatDate(day.date)}
-                  </Text>
-                  <Chip
-                    tone={day.complete ? 'success' : 'warning'}
-                    label={t('closing.summary.progress', { done: String(done), total: String(countable.length) })}
-                    size="sm"
-                    dot
-                  />
-                </View>
-                <Text variant="caption" tone="secondary">
-                  {t('closing.summary.expected')}
+                <Text variant="label" tone="secondary">
+                  {formatDate(day.date)}
                 </Text>
-                <MoneyValue value={expectedTotal} size="large" />
-                <View style={styles.summaryGrid}>
-                  <View style={styles.summaryCell}>
-                    <Text variant="caption" tone="secondary">
-                      {t('closing.summary.counted')}
-                    </Text>
-                    <MoneyValue value={countedTotal} size="small" />
-                  </View>
-                  <View style={styles.summaryCell}>
-                    <Text variant="caption" tone="secondary">
-                      {t('closing.summary.difference')}
-                    </Text>
-                    {/* Signed and sign-coloured: a shortage and a surplus are different problems. */}
-                    <MoneyValue value={settled.length ? differenceTotal : null} size="small" tone="auto" signed />
-                  </View>
-                </View>
+                <Text variant="body" tone="secondary">
+                  {t('closingCheck.intro')}
+                </Text>
               </Card>
 
               <View style={styles.sectionHead}>
                 <Text variant="heading" style={styles.flex}>
                   {t('closing.section.channels')}
                 </Text>
-                {remaining > 0 ? (
-                  <Text variant="caption" tone="secondary">
-                    {t('closing.progress.remaining', { count: String(remaining) })}
-                  </Text>
-                ) : null}
               </View>
             </View>
           }
           ListFooterComponent={
             <View style={styles.footerContent}>
               <LoanReminders />
-              {canSignOff ? (
-                <View style={styles.linkRow}>
-                  <Button
-                    title={t('closing.differences.link')}
-                    variant="tertiary"
-                    size="sm"
-                    onPress={() => router.push('/discrepancies' as never)}
-                  />
-                </View>
-              ) : (
-                // Said, not hidden. Somebody who counted should know what
-                // happens next and who does it.
-                <Text variant="caption" tone="secondary">
-                  {t('closing.signOff.notYours')}
-                </Text>
-              )}
+              <View style={styles.linkRow}>
+                <Button
+                  title={t('closing.differences.link')}
+                  variant="tertiary"
+                  size="sm"
+                  onPress={() => router.push('/discrepancies' as never)}
+                />
+              </View>
             </View>
           }
           contentContainerStyle={[styles.content, { paddingBottom: footerHeight + space['3xl'] }]}
@@ -281,27 +219,10 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
           showsVerticalScrollIndicator={false}
         />
 
-        {canSignOff ? (
-          <View style={styles.footer} onLayout={measureFooter}>
-            {!day.complete ? (
-              <Text variant="caption" tone="secondary" align="center">
-                {t('closing.review.blocked')}
-              </Text>
-            ) : offline ? (
-              <Text variant="caption" tone="secondary" align="center">
-                {t('closing.offline')}
-              </Text>
-            ) : null}
-            <Button
-              title={t('closing.review')}
-              icon={Check}
-              fullWidth
-              disabled={!day.complete || offline || signOff.isPending}
-              loading={signOff.isPending}
-              onPress={() => void review()}
-            />
-          </View>
-        ) : null}
+        {/* Back to the report: closing happens there, never here, and nothing here is required. */}
+        <View style={styles.footer} onLayout={measureFooter}>
+          <Button title={t('closingCheck.back')} icon={ArrowLeft} variant="secondary" fullWidth onPress={() => router.back()} />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -310,7 +231,7 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
 // ── One row of the list ─────────────────────────────────────────────────────
 
 interface ChannelLineProps {
-  row: ChannelRow;
+  row: CheckRow;
   first: boolean;
   last: boolean;
   disabled: boolean;
@@ -329,6 +250,7 @@ function sameRow(a: ChannelLineProps, b: ChannelLineProps): boolean {
     a.row.countable === b.row.countable &&
     a.row.isUnattributed === b.row.isUnattributed &&
     a.row.labelSnapshot === b.row.labelSnapshot &&
+    a.row.stale === b.row.stale &&
     a.first === b.first &&
     a.last === b.last &&
     a.disabled === b.disabled &&
@@ -344,6 +266,8 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
   const [value, setValue] = useState('');
   const [skipping, setSkipping] = useState(false);
   const [skipReason, setSkipReason] = useState('');
+  /** Counting again over a saved count — a count is corrected by a new count, never edited in place. */
+  const [recounting, setRecounting] = useState(false);
 
   const label =
     row.channel === 'cash'
@@ -351,7 +275,8 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
       : row.isUnattributed
         ? t('closing.channel.unattributed')
         : row.labelSnapshot;
-  const settled = row.counted !== null || row.isSkipped;
+  // A count from before a reopen proves nothing about the drawer now: it is offered for counting again.
+  const settled = (row.counted !== null || row.isSkipped) && !row.stale && !recounting;
   const Icon = row.channel === 'cash' ? Banknote : Smartphone;
   const body = { channel: row.channel, accountId: row.accountId ?? undefined } as const;
 
@@ -365,7 +290,9 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
           </Text>
         </View>
         {/* Status in a word as well as a colour, always. */}
-        {row.isSkipped ? (
+        {row.stale ? (
+          <Chip tone="warning" label={t('dailyReport.verify.stale')} size="sm" dot />
+        ) : row.isSkipped ? (
           <Chip tone="neutral" label={t('closing.channel.skipped')} size="sm" dot />
         ) : row.counted !== null ? (
           <Chip tone="success" label={t('closing.channel.counted')} size="sm" dot />
@@ -390,7 +317,12 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
           {t('closing.channel.unattributed.why')}
         </Text>
       ) : settled ? (
-        <SettledLine row={row} />
+        <View style={styles.form}>
+          <SettledLine row={row} />
+          <View style={styles.linkRow}>
+            <Button title={t('closingCheck.recount')} variant="tertiary" size="sm" disabled={disabled} onPress={() => setRecounting(true)} />
+          </View>
+        </View>
       ) : skipping ? (
         <View style={styles.form}>
           <TextField
@@ -412,10 +344,15 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
         </View>
       ) : (
         <View style={styles.form}>
+          {row.stale ? (
+            <Text variant="caption" tone="secondary">
+              {t('closingCheck.stale')}
+            </Text>
+          ) : null}
           <View style={styles.countLine}>
             <MoneyField
-              accessibilityLabel={row.channel === 'cash' ? t('closing.countedLabel') : t('closing.countedBalance')}
-              placeholder={row.channel === 'cash' ? t('closing.countedLabel') : t('closing.countedBalance')}
+              accessibilityLabel={row.channel === 'cash' ? t('closing.countedLabel') : t('closingCheck.accountPrompt')}
+              placeholder={row.channel === 'cash' ? t('closing.countedLabel') : t('closingCheck.accountPrompt')}
               value={value}
               onChangeText={setValue}
               editable={!disabled && !saving}
@@ -426,7 +363,10 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
               title={t('closing.row.save')}
               disabled={disabled || saving || value.trim() === ''}
               loading={saving}
-              onPress={() => onSubmit({ ...body, counted: Number(value) })}
+              onPress={() => {
+                setRecounting(false);
+                onSubmit({ ...body, counted: Number(value) });
+              }}
             />
           </View>
           {/*
@@ -495,7 +435,8 @@ function LoanReminders() {
   const { t } = useTranslation();
   const canSee = usePermission('loan.view');
   const router = useRouter();
-  const reminders = useClosingReminders();
+  // Not even fetched without `loan.view`: the server would refuse it (docs/51 §9.12).
+  const reminders = useClosingReminders(canSee);
 
   const r = reminders.data;
   if (!canSee || !r) return null;
@@ -607,9 +548,6 @@ const useStyles = makeStyles((colors) => ({
   content: { padding: space.base },
   header: { gap: space.md, paddingBottom: space.md },
   summary: { gap: space.xs },
-  summaryHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginBottom: space.xs },
-  summaryGrid: { flexDirection: 'row', gap: space.base, marginTop: space.sm },
-  summaryCell: { flex: 1, gap: 2 },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm, marginTop: space.xs },
   /*
    * The rows draw ONE surface between them: side edges on every row, the top

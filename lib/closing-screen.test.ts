@@ -85,14 +85,26 @@ describe('rendering', () => {
 });
 
 describe('what the person sees', () => {
-  it('one summary surface, one section title with the remaining count, one bottom action with its reason', () => {
-    assert.match(COUNTING, /t\('closing\.summary\.expected'\)/);
-    assert.match(COUNTING, /t\('closing\.summary\.counted'\)/);
-    assert.match(COUNTING, /t\('closing\.summary\.difference'\)/);
-    assert.match(COUNTING, /t\('closing\.progress\.remaining', \{ count: String\(remaining\) \}\)/);
-    assert.match(COUNTING, /title=\{t\('closing\.review'\)\}/);
-    assert.match(COUNTING, /disabled=\{!day\.complete \|\| offline \|\| signOff\.isPending\}/);
-    assert.match(COUNTING, /t\('closing\.review\.blocked'\)/);
+  /*
+   * docs/51 D2: counting is OPTIONAL. The screen says so, adds nothing up on the
+   * phone, and never carries the close — which lives on the Daily closing report.
+   * The old "0 of 2 counted" chip and the "Review and close" button disabled until
+   * every channel was counted are gone for good.
+   */
+  it('an optional check: says so, sums nothing, and hands back to the report instead of closing', () => {
+    assert.match(COUNTING, /t\('closingCheck\.intro'\)/);
+    assert.match(COUNTING, /title=\{t\('closingCheck\.back'\)\}/);
+    assert.doesNotMatch(code, /closing\.summary\.(expected|counted|difference|progress)/, 'no phone-side totals');
+    assert.doesNotMatch(code, /closing\.progress\.remaining/, 'no "N remaining" pressure');
+    assert.doesNotMatch(code, /useSignOffDay|signOff\.|t\('closing\.review'\)|closing\.review\.blocked/, 'no sign-off here');
+    assert.doesNotMatch(code, /day\.complete/, 'nothing waits for every channel to be counted');
+  });
+
+  it('a saved or stale count can be counted again; an account is asked for its movement, not its balance', () => {
+    assert.match(ROW, /t\('closingCheck\.recount'\)/);
+    assert.match(ROW, /row\.stale/);
+    assert.match(ROW, /t\('closingCheck\.accountPrompt'\)/);
+    assert.doesNotMatch(ROW, /closing\.countedBalance/);
   });
 
   it('no per-account card, and no full-width ghost button to clip at the edge', () => {
