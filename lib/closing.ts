@@ -43,12 +43,30 @@ export interface ChannelRow {
 
 export type ClosingStatus = 'counting' | 'counted' | 'locked' | 'reopened';
 
-/** One entry of the business day's history (0076): a count, a close, a reopen, a sale after the close. */
+/**
+ * One entry of the business day's timeline (0076, 0077): a count, a close, a
+ * reopen, the boutique's opening, the first sale ("First activity"), a sale
+ * after the close — each at its store-local date and time.
+ */
 export interface ClosingHistoryEntry {
-  kind: 'count_saved' | 'closed' | 'reopened' | 'auto_reopened' | 'reclosed' | 'day_started_early' | 'sale' | string;
+  kind: 'count_saved' | 'closed' | 'reopened' | 'auto_reopened' | 'reclosed' | 'day_started_early' | 'opened' | 'first_activity' | 'sale' | string;
   at: string;
+  /** The store's wall clock, YYYY-MM-DD and HH:mm — never the phone's zone. */
+  localDate: string;
+  localTime: string;
   actor: string | null;
   payload: Record<string, unknown>;
+}
+
+/** Whether the boutique is physically open on a date, from its recorded openings and closes (0077). */
+export type DoorState = 'never_opened' | 'open' | 'closed';
+
+export interface DayOpening {
+  kind: 'opened' | 'reopened' | 'auto_reopened' | string;
+  at: string;
+  actor: string | null;
+  localDate: string;
+  localTime: string;
 }
 
 export interface OpenClosing {
@@ -70,6 +88,8 @@ export interface OpenClosing {
   openingCash: number;
   sinceLastCount: number | null;
   lastCountedAt: string | null;
+  /** The last count's store-local time, HH:mm. */
+  lastCountedLocalTime: string | null;
   firstClosedAt: string | null;
   closedAt: string | null;
   reopenedAt: string | null;
@@ -79,6 +99,14 @@ export interface OpenClosing {
   reopenChoices: ReopenMode[];
   nextDate: string;
   history: ClosingHistoryEntry[];
+  door: DoorState;
+  /** The latest recorded opening of the date, or null: "No opening time recorded". */
+  opening: DayOpening | null;
+  canOpen: boolean;
+  openRefusal: 'past_day' | 'future_day' | 'day_closed' | 'already_open' | null;
+  /** The store's wall clock at the time of the read, HH:mm and YYYY-MM-DD. */
+  localNow: string;
+  localNowDate: string;
   previousDay: { businessDate: string; standing: DayStanding; needsReview: boolean } | null;
 }
 
@@ -145,6 +173,24 @@ export function useReopenDay(date?: string) {
       void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
       void qc.invalidateQueries({ queryKey: ['home', branchId] });
       invalidateMoney(qc);
+    },
+  });
+}
+
+/**
+ * "Open the boutique" (0077): records that a person opened, with the store's
+ * time and their name. Anybody who may count may record it; a closed day is
+ * reopened instead (`useReopenDay`).
+ */
+export function useOpenDay(date?: string) {
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
+  return useMutation({
+    mutationFn: () => api.post<OpenClosing>('/closings/open', date ? { date } : {}),
+    onSuccess: (fresh) => {
+      qc.setQueryData(qk.openClosing(branchId, date ?? 'today'), fresh);
+      void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
+      void qc.invalidateQueries({ queryKey: ['home', branchId] });
     },
   });
 }

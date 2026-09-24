@@ -6,12 +6,16 @@
 import assert from 'node:assert/strict';
 import {
   axisTicks,
+  dayChoices,
+  dayWordKey,
   freshness,
   historyKey,
   labelledEvery,
   lastFour,
+  openingKey,
   looksLikeFullIdentifier,
   reopenOptions,
+  shiftDay,
   shortAmount,
   sinceLastCountTone,
   standingKey,
@@ -99,6 +103,28 @@ it('every history kind has a catalogue key, and an unknown one falls back rather
   assert.equal(historyKey('sale'), 'closing.history.sale');
   assert.equal(historyKey('auto_reopened'), 'closing.history.auto_reopened');
   assert.equal(historyKey('something_new'), 'closing.history.other');
+});
+
+it('the opening line: explicit open or reopen, today or on a past date, else no time recorded (0077)', () => {
+  assert.equal(openingKey(null, true), 'closingHistory.noOpening');
+  assert.equal(openingKey({ kind: 'opened' }, true), 'closingHistory.openedToday');
+  assert.equal(openingKey({ kind: 'opened' }, false), 'closingHistory.openedOn');
+  assert.equal(openingKey({ kind: 'reopened' }, true), 'closingHistory.reopenedToday');
+  assert.equal(openingKey({ kind: 'auto_reopened' }, false), 'closingHistory.reopenedOn');
+  assert.equal(historyKey('opened'), 'closing.history.opened');
+  assert.equal(historyKey('first_activity'), 'closing.history.first_activity');
+});
+
+it('the date selector offers today first and walks back across month and year edges', () => {
+  assert.equal(shiftDay('2026-10-01', -1), '2026-09-30');
+  assert.equal(shiftDay('2027-01-01', -15), '2026-12-17');
+  const days = dayChoices('2026-09-24', 15);
+  assert.equal(days.length, 16);
+  assert.equal(days[0], '2026-09-24');
+  assert.equal(days[15], '2026-09-09');
+  assert.equal(dayWordKey('2026-09-24', '2026-09-24'), 'closingHistory.today');
+  assert.equal(dayWordKey('2026-09-23', '2026-09-24'), 'closingHistory.yesterday');
+  assert.equal(dayWordKey('2026-09-09', '2026-09-24'), null);
 });
 
 console.log(`home-day: ${passed} passed`);

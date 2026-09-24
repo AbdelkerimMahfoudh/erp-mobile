@@ -27,6 +27,7 @@ import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { formatQuantity } from '../../lib/format';
+import { lastFour } from '../../lib/home-day';
 import { useTranslation } from '../../lib/i18n';
 import { withDismiss } from '../../lib/keyboard-dismiss';
 import { usePermission } from '../../lib/permissions';
@@ -111,6 +112,12 @@ export default function InventoryScreen() {
 
   const searching = debounced.length > 0;
   const mode: 'summary' | 'units' = searching || focusId || phonesByArrival ? 'units' : 'summary';
+  /*
+   * Reached from Home's "Latest phones received", the list shows the last four
+   * digits only, as Home does (docs/50 §3.5): the full identifier is still what
+   * opens the unit, but it is not what the glance shows.
+   */
+  const shownIdentifier = (identifier: string) => (phonesByArrival ? t('stock.maskedIdentifier', { last4: lastFour(identifier) }) : identifier);
 
   /*
    * A branch switch starts from the whole shelf of the NEW branch. A focus or a
@@ -458,9 +465,9 @@ export default function InventoryScreen() {
                         key={row.id}
                         flat
                         leading={PackageSearch}
-                        title={productTitle(row.product, row.identifier)}
+                        title={productTitle(row.product, shownIdentifier(row.identifier))}
                         subtitle={variantSummary(row.product) || undefined}
-                        identifier={row.identifier}
+                        identifier={shownIdentifier(row.identifier)}
                         accessory={<StatusChip domain="unit" value={row.status} size="sm" />}
                         /*
                          * Cost, only when the server actually sent it — it is

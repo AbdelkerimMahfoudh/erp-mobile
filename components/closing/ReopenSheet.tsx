@@ -4,7 +4,8 @@ import { BottomSheet } from '../overlay/BottomSheet';
 import { Button, Text } from '../ui';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
-import { formatDate, formatTime } from '../../lib/format';
+import { formatDate } from '../../lib/format';
+import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { reopenOptions, type ReopenMode } from '../../lib/home-day';
 
@@ -13,6 +14,8 @@ import { reopenOptions, type ReopenMode } from '../../lib/home-day';
  *
  * Shown only when the server offered more than "continue": after local
  * midnight, before 06:00, to somebody who may start a day early — the Owner.
+ * The choices and the time in the title are the server's: at 07:25 by the
+ * store's clock the early start is never offered, whatever the phone says.
  * The safe default is selected; the early start is a deliberate second tap.
  * Selling is never blocked while the sheet is open, and the sheet says so.
  */
@@ -23,13 +26,15 @@ export interface ReopenSheetProps {
   businessDate: string;
   /** The day an early start would begin, YYYY-MM-DD. */
   nextDate: string;
+  /** The store's wall clock as the server read it, HH:mm — the title never uses the phone's clock. */
+  now: string;
   /** What the server offered. */
   choices: readonly ReopenMode[];
   busy?: boolean;
   onConfirm: (mode: ReopenMode) => void;
 }
 
-export function ReopenSheet({ open, onClose, businessDate, nextDate, choices, busy, onConfirm }: ReopenSheetProps) {
+export function ReopenSheet({ open, onClose, businessDate, nextDate, now, choices, busy, onConfirm }: ReopenSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const options = reopenOptions(choices);
@@ -39,7 +44,7 @@ export function ReopenSheet({ open, onClose, businessDate, nextDate, choices, bu
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={t('reopen.title', { time: formatTime(new Date()) })}
+      title={t('reopen.title', { time: isolateLtr(now) })}
       subtitle={t('reopen.question')}
       footer={
         <View style={styles.footer}>

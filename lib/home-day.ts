@@ -137,9 +137,41 @@ export function historyKey(kind: string): string {
     case 'auto_reopened':
     case 'reclosed':
     case 'day_started_early':
+    case 'opened':
+    case 'first_activity':
     case 'sale':
       return `closing.history.${kind}`;
     default:
       return 'closing.history.other';
   }
+}
+
+/**
+ * The line that says when the boutique opened (0077): an explicit opening or
+ * a reopen, today or on a past date — or that no opening time was recorded.
+ * The 06:00 boundary never counts as an opening.
+ */
+export function openingKey(opening: { kind: string } | null, isToday: boolean): string {
+  if (!opening) return 'closingHistory.noOpening';
+  const reopened = opening.kind === 'reopened' || opening.kind === 'auto_reopened';
+  if (reopened) return isToday ? 'closingHistory.reopenedToday' : 'closingHistory.reopenedOn';
+  return isToday ? 'closingHistory.openedToday' : 'closingHistory.openedOn';
+}
+
+/** Calendar arithmetic on a YYYY-MM-DD, with no timezone involved. */
+export function shiftDay(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** The business dates the selector offers: today first, then back `count` days. */
+export function dayChoices(today: string, count = 60): string[] {
+  return Array.from({ length: count + 1 }, (_, i) => shiftDay(today, -i));
+}
+
+/** "Today" / "Yesterday" for the two dates that have a word, else null. */
+export function dayWordKey(date: string, today: string): 'closingHistory.today' | 'closingHistory.yesterday' | null {
+  if (date === today) return 'closingHistory.today';
+  if (date === shiftDay(today, -1)) return 'closingHistory.yesterday';
+  return null;
 }

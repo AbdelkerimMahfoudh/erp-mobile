@@ -339,7 +339,7 @@ function Figure({ label, value, tone, divider, caption }: { label: string; value
         {isolateLtr(CURRENCY_CODE)}
       </Text>
       {caption ? (
-        <Text variant="caption" tone="tertiary" numberOfLines={2}>
+        <Text variant="caption" tone="tertiary">
           {caption}
         </Text>
       ) : null}
