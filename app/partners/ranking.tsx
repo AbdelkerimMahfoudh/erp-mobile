@@ -6,11 +6,10 @@ import { Button, Card, EmptyState, ErrorState, MoneyValue, Screen, SkeletonList,
 import { useBranch } from '../../lib/branch';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
-import { formatRelative } from '../../lib/format';
+import { CURRENCY_CODE, formatRelative } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePartnerRanking, type PartnerRankRow } from '../../lib/home';
 import { isolateLtr } from '../../lib/design/direction';
-import { CURRENCY_CODE } from '../../lib/format';
 
 /**
  * Boutique ranking (docs/50 §3.5): every partner this branch has completed a
@@ -72,9 +71,9 @@ export default function PartnerRankingScreen() {
                   {t('ranking.end')}
                 </Text>
               ) : null}
-              {first ? (
+              {ranking.dataUpdatedAt ? (
                 <Text variant="caption" tone="tertiary" align="center">
-                  {t('ranking.refreshed', { time: formatRelative(first.generatedAt) })}
+                  {t('ranking.refreshed', { time: formatRelative(ranking.dataUpdatedAt) })}
                 </Text>
               ) : null}
             </View>
