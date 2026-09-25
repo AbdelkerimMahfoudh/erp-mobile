@@ -197,13 +197,17 @@ function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
           {/* Status by colour AND words, and only when it is not the ordinary
               case — a "Paid" badge on every row is noise that hides the two
               rows that actually need chasing. */}
-          {row.payStatus !== 'paid' ? (
+          {/* A cancelled sale says so; its pay status would say nothing true (0079). */}
+          {row.cancelled ? (
+            <Chip label={t('saleDetail.cancelled.chip')} tone="neutral" size="sm" />
+          ) : row.payStatus !== 'paid' ? (
             <Chip
               label={t(`sales.payStatus.${row.payStatus}` as never)}
               tone={row.payStatus === 'credit' ? 'warning' : 'neutral'}
               size="sm"
             />
           ) : null}
+          {row.cancellationRequested ? <Chip label={t('saleDetail.cancel.requestedChip')} tone="warning" size="sm" /> : null}
           {row.isReversed ? (
             <Chip label={t('sales.reversed')} tone="neutral" size="sm" />
           ) : null}

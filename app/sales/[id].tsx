@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { FileText, Store, UserRound } from 'lucide-react-native';
+import { Ban, FileText, Store, UserRound } from 'lucide-react-native';
+import { CorrectionSheet } from '../../components/corrections/CorrectionSheet';
 import {
   Button,
   Card,
@@ -90,7 +91,11 @@ function Body({ sale }: { sale: SaleDetail }) {
    * later — `sale.create`, the same permission the server checks. Offered only
    * while something is owed on a sale that still stands.
    */
-  const canCollect = usePermission('sale.create') && sale.balanceDue > 0 && !sale.isReversed;
+  const cancelled = sale.cancellation?.status === 'approved';
+  const canCollect = usePermission('sale.create') && sale.balanceDue > 0 && !sale.isReversed && !cancelled;
+  /** Whoever may ask for a correction may ask for this sale to be cancelled (0079); the server says whether it can be. */
+  const canAskCancel = usePermission('financial.correction.request') && !sale.cancellation && !sale.isReversed;
+  const [cancelling, setCancelling] = useState(false);
 
   // "Payment recorded", once, when we have just come back from recording one.
   const recordedAt = useRecentSuccess((s) => s.at[`payment:${sale.id}`]);
@@ -124,6 +129,7 @@ function Body({ sale }: { sale: SaleDetail }) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       {isFresh(recordedAt) ? <InlineNotice tone="success">{t('recordPayment.done')}</InlineNotice> : null}
+      <CancellationNotice sale={sale} />
 
       {/* The phone: what was sold, which exact one, and where the sale stands. */}
       <Card style={styles.phone}>
@@ -137,10 +143,10 @@ function Body({ sale }: { sale: SaleDetail }) {
           </View>
           {/* Every state is said, "Paid in full" included: the status comes from
               the money received, and a paid sale is an answer worth showing. */}
-          <StatusChip domain="sale" value={sale.payStatus} />
+          {cancelled ? <Chip label={t('saleDetail.cancelled.chip')} tone="neutral" dot /> : <StatusChip domain="sale" value={sale.payStatus} />}
         </View>
         {sale.lines.map((line) => (
-          <Line key={line.id} line={line} alone={sale.lines.length === 1} />
+          <Line key={line.id} line={line} alone={sale.lines.length === 1} returnsOpen={!sale.cancellation} />
         ))}
         {sale.isReversed ? (
           <Text variant="caption" tone="secondary">
@@ -247,10 +253,49 @@ function Body({ sale }: { sale: SaleDetail }) {
 
       {/* The customer's copy, for warranty and ownership: the exact phone and
           what was paid, and never cost or margin. No share sheet on web. */}
-      {canShareReceipt() ? (
+      {canShareReceipt() && !cancelled ? (
         <Button title={t('saleDetail.viewReceipt')} variant="secondary" icon={FileText} fullWidth loading={sharing} onPress={() => void share()} />
       ) : null}
+
+      {/* The sale itself was wrong — the wrong phone, the wrong price, a duplicate: cancel it and sell again (0079). */}
+      {canAskCancel ? <Button title={t('saleDetail.cancel.action')} variant="tertiary" icon={Ban} fullWidth onPress={() => setCancelling(true)} /> : null}
+      {cancelling ? (
+        <CorrectionSheet
+          action="cancel_sale"
+          target={{ id: sale.id, amount: sale.total, channel: null, label: t('sales.invoice', { no: sale.invoiceNo }) }}
+          onClose={() => setCancelling(false)}
+        />
+      ) : null}
     </ScrollView>
+  );
+}
+
+/**
+ * A cancelled sale says so first, in words: when, by whom, why and what money went
+ * back. One waiting for the Owner says that too. The sale below stays as recorded.
+ */
+function CancellationNotice({ sale }: { sale: SaleDetail }) {
+  const { t } = useTranslation();
+  const c = sale.cancellation;
+  if (!c) return null;
+  if (c.status === 'requested') {
+    return (
+      <InlineNotice tone="warning">
+        {t('saleDetail.cancel.requested', { name: c.requestedBy ?? '—', reason: c.reason })}
+      </InlineNotice>
+    );
+  }
+  const back = c.moneyBack
+    .map((m) => `${m.method === 'cash' ? t('closing.channel.cash') : (m.accountLabel ?? t('closing.channel.unattributed'))} ${formatMoney(m.amount)}`)
+    .join(' · ');
+  return (
+    <InlineNotice tone="neutral">
+      {[
+        t('saleDetail.cancel.done', { date: c.correctionDate ?? '—', name: c.decidedBy ?? '—' }),
+        t('saleDetail.cancel.reason', { reason: c.reason }),
+        back ? t('saleDetail.cancel.moneyBack', { money: back }) : t('saleDetail.cancel.noMoney'),
+      ].join('\n')}
+    </InlineNotice>
   );
 }
 
@@ -294,7 +339,7 @@ function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t'], 
 }
 
 /** One sold item. For a one-phone sale only the identifier and its actions — the name is the heading above. */
-function Line({ line, alone }: { line: SaleLine; alone: boolean }) {
+function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; returnsOpen: boolean }) {
   const { t } = useTranslation();
   const router = useRouter();
   const canRequestReturn = usePermission('return.request');
@@ -304,7 +349,8 @@ function Line({ line, alone }: { line: SaleLine; alone: boolean }) {
    * to present, and inventing an independent quantity return here would be
    * exactly the behaviour `docs/27` §16.4 says cannot be inferred.
    */
-  const returnable = Boolean(line.unitId) && !line.voided;
+  // A cancelled sale's phones are back in stock, not with a customer: nothing on it can be returned (0079).
+  const returnable = Boolean(line.unitId) && !line.voided && returnsOpen;
 
   return (
     <View style={styles.line}>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { MoneyValue, StatusChip, Text, Thumbnail } from '../ui';
+import { Chip, MoneyValue, StatusChip, Text, Thumbnail } from '../ui';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDateTime, formatMoney, formatTime } from '../../lib/format';
@@ -69,7 +69,7 @@ export function SaleRow({
           </>
         ) : null}
         <View style={styles.chip}>
-          <StatusChip domain="sale" value={sale.payStatus} size="sm" />
+          {sale.cancelled ? <Chip label={t('saleDetail.cancelled.chip')} tone="neutral" size="sm" /> : <StatusChip domain="sale" value={sale.payStatus} size="sm" />}
         </View>
       </View>
       <ChevronRight

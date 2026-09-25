@@ -55,7 +55,7 @@ export interface DescribedEvent {
   icon: HistoryIcon;
 }
 
-const KNOWN_STATUSES = new Set(['in_stock', 'reserved', 'sold', 'returned', 'faulty', 'in_transit', 'transferred_out']);
+const KNOWN_STATUSES = new Set(['in_stock', 'reserved', 'sold', 'returned', 'faulty', 'in_transit', 'transferred_out', 'voided']);
 
 function statusFrom(value: unknown): string | null {
   return value && typeof value === 'object' && typeof (value as { status?: unknown }).status === 'string'

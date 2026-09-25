@@ -25,6 +25,8 @@ export const unitStatus = {
   faulty: { tone: 'danger', labelKey: 'status.unit.faulty' },
   in_transit: { tone: 'info', labelKey: 'status.unit.in_transit' },
   transferred_out: { tone: 'neutral', labelKey: 'status.unit.transferred_out' },
+  /** Its purchase was cancelled (0079): the phone never entered the books. */
+  voided: { tone: 'neutral', labelKey: 'status.unit.voided' },
 } as const satisfies Record<string, StatusMeta>;
 
 /**

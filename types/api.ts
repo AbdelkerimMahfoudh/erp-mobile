@@ -741,6 +741,10 @@ export interface SaleListRow {
   balanceDue: number;
   payStatus: SalePayStatus;
   isReversed: boolean;
+  /** Cancelled by an approved correction (0079): shown as Cancelled, never by its pay status. */
+  cancelled: boolean;
+  /** A cancellation is waiting for the Owner. */
+  cancellationRequested: boolean;
   /** Rows on the sale. NOT how many things — see `itemCount`. */
   lineCount: number;
   /** Everything sold, counted as things: 1 phone + 10 cables = 11. */
@@ -841,10 +845,27 @@ export interface SaleDetail {
   payStatus: SalePayStatus;
   dueDate: string | null;
   isReversed: boolean;
+  /**
+   * An approved cancellation, or one waiting for the Owner (0079). The sale itself is
+   * never rewritten: its lines, totals and payments stay as recorded.
+   */
+  cancellation: SaleCancellation | null;
   lines: SaleLine[];
   payments: SalePaymentRecord[];
   returnPolicy: SaleReturnPolicy;
 }
+
+export type SaleCancellation =
+  | {
+      status: 'approved';
+      reason: string;
+      requestedBy: string | null;
+      decidedBy: string | null;
+      decidedAt: string | null;
+      correctionDate: string | null;
+      moneyBack: { method: 'cash' | 'account'; accountLabel: string | null; amount: number }[];
+    }
+  | { status: 'requested'; reason: string; requestedBy: string | null; requestedAt: string };
 
 export interface TransferListRow {
   id: string;
@@ -1375,6 +1396,18 @@ export interface Expense {
   confirmedAt: string | null;
   /** The business day the money is counted against. Null until confirmed. */
   confirmationDate: string | null;
+  /**
+   * A reversal of this confirmed expense, asked for or approved (0079). The amount
+   * above stays what was recorded; the reversal posts to its own day.
+   */
+  reversal: {
+    status: 'requested' | 'approved';
+    amount: number;
+    reason: string;
+    correctionDate: string | null;
+    requestedBy: string | null;
+    decidedBy: string | null;
+  } | null;
   /** Send with confirm/reject. A stale one is a 409. */
   version: number;
 }

@@ -15,6 +15,7 @@ import {
   SkeletonList,
   Text,
 } from '../../components/ui';
+import { CorrectionSheet } from '../../components/corrections/CorrectionSheet';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
@@ -65,6 +66,9 @@ export default function ExpenseDetailScreen() {
 function Body({ expense, refetch }: { expense: Expense; refetch: () => void }) {
   const { t } = useTranslation();
   const canReview = usePermission('expense.review');
+  /** A confirmed expense that was wrong is reversed, in whole or part, by a correction (0079). */
+  const canCorrect = usePermission('financial.correction.request') && expense.status === 'confirmed' && !expense.reversal;
+  const [correcting, setCorrecting] = useState(false);
   const confirm = useConfirmExpense(expense.id);
   const reject = useRejectExpense(expense.id);
   const [busy, setBusy] = useState(false);
@@ -207,8 +211,28 @@ function Body({ expense, refetch }: { expense: Expense; refetch: () => void }) {
               {t('expenses.confirmed.immutable')}
             </InlineNotice>
           ) : null}
+          {expense.reversal ? (
+            <InlineNotice tone={expense.reversal.status === 'approved' ? 'neutral' : 'warning'} style={styles.gap}>
+              {expense.reversal.status === 'approved'
+                ? t('expenses.reversal.done', { amount: formatMoney(expense.reversal.amount), date: expense.reversal.correctionDate ?? '—', reason: expense.reversal.reason })
+                : t('expenses.reversal.requested', { amount: formatMoney(expense.reversal.amount), name: expense.reversal.requestedBy ?? '—' })}
+            </InlineNotice>
+          ) : null}
         </Card>
       </Section>
+
+      {canCorrect ? (
+        <View style={styles.actions}>
+          <Button title={t('expenses.reversal.action')} variant="secondary" onPress={() => setCorrecting(true)} />
+        </View>
+      ) : null}
+      {correcting ? (
+        <CorrectionSheet
+          action="reverse_expense"
+          target={{ id: expense.id, amount: expense.amount, channel: expense.method, label: expense.category }}
+          onClose={() => setCorrecting(false)}
+        />
+      ) : null}
 
       {expense.status === 'reported' ? (
         canReview ? (
