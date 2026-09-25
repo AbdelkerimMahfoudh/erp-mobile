@@ -26,7 +26,11 @@ export interface AccountToday {
 }
 
 export interface ExpenseToday {
+  /** `reversal`: part of an expense reversed today — its amount is negative (docs/53). */
+  kind?: 'expense' | 'reversal';
   id: string;
+  /** The expense the row opens (for a reversal, the expense it corrected). */
+  expenseId?: string | null;
   description: string;
   amount: number;
   method: 'cash' | 'account';
@@ -46,7 +50,15 @@ export interface MoneyOverview {
   accountsToday: AccountToday[];
   period: {
     phonesSold: number;
+    /** Every item on the invoices less items on cancelled invoices — what "Items sold" shows (docs/53 R6). */
+    unitsSold: number;
+    /** Invoices less whole-sale cancellations (R5). */
     salesCount: number;
+    cancellations: { count: number; value: number; phones: number };
+    returns: { count: number; value: number; phones: number };
+    /** cancellations + returns, from the server. */
+    adjusted: number;
+    netSalesValue: number;
     /** The full selling price of everything sold. Not money received. */
     salesValue: number;
     /** Money actually received in the period, dated by when it arrived. */
@@ -56,7 +68,8 @@ export interface MoneyOverview {
     refunds: number;
   };
   outstandingAll: { amount: number; sales: number };
-  expensesToday: { total: number; rows: ExpenseToday[] };
+  /** `total` = recorded − reversed; the rows add up to it. */
+  expensesToday: { total: number; recorded: number; reversed: number; rows: ExpenseToday[] };
 }
 
 export function useMoneyOverview(from: string, to: string, opts: { enabled?: boolean } = {}) {
@@ -110,9 +123,21 @@ export function useOutstanding(opts: { enabled?: boolean } = {}) {
 
 export interface SalesDay {
   day: string;
+  /** Invoices less whole-sale cancellations approved that day (docs/53 R5). */
   sales: number;
   phones: number;
+  /** Items on the day's invoices less items on sales cancelled that day (R6). */
+  units: number;
+  /** The day's invoices. */
   value: number;
+  /** Cancellations and returns approved that day, whatever day their sale was. */
+  cancelled: number;
+  returned: number;
+  returns: number;
+  /** cancelled + returned, from the server. */
+  adjusted: number;
+  /** value − returned − cancelled — negative on a day holding only an adjustment. */
+  net: number;
   outstanding: number;
 }
 

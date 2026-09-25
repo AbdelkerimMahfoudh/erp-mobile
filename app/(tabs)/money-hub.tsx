@@ -29,6 +29,7 @@ import { useConnectivity } from '../../lib/connectivity';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
+import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { useMoneyOverview, useSalesByDay, type AccountToday, type SalesDay } from '../../lib/money-overview';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
@@ -160,7 +161,7 @@ export default function MoneyTabScreen() {
           {data ? (
             <Card style={styles.figures}>
               <View style={styles.grid}>
-                <Figure label={t('moneyOverview.phonesSold')} count={data.period.phonesSold} />
+                <Figure label={t('moneyOverview.phonesSold')} count={data.period.unitsSold} />
                 <Figure label={t('moneyOverview.salesValue')} value={data.period.salesValue} />
                 <Figure label={t('moneyOverview.collected')} value={data.period.collected} />
                 <Figure label={t('moneyOverview.outstanding')} value={data.period.outstanding} />
@@ -173,6 +174,34 @@ export default function MoneyTabScreen() {
                   <MoneyValue value={-data.period.refunds} size="small" />
                 </View>
               ) : null}
+              {/* Cancellations and returns approved in the period, on their own days: negative adjustments to the value above (docs/53). */}
+              {data.period.cancellations.count > 0 ? (
+                <View style={styles.line}>
+                  <Text variant="caption" tone="secondary" style={styles.grow}>
+                    {t('moneyOverview.cancelled', { count: String(data.period.cancellations.count) })}
+                  </Text>
+                  <MoneyValue value={-data.period.cancellations.value} size="small" />
+                </View>
+              ) : null}
+              {data.period.returns.count > 0 ? (
+                <View style={styles.line}>
+                  <Text variant="caption" tone="secondary" style={styles.grow}>
+                    {t('moneyOverview.returns', { count: String(data.period.returns.count) })}
+                  </Text>
+                  <MoneyValue value={-data.period.returns.value} size="small" />
+                </View>
+              ) : null}
+              {data.period.cancellations.count + data.period.returns.count > 0 ? (
+                <View style={styles.line}>
+                  <Text variant="caption" tone="secondary" style={styles.grow}>
+                    {t('moneyOverview.netSales')}
+                  </Text>
+                  <MoneyValue value={data.period.netSalesValue} size="small" />
+                </View>
+              ) : null}
+              <Text variant="caption" tone="tertiary">
+                {t('moneyOverview.countRule')}
+              </Text>
             </Card>
           ) : null}
 
@@ -186,7 +215,7 @@ export default function MoneyTabScreen() {
                   {data ? <MoneyValue value={data.period.salesValue} size="large" /> : null}
                   {data ? (
                     <Text variant="caption" tone="secondary">
-                      {t('moneyOverview.phones', { count: String(data.period.phonesSold) })}
+                      {t('moneyOverview.phones', { count: String(data.period.unitsSold) })}
                     </Text>
                   ) : null}
                 </View>
@@ -240,6 +269,11 @@ export default function MoneyTabScreen() {
                   <MoneyValue value={data.expensesToday.total} size="large" />
                   {/* Today's figure, whatever the period switch above says — it
                       controls sales, never this. */}
+                  {data.expensesToday.reversed > 0 ? (
+                    <Text variant="caption" tone="secondary">
+                      {t('moneyOverview.dailyExpenses.reversed', { amount: isolateLtr(formatMoney(-data.expensesToday.reversed)) })}
+                    </Text>
+                  ) : null}
                   <Text variant="caption" tone="tertiary">
                     {t('moneyOverview.dailyExpenses.hint')}
                   </Text>
@@ -263,7 +297,7 @@ export default function MoneyTabScreen() {
                     <ExpenseLine
                       key={e.id}
                       expense={e}
-                      onPress={expenses ? () => router.push(`${expenses.route}/${e.id}` as Href) : undefined}
+                      onPress={expenses ? () => router.push(`${expenses.route}/${e.expenseId ?? e.id}` as Href) : undefined}
                     />
                   ))}
                 </View>
@@ -342,8 +376,12 @@ function DaysPreview({
         <DayRow
           key={d.day}
           title={formatDate(`${d.day}T00:00:00Z`)}
-          caption={t('moneyOverview.phones', { count: String(d.phones) })}
-          value={d.value}
+          caption={
+            d.adjusted > 0
+              ? t('moneyOverview.unitsAdjusted', { count: String(d.units), amount: isolateLtr(formatMoney(-d.adjusted)) })
+              : t('moneyOverview.phones', { count: String(d.units) })
+          }
+          value={d.net}
           onPress={() => onOpen(d.day)}
         />
       ))}

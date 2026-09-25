@@ -104,7 +104,8 @@ const overview = code(read('../app/(tabs)/money-hub.tsx'));
 it('the overview reads the server overview, and adds nothing up itself', () => {
   assert.match(overview, /useMoneyOverview\(range\.from, range\.to/);
   assert.ok(!/\.reduce\(/.test(overview), 'no figure is summed on the phone');
-  for (const f of ['data.cashNow', 'data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.phonesSold']) {
+  // "Items sold" is every item, less cancelled ones (docs/53 R6) — it used to show phones only.
+  for (const f of ['data.cashNow', 'data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.unitsSold']) {
     assert.ok(overview.includes(f), `${f} comes from the server`);
   }
 });

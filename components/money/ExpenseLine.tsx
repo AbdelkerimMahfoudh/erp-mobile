@@ -14,10 +14,12 @@ export function ExpenseLine({ expense: e, onPress }: { expense: ExpenseToday; on
   const colors = useColors();
   const { t } = useTranslation();
   const source = e.method === 'cash' ? t('moneyOverview.paidFromCash') : e.accountLabel;
+  // A reversal is its own negative row, named as the Daily closing names it (docs/53).
+  const description = e.kind === 'reversal' ? t('dailyReport.expenses.reversal', { category: e.description }) : e.description;
   const body = (
     <>
       <View style={styles.grow}>
-        <Text variant="body">{e.description}</Text>
+        <Text variant="body">{description}</Text>
         <Text variant="caption" tone="secondary">
           {[source, e.paidAt ? formatTime(e.paidAt) : null].filter(Boolean).join(' · ')}
         </Text>
@@ -34,7 +36,7 @@ export function ExpenseLine({ expense: e, onPress }: { expense: ExpenseToday; on
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${e.description}, ${formatMoney(e.amount)}`}
+      accessibilityLabel={`${description}, ${formatMoney(e.amount)}`}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >

@@ -8,6 +8,7 @@ import { SaleRow } from '../../components/money/SaleRow';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { formatDate, formatMoney } from '../../lib/format';
+import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-overview';
 import { usePeriod } from '../../lib/period';
@@ -55,6 +56,15 @@ export default function SalesForPeriodScreen() {
             <Text variant="caption" tone="secondary">
               {t('salesPeriod.phones', { count: String(overview.data.period.phonesSold) })}
             </Text>
+            {/* The period's cancellations and returns, on their own days, and what the sales come to after them (docs/53). */}
+            {overview.data.period.adjusted > 0 ? (
+              <Text variant="caption" tone="secondary">
+                {t('moneyOverview.adjustedNet', {
+                  amount: isolateLtr(formatMoney(-overview.data.period.adjusted)),
+                  net: isolateLtr(formatMoney(overview.data.period.netSalesValue)),
+                })}
+              </Text>
+            ) : null}
             <View style={styles.pair}>
               <Mini label={t('moneyOverview.collected')} value={overview.data.period.collected} />
               <Mini label={t('moneyOverview.outstanding')} value={overview.data.period.outstanding} />
