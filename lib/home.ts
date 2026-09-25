@@ -32,8 +32,15 @@ export interface HomeFigures {
    * closing does; this is the same sale coming off again on its cancellation's day.
    */
   cancellations: { count: number; value: number; phones: number };
+  /** Returns approved in the range, on their approval day, by their net refund due (docs/53). */
+  returns: { count: number; value: number; phones: number };
+  /** salesValue − returns − cancellations: the Daily closing's net sales over the range. */
+  netSalesValue: number;
   collected: number;
+  /** Confirmed expenses on their own dates, less reversals approved in the range — negative when only a reversal fell here. */
   expenses: number;
+  expensesRecorded: number;
+  expensesReversed: number;
   expensesCount: number;
   stillOwed: number;
   /** Always `these_sales`: outstanding today on the sales in the range. */

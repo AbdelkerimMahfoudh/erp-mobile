@@ -217,11 +217,26 @@ export default function HomeScreen() {
                     <MoneyValue value={-figures.cancellations.value} size="small" />
                   </View>
                 ) : null}
+                {/* A return approved in this period comes off on its approval day, by what goes back (docs/53). */}
+                {figures.returns.count > 0 ? (
+                  <View style={styles.between}>
+                    <Text variant="caption" tone="secondary" style={styles.flex}>
+                      {t('home.sales.returns', { count: String(figures.returns.count) })}
+                    </Text>
+                    <MoneyValue value={-figures.returns.value} size="small" />
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.statRow}>
                 <Figure label={t('home.sales.collected')} value={figures.collected} tone="success" />
-                <Figure label={t('home.sales.expenses')} value={figures.expenses} tone="primary" divider />
+                <Figure
+                  label={t('home.sales.expenses')}
+                  value={figures.expenses}
+                  tone="primary"
+                  divider
+                  caption={figures.expensesReversed > 0 ? t('home.sales.expenses.reversed', { amount: isolateLtr(formatMoney(-figures.expensesReversed)) }) : undefined}
+                />
                 <Figure label={t('home.sales.owed')} value={figures.stillOwed} tone={figures.stillOwed > 0 ? 'danger' : 'primary'} divider caption={t('home.sales.owed.scope')} />
               </View>
 
