@@ -21,8 +21,8 @@ const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
 const code = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const PROFIT = {
-  grossSales: 1000, returnsRevenue: 100, netRevenue: 900, cogs: 600, returnsCogs: 60,
-  netCogs: 540, grossProfit: 360, expenses: 60, netOperatingProfit: 300,
+  grossSales: 1000, returnsRevenue: 100, cancelledRevenue: 0, netRevenue: 900, cogs: 600, returnsCogs: 60,
+  cancelledCogs: 0, netCogs: 540, grossProfit: 360, expenses: 60, netOperatingProfit: 300,
 };
 
 // ── the shared period ───────────────────────────────────────────────────────
@@ -109,9 +109,40 @@ it('without report.view the figures are absent — never zero — and the arriva
 
 it('Results lines are the server fields, in reading order', () => {
   assert.deepEqual(resultLines(PROFIT), {
-    sales: 1000, approvedReturns: 100, salesAfterReturns: 900, costOfSoldItems: 540,
+    sales: 1000, approvedReturns: 100, cancelledSales: 0, netSales: 900, costOfSoldItems: 540,
     profitBeforeExpenses: 360, expenses: 60, finalProfit: 300,
   });
+});
+
+/**
+ * A sale of 11 000 (cost 8 400) cancelled, beside a kept sale of 10 000 (cost 8 000) — the
+ * server's profit block for each period (docs/51 §16). The breakdown must add up on screen:
+ * sales − returns − cancelled = net sales, net sales − cost = profit before expenses.
+ */
+it('Results: a sale cancelled the same day, and on a later day, each adds up on screen', () => {
+  const block = (grossSales: number, cogs: number, cancelledRevenue: number, cancelledCogs: number) => ({
+    grossSales, returnsRevenue: 0, cancelledRevenue, netRevenue: grossSales - cancelledRevenue,
+    cogs, returnsCogs: 0, cancelledCogs, netCogs: cogs - cancelledCogs,
+    grossProfit: grossSales - cancelledRevenue - (cogs - cancelledCogs), expenses: 0,
+    netOperatingProfit: grossSales - cancelledRevenue - (cogs - cancelledCogs),
+  });
+  const sameDay = resultLines(block(21_000, 16_400, 11_000, 8_400));
+  const saleDay = resultLines(block(21_000, 16_400, 0, 0));
+  const cancelDay = resultLines(block(0, 0, 11_000, 8_400));
+  for (const l of [sameDay, saleDay, cancelDay]) {
+    assert.equal(l.sales - l.approvedReturns - l.cancelledSales, l.netSales);
+    assert.equal(l.netSales - l.costOfSoldItems, l.profitBeforeExpenses);
+  }
+  assert.deepEqual([sameDay.netSales, sameDay.profitBeforeExpenses], [10_000, 2_000]);
+  assert.deepEqual([saleDay.netSales, saleDay.profitBeforeExpenses], [21_000, 4_600]);
+  assert.deepEqual([cancelDay.cancelledSales, cancelDay.netSales, cancelDay.profitBeforeExpenses], [11_000, -11_000, -2_600]);
+  assert.equal(saleDay.netSales + cancelDay.netSales, sameDay.netSales);
+
+  const src = code(read('../app/money.tsx'));
+  // A period holding only the cancellation is not "no sales or expenses".
+  assert.match(src, /s\.profit\.grossSales === 0 && s\.profit\.returnsRevenue === 0 && s\.profit\.cancelledRevenue === 0 && s\.profit\.expenses === 0/);
+  assert.match(src, /lines\.cancelledSales !== 0 \? <Line label=\{t\('results\.cancelled'\)\} value=\{-lines\.cancelledSales\} \/> : null/);
+  assert.match(src, /<Line label=\{t\('results\.netSales'\)\} value=\{lines\.netSales\} strong \/>/);
 });
 
 it('Home shows a cancellation of the period on its own line, under the sales value it does not change', () => {

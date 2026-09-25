@@ -74,8 +74,12 @@ export default function ResultsScreen() {
 
   const s = query.data;
   const lines = s?.profit ? resultLines(s.profit) : null;
+  // A period whose only event is a return or a cancellation of an earlier sale still moved the result.
   const nothingHappened = Boolean(
-    s && (s.profit ? s.profit.grossSales === 0 && s.profit.expenses === 0 : s.expenseDetail.total === 0),
+    s &&
+      (s.profit
+        ? s.profit.grossSales === 0 && s.profit.returnsRevenue === 0 && s.profit.cancelledRevenue === 0 && s.profit.expenses === 0
+        : s.expenseDetail.total === 0),
   );
 
   return (
@@ -103,7 +107,8 @@ export default function ResultsScreen() {
               <Disclosure title={t('results.breakdown')}>
                 <Line label={t('results.sales')} value={lines.sales} />
                 <Line label={t('results.returns')} value={-lines.approvedReturns} />
-                <Line label={t('results.salesAfterReturns')} value={lines.salesAfterReturns} strong />
+                {lines.cancelledSales !== 0 ? <Line label={t('results.cancelled')} value={-lines.cancelledSales} /> : null}
+                <Line label={t('results.netSales')} value={lines.netSales} strong />
                 <Line label={t('results.cost')} value={-lines.costOfSoldItems} />
                 <Line label={t('results.beforeExpenses')} value={lines.profitBeforeExpenses} strong />
                 <Line label={t('results.expenses')} value={-lines.expenses} />

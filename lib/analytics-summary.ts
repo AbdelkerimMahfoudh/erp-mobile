@@ -18,9 +18,12 @@ import { qk } from './query-keys';
 export interface ProfitBlock {
   grossSales: number;
   returnsRevenue: number;
+  /** Sales cancelled in the period, on the day each cancellation was approved (0079). */
+  cancelledRevenue: number;
   netRevenue: number;
   cogs: number;
   returnsCogs: number;
+  cancelledCogs: number;
   netCogs: number;
   grossProfit: number;
   expenses: number;
