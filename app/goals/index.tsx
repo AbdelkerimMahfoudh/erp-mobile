@@ -103,6 +103,10 @@ function GoalCard({ goal }: { goal: Goal }) {
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text variant="bodyStrong">{t(`goals.metric.${goal.metric}`)}</Text>
+          {/* What the figure counts, and on which day (docs/53). */}
+          <Text variant="caption" tone="tertiary">
+            {t(`goals.rule.${goal.metric}`)}
+          </Text>
           <Text variant="caption" tone="secondary">
             {who} · {goal.periodStart} → {goal.periodEnd}
           </Text>
