@@ -4,6 +4,7 @@ import { useBranch } from './branch';
 import { qk } from './query-keys';
 import type { DayStanding, HomePeriod } from './home-day';
 import { periodRange, type DayRange, type PeriodKey } from './period';
+import { checkHome, retryUnlessIncompatible } from './contract';
 
 /**
  * Home's one read (`GET /home?period=`), the branch's business day and the
@@ -52,6 +53,9 @@ export interface HomeArrival {
   label: string;
   variant: string | null;
   receivedAt: string;
+  /** The store's calendar date and wall-clock time of the arrival — in the store's timezone, never the phone's. */
+  receivedLocalDate: string;
+  receivedLocalTime: string;
   status: string;
   identifierKind: 'imei' | 'serial';
   identifierLast4: string;
@@ -79,7 +83,8 @@ export interface PartnerRankRow {
 export interface HomeResponse {
   period: HomePeriod;
   range: { from: string; to: string };
-  businessDay: { businessDate: string; timezone: string; startsAt: string; endsAt: string; startedEarly: boolean };
+  /** `localDate`: the store's calendar date now, in its timezone — what "Today" means on this screen. */
+  businessDay: { businessDate: string; localDate: string; timezone: string; startsAt: string; endsAt: string; startedEarly: boolean };
   /** Null without `report.view`: hidden, never zero. */
   figures: HomeFigures | null;
   series: { unit: 'hour' | 'day' | 'week'; total: number; bars: HomeBar[] } | null;
@@ -96,7 +101,9 @@ export function useHome(period: HomePeriod, options: { enabled?: boolean } = {})
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.home(branchId, period),
-    queryFn: () => api.get<HomeResponse>(`/home?period=${period}`),
+    // A reply missing a figure is refused whole: the screen says the server needs updating (docs/54).
+    queryFn: async () => checkHome(await api.get<HomeResponse>(`/home?period=${period}`)),
+    retry: retryUnlessIncompatible,
     enabled: (options.enabled ?? true) && Boolean(branchId),
     // The counter looks at this between sales; a minute is fresh enough and
     // keeps the tab from hammering the server on every focus.

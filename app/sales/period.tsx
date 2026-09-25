@@ -7,6 +7,7 @@ import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
+import { isIncompatible } from '../../lib/errors';
 import { formatDate, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
@@ -72,6 +73,13 @@ export default function SalesForPeriodScreen() {
           </Card>
         ) : overview.isPending ? (
           <SkeletonStat />
+        ) : overview.isError ? (
+          <InlineNotice
+            tone="warning"
+            action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void overview.refetch()} />}
+          >
+            {isIncompatible(overview.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable')}
+          </InlineNotice>
         ) : null
       ) : null}
     </View>
@@ -122,7 +130,7 @@ export default function SalesForPeriodScreen() {
                 tone="warning"
                 action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void days.refetch()} />}
               >
-                {t('moneyTab.unavailable')}
+                {isIncompatible(days.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable')}
               </InlineNotice>
             ) : (
               <EmptyState title={t('salesPeriod.none')} />
@@ -157,7 +165,7 @@ function DayGroup({ day, initiallyOpen }: { day: SalesDay; initiallyOpen: boolea
   return (
     <Card style={styles.day}>
       <DayRow
-        title={formatDate(`${day.day}T00:00:00Z`)}
+        title={formatDate(day.day)}
         caption={t('salesPeriod.dayLine', { count: String(day.phones) })}
         value={day.value}
         open={open}

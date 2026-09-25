@@ -1,4 +1,5 @@
 import { ApiError } from './api-client';
+import { IncompatibleResponse } from './contract';
 import { t, type TranslationKey } from './i18n';
 
 /**
@@ -31,7 +32,17 @@ function generic(titleKey: TranslationKey, bodyKey: TranslationKey, retryable: b
   };
 }
 
+/** The server answered in a shape this app cannot read — its figures are withheld, not zeroed (docs/54). */
+export function isIncompatible(error: unknown): boolean {
+  return error instanceof IncompatibleResponse;
+}
+
 export function toFriendlyError(error: unknown): FriendlyError {
+  // A server older than the app: nothing it sent is shown, and the fix is on the server, not a retry (docs/54).
+  if (error instanceof IncompatibleResponse) {
+    return generic('contract.incompatible.title', 'contract.incompatible.body', true);
+  }
+
   if (error instanceof ApiError) {
     // 403 is a role boundary, not a fault. Saying "something went wrong" here
     // teaches employees to distrust the app; say what is actually true.

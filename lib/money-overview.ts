@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { invalidateMoney } from './money-invalidation';
+import { checkMoneyOverview, checkSalesByDay, retryUnlessIncompatible } from './contract';
 import { qk } from './query-keys';
 import { uuidv4 } from './utils';
 import type { DebtorKind, PaymentMethod, SalePayStatus, SalePaymentState } from '../types/api';
@@ -77,7 +78,9 @@ export function useMoneyOverview(from: string, to: string, opts: { enabled?: boo
   return useQuery({
     queryKey: qk.moneyOverview(branchId, from, to),
     enabled: (opts.enabled ?? true) && Boolean(branchId),
-    queryFn: () => api.get<MoneyOverview>(`/closings/overview?from=${from}&to=${to}`),
+    // A reply missing a figure is refused whole, never shown as zero (docs/54).
+    queryFn: async () => checkMoneyOverview(await api.get<MoneyOverview>(`/closings/overview?from=${from}&to=${to}`)),
+    retry: retryUnlessIncompatible,
   });
 }
 
@@ -146,7 +149,8 @@ export function useSalesByDay(from: string, to: string, opts: { enabled?: boolea
   return useQuery({
     queryKey: qk.salesByDay(branchId, from, to),
     enabled: (opts.enabled ?? true) && Boolean(branchId),
-    queryFn: () => api.get<{ from: string; to: string; days: SalesDay[] }>(`/sales/by-day?from=${from}&to=${to}`),
+    queryFn: async () => checkSalesByDay(await api.get<{ from: string; to: string; days: SalesDay[] }>(`/sales/by-day?from=${from}&to=${to}`)),
+    retry: retryUnlessIncompatible,
   });
 }
 

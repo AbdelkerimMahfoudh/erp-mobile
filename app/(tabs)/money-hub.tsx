@@ -28,6 +28,7 @@ import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { isIncompatible } from '../../lib/errors';
 import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
@@ -116,10 +117,10 @@ export default function MoneyTabScreen() {
           ) : overview.isError || !data ? (
             <InlineNotice
               tone="warning"
-              title={t('moneyTab.unavailable')}
+              title={isIncompatible(overview.error) ? t('contract.incompatible.title') : t('moneyTab.unavailable')}
               action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void overview.refetch()} />}
             >
-              {t('moneyTab.unavailable.body')}
+              {isIncompatible(overview.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable.body')}
             </InlineNotice>
           ) : (
             <Card variant="accent" style={styles.cash}>
@@ -245,7 +246,7 @@ export default function MoneyTabScreen() {
                     tone="warning"
                     action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void days.refetch()} />}
                   >
-                    {t('moneyTab.unavailable')}
+                    {isIncompatible(days.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable')}
                   </InlineNotice>
                 ) : days.data.days.length === 0 ? (
                   <Text variant="caption" tone="tertiary">
@@ -375,7 +376,7 @@ function DaysPreview({
       {shown.map((d) => (
         <DayRow
           key={d.day}
-          title={formatDate(`${d.day}T00:00:00Z`)}
+          title={formatDate(d.day)}
           caption={
             d.adjusted > 0
               ? t('moneyOverview.unitsAdjusted', { count: String(d.units), amount: isolateLtr(formatMoney(-d.adjusted)) })
