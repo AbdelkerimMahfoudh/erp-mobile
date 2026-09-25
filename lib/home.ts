@@ -26,6 +26,12 @@ export interface HomeFigures {
   salesValue: number;
   salesCount: number;
   phonesSold: number;
+  /**
+   * Sales cancelled in the range, on the day each cancellation was approved (0079).
+   * The sales value keeps a cancelled sale on the day it was sold, as its Daily
+   * closing does; this is the same sale coming off again on its cancellation's day.
+   */
+  cancellations: { count: number; value: number; phones: number };
   collected: number;
   expenses: number;
   expensesCount: number;

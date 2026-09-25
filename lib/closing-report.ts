@@ -65,7 +65,7 @@ export interface DailyReport {
     itemsSold: number;
     returns: { count: number; grossRefund: number; adjustments: number; netRefundDue: number };
     /** Sales cancelled on this day, whatever day they were sold (0079). */
-    cancellations: { count: number; value: number };
+    cancellations: { count: number; value: number; items: number };
     netSalesValue: number;
     /** `corrections`: what corrections took back from this day's sales (a payment never received, a cancelled sale's money). */
     collected: { atCheckout: number; laterSameDay: number; corrections: number; total: number };

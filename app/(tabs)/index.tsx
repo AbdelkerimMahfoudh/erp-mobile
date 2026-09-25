@@ -208,6 +208,15 @@ export default function HomeScreen() {
                 <Text variant="caption" tone="tertiary">
                   {formatDayRange(data.range.from, data.range.to)}
                 </Text>
+                {/* A sale cancelled in this period comes off here, on the cancellation's day; the value above keeps it on the day it was sold. */}
+                {figures.cancellations.count > 0 ? (
+                  <View style={styles.between}>
+                    <Text variant="caption" tone="secondary" style={styles.flex}>
+                      {t('home.sales.cancelled', { count: String(figures.cancellations.count) })}
+                    </Text>
+                    <MoneyValue value={-figures.cancellations.value} size="small" />
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.statRow}>

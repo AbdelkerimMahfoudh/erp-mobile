@@ -244,7 +244,11 @@ function Report({
             ) : null}
             {/* A sale cancelled today comes off here, whatever day it was sold on (0079). */}
             {report.sales.cancellations.count > 0 ? (
-              <Line label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count) })} value={-report.sales.cancellations.value} signed />
+              <Line
+                label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count), items: String(report.sales.cancellations.items) })}
+                value={-report.sales.cancellations.value}
+                signed
+              />
             ) : null}
             {report.sales.returns.count > 0 || report.sales.cancellations.count > 0 ? (
               <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong />

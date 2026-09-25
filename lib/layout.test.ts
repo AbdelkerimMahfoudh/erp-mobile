@@ -114,6 +114,15 @@ it('Results lines are the server fields, in reading order', () => {
   });
 });
 
+it('Home shows a cancellation of the period on its own line, under the sales value it does not change', () => {
+  const home = code(read('../app/(tabs)/index.tsx'));
+  assert.match(home, /figures\.cancellations\.count > 0 \?/);
+  assert.match(home, /t\('home\.sales\.cancelled', \{ count: String\(figures\.cancellations\.count\) \}\)/);
+  assert.match(home, /<MoneyValue value=\{-figures\.cancellations\.value\} size="small" \/>/);
+  assert.match(home, /<MoneyValue value=\{figures\.salesValue\} size="display"/);
+  assert.match(read('./home.ts'), /cancellations: \{ count: number; value: number; phones: number \};/);
+});
+
 it('Results keeps the breakdown and the returns timing closed, and hides profit without cost', () => {
   const src = code(read('../app/money.tsx'));
   assert.match(src, /<Disclosure title=\{t\('results\.breakdown'\)\}>/);
