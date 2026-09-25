@@ -71,4 +71,36 @@ it('the definition reads the same everywhere: invoices less whole sales cancelle
   assert.match(units, /less those on cancelled sales\. A return is counted apart/);
 });
 
+it('Home: net sales under the gross value and its adjustments; the chart and Collected say what they count (docs/54)', () => {
+  const home = code(read('../app/(tabs)/index.tsx'));
+  assert.match(home, /const adjusted = figures \? figures\.cancellations\.count > 0 \|\| figures\.returns\.count > 0 : false;/);
+  assert.match(home, /<MoneyValue value=\{figures\.netSalesValue\} size="large" \/>/);
+  assert.match(home, /t\('home\.chart\.basis'\)/);
+  assert.match(home, /caption=\{t\('home\.sales\.collected\.scope'\)\}/);
+  assert.ok(!/\.reduce\(/.test(home), 'nothing is summed on the phone');
+  const line = (k: string) => en.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
+  assert.match(line('home.chart.basis'), /before cancellations and returns/);
+  assert.match(line('home.sales.collected.scope'), /older debts included/);
+});
+
+it('the revenue goal is named for what it measures, and the units goal takes returns off (docs/54)', () => {
+  for (const lang of ['en', 'fr', 'ar']) {
+    const file = read(`./i18n/${lang}.ts`);
+    const line = (k: string) => file.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
+    assert.ok(!/Money taken|Argent encaissé|المبالغ المحصّلة/.test(line('goals.metric.revenue')), lang);
+    assert.equal(line('goals.metric.revenue'), line('moneyOverview.netSales').replace('moneyOverview.netSales', 'goals.metric.revenue'), lang);
+  }
+  const units = en.split(/\r?\n/).find((l) => l.includes(`'goals.rule.units_sold':`)) ?? '';
+  assert.match(units, /less items on cancelled sales and items returned, each taken off on the day it was approved/);
+});
+
+it('Analytics says what "not moving" counts, and a product row keeps its width for the name', () => {
+  const a = code(read('../app/analytics.tsx'));
+  assert.match(a, /t\('analytics\.deadStock\.rule', \{ days: num\(data\.deadStockDays\) \}\)/);
+  assert.match(a, /subtitle=\{p\.trackingType \? t\(`catalog\.tracking\.\$\{p\.trackingType\}` as never\) : undefined\}/);
+  assert.ok(!/<Chip/.test(a));
+  const rule = en.split(/\r?\n/).find((l) => l.includes(`'analytics.deadStock.rule':`)) ?? '';
+  assert.match(rule, /A cancelled sale does not count: its goods never left\. A returned item still counts as sold\./);
+});
+
 console.log(`reporting-rules: ${passed} passed`);

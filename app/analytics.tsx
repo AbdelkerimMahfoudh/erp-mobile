@@ -7,7 +7,6 @@ import { ExportAction } from '../components/reports/ExportAction';
 import { AttentionList } from '../components/analytics/AttentionList';
 import { GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
 import {
-  Chip,
   EmptyState,
   ListRow,
   MoneyValue,
@@ -63,6 +62,8 @@ interface Dashboard {
   bestSelling: ProductRow[];
   mostProfitable: ProductRow[];
   worstPerforming: ProductRow[];
+  /** The shop's own `dead_stock_days`: how long without a sale that stands makes stock "not moving". */
+  deadStockDays?: number;
   deadStock: {
     productId: string;
     label: string | null;
@@ -216,6 +217,12 @@ export default function AnalyticsScreen() {
               ) : (
                 empty()
               )}
+              {/* What "not moving" counts, and what it leaves out (docs/54). */}
+              {typeof data?.deadStockDays === 'number' ? (
+                <Text variant="caption" tone="tertiary">
+                  {t('analytics.deadStock.rule', { days: num(data.deadStockDays) })}
+                </Text>
+              ) : null}
             </Section>
 
             <Section
@@ -286,6 +293,8 @@ export default function AnalyticsScreen() {
  *
  * Takes either a rendered value (money, which brings its own tone and tabular
  * figures) or plain text (a count), so a caller never formats money by hand.
+ * The tracking type is said under the name rather than in a chip beside it: at
+ * 320 points in Arabic the chip and the value left the name 54 points (docs/54).
  */
 function ProductLine({
   p,
@@ -301,11 +310,7 @@ function ProductLine({
     <ListRow
       flat
       title={p.label ?? '—'}
-      accessory={
-        p.trackingType ? (
-          <Chip label={t(`catalog.tracking.${p.trackingType}` as never)} tone="info" size="sm" />
-        ) : undefined
-      }
+      subtitle={p.trackingType ? t(`catalog.tracking.${p.trackingType}` as never) : undefined}
       value={value ?? valueText}
       chevron={false}
     />
