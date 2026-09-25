@@ -223,7 +223,15 @@ function Report({
         <MoneyValue value={headline} size="display" />
         {report.sales ? (
           <Text variant="caption" tone="secondary">
-            {t('dailyReport.counts', { count: String(report.sales.count), items: String(report.sales.itemsSold) })}
+            {t('dailyReport.counts', {
+              count: String(report.sales.salesCount ?? report.sales.count),
+              items: String(report.sales.unitsSold ?? report.sales.itemsSold),
+            })}
+          </Text>
+        ) : null}
+        {report.sales ? (
+          <Text variant="caption" tone="tertiary">
+            {t('dailyReport.countRule')}
           </Text>
         ) : (
           <Text variant="caption" tone="tertiary">

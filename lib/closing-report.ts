@@ -63,6 +63,10 @@ export interface DailyReport {
     count: number;
     value: number;
     itemsSold: number;
+    /** Invoices − whole-sale cancellations approved on the date (docs/53 R5); absent on a close stored before it. */
+    salesCount?: number;
+    /** Units on the invoices − units on the cancelled invoices (R6). */
+    unitsSold?: number;
     returns: { count: number; grossRefund: number; adjustments: number; netRefundDue: number };
     /** Sales cancelled on this day, whatever day they were sold (0079). */
     cancellations: { count: number; value: number; items: number };
