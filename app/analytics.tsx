@@ -14,6 +14,7 @@ import {
   RowGroup,
   Section,
   SkeletonList,
+  Text,
 } from '../components/ui';
 import { api } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
@@ -50,6 +51,8 @@ interface ProductRow {
   label: string | null;
   trackingType: string | null;
   qtySold: number;
+  /** Units returned in the window — their own measure (docs/53 R6). */
+  unitsReturned?: number;
   revenue: number;
   grossProfit?: number;
   sold30d: number;
@@ -78,6 +81,7 @@ interface Dashboard {
     userId: string;
     name: string | null;
     salesCount: number;
+    returnsCount?: number;
     revenue: number;
     margin?: number;
   }[];
@@ -147,7 +151,15 @@ export default function AnalyticsScreen() {
               {data?.bestSelling.length ? (
                 <RowGroup separatorInset={space.md}>
                   {data.bestSelling.map((p) => (
-                    <ProductLine key={p.productId} p={p} valueText={t('analytics.sold', { n: num(p.qtySold) })} />
+                    <ProductLine
+                      key={p.productId}
+                      p={p}
+                      valueText={
+                        (p.unitsReturned ?? 0) > 0
+                          ? t('analytics.soldReturned', { n: num(p.qtySold), r: num(p.unitsReturned ?? 0) })
+                          : t('analytics.sold', { n: num(p.qtySold) })
+                      }
+                    />
                   ))}
                 </RowGroup>
               ) : (
@@ -245,7 +257,11 @@ export default function AnalyticsScreen() {
                       key={e.userId}
                       flat
                       title={e.name ?? '—'}
-                      subtitle={t('analytics.sales', { n: num(e.salesCount) })}
+                      subtitle={
+                        (e.returnsCount ?? 0) > 0
+                          ? t('analytics.salesReturns', { n: num(e.salesCount), r: num(e.returnsCount ?? 0) })
+                          : t('analytics.sales', { n: num(e.salesCount) })
+                      }
                       value={<MoneyValue value={e.revenue} />}
                       chevron={false}
                     />
@@ -254,6 +270,9 @@ export default function AnalyticsScreen() {
               ) : (
                 empty()
               )}
+              <Text variant="caption" tone="tertiary">
+                {t('analytics.rule')}
+              </Text>
             </Section>
           </>
         )}
