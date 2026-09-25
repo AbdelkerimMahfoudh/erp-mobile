@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { format as formatDateFns, isToday, isYesterday } from 'date-fns';
+import { format as formatDateFns } from 'date-fns';
 import { ChevronRight, PackagePlus, ScanLine, ShoppingCart, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
@@ -31,8 +31,10 @@ import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
-import { CURRENCY_CODE, formatDayRange, formatMoney, formatRelative, formatTime } from '../../lib/format';
-import { freshness, standingKey, standingTone, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
+import { calendarDate } from '../../lib/day-range';
+import { toFriendlyError } from '../../lib/errors';
+import { CURRENCY_CODE, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
+import { arrivalDay, freshness, standingKey, standingTone, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
 import { useHome, type HomeArrival, type HomeBar } from '../../lib/home';
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -81,11 +83,18 @@ export default function HomeScreen() {
     enabled: canViewReturns,
   });
 
+  /*
+    Only what this person may read. `refetch()` runs a query even when it is disabled,
+    so refreshing used to ask for transfers and returns a seller may not see — and the
+    server answered each with a refusal.
+  */
   const onRefresh = () => {
-    void home.refetch();
-    void transfers.refetch();
-    void refunds.refetch();
-    void pendingReturns.refetch();
+    if (permissionsReady) void home.refetch();
+    if (canViewTransfers) void transfers.refetch();
+    if (canViewReturns) {
+      void refunds.refetch();
+      void pendingReturns.refetch();
+    }
   };
 
   const pendingTransferCount = transfers.data?.pendingApproval ?? 0;
@@ -99,6 +108,8 @@ export default function HomeScreen() {
   const figures = data?.figures ?? null;
   const periodWord = t(`period.${period}` as never);
   const fresh = freshness(home.dataUpdatedAt || null);
+  const failure = home.isError && !data ? toFriendlyError(home.error) : null;
+  const adjusted = figures ? figures.cancellations.count > 0 || figures.returns.count > 0 : false;
 
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={home.isRefetching} gap="lg">
@@ -170,13 +181,14 @@ export default function HomeScreen() {
       ) : null}
 
       {/* ── The period, and the figures the server gives for it ── */}
-      {home.isError && !data ? (
+      {/* A server that answered in an older shape says so: no figure is shown, none as zero (docs/54). */}
+      {failure ? (
         <InlineNotice
           tone="warning"
-          title={t('home.month.unavailable')}
+          title={failure.titleKey === 'state.error.title' ? t('home.figures.unavailable') : failure.title}
           action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void home.refetch()} />}
         >
-          {t('home.today.unavailable.body')}
+          {failure.titleKey === 'state.error.title' ? t('home.today.unavailable.body') : failure.body}
         </InlineNotice>
       ) : null}
 
@@ -226,10 +238,19 @@ export default function HomeScreen() {
                     <MoneyValue value={-figures.returns.value} size="small" />
                   </View>
                 ) : null}
+                {/* What the period comes to once they are off — the Daily closing's net sales; below zero on a day holding only an adjustment. */}
+                {adjusted ? (
+                  <View style={[styles.between, styles.netLine]} accessible accessibilityLabel={`${t('home.sales.net')} ${formatMoney(figures.netSalesValue)}`}>
+                    <Text variant="bodyStrong" style={styles.flex}>
+                      {t('home.sales.net')}
+                    </Text>
+                    <MoneyValue value={figures.netSalesValue} size="large" />
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.statRow}>
-                <Figure label={t('home.sales.collected')} value={figures.collected} tone="success" />
+                <Figure label={t('home.sales.collected')} value={figures.collected} tone="success" caption={t('home.sales.collected.scope')} />
                 <Figure
                   label={t('home.sales.expenses')}
                   value={figures.expenses}
@@ -242,6 +263,9 @@ export default function HomeScreen() {
 
               <View style={styles.chart}>
                 <Text variant="heading">{t(`home.chart.${period}` as never)}</Text>
+                <Text variant="caption" tone="tertiary">
+                  {t('home.chart.basis')}
+                </Text>
                 {data.series.total === 0 ? (
                   <Text variant="caption" tone="secondary">
                     {t('home.chart.empty')}
@@ -309,7 +333,7 @@ export default function HomeScreen() {
               data.arrivals.map((a, i) => (
                 <View key={a.unitId}>
                   {i > 0 ? <Divider /> : null}
-                  <ArrivalRow arrival={a} />
+                  <ArrivalRow arrival={a} storeToday={data.businessDay.localDate} />
                 </View>
               ))
             )}
@@ -383,11 +407,11 @@ function SeeMore({ onPress }: { onPress: () => void }) {
  * full identifier. Not a link: the identifier needed to open a unit is exactly
  * what Home does not carry; "See more" opens the Stock list instead.
  */
-function ArrivalRow({ arrival }: { arrival: HomeArrival }) {
+function ArrivalRow({ arrival, storeToday }: { arrival: HomeArrival; storeToday: string }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const colors = useColors();
-  const when = receivedWhen(arrival.receivedAt);
+  const when = receivedWhen(arrival, storeToday);
   const masked = t(arrival.identifierKind === 'imei' ? 'home.arrivals.imei' : 'home.arrivals.serial', { last4: arrival.identifierLast4 });
   return (
     <ListRow
@@ -400,18 +424,26 @@ function ArrivalRow({ arrival }: { arrival: HomeArrival }) {
   );
 }
 
-/** "Today · 14:20", "Yesterday · 17:05", otherwise "21 Sep · 10:30". */
-function receivedWhen(iso: string): string {
-  const d = new Date(iso);
-  const time = formatTime(d);
-  if (isToday(d)) return `${translate('history.today')} · ${time}`;
-  if (isYesterday(d)) return `${translate('history.yesterday')} · ${time}`;
-  return `${formatDateFns(d, 'd MMM', { locale: dateLocaleFor(getLanguage()) })} · ${time}`;
+/**
+ * "Today · 14:20", "Yesterday · 17:05", otherwise "21 Sep · 10:30" — the store's
+ * date and wall-clock time, as the server read them in the store's timezone. The
+ * phone's own clock and zone play no part (docs/54).
+ */
+function receivedWhen(arrival: HomeArrival, storeToday: string): string {
+  const time = isolateLtr(arrival.receivedLocalTime);
+  switch (arrivalDay(arrival.receivedLocalDate, storeToday)) {
+    case 'today':
+      return `${translate('history.today')} · ${time}`;
+    case 'yesterday':
+      return `${translate('history.yesterday')} · ${time}`;
+    default:
+      return `${formatDateFns(calendarDate(arrival.receivedLocalDate), 'd MMM', { locale: dateLocaleFor(getLanguage()) })} · ${time}`;
+  }
 }
 
 /** The printed label of a bar: the hour, the weekday, or the span of days. */
 function barLabel(unit: 'hour' | 'day' | 'week'): (bar: HomeBar) => string {
-  if (unit === 'day') return (bar) => formatDateFns(new Date(`${bar.from}T12:00:00Z`), 'EEE', { locale: dateLocaleFor(getLanguage()) });
+  if (unit === 'day') return (bar) => formatDateFns(calendarDate(bar.from), 'EEE', { locale: dateLocaleFor(getLanguage()) });
   if (unit === 'week') return (bar) => bar.label;
   return (bar) => bar.label;
 }
@@ -423,8 +455,12 @@ function PendingRow({ icon, label, count, onPress }: { icon: LucideIcon; label: 
 
 const useStyles = makeStyles((colors) => ({
   shortcuts: { gap: space.xs },
-  actionRow: { flexDirection: 'row', gap: space.sm },
-  action: { flex: 1 },
+  /*
+    Side by side where both labels fit; one above the other below ~360 points, where
+    "Réceptionner" needed 90 of the 71 points a half-width button leaves (docs/54).
+  */
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  action: { flexGrow: 1, flexBasis: 160 },
   fullSale: { alignSelf: 'center' },
   block: { gap: space.base },
   statRow: { flexDirection: 'row', gap: space.sm },
@@ -434,6 +470,7 @@ const useStyles = makeStyles((colors) => ({
   card: { gap: space.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  netLine: { marginTop: space.xs, paddingTop: space.xs, borderTopWidth: 1, borderTopColor: colors.border.subtle },
   emptyInCard: { gap: 2 },
   arrival: { paddingHorizontal: 0 },
   closingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },

@@ -14,6 +14,25 @@
 
 export type HomePeriod = 'today' | 'week' | 'month';
 
+/**
+ * The word an arrival's day takes, from the STORE's calendar: its date and "today"
+ * both come from the server in the store's timezone, so a phone set to another zone
+ * cannot move a phone received late last night into "Today" (docs/54).
+ */
+export type ArrivalDay = 'today' | 'yesterday' | 'date';
+
+export function arrivalDay(receivedLocalDate: string, storeToday: string): ArrivalDay {
+  if (receivedLocalDate === storeToday) return 'today';
+  if (receivedLocalDate === previousDate(storeToday)) return 'yesterday';
+  return 'date';
+}
+
+/** Calendar arithmetic on a YYYY-MM-DD, with no timezone involved. */
+function previousDate(date: string): string {
+  const at = Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)));
+  return new Date(at - 86_400_000).toISOString().slice(0, 10);
+}
+
 export const HOME_PERIODS: readonly HomePeriod[] = ['today', 'week', 'month'];
 
 /**

@@ -65,10 +65,12 @@ it('Home: Sell and Receive side by side, with the several-items link under them'
   assert.match(read('../app/(tabs)/index.tsx'), /actionRow: \{ flexDirection: 'row'/);
 });
 
-it('Home shows exactly the four figures of the business-date contract, and no stock or menu section', () => {
+it('Home shows exactly the figures of the business-date contract, and no stock or menu section', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
   const labels = [...home.matchAll(/t\('home\.sales\.(\w+)'\)/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(labels)].sort(), ['collected', 'expenses', 'owed', 'value']);
+  // Net sales joins the four when a cancellation or return falls in the period (docs/54).
+  assert.deepEqual([...new Set(labels)].sort(), ['collected', 'expenses', 'net', 'owed', 'value']);
+  assert.match(home, /\{adjusted \? \(/);
   // The scope of "still owed" is said, not implied.
   assert.match(home, /t\('home\.sales\.owed\.scope'\)/);
   for (const gone of ['home.stock.', 'home.more.title', 'lowStock', 'supplier', 'inventoryValue', 'home.figure.', 'monthToDate', 'usePeriodSummary']) {
