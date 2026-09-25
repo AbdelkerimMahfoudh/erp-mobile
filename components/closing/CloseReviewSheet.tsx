@@ -78,7 +78,7 @@ export function CloseReviewSheet({ open, onClose, report, freshness, onChanged }
         reportVersion: report.reportVersion,
         ...(needsAck ? { acknowledgeUnverified: true, reason: reason.trim() } : {}),
       });
-      toast.success(t('closeReview.done', { date: formatDate(`${done.date}T00:00:00Z`) }));
+      toast.success(t('closeReview.done', { date: formatDate(done.date) }));
       dismiss();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && e.code === 'report_changed') {
@@ -94,7 +94,7 @@ export function CloseReviewSheet({ open, onClose, report, freshness, onChanged }
     <BottomSheet
       open={open}
       onClose={dismiss}
-      title={t('closeReview.title', { date: formatDate(`${report.date}T00:00:00Z`) })}
+      title={t('closeReview.title', { date: formatDate(report.date) })}
       subtitle={t('closeReview.subtitle')}
       footer={
         <View style={styles.footer}>

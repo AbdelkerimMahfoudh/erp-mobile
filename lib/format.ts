@@ -1,7 +1,7 @@
 import { format as formatDateFns, formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
 import { getLanguage } from './i18n';
 import { dateLocaleFor } from './date-locale';
-import { dayRangeShape } from './day-range';
+import { calendarDate, dayRangeShape } from './day-range';
 
 /**
  * Formatting — money, quantities and dates, in one place.
@@ -32,8 +32,11 @@ function dateLocale() {
   return dateLocaleFor(getLanguage());
 }
 
+/** A bare `YYYY-MM-DD` is a calendar day, not UTC midnight: read so, it is the same day on every phone. */
 function toDate(value: string | number | Date): Date {
-  return value instanceof Date ? value : new Date(value);
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return calendarDate(value);
+  return new Date(value);
 }
 
 /** Time only — for a list of today's sales. */
@@ -53,7 +56,7 @@ export function formatDate(value: string | number | Date): string {
  * carries its own month word (see `PeriodSelector`).
  */
 export function formatDayRange(from: string, to: string): string {
-  const day = (d: string, pattern: string) => formatDateFns(toDate(`${d}T00:00:00Z`), pattern, { locale: dateLocale() });
+  const day = (d: string, pattern: string) => formatDateFns(calendarDate(d), pattern, { locale: dateLocale() });
   switch (dayRangeShape(from, to)) {
     case 'day':
       return day(from, 'd MMM yyyy');

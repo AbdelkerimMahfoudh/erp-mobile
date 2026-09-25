@@ -264,7 +264,7 @@ export default function NewExpenseScreen() {
             <Row label={t('expenses.category')} value={category.trim()} strong />
             <Row label={t('expenses.amount')} money={amountValue} />
             <Row label={t('expenses.paidFrom')} value={cash ? t('payment.cash') : (accountLabel ?? '')} />
-            <Row label={t('expenses.date')} value={formatDate(`${spentOn}T00:00:00Z`)} />
+            <Row label={t('expenses.date')} value={formatDate(spentOn)} />
             {expenseClass === 'fixed' ? (
               <Row label={t('expenses.class.label')} value={isSalary ? t('expenses.salary') : t('expenses.class.fixed')} />
             ) : null}

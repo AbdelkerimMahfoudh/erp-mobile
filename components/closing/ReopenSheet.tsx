@@ -60,7 +60,7 @@ export function ReopenSheet({ open, onClose, businessDate, nextDate, now, choice
           <Choice
             key={o.mode}
             selected={mode === o.mode}
-            title={o.mode === 'continue' ? t('reopen.continue.title', { date: formatDate(`${businessDate}T00:00:00Z`) }) : t('reopen.startNew.title', { date: formatDate(`${nextDate}T00:00:00Z`) })}
+            title={o.mode === 'continue' ? t('reopen.continue.title', { date: formatDate(businessDate) }) : t('reopen.startNew.title', { date: formatDate(nextDate) })}
             body={o.mode === 'continue' ? t('reopen.continue.body') : t('reopen.startNew.body')}
             onPress={() => setMode(o.mode)}
           />

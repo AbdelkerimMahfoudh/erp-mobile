@@ -78,7 +78,7 @@ export default function ExpensesScreen() {
           </Text>
         ) : null}
         <Text variant="caption" tone="secondary">
-          {t('expenses.today', { date: formatDate(`${today}T00:00:00Z`) })}
+          {t('expenses.today', { date: formatDate(today) })}
         </Text>
       </View>
 

@@ -90,7 +90,7 @@ function DateBar({ today, date, onPick }: { today: string; date: string; onPick:
     <View style={styles.dates}>
       <FilterChip label={t('closingHistory.today')} selected={date === today} onPress={() => onPick(undefined)} />
       <FilterChip label={t('closingHistory.yesterday')} selected={date === yesterday} onPress={() => onPick(yesterday)} />
-      <FilterChip label={custom ? formatDate(`${date}T00:00:00Z`) : t('closingHistory.pickDate')} selected={custom} onPress={() => setOpen(true)} />
+      <FilterChip label={custom ? formatDate(date) : t('closingHistory.pickDate')} selected={custom} onPress={() => setOpen(true)} />
       <SelectSheet
         open={open}
         onClose={() => setOpen(false)}
@@ -98,7 +98,7 @@ function DateBar({ today, date, onPick }: { today: string; date: string; onPick:
         subtitle={t('closingHistory.pickDate.subtitle')}
         items={items}
         keyExtractor={(d: string) => d}
-        labelExtractor={(d: string) => formatDate(`${d}T00:00:00Z`)}
+        labelExtractor={(d: string) => formatDate(d)}
         descriptionExtractor={word}
         leadingIcon={CalendarDays}
         selectedKeys={[date]}
@@ -139,14 +139,14 @@ function Report({
   const [review, setReview] = useState(false);
 
   const freshness: Freshness = reportFreshness(fetchedAt, online);
-  const dateWord = formatDate(`${report.date}T00:00:00Z`);
+  const dateWord = formatDate(report.date);
   const words = { cash: t('closing.channel.cash'), unattributed: t('closing.channel.unattributed') };
   const money = (v: number) => isolateLtr(formatMoney(v));
   const warningParams = (p?: Record<string, string | number>) =>
     Object.fromEntries(
       Object.entries(p ?? {}).map(([k, v]) => [
         k,
-        k === 'date' || k === 'anchorDate' ? formatDate(`${String(v)}T00:00:00Z`) : typeof v === 'number' && k !== 'count' && k !== 'days' ? money(v) : String(v),
+        k === 'date' || k === 'anchorDate' ? formatDate(String(v)) : typeof v === 'number' && k !== 'count' && k !== 'days' ? money(v) : String(v),
       ]),
     );
 
@@ -154,7 +154,7 @@ function Report({
     try {
       await reopen.mutateAsync(mode);
       setReopenSheet(false);
-      toast.success(mode === 'start_new' ? t('reopen.started', { date: formatDate(`${day?.nextDate}T00:00:00Z`) }) : t('reopen.done', { date: dateWord }));
+      toast.success(mode === 'start_new' ? t('reopen.started', { date: day?.nextDate ? formatDate(day.nextDate) : dateWord }) : t('reopen.done', { date: dateWord }));
       onRefresh();
     } catch (e) {
       toast.error(toFriendlyError(e).body || t('reopen.failed'));
@@ -189,7 +189,7 @@ function Report({
   const openingLine = day
     ? t(
         openingKey(day.opening, report.isToday) as never,
-        day.opening ? { date: formatDate(`${day.opening.localDate}T00:00:00Z`), time: isolateLtr(day.opening.localTime) } : undefined,
+        day.opening ? { date: formatDate(day.opening.localDate), time: isolateLtr(day.opening.localTime) } : undefined,
       )
     : null;
   const headline = report.sales ? report.sales.value : report.money.totals.in;
@@ -375,8 +375,8 @@ function Report({
               cash.opening.anchorDate === null
                 ? t('dailyReport.expected.noOpening')
                 : cash.opening.carriedDays > 0
-                  ? t('dailyReport.expected.openingCarried', { date: formatDate(`${cash.opening.anchorDate}T00:00:00Z`), days: String(cash.opening.carriedDays) })
-                  : t('dailyReport.expected.opening', { date: formatDate(`${cash.opening.anchorDate}T00:00:00Z`) })
+                  ? t('dailyReport.expected.openingCarried', { date: formatDate(cash.opening.anchorDate), days: String(cash.opening.carriedDays) })
+                  : t('dailyReport.expected.opening', { date: formatDate(cash.opening.anchorDate) })
             }
             value={cash.opening.amount}
             quiet
@@ -625,10 +625,10 @@ function HistoryRow({ entry, first }: { entry: ClosingHistoryEntry; first: boole
       break;
     case 'reopened':
     case 'auto_reopened':
-      caption = t('closing.history.continues', { date: formatDate(`${entry.localDate}T00:00:00Z`) });
+      caption = t('closing.history.continues', { date: formatDate(entry.localDate) });
       break;
     case 'day_started_early':
-      caption = t('reopen.started', { date: formatDate(`${entry.localDate}T00:00:00Z`) });
+      caption = t('reopen.started', { date: formatDate(entry.localDate) });
       break;
     case 'first_activity':
     case 'sale':

@@ -62,7 +62,7 @@ export default function CorrectTransactionScreen() {
       >
         {data ? (
           <Text variant="label" tone="secondary">
-            {formatDate(`${data.date}T00:00:00Z`)}
+            {formatDate(data.date)}
           </Text>
         ) : null}
         <Text variant="body" tone="secondary">

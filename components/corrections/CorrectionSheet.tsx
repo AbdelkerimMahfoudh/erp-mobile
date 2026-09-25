@@ -189,8 +189,8 @@ export function CorrectionSheet({
             <PreviewFacts action={action} preview={shown} />
             <Text variant="caption" tone="tertiary">
               {shown.dayClosed
-                ? t('correctTx.preview.dayClosed', { date: formatDate(`${shown.correctionDate}T00:00:00Z`) })
-                : t('correctTx.preview.posts', { date: formatDate(`${shown.correctionDate}T00:00:00Z`) })}
+                ? t('correctTx.preview.dayClosed', { date: formatDate(shown.correctionDate) })
+                : t('correctTx.preview.posts', { date: formatDate(shown.correctionDate) })}
             </Text>
             {refusal ? <Chip tone="warning" label={t(refusal as never)} size="sm" dot /> : null}
           </View>

@@ -8,6 +8,16 @@
  */
 export type DayRangeShape = 'day' | 'month' | 'year' | 'full';
 
+/**
+ * A `YYYY-MM-DD` as the calendar day it names, at local midnight — so formatting it
+ * gives that day on any phone, whatever its timezone. Parsing it as UTC midnight
+ * (`${d}T00:00:00Z`) and formatting in local time put a phone west of UTC on the
+ * day before (docs/54).
+ */
+export function calendarDate(date: string): Date {
+  return new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)));
+}
+
 export function dayRangeShape(from: string, to: string): DayRangeShape {
   if (from === to) return 'day';
   if (from.slice(0, 7) === to.slice(0, 7)) return 'month';
