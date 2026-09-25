@@ -23,6 +23,12 @@ export interface ListRowProps {
   title: string;
   /** Quiet supporting line: category, branch, supplier, timestamp. */
   subtitle?: string;
+  /**
+   * How many lines the subtitle may take before it is cut; 0 lets it wrap freely.
+   * Two by default. A row whose subtitle IS the record — a payment named by its time,
+   * channel and invoice — lets it wrap rather than cut it off (0079, Arabic at 320 pt).
+   */
+  subtitleLines?: number;
   /** IMEI / serial / barcode. Rendered LTR and monospaced. */
   identifier?: string;
   /**
@@ -63,6 +69,7 @@ export interface ListRowProps {
 export function ListRow({
   title,
   subtitle,
+  subtitleLines = 2,
   identifier,
   leading,
   value,
@@ -106,7 +113,7 @@ export function ListRow({
           {title}
         </Text>
         {subtitle ? (
-          <Text variant="caption" tone="tertiary" numberOfLines={2}>
+          <Text variant="caption" tone="tertiary" numberOfLines={subtitleLines}>
             {subtitle}
           </Text>
         ) : null}

@@ -240,15 +240,22 @@ function Report({
           <Card style={styles.card}>
             <Line label={t('dailyReport.sales.value')} value={report.sales.value} />
             {report.sales.returns.count > 0 ? (
-              <>
-                <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
-                <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong />
-              </>
+              <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
+            ) : null}
+            {/* A sale cancelled today comes off here, whatever day it was sold on (0079). */}
+            {report.sales.cancellations.count > 0 ? (
+              <Line label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count) })} value={-report.sales.cancellations.value} signed />
+            ) : null}
+            {report.sales.returns.count > 0 || report.sales.cancellations.count > 0 ? (
+              <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong />
             ) : null}
             <Divider />
             <Disclosure title={t('dailyReport.sales.collected')} summary={<MoneyValue value={report.sales.collected.total} size="small" />}>
               <Line label={t('dailyReport.sales.atCheckout')} value={report.sales.collected.atCheckout} quiet />
               <Line label={t('dailyReport.sales.laterSameDay')} value={report.sales.collected.laterSameDay} quiet />
+              {report.sales.collected.corrections !== 0 ? (
+                <Line label={t('dailyReport.sales.byCorrections')} value={report.sales.collected.corrections} quiet signed />
+              ) : null}
             </Disclosure>
             <Line label={t('dailyReport.sales.owed')} value={report.sales.owed} tone={report.sales.owed > 0 ? 'negative' : 'default'} />
           </Card>
@@ -280,7 +287,7 @@ function Report({
       {report.expenses ? (
         <Section title={t('dailyReport.expenses.title')}>
           <Card style={styles.card}>
-            {report.expenses.count === 0 ? (
+            {report.expenses.count === 0 && report.expenses.reversals.length === 0 ? (
               <Text variant="caption" tone="secondary">
                 {t('dailyReport.expenses.none')}
               </Text>
@@ -288,6 +295,10 @@ function Report({
               <>
                 {report.expenses.byCategory.slice(0, 3).map((c) => (
                   <Line key={c.category} label={c.category} value={c.amount} quiet />
+                ))}
+                {/* A confirmed expense reversed today, whatever day it was recorded (0079). */}
+                {report.expenses.reversals.map((r) => (
+                  <Line key={r.correctionId} label={t('dailyReport.expenses.reversal', { category: r.category })} value={-r.amount} quiet signed />
                 ))}
                 <Line label={t('dailyReport.expenses.total')} value={report.expenses.total} strong />
                 {report.expenses.fixed > 0 ? <Line label={t('dailyReport.expenses.fixed')} value={report.expenses.fixed} quiet /> : null}

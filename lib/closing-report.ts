@@ -4,7 +4,7 @@ import { useBranch } from './branch';
 import { qk } from './query-keys';
 import { invalidateMoney } from './money-invalidation';
 import type { DayStanding } from './home-day';
-import type { Verification } from './closing-report-view';
+import type { CorrectionAction, Verification } from './closing-report-view';
 
 /**
  * The Daily closing report (docs/51): what the boutique sold, where the money
@@ -42,6 +42,8 @@ export interface ReportResult {
   netSales: number | null;
   costOfUnitsSold: number | null;
   returnsCostCredited: number | null;
+  /** The recorded cost of the sales cancelled on this day, credited back (0079). */
+  cancelledCostCredited: number | null;
   grossProfit: number | null;
   variableExpenses: number;
   fixedExpenses: number;
@@ -62,8 +64,11 @@ export interface DailyReport {
     value: number;
     itemsSold: number;
     returns: { count: number; grossRefund: number; adjustments: number; netRefundDue: number };
+    /** Sales cancelled on this day, whatever day they were sold (0079). */
+    cancellations: { count: number; value: number };
     netSalesValue: number;
-    collected: { atCheckout: number; laterSameDay: number; total: number };
+    /** `corrections`: what corrections took back from this day's sales (a payment never received, a cancelled sale's money). */
+    collected: { atCheckout: number; laterSameDay: number; corrections: number; total: number };
     owed: number;
   } | null;
   money: {
@@ -72,7 +77,12 @@ export interface DailyReport {
     pending: { refundReports: { count: number; amount: number }; expenseReports: { count: number; amount: number } } | null;
   };
   expenses: {
+    /** Recorded − reversed. */
     total: number;
+    recorded: number;
+    /** Confirmed expenses reversed on this day (0079). */
+    reversed: number;
+    reversals: { correctionId: string; expenseId: string; category: string; expenseClass: 'variable' | 'fixed'; amount: number; method: 'cash' | 'account'; accountLabel: string | null }[];
     cash: number;
     account: number;
     count: number;
@@ -169,56 +179,132 @@ export function useCloseDay(date?: string) {
   });
 }
 
-// ── Correct a transaction ───────────────────────────────────────────────────
+// ── Correct a transaction (docs/51 §15) ────────────────────────────────────
+
+/** What can be done to a record now; the server's preview has the last word. */
+export type { CorrectionAction };
 
 export interface SourceRow {
-  kind: 'payment' | 'refund' | 'expense' | 'supplier_payment' | 'correction';
+  kind: 'sale' | 'payment' | 'refund' | 'expense' | 'purchase' | 'correction';
   id: string;
   at: string | null;
   localTime: string | null;
   amount: number;
-  channel: string;
+  channel: 'cash' | 'account' | null;
   accountLabel: string | null;
   status: string;
   detail: Record<string, unknown>;
   recordedBy: string | null;
-  action: 'reclassify_payment' | 'open_return' | 'open_expense' | 'open_sale' | null;
+  actions: CorrectionAction[];
+  /** The record's own screen. */
+  open: 'sale' | 'return' | 'expense' | null;
+  /** Why nothing can be done here, when nothing can. */
   refusal: string | null;
+}
+
+/** A request waiting for the Owner, whatever day it concerns. */
+export interface PendingCorrection {
+  id: string;
+  targetKind: 'sale_payment' | 'sale' | 'expense' | 'supplier_payment' | 'purchase' | 'refund_payout' | 'supplier_settlement';
+  action: 'reverse' | 'reclassify' | 'cancel';
+  amount: number;
+  method: 'cash' | 'account' | null;
+  accountLabel: string | null;
+  to: { method: 'cash' | 'account' | null; accountLabel: string | null } | null;
+  reason: string;
+  requestedBy: string | null;
+  requestedAt: string;
+  version: number;
+  label: string | null;
+  /** Another request for the same record was approved first: this one can only be rejected. */
+  superseded: boolean;
+}
+
+export interface ClosingSources {
+  date: string;
+  today: string;
+  canRequest: boolean;
+  canApprove: boolean;
+  rows: SourceRow[];
+  pending: PendingCorrection[];
 }
 
 export function useClosingSources(date?: string) {
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.closingSources(branchId, date ?? 'today'),
-    queryFn: () => api.get<{ date: string; today: string; canRequest: boolean; rows: SourceRow[] }>(`/closings/sources${date ? `?date=${date}` : ''}`),
+    queryFn: () => api.get<ClosingSources>(`/closings/sources${date ? `?date=${date}` : ''}`),
     staleTime: 0,
   });
 }
 
-export interface ReclassifyBody {
+/** What the phone sends to preview or ask for a correction. The record's own figures are never sent. */
+export interface CorrectionBody {
+  targetKind: 'sale_payment' | 'sale' | 'expense' | 'supplier_payment' | 'purchase';
+  action?: 'reverse' | 'reclassify' | 'cancel';
   targetId: string;
-  toMethod: 'cash' | 'account';
+  toMethod?: 'cash' | 'account';
   toAccountId?: string;
   amount?: number;
 }
 
-export interface ReclassifyPreview {
-  payment: { id: string; saleId: string; invoiceNo: string | null; amount: number; method: 'cash' | 'account'; accountLabel: string | null; paymentDay: string };
-  move: {
-    amount: number;
-    from: { method: 'cash' | 'account'; accountId: string | null; accountLabel: string | null };
-    to: { method: 'cash' | 'account'; accountId: string | null; accountLabel: string | null };
-  };
-  correctionDate: string;
-  dayClosed: boolean;
-  unchanged: { saleTotal: number; collected: number; owed: number };
-  refusal: string | null;
+/** The body for one action on one record. */
+export function correctionBodyOf(action: CorrectionAction, targetId: string): CorrectionBody {
+  switch (action) {
+    case 'cancel_sale':
+      return { targetKind: 'sale', action: 'cancel', targetId };
+    case 'reverse_payment':
+      return { targetKind: 'sale_payment', action: 'reverse', targetId };
+    case 'reclassify_payment':
+      return { targetKind: 'sale_payment', action: 'reclassify', targetId };
+    case 'reverse_expense':
+      return { targetKind: 'expense', action: 'reverse', targetId };
+    case 'reclassify_purchase_payment':
+      return { targetKind: 'supplier_payment', action: 'reclassify', targetId };
+    case 'cancel_purchase':
+      return { targetKind: 'purchase', action: 'cancel', targetId };
+  }
 }
 
-/** What moving a payment would do — writes nothing. */
-export function usePreviewReclassify() {
+export interface PreviewLeg {
+  direction: 'in' | 'out';
+  method: 'cash' | 'account';
+  accountId: string | null;
+  accountLabel: string | null;
+  amount: number;
+}
+
+/**
+ * What a correction would do, as the server says — nothing written. The common
+ * part is always there; each kind adds what its record needs (the phones going
+ * back, the debt before and after, the stock afterwards).
+ */
+export interface CorrectionPreview {
+  targetKind: CorrectionBody['targetKind'];
+  action: 'reverse' | 'reclassify' | 'cancel';
+  amount: number;
+  legs: PreviewLeg[];
+  correctionDate: string;
+  dayClosed: boolean;
+  refusal: string | null;
+  refusalMessage: string | null;
+  /** A sale payment reversed: the sale before and after, and who owes it. */
+  sale?: { total: number; before: { collected: number; owed: number }; after: { collected: number; owed: number } } & Record<string, unknown>;
+  debtor?: { kind: 'customer' | 'store'; name: string } | null;
+  /** A move: what does not change on the sale. */
+  unchanged?: { saleTotal: number; collected: number; owed: number };
+  /** A sale or a purchase cancelled: what goes back or leaves. */
+  items?: { name: string; identifier: string | null; quantity: number }[];
+  units?: { name: string; identifier: string | null }[];
+  stock?: { name: string; bought: number; onHand: number; onHandAfter: number | null }[];
+  moneyBack?: { method: 'cash' | 'account'; accountId: string | null; accountLabel: string | null; amount: number }[];
+  moneyBackTotal?: number;
+  expense?: { id: string; category: string; amount: number; day: string | null };
+}
+
+export function usePreviewCorrection() {
   return useMutation({
-    mutationFn: (body: ReclassifyBody) => api.post<ReclassifyPreview>('/corrections/preview', { targetKind: 'sale_payment', ...body }),
+    mutationFn: (body: CorrectionBody) => api.post<CorrectionPreview>('/corrections/preview', body),
   });
 }
 
@@ -229,34 +315,53 @@ export interface CorrectionRecord {
   correctionDate: string | null;
 }
 
+/** Everything a correction may move: the day's report and sources, money, sales, stock, expenses. */
+function invalidateAfterCorrection(qc: ReturnType<typeof useQueryClient>, branchId: string | null, date?: string) {
+  void qc.invalidateQueries({ queryKey: qk.closingSources(branchId, date ?? 'today') });
+  void qc.invalidateQueries({ queryKey: qk.closingSources(branchId, 'today') });
+  void qc.invalidateQueries({ queryKey: qk.dailyReport(branchId, date ?? 'today') });
+  void qc.invalidateQueries({ queryKey: qk.dailyReport(branchId, 'today') });
+  void qc.invalidateQueries({ queryKey: ['corrections'] });
+  void qc.invalidateQueries({ queryKey: ['sales'] });
+  void qc.invalidateQueries({ queryKey: ['sale'] });
+  void qc.invalidateQueries({ queryKey: ['expenses'] });
+  void qc.invalidateQueries({ queryKey: ['expense'] });
+  void qc.invalidateQueries({ queryKey: ['inventory'] });
+  void qc.invalidateQueries({ queryKey: ['inventory-value'] });
+  void qc.invalidateQueries({ queryKey: ['inventory-by-model'] });
+  void qc.invalidateQueries({ queryKey: ['home', branchId] });
+  invalidateMoney(qc);
+}
+
 /**
- * Ask for the reclassification (reason required), and — for somebody who may
- * approve — approve it in the same step. Both acts are recorded separately on
- * the server even when one person does both.
+ * Ask for a correction (reason required), and — for somebody who may approve —
+ * approve it in the same step. Both acts are recorded separately on the server
+ * even when one person does both.
  */
-export function useReclassifyPayment(date?: string) {
+export function useCorrect(date?: string) {
   const qc = useQueryClient();
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
-    mutationFn: async (input: ReclassifyBody & { reason: string; clientUuid: string; approve: boolean }) => {
-      const requested = await api.post<CorrectionRecord>('/corrections', {
-        targetKind: 'sale_payment',
-        targetId: input.targetId,
-        toMethod: input.toMethod,
-        ...(input.toAccountId ? { toAccountId: input.toAccountId } : {}),
-        ...(input.amount != null ? { amount: input.amount } : {}),
-        reason: input.reason,
-        clientUuid: input.clientUuid,
-      });
-      if (!input.approve || requested.status !== 'requested') return requested;
+    mutationFn: async (input: CorrectionBody & { reason: string; clientUuid: string; approve: boolean }) => {
+      const { approve, ...body } = input;
+      const requested = await api.post<CorrectionRecord>('/corrections', body);
+      if (!approve || requested.status !== 'requested') return requested;
       return api.post<CorrectionRecord>(`/corrections/${requested.id}/approve`, { expectedVersion: requested.version });
     },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: qk.closingSources(branchId, date ?? 'today') });
-      void qc.invalidateQueries({ queryKey: qk.dailyReport(branchId, date ?? 'today') });
-      void qc.invalidateQueries({ queryKey: qk.dailyReport(branchId, 'today') });
-      void qc.invalidateQueries({ queryKey: ['corrections'] });
-      invalidateMoney(qc);
-    },
+    onSettled: () => invalidateAfterCorrection(qc, branchId, date),
+  });
+}
+
+/** The Owner's decision on a request that is waiting. */
+export function useDecideCorrection(date?: string) {
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
+  return useMutation({
+    mutationFn: (input: { id: string; version: number; decision: 'approve' | 'reject'; note?: string }) =>
+      api.post<CorrectionRecord>(`/corrections/${input.id}/${input.decision}`, {
+        expectedVersion: input.version,
+        ...(input.note ? { note: input.note } : {}),
+      }),
+    onSettled: () => invalidateAfterCorrection(qc, branchId, date),
   });
 }

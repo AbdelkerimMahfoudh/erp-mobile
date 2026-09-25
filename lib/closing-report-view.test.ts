@@ -4,11 +4,20 @@
  *   node lib/closing-report-view.test.ts
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
+  actionKey,
+  actionNeeds,
   canConfirmClose,
+  canSendCorrection,
   channelLabel,
+  KNOWN_REFUSALS,
+  pendingKey,
   reasonGiven,
   refusalKey,
+  targetIdFor,
   reportFreshness,
   verificationKey,
   verificationTone,
@@ -82,4 +91,72 @@ it('cash and unattributed money are named by the catalogue; an account by its ow
   assert.equal(channelLabel({ channel: 'account', label: 'Bankily' }, words), 'Bankily');
 });
 
+// ── The correction path (docs/51 §15) ──
+
+const here = dirname(fileURLToPath(import.meta.url));
+const en = readFileSync(join(here, 'i18n', 'en.ts'), 'utf8');
+const hasKey = (k: string) => en.includes(`  '${k}':`);
+const ACTIONS = ['cancel_sale', 'reverse_payment', 'reclassify_payment', 'reverse_expense', 'reclassify_purchase_payment', 'cancel_purchase'] as const;
+
+it('every refusal the server names has its own sentence in the catalogue', () => {
+  for (const code of KNOWN_REFUSALS) {
+    assert.equal(refusalKey(code), `correctTx.refusal.${code}`);
+    assert.ok(hasKey(`correctTx.refusal.${code}`), code);
+  }
+  assert.ok(hasKey('correctTx.refusal.other'));
+});
+
+it('every action has a name, a hint, an explanation and a reason example', () => {
+  for (const a of ACTIONS) {
+    assert.equal(actionKey(a), `correctTx.action.${a}`);
+    for (const k of [`correctTx.action.${a}`, `correctTx.hint.${a}`, `correctTx.explain.${a}`, `correctTx.reason.placeholder.${a}`]) assert.ok(hasKey(k), k);
+    if (actionNeeds(a).amount) assert.ok(hasKey(`correctTx.amount.${a}`), a);
+  }
+});
+
+it('only a part-correction asks for an amount, and only a move asks where the money went', () => {
+  assert.deepEqual(actionNeeds('cancel_sale'), { amount: false, destination: false });
+  assert.deepEqual(actionNeeds('cancel_purchase'), { amount: false, destination: false });
+  assert.deepEqual(actionNeeds('reverse_payment'), { amount: true, destination: false });
+  assert.deepEqual(actionNeeds('reverse_expense'), { amount: true, destination: false });
+  assert.deepEqual(actionNeeds('reclassify_payment'), { amount: true, destination: true });
+  assert.deepEqual(actionNeeds('reclassify_purchase_payment'), { amount: true, destination: true });
+});
+
+it('a correction is sent only on a clean preview, a real amount, a chosen channel and a written reason', () => {
+  const ok = { action: 'reverse_expense' as const, amount: 400, maxAmount: 1000, destinationChosen: false, reason: 'Typed 5 000 for 500', previewOk: true, refused: false, busy: false };
+  assert.equal(canSendCorrection(ok), true);
+  assert.equal(canSendCorrection({ ...ok, reason: '  ' }), false);
+  assert.equal(canSendCorrection({ ...ok, previewOk: false }), false);
+  assert.equal(canSendCorrection({ ...ok, refused: true }), false);
+  assert.equal(canSendCorrection({ ...ok, busy: true }), false);
+  assert.equal(canSendCorrection({ ...ok, amount: 0 }), false);
+  assert.equal(canSendCorrection({ ...ok, amount: 1000.01 }), false);
+  assert.equal(canSendCorrection({ ...ok, action: 'reclassify_payment' }), false); // no channel chosen
+  assert.equal(canSendCorrection({ ...ok, action: 'reclassify_payment', destinationChosen: true }), true);
+  assert.equal(canSendCorrection({ ...ok, action: 'cancel_sale', amount: null }), true); // a cancellation takes no amount
+});
+
+it('a request waiting for the Owner is said as what it would do', () => {
+  assert.equal(pendingKey({ targetKind: 'sale', action: 'cancel' }), 'correctTx.pending.sale.cancel');
+  assert.equal(pendingKey({ targetKind: 'sale_payment', action: 'reverse' }), 'correctTx.pending.sale_payment.reverse');
+  assert.equal(pendingKey({ targetKind: 'purchase', action: 'cancel' }), 'correctTx.pending.purchase.cancel');
+  assert.equal(pendingKey({ targetKind: 'mystery', action: 'x' }), 'correctTx.pending.other');
+  for (const k of ['sale.cancel', 'sale_payment.reverse', 'sale_payment.reclassify', 'expense.reverse', 'supplier_payment.reclassify', 'purchase.cancel', 'refund_payout.reverse', 'supplier_settlement.reverse', 'other']) {
+    assert.ok(hasKey(`correctTx.pending.${k}`), k);
+  }
+});
+
+
+it('each action corrects the right record: a purchase row is its payment, cancelling acts on the purchase', () => {
+  const purchaseRow = { kind: 'purchase', id: 'sp-1', detail: { purchaseId: 'pu-1' } };
+  assert.equal(targetIdFor(purchaseRow, 'cancel_purchase'), 'pu-1');
+  assert.equal(targetIdFor(purchaseRow, 'reclassify_purchase_payment'), 'sp-1');
+  const paymentRow = { kind: 'payment', id: 'pa-1', detail: { saleId: 'sa-1' } };
+  assert.equal(targetIdFor(paymentRow, 'reverse_payment'), 'pa-1');
+  assert.equal(targetIdFor(paymentRow, 'reclassify_payment'), 'pa-1');
+  assert.equal(targetIdFor(paymentRow, 'cancel_sale'), 'sa-1');
+  assert.equal(targetIdFor({ kind: 'sale', id: 'sa-2', detail: {} }, 'cancel_sale'), 'sa-2');
+  assert.equal(targetIdFor({ kind: 'expense', id: 'ex-1', detail: {} }, 'reverse_expense'), 'ex-1');
+});
 console.log(`closing-report-view: ${passed} passed`);
