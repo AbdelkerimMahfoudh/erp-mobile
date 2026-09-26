@@ -1,17 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  FileSpreadsheet,
-  Pencil,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react-native';
+import { Check, CheckCircle2, ChevronDown, ChevronRight, FileSpreadsheet, RotateCcw, Trash2 } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -28,6 +19,7 @@ import {
   Text,
 } from '../../components/ui';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
+import { RowAction } from '../../components/receive/RowAction';
 import {
   PurchasePaymentPicker,
   purchasePaymentBody,
@@ -36,8 +28,9 @@ import {
 } from '../../components/receive/PurchasePaymentPicker';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { radius, space } from '../../lib/design/tokens';
+import { radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { devTiming } from '../../lib/dev-timing';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
@@ -112,6 +105,11 @@ import type { PurchaseOutcome } from '../../lib/receive-outcome';
  * with their names on them: Accept, Edit, Exclude. The whole identifier, the
  * product, the file's own words and every action are one tap away in the item's
  * sheet, where somebody actually checks a phone against the thing in hand.
+ *
+ * The actions are plain words, not design-system Buttons. Measured on the
+ * hundred-phone workbook, opening a group spent two to four times longer laying
+ * views out than running JavaScript, and a row's three Buttons — each an
+ * animated pressable with an icon — were most of those views (docs/55).
  *
  * Three rules it exists to keep:
  *
@@ -220,8 +218,19 @@ export default function FileReviewScreen() {
   });
 
   const toggleGroup = useCallback((key: string) => {
+    devTiming.mark('review.expand');
     setOpenKey((current) => toggleOpenGroup(current, key));
   }, []);
+  const chooseFilter = useCallback((next: ReviewFilter) => {
+    devTiming.mark('review.filter');
+    setFilter(next);
+  }, []);
+  useLayoutEffect(() => devTiming.end('review.expand', 'review: group opened'), [openKey]);
+  useLayoutEffect(() => devTiming.end('review.filter', 'review: filter applied'), [filter]);
+  useLayoutEffect(() => {
+    devTiming.end('review.parsed', 'review: first list shown');
+    devTiming.end('review.change', 'review: change applied');
+  }, [batch]);
 
   const matchGroupByKey = useCallback((key: string) => {
     const group = groupsRef.current.find((g) => g.key === key);
@@ -252,7 +261,9 @@ export default function FileReviewScreen() {
         message: `${detail}\n\n${t('fileReceive.accept.body')}`,
         confirmLabel: t('fileReceive.accept'),
       });
-      if (ok) setAcknowledged(key, true);
+      if (!ok) return;
+      devTiming.mark('review.change');
+      setAcknowledged(key, true);
     },
     [t, setAcknowledged],
   );
@@ -264,6 +275,7 @@ export default function FileReviewScreen() {
       const entry = entryOf(key);
       if (!live || !entry) return;
       if (entryState(live, entry) === 'excluded') {
+        devTiming.mark('review.change');
         setExcluded(key, false);
         return;
       }
@@ -273,7 +285,9 @@ export default function FileReviewScreen() {
         confirmLabel: t('fileReceive.remove'),
         tone: 'danger',
       });
-      if (ok) setExcluded(key, true);
+      if (!ok) return;
+      devTiming.mark('review.change');
+      setExcluded(key, true);
     },
     [t, setExcluded],
   );
@@ -491,12 +505,17 @@ export default function FileReviewScreen() {
       padded={false}
       footer={
         <View style={styles.footer}>
+          {/* What is ready and what it costs; beside it, what still stands in the way — or, once nothing does, what was left out. */}
           <View style={styles.footerCounts}>
-            <Text variant="label">
+            <Text variant="label" style={styles.shrink}>
               {t('fileReceive.footer.readyTotal', { count: String(counts.ready), total: formatMoney(counts.selectedCost) })}
             </Text>
-            {counts.excluded > 0 ? (
-              <Text variant="caption" tone="secondary">
+            {!ready ? (
+              <Text variant="caption" tone="warning" align="end" style={styles.shrink}>
+                {t('fileReceive.footer.remaining', { count: String(counts.needsAttention) })}
+              </Text>
+            ) : counts.excluded > 0 ? (
+              <Text variant="caption" tone="secondary" align="end" style={styles.shrink}>
                 {t('fileReceive.footer.excluded', { count: String(counts.excluded) })}
               </Text>
             ) : null}
@@ -508,11 +527,6 @@ export default function FileReviewScreen() {
             disabled={!ready || counts.ready === 0}
             onPress={() => setStep('payment')}
           />
-          {!ready ? (
-            <Text variant="caption" tone="secondary" align="center">
-              {t('fileReceive.footer.remaining', { count: String(counts.needsAttention) })}
-            </Text>
-          ) : null}
         </View>
       }
     >
@@ -553,7 +567,7 @@ export default function FileReviewScreen() {
                 title={t('fileReceive.matchProducts')}
                 fullWidth
                 onPress={() => {
-                  setFilter('needs_attention');
+                  chooseFilter('needs_attention');
                   const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0);
                   if (first) setMatching(first);
                 }}
@@ -568,23 +582,30 @@ export default function FileReviewScreen() {
 
             {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
-            {/* One row of filters, scrolling sideways rather than wrapping into a wall. */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} keyboardShouldPersistTaps="handled">
-              <FilterChip label={t('fileReceive.filter.all')} count={counts.phones} selected={filter === 'all'} onPress={() => setFilter('all')} />
-              <FilterChip label={t('fileReceive.filter.ready')} count={counts.ready} selected={filter === 'ready'} onPress={() => setFilter('ready')} />
+            {/*
+              The four filters, every one in view: they wrap onto a second line at 320
+              points instead of scrolling sideways, where the fourth sat off-screen and
+              unknown. Each is a full 48-point target — a chip inside a scrolling list
+              cannot lean on hit slop, which competes with the scroll (docs/55).
+            */}
+            <View style={styles.filters}>
+              <FilterChip label={t('fileReceive.filter.all')} count={counts.phones} selected={filter === 'all'} onPress={() => chooseFilter('all')} style={styles.filterChip} />
+              <FilterChip label={t('fileReceive.filter.ready')} count={counts.ready} selected={filter === 'ready'} onPress={() => chooseFilter('ready')} style={styles.filterChip} />
               <FilterChip
                 label={t('fileReceive.filter.attention')}
                 count={counts.needsAttention}
                 selected={filter === 'needs_attention'}
-                onPress={() => setFilter('needs_attention')}
+                onPress={() => chooseFilter('needs_attention')}
+                style={styles.filterChip}
               />
               <FilterChip
                 label={t('fileReceive.filter.excluded')}
                 count={counts.excluded}
                 selected={filter === 'excluded'}
-                onPress={() => setFilter('excluded')}
+                onPress={() => chooseFilter('excluded')}
+                style={styles.filterChip}
               />
-            </ScrollView>
+            </View>
 
             <Disclosure title={t('fileReceive.bulk.title')}>
               <View style={styles.stack}>
@@ -626,6 +647,7 @@ export default function FileReviewScreen() {
         entry={detailEntry}
         onClose={() => setDetailKey(null)}
         onSave={(correction) => {
+          devTiming.mark('review.change');
           if (detailKey) correct(detailKey, correction);
           setDetailKey(null);
         }}
@@ -793,21 +815,17 @@ const EntryRow = React.memo(function EntryRow({
   return (
     <View style={[styles.entry, excluded ? styles.entryExcluded : null]}>
       <View style={styles.entryLine}>
-        <Text variant="caption" tone="tertiary">
-          {from}
+        <Text variant="caption" tone="tertiary" style={styles.shrink}>
+          {[from, identifierKind === 'serial' ? t('fileReceive.field.serial') : t('fileReceive.field.imei1'), twoImeis ? t('fileReceive.twoImeis') : null]
+            .filter(Boolean)
+            .join(' · ')}
         </Text>
-        <Text variant="caption" tone="secondary">
-          {identifierKind === 'serial' ? t('fileReceive.field.serial') : t('fileReceive.field.imei1')}
-        </Text>
-        <Identifier>{identifier ? maskIdentifier(identifier) : t('fileReceive.noIdentifier')}</Identifier>
-        {twoImeis ? (
-          <Text variant="caption" tone="secondary">
-            {t('fileReceive.twoImeis')}
-          </Text>
-        ) : null}
+        <Identifier style={styles.shrink}>{identifier ? maskIdentifier(identifier) : t('fileReceive.noIdentifier')}</Identifier>
       </View>
       <View style={styles.entryLine}>
-        <Text variant="bodyStrong">{cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')}</Text>
+        <Text variant="bodyStrong" style={styles.shrink}>
+          {cost !== null ? formatMoney(cost) : t('fileReceive.field.noCost')}
+        </Text>
         {/* Status in words as well as colour — never colour alone. */}
         <Text variant="caption" tone={statusTone} style={styles.grow}>
           {status}
@@ -821,19 +839,12 @@ const EntryRow = React.memo(function EntryRow({
 
       <View style={styles.entryActions}>
         {excluded ? (
-          <Button title={t('fileReceive.include')} variant="tertiary" size="sm" icon={RotateCcw} onPress={() => onRemove(entryKey)} />
+          <RowAction title={t('fileReceive.include')} onPress={() => onRemove(entryKey)} />
         ) : (
           <>
-            <Button
-              title={t('fileReceive.action.accept')}
-              variant="tertiary"
-              size="sm"
-              icon={CheckCircle2}
-              disabled={!acceptable}
-              onPress={() => onAccept(entryKey)}
-            />
-            <Button title={t('fileReceive.action.edit')} variant="tertiary" size="sm" icon={Pencil} onPress={() => onEdit(entryKey)} />
-            <Button title={t('fileReceive.remove')} variant="tertiary" size="sm" icon={Trash2} onPress={() => onRemove(entryKey)} />
+            <RowAction title={t('fileReceive.action.accept')} disabled={!acceptable} onPress={() => onAccept(entryKey)} />
+            <RowAction title={t('fileReceive.action.edit')} onPress={() => onEdit(entryKey)} />
+            <RowAction title={t('fileReceive.remove')} tone="danger" onPress={() => onRemove(entryKey)} />
           </>
         )}
       </View>
@@ -1034,25 +1045,28 @@ const useStyles = makeStyles((colors) => ({
   stack: { gap: space.sm },
   tiles: { flexDirection: 'row', gap: space.sm },
   tile: { flex: 1, gap: 2, padding: space.md, borderRadius: radius.lg, backgroundColor: colors.surface.card },
-  filters: { flexDirection: 'row', gap: space.xs, paddingVertical: space.xs },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  filterChip: { height: touch.min },
   grow: { flex: 1, minWidth: 0 },
+  /** A text in a row may shrink and wrap rather than run past the edge — native text does not shrink on its own. */
+  shrink: { flexShrink: 1, minWidth: 0 },
   flip: { transform: [{ scaleX: -1 }] },
   pressed: { opacity: 0.7 },
   // Group headers and rows share one surface; hairlines between records do the separating.
   group: { backgroundColor: colors.surface.card },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingHorizontal: space.base, paddingVertical: space.sm },
-  groupTrail: { alignItems: 'flex-end', flexShrink: 0 },
+  groupTrail: { alignItems: 'flex-end', flexShrink: 1, maxWidth: '48%' },
   groupAction: { flexDirection: 'row', paddingHorizontal: space.base, paddingBottom: space.sm },
   entry: { gap: space.xs, paddingVertical: space.sm, paddingStart: space.xl, paddingEnd: space.base, backgroundColor: colors.surface.card },
   entryExcluded: { backgroundColor: colors.surface.sunken },
   entryLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   entryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginStart: -space.md },
+  footerCounts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm },
   field: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: space.xs },
   fieldLabel: { minWidth: 96 },
   fieldValue: { flexShrink: 1 },
   tail: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base },
-  footer: { gap: space.xs },
-  footerCounts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  footer: { gap: space.sm },
   sheet: { gap: space.md, padding: space.base },
   sheetActions: { gap: space.sm },
 }));

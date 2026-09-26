@@ -565,9 +565,11 @@ it('the summary is three figures with their words, and the one action addresses 
   assert.match(src, /<SummaryTile label=\{t\('fileReceive\.filter\.excluded'\)\} value=\{counts\.excluded\}/);
   assert.match(src, /fileReceive\.matchProducts/, 'the primary action addresses the actual problem');
   assert.ok(!/position: 'absolute'/.test(src), 'nothing inside a card is positioned absolutely');
-  // One row of filters that scrolls sideways — never a wrapping wall.
-  assert.match(src, /<ScrollView horizontal[^>]*contentContainerStyle=\{styles\.filters\}/);
-  assert.doesNotMatch(src, /filters: \{[^}]*flexWrap/);
+  // The four filters, every one in view: they wrap at 320 points rather than scroll sideways with one
+  // off-screen, and each is a full target (docs/55 — supersedes the sideways row of `ef2c795`).
+  assert.match(src, /<View style=\{styles\.filters\}>/);
+  assert.match(src, /filters: \{ flexDirection: 'row', flexWrap: 'wrap', gap: space\.sm \},/);
+  assert.match(src, /filterChip: \{ height: touch\.min \},/);
 });
 
 it('a row says where it came from, which one it is (masked), what it costs and where it stands — in words', () => {
@@ -596,11 +598,11 @@ it('Accept, Edit and Exclude carry their names, and Accept waits until nothing b
   assert.match(accept, /canAccept\(live, entry\)/);
   assert.match(accept, /dialog\.confirm\(/);
   assert.match(accept, /fileReceive\.accept\.body/);
-  assert.match(accept, /if \(ok\) setAcknowledged\(key, true\)/);
+  assert.match(accept, /if \(!ok\) return;\s*devTiming\.mark\('review\.change'\);\s*setAcknowledged\(key, true\)/);
   // Exclude confirms destructively and removes only that row; restoring needs no confirmation.
   const exclude = src.slice(src.indexOf('const removeEntry'), src.indexOf('const editEntry'));
   assert.match(exclude, /tone: 'danger'/);
-  assert.match(exclude, /if \(ok\) setExcluded\(key, true\)/);
+  assert.match(exclude, /if \(!ok\) return;\s*devTiming\.mark\('review\.change'\);\s*setExcluded\(key, true\)/);
   assert.match(exclude, /setExcluded\(key, false\);\s*return;/);
 });
 
