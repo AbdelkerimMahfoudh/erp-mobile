@@ -120,7 +120,7 @@ export function CloseReviewSheet({ open, onClose, report, freshness, onChanged }
           <Line label={t('closeReview.received')} value={report.money.totals.in} />
           <Line label={t('closeReview.paidOut')} value={report.money.totals.out} />
           <Divider />
-          <Line label={t('closeReview.expected')} value={report.expected.cash.expected} strong />
+          <Line label={t(report.expected.cash.opening.anchorDate === null ? 'dailyReport.expected.movementFromZero' : 'closeReview.expected')} value={report.expected.cash.expected} strong />
           {report.result.status === 'ok' ? <Line label={t('closeReview.result')} value={report.result.resultAfterExpenses ?? 0} strong signed /> : null}
         </View>
 

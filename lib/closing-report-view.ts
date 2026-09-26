@@ -14,8 +14,13 @@ export type Verification = 'counted' | 'skipped' | 'not_verified' | 'stale' | 'n
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
-/** The word for a verification — always shown beside its colour. */
-export function verificationKey(v: Verification): string {
+/**
+ * The word for a verification — always shown beside its colour. An account is
+ * never counted: its check is a reading of the movement its app shows, so a
+ * checked account says so rather than "Counted" (docs/58 §1.2).
+ */
+export function verificationKey(v: Verification, channel: 'cash' | 'account' = 'cash'): string {
+  if (channel === 'account' && (v === 'counted' || v === 'stale')) return `dailyReport.verify.account.${v}`;
   return `dailyReport.verify.${v}`;
 }
 

@@ -394,7 +394,8 @@ function Report({
           />
           <Line label={t('dailyReport.money.in')} value={cash.in} quiet signed />
           <Line label={t('dailyReport.money.out')} value={-cash.out} quiet signed />
-          <Line label={t('dailyReport.expected.expected')} value={cash.expected} strong />
+          {/* With no counted opening the figure is only the day's recorded movement from 0 — never a confirmed drawer amount. */}
+          <Line label={t(cash.opening.anchorDate === null ? 'dailyReport.expected.movementFromZero' : 'dailyReport.expected.expected')} value={cash.expected} strong />
           {cash.counted !== null ? (
             <>
               <Line label={t('dailyReport.expected.counted')} value={cash.counted} />
@@ -413,7 +414,7 @@ function Report({
               <Text variant="bodyStrong" style={styles.flex}>
                 {a.label}
               </Text>
-              <Chip tone={verificationTone(a.verification, a.difference)} label={t(verificationKey(a.verification) as never)} size="sm" dot />
+              <Chip tone={verificationTone(a.verification, a.difference)} label={t(verificationKey(a.verification, 'account') as never)} size="sm" dot />
             </View>
             {/* The movement staff recorded through the account — never its balance (docs/51 §3.5). */}
             <Line label={t('dailyReport.expected.account')} value={a.expectedMovement} strong signed />
@@ -704,7 +705,10 @@ function HistoryRow({ entry, first }: { entry: ClosingHistoryEntry; first: boole
   let caption: string | null = null;
   switch (entry.kind) {
     case 'count_saved':
-      caption = p.skipped ? String(p.label ?? '') : `${String(p.label ?? '')} · ${t('closing.history.counted', { amount: money(p.counted) })}`;
+      // An account's check is the movement its app showed, never a count.
+      caption = p.skipped
+        ? String(p.label ?? '')
+        : `${String(p.label ?? '')} · ${t(p.channel === 'account' ? 'closing.history.checked' : 'closing.history.counted', { amount: money(p.counted) })}`;
       break;
     case 'closed':
     case 'reclosed':

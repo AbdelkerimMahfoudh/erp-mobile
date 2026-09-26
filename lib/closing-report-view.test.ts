@@ -39,6 +39,11 @@ it('only a count is a verification; nothing unchecked is ever shown green', () =
   assert.equal(verificationTone('skipped', null), 'neutral');
   assert.equal(verificationTone('not_counted', null), 'neutral');
   assert.equal(verificationKey('not_verified'), 'dailyReport.verify.not_verified');
+  // An account is checked against its app, never counted: its own words for the two states that would say "counted".
+  assert.equal(verificationKey('counted', 'account'), 'dailyReport.verify.account.counted');
+  assert.equal(verificationKey('stale', 'account'), 'dailyReport.verify.account.stale');
+  assert.equal(verificationKey('not_counted', 'account'), 'dailyReport.verify.not_counted');
+  assert.equal(verificationKey('counted', 'cash'), 'dailyReport.verify.counted');
 });
 
 it('closing never waits for a count — only for live figures and, when needed, an acknowledgement with a reason', () => {

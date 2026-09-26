@@ -101,7 +101,7 @@ describe('what the person sees', () => {
   });
 
   it('a saved or stale count can be counted again; an account is asked for its movement, not its balance', () => {
-    assert.match(ROW, /t\('closingCheck\.recount'\)/);
+    assert.match(ROW, /t\(account \? 'closingCheck\.recheck' : 'closingCheck\.recount'\)/);
     assert.match(ROW, /row\.stale/);
     assert.match(ROW, /t\('closingCheck\.accountPrompt'\)/);
     assert.doesNotMatch(ROW, /closing\.countedBalance/);

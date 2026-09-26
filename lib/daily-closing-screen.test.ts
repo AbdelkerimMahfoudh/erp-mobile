@@ -56,7 +56,21 @@ it('Sales details — the one expandable of the statement — explains invoiced 
 it('Check balances: the drawer and each account, what was recorded, how it stands, its own count or check', () => {
   assert.match(balances, /t\('dailyReport\.checkBalances\.optional'\)/);
   assert.match(balances, /t\('dailyReport\.expected\.cash'\)[\s\S]*?verificationTone\(cash\.verification, cash\.difference\)/);
-  assert.match(balances, /t\('dailyReport\.expected\.expected'\)\} value=\{cash\.expected\} strong/);
+  // With no counted opening the drawer's figure is the recorded movement from 0 — never "should be in the drawer".
+  assert.match(balances, /t\(cash\.opening\.anchorDate === null \? 'dailyReport\.expected\.movementFromZero' : 'dailyReport\.expected\.expected'\)\} value=\{cash\.expected\} strong/);
+  assert.match(code(read('components/closing/CloseReviewSheet.tsx')), /anchorDate === null \? 'dailyReport\.expected\.movementFromZero' : 'closeReview\.expected'/);
+  // An account is checked against its app, never counted.
+  assert.match(balances, /verificationKey\(a\.verification, 'account'\)/);
+  assert.match(code(read('lib/closing-report-view.ts')), /channel === 'account' && \(v === 'counted' \|\| v === 'stale'\)/);
+  for (const [k, v] of [['dailyReport.expected.movementFromZero', 'Recorded cash movement, from a 0 start'], ['dailyReport.verify.account.counted', 'Checked against the app'], ['dailyReport.checkBalance', 'Check movement'], ['dailyReport.account.counted', 'Movement in the account app'], ['closingCheck.accountPrompt', 'Movement shown by the account app']]) {
+    assert.ok(read('lib/i18n/en.ts').includes(`'${k}': '${v}'`), `${k} reads "${v}"`);
+  }
+  // The counting screen says the same: recorded movement for an account, checked (not counted) once compared, the drawer's figure by its anchor.
+  assert.match(count, /account\s*\? t\('dailyReport\.expected\.account'\)\s*: cashAnchored === null\s*\? t\('closing\.expected'\)\s*: cashAnchored\s*\? t\('closing\.expected\.drawer'\)\s*: t\('dailyReport\.expected\.movementFromZero'\)/);
+  assert.match(count, /t\(account \? 'closing\.channel\.checked' : 'closing\.channel\.counted'\)/);
+  assert.match(count, /t\(account \? 'dailyReport\.account\.counted' : 'closing\.counted'\)/);
+  assert.match(count, /t\(account \? 'closingCheck\.recheck' : 'closingCheck\.recount'\)/);
+  assert.match(screen, /p\.channel === 'account' \? 'closing\.history\.checked' : 'closing\.history\.counted'/);
   assert.match(balances, /\{cash\.counted !== null \? \([\s\S]*?t\('dailyReport\.expected\.counted'\)[\s\S]*?t\('dailyReport\.expected\.difference'\)/);
   assert.match(balances, /t\('dailyReport\.countCash'\)[\s\S]*?checkChannel\('cash'\)/);
   // An account shows its recorded movement, never a balance — and says so.

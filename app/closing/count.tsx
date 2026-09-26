@@ -27,6 +27,7 @@ import {
   TextField,
 } from '../../components/ui';
 import { useConnectivity } from '../../lib/connectivity';
+import { useDailyReport } from '../../lib/closing-report';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { isolateLtr } from '../../lib/design/direction';
@@ -107,6 +108,13 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
 
   /** The one channel the Daily closing asked to check (`cash`, or an account id): its field takes focus (docs/58). */
   const { focus } = useLocalSearchParams<{ focus?: string }>();
+  /*
+    Whether the drawer's expected figure rests on a counted opening (docs/58 §1.2). The
+    report already knows; it is read from the cache the person just came from. Without an
+    anchor the figure is only the day's recorded movement from 0, and the row says so.
+  */
+  const report = useDailyReport();
+  const cashAnchored: boolean | null = report.data ? report.data.expected.cash.opening.anchorDate !== null : null;
   const { mutate: recordCount } = useRecordCount();
   const [error, setError] = useState<unknown>(null);
   /** The one row being saved, by key — so the others are left alone. */
@@ -154,10 +162,11 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
         disabled={!canCount || offline}
         saving={saving === rowKey(item)}
         focused={focus !== undefined && focus === (item.channel === 'cash' ? 'cash' : (item.accountId ?? ''))}
+        cashAnchored={cashAnchored}
         onSubmit={submit}
       />
     ),
-    [canCount, offline, saving, submit, last, focus],
+    [canCount, offline, saving, submit, last, focus, cashAnchored],
   );
 
   return (
@@ -241,6 +250,8 @@ interface ChannelLineProps {
   saving: boolean;
   /** Asked for by name from the Daily closing: the field takes focus, and a saved count reopens for counting again. */
   focused?: boolean;
+  /** Whether the drawer's expected figure rests on a counted opening; null while the report is not known. */
+  cashAnchored?: boolean | null;
   onSubmit: (body: RecordCountBody) => void;
 }
 
@@ -261,11 +272,12 @@ function sameRow(a: ChannelLineProps, b: ChannelLineProps): boolean {
     a.disabled === b.disabled &&
     a.saving === b.saving &&
     a.focused === b.focused &&
+    a.cashAnchored === b.cashAnchored &&
     a.onSubmit === b.onSubmit
   );
 }
 
-const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, saving, focused = false, onSubmit }: ChannelLineProps) {
+const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, saving, focused = false, cashAnchored = null, onSubmit }: ChannelLineProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -283,6 +295,7 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
         : row.labelSnapshot;
   // A count from before a reopen proves nothing about the drawer now: it is offered for counting again.
   const settled = (row.counted !== null || row.isSkipped) && !row.stale && !recounting;
+  const account = row.channel === 'account';
   const Icon = row.channel === 'cash' ? Banknote : Smartphone;
   const body = { channel: row.channel, accountId: row.accountId ?? undefined } as const;
 
@@ -295,23 +308,30 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
             {label}
           </Text>
         </View>
-        {/* Status in a word as well as a colour, always. */}
+        {/* Status in a word as well as a colour, always. An account is checked against its app, never counted (docs/58 §1.2). */}
         {row.stale ? (
-          <Chip tone="warning" label={t('dailyReport.verify.stale')} size="sm" dot />
+          <Chip tone="warning" label={t(account ? 'dailyReport.verify.account.stale' : 'dailyReport.verify.stale')} size="sm" dot />
         ) : row.isSkipped ? (
           <Chip tone="neutral" label={t('closing.channel.skipped')} size="sm" dot />
         ) : row.counted !== null ? (
-          <Chip tone="success" label={t('closing.channel.counted')} size="sm" dot />
+          <Chip tone="success" label={t(account ? 'closing.channel.checked' : 'closing.channel.counted')} size="sm" dot />
         ) : row.countable ? (
-          <Chip tone="warning" label={t('closing.channel.outstanding')} size="sm" dot />
+          <Chip tone="warning" label={t(account ? 'closing.channel.unchecked' : 'closing.channel.outstanding')} size="sm" dot />
         ) : (
           <Chip tone="neutral" label={t('closing.channel.reportOnly')} size="sm" dot />
         )}
       </View>
 
       <View style={styles.rowMeta}>
+        {/* The drawer: what should be in it — or, with no counted opening, only the day's recorded movement from 0. An account: its recorded movement. */}
         <Text variant="caption" tone="secondary">
-          {t('closing.expected')}
+          {account
+            ? t('dailyReport.expected.account')
+            : cashAnchored === null
+              ? t('closing.expected')
+              : cashAnchored
+                ? t('closing.expected.drawer')
+                : t('dailyReport.expected.movementFromZero')}
         </Text>
         <MoneyValue value={row.expected} size="small" />
       </View>
@@ -326,7 +346,7 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
         <View style={styles.form}>
           <SettledLine row={row} />
           <View style={styles.linkRow}>
-            <Button title={t('closingCheck.recount')} variant="tertiary" size="sm" disabled={disabled} onPress={() => setRecounting(true)} />
+            <Button title={t(account ? 'closingCheck.recheck' : 'closingCheck.recount')} variant="tertiary" size="sm" disabled={disabled} onPress={() => setRecounting(true)} />
           </View>
         </View>
       ) : skipping ? (
@@ -352,7 +372,7 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
         <View style={styles.form}>
           {row.stale ? (
             <Text variant="caption" tone="secondary">
-              {t('closingCheck.stale')}
+              {t(account ? 'closingCheck.stale.account' : 'closingCheck.stale')}
             </Text>
           ) : null}
           <View style={styles.countLine}>
@@ -403,11 +423,13 @@ function SettledLine({ row }: { row: ChannelRow }) {
     );
   }
   const difference = row.difference ?? 0;
+  const account = row.channel === 'account';
   return (
     <View style={styles.settled}>
       <View style={styles.rowMeta}>
+        {/* An account's figure is the movement its app showed, compared with the recorded movement — not a count, not a balance. */}
         <Text variant="caption" tone="secondary">
-          {t('closing.counted')}
+          {t(account ? 'dailyReport.account.counted' : 'closing.counted')}
         </Text>
         <MoneyValue value={row.counted ?? 0} size="small" />
       </View>
@@ -419,7 +441,7 @@ function SettledLine({ row }: { row: ChannelRow }) {
       </View>
       {difference !== 0 ? (
         <Text variant="caption" tone="secondary">
-          {t(difference < 0 ? 'closing.short' : 'closing.over')}
+          {t(account ? (difference < 0 ? 'closing.account.short' : 'closing.account.over') : difference < 0 ? 'closing.short' : 'closing.over')}
         </Text>
       ) : null}
     </View>
