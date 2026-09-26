@@ -56,6 +56,11 @@ export interface EntryRowData {
   imei2: string | null;
   cost: number | null;
   extractedCost: number | null;
+  /**
+   * The cost was corrected, so the row says what the file said. A product chosen for the
+   * row is not a cost correction: the row used to print "Corrected. The file said 16 500"
+   * for a phone whose cost had not moved, and read as if it had (docs/55 D51).
+   */
   corrected: boolean;
   state: EntryState;
   problems: EntryProblem[];
@@ -82,7 +87,7 @@ export function entryRow(batch: BatchState, groupKey: string, entry: EntryGroup[
     imei2: effectiveImei2(batch, entry),
     cost: effectiveCost(batch, entry),
     extractedCost: entry.extracted.cost,
-    corrected: Boolean(correction),
+    corrected: correction?.cost !== undefined,
     state: entryState(batch, entry),
     problems: remainingProblems(entry, correction),
     acceptable: canAccept(batch, entry),

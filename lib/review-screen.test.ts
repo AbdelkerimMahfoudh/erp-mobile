@@ -92,4 +92,16 @@ it('the stage timings are marked at the tap and logged at the commit, and are of
   assert.equal(logs.length, 0);
 });
 
+it('the sheet\'s Close is a full 48-point target (docs/55 D49)', () => {
+  const sheet = code(read('../components/overlay/BottomSheet.tsx'));
+  assert.match(sheet, /accessibilityLabel=\{t\('action\.close'\)\}\s*onPress=\{animateOut\}\s*size=\{touch\.min\}/);
+  assert.match(read('./design/tokens.ts'), /min: 48,/);
+});
+
+it('a group offers Match product only where a shared choice exists; Match products opens the first such group (docs/55 D50)', () => {
+  assert.match(screen, /matchable=\{summary\.matchableKeys\.length > 0 && \(candidateCounts\.get\(item\.groupKey\) \?\? 0\) > 0\}/);
+  assert.match(screen, /const first = groups\.find\(\(g\) => \(summaries\.get\(g\.key\)\?\.matchableKeys\.length \?\? 0\) > 0 && \(candidateCounts\.get\(g\.key\) \?\? 0\) > 0\);/);
+  assert.match(screen, /new Map\(groups\.map\(\(g\) => \[g\.key, batch \? groupCandidates\(batch, g\)\.length : 0\]\)\)/);
+});
+
 console.log(`review-screen: ${passed} passed`);

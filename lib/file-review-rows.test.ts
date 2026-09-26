@@ -91,6 +91,11 @@ it('each row carries what its line needs — state, cost, problems, acceptabilit
   assert.equal(r70.extractedCost, 12500);
   assert.equal(r70.corrected, true);
   assert.equal(r70.state, 'ready');
+  // A product chosen for a row is not a cost correction: the caption about the file's cost stays off (docs/55 D51).
+  b.corrections.r71 = { productId: 'p-chosen' };
+  const rows2 = reviewRows(b, groups, groupSummaries(b, groups), groups[7].key, 'all');
+  const r71 = rows2.find((r) => r.type === 'entry' && r.entryKey === 'r71') as Record<string, unknown>;
+  assert.equal(r71.corrected, false);
   assert.equal(r70.acceptable, false, 'nothing advisory to accept');
   assert.equal(r70.identifier, '990001000000070');
   assert.equal(r70.identifierKind, 'imei');

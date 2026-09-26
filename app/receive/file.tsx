@@ -179,6 +179,17 @@ export default function FileReviewScreen() {
   const counts = useMemo(() => (batch ? batchCounts(batch) : null), [batch]);
   const groups = useMemo(() => (batch ? groupEntries(batch) : []), [batch]);
   const summaries = useMemo(() => (batch ? groupSummaries(batch, groups) : new Map()), [batch, groups]);
+  /**
+   * How many products a group could be matched to at once — the ones every phone in
+   * it already matched. A group with none ("No product match") offered the same
+   * Match product button as one with a choice, and its sheet could only say that
+   * nothing in the catalogue matches; the headline Match products opened that empty
+   * sheet first. The button now appears only where a choice exists (docs/55 D50).
+   */
+  const candidateCounts = useMemo(
+    () => new Map(groups.map((g) => [g.key, batch ? groupCandidates(batch, g).length : 0])),
+    [batch, groups],
+  );
   const rows = useMemo(() => (batch ? reviewRows(batch, groups, summaries, openKey, filter) : []), [batch, groups, summaries, openKey, filter]);
   const items = useMemo(() => (batch ? purchaseItems(batch) : []), [batch]);
   /** Bound to the payload: editing the batch changes the key, so a stale replay cannot answer. */
@@ -318,7 +329,7 @@ export default function FileReviewScreen() {
             subtotal={formatMoney(summary.subtotal)}
             status={status}
             held={summary.needsAttention > 0}
-            matchable={summary.matchableKeys.length > 0}
+            matchable={summary.matchableKeys.length > 0 && (candidateCounts.get(item.groupKey) ?? 0) > 0}
             open={item.open}
             onToggle={toggleGroup}
             onMatch={matchGroupByKey}
@@ -350,7 +361,7 @@ export default function FileReviewScreen() {
         />
       );
     },
-    [t, toggleGroup, matchGroupByKey, acceptEntry, editEntry, removeEntry],
+    [t, toggleGroup, matchGroupByKey, acceptEntry, editEntry, removeEntry, candidateCounts],
   );
 
   if (done) {
@@ -568,7 +579,7 @@ export default function FileReviewScreen() {
                 fullWidth
                 onPress={() => {
                   chooseFilter('needs_attention');
-                  const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0);
+                  const first = groups.find((g) => (summaries.get(g.key)?.matchableKeys.length ?? 0) > 0 && (candidateCounts.get(g.key) ?? 0) > 0);
                   if (first) setMatching(first);
                 }}
               />
