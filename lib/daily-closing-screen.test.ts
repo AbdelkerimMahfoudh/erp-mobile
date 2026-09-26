@@ -27,7 +27,8 @@ const screen = code(read('app/closing/index.tsx'));
 const count = code(read('app/closing/count.tsx'));
 const statement = screen.slice(screen.indexOf("<Card style={styles.statement}>"), screen.indexOf('<Warnings report={report}'));
 const balances = screen.slice(screen.indexOf("t('dailyReport.checkBalances')"), screen.indexOf("t('dailyReport.movements')"));
-const movements = screen.slice(screen.indexOf("t('dailyReport.movements')"), screen.indexOf("{/* ── The actions of the day ── */}"));
+// The slice ends on code, not on a comment: `code()` strips comments, so a comment marker would run the slice to the end of the file.
+const movements = screen.slice(screen.indexOf("t('dailyReport.movements')"), screen.indexOf('<View style={styles.actions}>'));
 
 it('the first view is the statement: sales and items, then gross profit, expenses and result only where permitted and calculable', () => {
   assert.match(statement, /t\('dailyReport\.headline'\)/);
@@ -41,15 +42,21 @@ it('the first view is the statement: sales and items, then gross profit, expense
   assert.ok(!/net profit/i.test(read('lib/i18n/en.ts').split("'dailyReport.")[1] ?? ''), 'no "net profit" wording');
 });
 
-it('Sales details — the one expandable of the statement — explains invoiced sales, cancellations, returns, net, how the result follows, collected and owed, and leads to the transactions', () => {
+it('Sales details — the one expandable of the statement — is figure rows only: invoiced, (cancelled, returned when nonzero), net, cost, gross profit, expenses, result; the words behind a (?)', () => {
   const details = statement.slice(statement.indexOf("t('dailyReport.salesDetails')"), statement.lastIndexOf('</Disclosure>'));
-  for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'result.cost', 'result.gross', 'result.after', 'result.scope', 'result.how.body', 'sales.collected', 'sales.atCheckout', 'sales.laterSameDay', 'sales.owed', 'countRule', 'salesDetails.transactions']) {
+  for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'result.cost', 'result.gross', 'expenses.title', 'result.after']) {
     assert.ok(details.includes(`t('dailyReport.${k}'`), `sales details carry ${k}`);
   }
-  // The result's lines follow net sales, before the money side; a result that cannot be calculated says so there.
-  assert.ok(details.indexOf("t('dailyReport.sales.net')") < details.indexOf("t('dailyReport.result.cost')") && details.indexOf("t('dailyReport.result.after')") < details.indexOf("t('dailyReport.sales.collected')"));
-  assert.match(details, /resultBlocked \? \([\s\S]*?t\('dailyReport\.result\.cannot'\)/);
-  assert.match(details, /router\.push\(`\/sales\/period\?day=\$\{report\.date\}` as Href\)/);
+  for (const gone of ['sales.collected', 'sales.atCheckout', 'sales.laterSameDay', 'sales.owed', 'countRule', 'salesDetails.transactions', 'result.scope', 'result.how.body', 'result.beforeFixed']) {
+    assert.ok(!details.includes(`t('dailyReport.${gone}'`), `sales details no longer carry ${gone}`);
+  }
+  assert.match(details, /cancellations\.count > 0 && report\.sales\.cancellations\.value !== 0/);
+  assert.match(details, /returns\.count > 0 && report\.sales\.returns\.netRefundDue !== 0/);
+  assert.ok(details.indexOf("t('dailyReport.sales.net')") < details.indexOf("t('dailyReport.result.cost')"));
+  assert.ok(!/<Text\b/.test(details), 'no paragraph inside the details, only lines');
+  assert.ok(!screen.includes('/sales/period'), 'no link to the transactions from the statement');
+  // The explanation is asked for, never shown: a (?) beside the title opens it in its own dialog.
+  assert.match(statement, /<IconButton\s+icon=\{HelpCircle\}[\s\S]*?accessibilityLabel=\{t\('dailyReport\.salesDetails\.help'\)\}[\s\S]*?dialog\.alert\(\{[\s\S]*?t\('dailyReport\.countRule'\)/);
   assert.equal((statement.match(/<Disclosure\b/g) ?? []).length, 1, 'one expandable on the statement');
 });
 
@@ -86,12 +93,19 @@ it('Check balances: the drawer and each account, what was recorded, how it stand
   assert.match(count, /autoFocus=\{focused && !disabled\}/);
 });
 
-it('Money movements holds the calculation detail: by channel, totals, details, expenses — with no client sums', () => {
-  for (const k of ['movements.hint', 'money.in', 'money.olderDebts', 'money.out', 'money.net', 'money.details', 'expenses.title', 'expenses.total', 'expenses.reversal']) {
-    assert.ok(movements.includes(`t('dailyReport.${k}'`), `movements carry ${k}`);
+it('Money movements is always in view: each channel’s recorded movement, a line, the debt settled (inside the channels, not added again), the total recorded movement said as such — no client sums', () => {
+  assert.ok(!/<Disclosure\b/.test(movements), 'no expand/collapse on Money movements');
+  assert.match(movements, /\.filter\(\(c\) => c\.countable \|\| c\.net !== 0\)[\s\S]*?<Line key=\{c\.key\} label=\{channelLabel\(c, words\)\} value=\{c\.net\} signed tone="auto" \/>/);
+  assert.match(movements, /<Divider \/>\s*<Line label=\{t\('dailyReport\.movements\.debtSettled'\)\} value=\{report\.money\.totals\.olderDebts\} quiet \/>\s*<Line label=\{t\('dailyReport\.movements\.total'\)\} value=\{report\.money\.totals\.net\} strong signed \/>/);
+  assert.match(movements, /t\('dailyReport\.movements\.total\.note'\)/);
+  for (const gone of ['money.in', 'money.out', 'money.net', 'money.details', 'expenses.total', 'expenses.reversal', 'movements.hint']) {
+    assert.ok(!movements.includes(`t('dailyReport.${gone}'`), `movements no longer carry ${gone}`);
   }
-  assert.match(movements, /<ChannelDetail key=\{c\.key\} channel=\{c\} label=\{channelLabel\(c, words\)\} \/>/);
+  assert.ok(!screen.includes('function ChannelDetail('), 'the per-channel detail is gone');
   assert.ok(!/\.reduce\(|\+= |\bsum\(/.test(screen), 'the phone adds nothing up');
+  const en = read('lib/i18n/en.ts');
+  assert.ok(en.includes("'dailyReport.movements.total': 'Money in the shop — recorded movement'"));
+  assert.ok(en.includes("'dailyReport.movements.debtSettled': 'Debt settled for this day (included above)'"));
 });
 
 it('Review & close, Correct a transaction and Closing history are there, on the same contract as before', () => {
@@ -107,7 +121,7 @@ it('Review & close, Correct a transaction and Closing history are there, on the 
 });
 
 it('every catalogue carries the new section words', () => {
-  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.transactions', 'dailyReport.checkBalances', 'dailyReport.checkBalances.optional', 'dailyReport.countCash', 'dailyReport.checkBalance', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.hint', 'dailyReport.result.cannot.short'];
+  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.help', 'dailyReport.checkBalances', 'dailyReport.checkBalances.optional', 'dailyReport.countCash', 'dailyReport.checkBalance', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.debtSettled', 'dailyReport.movements.total', 'dailyReport.movements.total.note', 'dailyReport.result.cannot.short'];
   for (const lang of ['en', 'fr', 'ar']) {
     const catalogue = read(`lib/i18n/${lang}.ts`);
     for (const key of keys) assert.ok(catalogue.includes(`'${key}':`), `${lang} lacks ${key}`);

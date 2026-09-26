@@ -2,9 +2,9 @@ import React, { useContext, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
-import { Stack, useRouter, type Href } from 'expo-router';
-import { CalendarDays, ChevronRight, PencilLine } from 'lucide-react-native';
-import { Button, Card, Chip, Disclosure, Divider, ErrorState, FilterChip, InlineNotice, ListRow, MoneyValue, RowGroup, Section, SkeletonList, Text } from '../../components/ui';
+import { Stack, useRouter } from 'expo-router';
+import { CalendarDays, HelpCircle, PencilLine } from 'lucide-react-native';
+import { Button, Card, Chip, Disclosure, Divider, ErrorState, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, Section, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
 import { DayChoiceSheet } from '../../components/closing/DayChoiceSheet';
 import { CloseReviewSheet } from '../../components/closing/CloseReviewSheet';
@@ -21,7 +21,7 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
 import { useOpenClosing, useOpenDay, useReopenDay, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
-import { useDailyReport, type DailyReport, type ReportChannel } from '../../lib/closing-report';
+import { useDailyReport, type DailyReport } from '../../lib/closing-report';
 import { channelLabel, reportFreshness, verificationKey, verificationTone, warningKey, type Freshness } from '../../lib/closing-report-view';
 
 /**
@@ -298,71 +298,58 @@ function Report({
           </View>
         ) : null}
 
-        {/* What the sales value is made of, and where its money stands — one tap away, with the way to the records. */}
+        {/*
+          Sales details: the figure rows only — how the sales value becomes the result. A cancellation or a return
+          row appears only when it has a value and is needed to explain net sales. What the figures mean is one tap
+          away on the (?) beside the title, never on the page.
+        */}
         {report.sales ? (
-          <Disclosure title={t('dailyReport.salesDetails')}>
-            <View style={styles.detail}>
-              <Line label={t('dailyReport.salesDetails.invoiced')} value={report.sales.value} />
-              {/* A sale cancelled today comes off here, whatever day it was sold on (0079). */}
-              {report.sales.cancellations.count > 0 ? (
-                <Line
-                  label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count), items: String(report.sales.cancellations.items) })}
-                  value={-report.sales.cancellations.value}
-                  signed
-                />
-              ) : null}
-              {report.sales.returns.count > 0 ? (
-                <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
-              ) : null}
-              <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong={adjusted} />
-              {/* How the result was reached, straight after net sales — where the person may see it and it can be calculated. */}
-              {resultOk ? (
-                <>
-                  <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
-                  <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
-                  <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
-                  <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
-                  {result.fixedExpenses > 0 ? <Line label={t('dailyReport.result.beforeFixed')} value={result.resultBeforeFixed ?? 0} quiet signed /> : null}
-                  <Text variant="caption" tone="tertiary">
-                    {t('dailyReport.result.scope')}
-                  </Text>
-                </>
-              ) : resultBlocked ? (
-                <>
-                  <Text variant="bodyStrong">{t('dailyReport.result.cannot')}</Text>
-                  <Text variant="caption" tone="secondary">
-                    {t('dailyReport.result.cannot.reason', { count: String(result.missingCostLines) })}
-                  </Text>
-                </>
-              ) : null}
-              {resultOk || resultBlocked ? (
-                <Text variant="caption" tone="secondary">
-                  {t('dailyReport.result.how.body')}
-                </Text>
-              ) : null}
-              <Divider />
-              <Line label={t('dailyReport.sales.collected')} value={report.sales.collected.total} />
-              <Line label={t('dailyReport.sales.atCheckout')} value={report.sales.collected.atCheckout} quiet />
-              <Line label={t('dailyReport.sales.laterSameDay')} value={report.sales.collected.laterSameDay} quiet />
-              {report.sales.collected.corrections !== 0 ? (
-                <Line label={t('dailyReport.sales.byCorrections')} value={report.sales.collected.corrections} quiet signed />
-              ) : null}
-              <Line label={t('dailyReport.sales.owed')} value={report.sales.owed} tone={report.sales.owed > 0 ? 'negative' : 'default'} />
-              <Text variant="caption" tone="tertiary">
-                {t('dailyReport.countRule')}
-              </Text>
-              <View style={styles.linkRow}>
-                <Button
-                  title={t('dailyReport.salesDetails.transactions')}
-                  icon={ChevronRight}
-                  iconPosition="end"
-                  variant="tertiary"
-                  size="sm"
-                  onPress={() => router.push(`/sales/period?day=${report.date}` as Href)}
-                />
-              </View>
+          <View style={styles.detailsRow}>
+            <View style={styles.flex}>
+              <Disclosure title={t('dailyReport.salesDetails')}>
+                <View style={styles.detail}>
+                  <Line label={t('dailyReport.salesDetails.invoiced')} value={report.sales.value} />
+                  {report.sales.cancellations.count > 0 && report.sales.cancellations.value !== 0 ? (
+                    <Line
+                      label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count), items: String(report.sales.cancellations.items) })}
+                      value={-report.sales.cancellations.value}
+                      signed
+                    />
+                  ) : null}
+                  {report.sales.returns.count > 0 && report.sales.returns.netRefundDue !== 0 ? (
+                    <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
+                  ) : null}
+                  <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong={adjusted} />
+                  {resultOk ? (
+                    <>
+                      <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
+                      <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
+                      <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
+                      <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
+                    </>
+                  ) : null}
+                </View>
+              </Disclosure>
             </View>
-          </Disclosure>
+            <IconButton
+              icon={HelpCircle}
+              variant="plain"
+              accessibilityLabel={t('dailyReport.salesDetails.help')}
+              onPress={() =>
+                void dialog.alert({
+                  title: t('dailyReport.salesDetails'),
+                  message: [
+                    t('dailyReport.countRule'),
+                    resultOk || resultBlocked ? t('dailyReport.result.how.body') : null,
+                    resultOk ? t('dailyReport.result.scope') : null,
+                    resultBlocked ? `${t('dailyReport.result.cannot')} ${t('dailyReport.result.cannot.reason', { count: String(result.missingCostLines) })}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join('\n\n'),
+                })
+              }
+            />
+          </View>
         ) : null}
 
       </Card>
@@ -440,60 +427,25 @@ function Report({
         ) : null}
       </Section>
 
-      {/* ── Money movements: every in and out by channel, the expenses, behind one disclosure ── */}
+      {/*
+        Money movements, always in view: each channel's recorded movement for the day (money in less money out through
+        it), then — under a line — the debt settled this day (already inside the channels above, never added again) and
+        the total recorded movement across these channels. The server's figures; the phone sums nothing. A total of
+        recorded movement is not counted cash and not a provider balance, and the card says so.
+      */}
       <Card style={styles.card}>
-        <Disclosure title={t('dailyReport.movements')} summary={<MoneyValue value={report.money.totals.net} size="small" signed tone="auto" />}>
-          <View style={styles.detail}>
-            <Text variant="caption" tone="tertiary">
-              {t('dailyReport.movements.hint')}
-            </Text>
-            {report.money.channels
-              .filter((c) => c.countable || c.in.total !== 0 || c.out.total !== 0)
-              .map((c) => (
-                <Line key={c.key} label={channelLabel(c, words)} value={c.in.total} />
-              ))}
-            <Divider />
-            <Line label={t('dailyReport.money.in')} value={report.money.totals.in} strong />
-            {report.money.totals.olderDebts > 0 ? <Line label={t('dailyReport.money.olderDebts')} value={report.money.totals.olderDebts} quiet /> : null}
-            <Line label={t('dailyReport.money.out')} value={-report.money.totals.out} signed />
-            <Line label={t('dailyReport.money.net')} value={report.money.totals.net} strong signed />
-            <Divider />
-            <Text variant="bodyStrong">{t('dailyReport.money.details')}</Text>
-            {report.money.channels.map((c) => (
-              <ChannelDetail key={c.key} channel={c} label={channelLabel(c, words)} />
-            ))}
-            {report.expenses ? (
-              <>
-                <Divider />
-                <Text variant="bodyStrong">{t('dailyReport.expenses.title')}</Text>
-                {report.expenses.count === 0 && report.expenses.reversals.length === 0 ? (
-                  <Text variant="caption" tone="secondary">
-                    {t('dailyReport.expenses.none')}
-                  </Text>
-                ) : (
-                  <>
-                    {report.expenses.byCategory.slice(0, 3).map((c) => (
-                      <Line key={c.category} label={c.category} value={c.amount} quiet />
-                    ))}
-                    {/* A confirmed expense reversed today, whatever day it was recorded (0079). */}
-                    {report.expenses.reversals.map((r) => (
-                      <Line key={r.correctionId} label={t('dailyReport.expenses.reversal', { category: r.category })} value={-r.amount} quiet signed />
-                    ))}
-                    <Line label={t('dailyReport.expenses.total')} value={report.expenses.total} strong />
-                    {report.expenses.fixed > 0 ? <Line label={t('dailyReport.expenses.fixed')} value={report.expenses.fixed} quiet /> : null}
-                    {report.expenses.count > 3 ? (
-                      <Disclosure title={t('dailyReport.expenses.all')}>
-                        {report.expenses.lines.map((l) => (
-                          <Line key={l.id} label={`${l.category}${l.accountLabel ? ` · ${l.accountLabel}` : ''}`} value={l.amount} quiet />
-                        ))}
-                      </Disclosure>
-                    ) : null}
-                  </>
-                )}
-              </>
-            ) : null}
-          </View>
-        </Disclosure>
+        <Text variant="heading">{t('dailyReport.movements')}</Text>
+        {report.money.channels
+          .filter((c) => c.countable || c.net !== 0)
+          .map((c) => (
+            <Line key={c.key} label={channelLabel(c, words)} value={c.net} signed tone="auto" />
+          ))}
+        <Divider />
+        <Line label={t('dailyReport.movements.debtSettled')} value={report.money.totals.olderDebts} quiet />
+        <Line label={t('dailyReport.movements.total')} value={report.money.totals.net} strong signed />
+        <Text variant="caption" tone="tertiary">
+          {t('dailyReport.movements.total.note')}
+        </Text>
       </Card>
 
       {/* ── The actions of the day ── */}
@@ -638,36 +590,6 @@ function Warnings({ report, params }: { report: DailyReport; params: (p?: Record
   );
 }
 
-/** One channel's own in and out, for "Details by channel". */
-function ChannelDetail({ channel, label }: { channel: ReportChannel; label: string }) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  const lines: [string, number][] = [
-    [t('dailyReport.money.todaysSales'), channel.in.todaysSales],
-    [t('dailyReport.money.olderDebts'), channel.in.olderDebts],
-    [t('dailyReport.money.correctionsIn'), channel.in.correctionsIn],
-    [t('dailyReport.money.refunds'), -channel.out.refunds],
-    [t('dailyReport.money.stockPurchases'), -channel.out.stockPurchases],
-    [t('dailyReport.money.expenses'), -channel.out.expenses],
-    [t('dailyReport.money.correctionsOut'), -channel.out.correctionsOut],
-  ];
-  return (
-    <View style={styles.channel}>
-      <View style={styles.between}>
-        <Text variant="bodyStrong" style={styles.flex}>
-          {label}
-        </Text>
-        <MoneyValue value={channel.net} size="small" signed tone="auto" />
-      </View>
-      {lines
-        .filter(([, v]) => v !== 0)
-        .map(([l, v]) => (
-          <Line key={l} label={l} value={v} quiet signed />
-        ))}
-    </View>
-  );
-}
-
 /** A statement line: words on one side, an aligned MRU figure on the other. */
 function Line({
   label,
@@ -773,8 +695,8 @@ const useStyles = makeStyles((colors) => ({
   statement: { gap: space.md },
   statementLines: { gap: space.xs },
   detail: { gap: space.xs },
+  detailsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
   card: { gap: space.sm },
-  channel: { gap: space.xs, paddingVertical: space.xs },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, minHeight: 28 },
   linkRow: { flexDirection: 'row', justifyContent: 'flex-end' },
