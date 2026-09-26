@@ -438,7 +438,8 @@ function Report({
         {report.money.channels
           .filter((c) => c.countable || c.net !== 0)
           .map((c) => (
-            <Line key={c.key} label={channelLabel(c, words)} value={c.net} signed tone="auto" />
+            // The drawer is named as the Check balances card names it, so the two lists read as one.
+            <Line key={c.key} label={c.channel === 'cash' ? t('dailyReport.expected.cash') : channelLabel(c, words)} value={c.net} signed tone="auto" />
           ))}
         <Divider />
         <Line label={t('dailyReport.movements.debtSettled')} value={report.money.totals.olderDebts} quiet />

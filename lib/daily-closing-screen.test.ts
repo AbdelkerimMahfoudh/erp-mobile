@@ -95,7 +95,7 @@ it('Check balances: the drawer and each account, what was recorded, how it stand
 
 it('Money movements is always in view: each channel’s recorded movement, a line, the debt settled (inside the channels, not added again), the total recorded movement said as such — no client sums', () => {
   assert.ok(!/<Disclosure\b/.test(movements), 'no expand/collapse on Money movements');
-  assert.match(movements, /\.filter\(\(c\) => c\.countable \|\| c\.net !== 0\)[\s\S]*?<Line key=\{c\.key\} label=\{channelLabel\(c, words\)\} value=\{c\.net\} signed tone="auto" \/>/);
+  assert.match(movements, /\.filter\(\(c\) => c\.countable \|\| c\.net !== 0\)[\s\S]*?<Line key=\{c\.key\} label=\{c\.channel === 'cash' \? t\('dailyReport\.expected\.cash'\) : channelLabel\(c, words\)\} value=\{c\.net\} signed tone="auto" \/>/);
   assert.match(movements, /<Divider \/>\s*<Line label=\{t\('dailyReport\.movements\.debtSettled'\)\} value=\{report\.money\.totals\.olderDebts\} quiet \/>\s*<Line label=\{t\('dailyReport\.movements\.total'\)\} value=\{report\.money\.totals\.net\} strong signed \/>/);
   assert.match(movements, /t\('dailyReport\.movements\.total\.note'\)/);
   for (const gone of ['money.in', 'money.out', 'money.net', 'money.details', 'expenses.total', 'expenses.reversal', 'movements.hint']) {
