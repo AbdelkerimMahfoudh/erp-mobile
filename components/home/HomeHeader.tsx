@@ -6,16 +6,17 @@ import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
- * Home's header (docs/56): the store's name and the greeting, compact, on one
- * small, restrained gradient — the accent's soft tint fading into the canvas —
- * with the bell and the store's calendar date at the end edge.
+ * Home's header (docs/56): the store's name, the greeting and its line, compact,
+ * on one small, restrained gradient — the accent's soft tint fading into the
+ * canvas — with the bell and the store's calendar date at the end edge.
  *
  * It is the shared `TabHeader` inside a tinted panel, so Home keeps the one
  * header every tab has. The date is informational and never a range picker;
  * it is the server's, in the store's timezone, so it is simply absent until
  * the first reply rather than the phone's guess. Before 06:00 the calendar
- * date and the business date differ, and the line under the greeting says
- * which business day new sales still belong to.
+ * date and the business date differ, and a line under the header says which
+ * business day new sales still belong to — beside the greeting, never in its
+ * place.
  *
  * Drawn with react-native-svg, already installed for the app: no dependency
  * is added, and a header of text and one tint stays cheap to mount.
@@ -23,13 +24,15 @@ import { makeStyles, useColors } from '../../lib/design/theme';
 export interface HomeHeaderProps {
   context: string;
   title: string;
+  /** The greeting's own line — "Ready when you are." on an ordinary day. */
+  subtitle?: string | null;
   /** The store's calendar date, already formatted, once known. */
   date?: string | null;
   /** Said only before 06:00: the business day new sales still count for. */
   note?: string | null;
 }
 
-export function HomeHeader({ context, title, date, note }: HomeHeaderProps) {
+export function HomeHeader({ context, title, subtitle, date, note }: HomeHeaderProps) {
   const styles = useStyles();
   const colors = useColors();
   return (
@@ -46,7 +49,7 @@ export function HomeHeader({ context, title, date, note }: HomeHeaderProps) {
       <TabHeader
         context={context}
         title={title}
-        subtitle={note}
+        subtitle={subtitle}
         bell
         actions={
           date ? (
@@ -56,11 +59,17 @@ export function HomeHeader({ context, title, date, note }: HomeHeaderProps) {
           ) : null
         }
       />
+      {note ? (
+        <Text variant="captionStrong" tone="secondary" style={styles.note}>
+          {note}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
-const useStyles = makeStyles(() => ({
-  panel: { borderRadius: radius.xl, overflow: 'hidden', padding: space.base, marginHorizontal: -space.xs },
+const useStyles = makeStyles((colors) => ({
+  panel: { borderRadius: radius.xl, overflow: 'hidden', padding: space.base, marginHorizontal: -space.xs, gap: space.sm },
   date: { paddingHorizontal: space.xs },
+  note: { borderTopWidth: 1, borderTopColor: colors.border.subtle, paddingTop: space.sm },
 }));

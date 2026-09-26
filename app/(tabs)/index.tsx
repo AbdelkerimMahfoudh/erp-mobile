@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { PixelRatio, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
@@ -30,10 +30,10 @@ import { dateLocaleFor } from '../../lib/date-locale';
 import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
-import { space } from '../../lib/design/tokens';
+import { radius, space } from '../../lib/design/tokens';
 import { calendarDate } from '../../lib/day-range';
 import { toFriendlyError } from '../../lib/errors';
-import { formatDate, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
+import { CURRENCY_CODE, formatDate, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
 import { arrivalDay, changeText, changeTone, daySpan, freshness, standingKey, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
 import { useHome, type HomeArrival, type HomeBar } from '../../lib/home';
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
@@ -128,7 +128,13 @@ export default function HomeScreen() {
 
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={home.isRefetching} gap="lg">
-      <HomeHeader context={branchName ?? t('home.branch.unknown')} title={firstName ? t('home.welcome.hello', { name: firstName }) : t('home.title')} date={storeDate} note={dayNote} />
+      <HomeHeader
+        context={branchName ?? t('home.branch.unknown')}
+        title={firstName ? t('home.welcome.hello', { name: firstName }) : t('home.title')}
+        subtitle={shortcutsReady ? t('home.welcome.ready') : t('home.welcome.preparing')}
+        date={storeDate}
+        note={dayNote}
+      />
 
       {/* ── The two counter actions, side by side ── */}
       {canSell || canReceive ? (
@@ -273,19 +279,17 @@ export default function HomeScreen() {
                 ) : null}
               </View>
 
-              {/* ── Collected, expenses, still owed: three plain lines, each with its scope ── */}
-              <Card style={styles.figureCard}>
-                <FigureLine label={t('home.sales.collected')} value={figures.collected} tone="positive" caption={t('home.sales.collected.scope')} />
-                <Divider />
-                <FigureLine
+              {/* ── Collected, expenses, still owed: three quiet cards, each a word, its scope and the amount ── */}
+              <View style={styles.figureRow}>
+                <FigureCard label={t('home.sales.collected')} value={figures.collected} tone="positive" caption={t('home.sales.collected.scope')} />
+                <FigureCard
                   label={t('home.sales.expenses')}
                   value={figures.expenses}
                   tone="default"
                   caption={figures.expensesReversed > 0 ? t('home.sales.expenses.reversed', { amount: isolateLtr(formatMoney(-figures.expensesReversed)) }) : undefined}
                 />
-                <Divider />
-                <FigureLine label={t('home.sales.owed')} value={figures.stillOwed} tone={figures.stillOwed > 0 ? 'negative' : 'muted'} caption={t('home.sales.owed.scope')} />
-              </Card>
+                <FigureCard label={t('home.sales.owed')} value={figures.stillOwed} tone={figures.stillOwed > 0 ? 'negative' : 'muted'} caption={t('home.sales.owed.scope')} />
+              </View>
             </>
           ) : null}
         </View>
@@ -380,20 +384,35 @@ export default function HomeScreen() {
   );
 }
 
-/** One of the three lines under the sales value: a word, its scope, the amount — text first, no icon. */
-function FigureLine({ label, value, tone, caption }: { label: string; value: number; tone: 'positive' | 'negative' | 'muted' | 'default'; caption?: string }) {
+/**
+ * One of the three cards under the sales value: a word, the amount, the unit,
+ * its scope — text first, no icon, the colour only a soft tint that follows the
+ * amount's meaning. Three abreast where they fit, two and one at 320 points,
+ * one under another when the system text is large.
+ */
+function FigureCard({ label, value, tone, caption }: { label: string; value: number; tone: 'positive' | 'negative' | 'muted' | 'default'; caption?: string }) {
   const styles = useStyles();
+  const colors = useColors();
+  const tint = tone === 'positive' ? colors.intent.success : tone === 'negative' ? colors.intent.danger : null;
+  const largeText = PixelRatio.getFontScale() >= 1.2;
   return (
-    <View style={styles.figureLine} accessible accessibilityLabel={`${label} ${formatMoney(value)}${caption ? `, ${caption}` : ''}`}>
-      <View style={styles.flex}>
-        <Text variant="body">{label}</Text>
-        {caption ? (
-          <Text variant="caption" tone="tertiary">
-            {caption}
-          </Text>
-        ) : null}
-      </View>
-      <MoneyValue value={value} size="large" tone={tone} />
+    <View
+      style={[styles.figureCard, largeText && styles.figureFull, tint ? { backgroundColor: tint.bg, borderColor: tint.border } : null]}
+      accessible
+      accessibilityLabel={`${label} ${formatMoney(value)}${caption ? `, ${caption}` : ''}`}
+    >
+      <Text variant="caption" tone="secondary" numberOfLines={2}>
+        {label}
+      </Text>
+      <MoneyValue value={value} tone={tone} showCurrency={false} />
+      <Text variant="caption" tone="tertiary">
+        {isolateLtr(CURRENCY_CODE)}
+      </Text>
+      {caption ? (
+        <Text variant="caption" tone="tertiary">
+          {caption}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -474,8 +493,19 @@ const useStyles = makeStyles((colors) => ({
   statRow: { flexDirection: 'row', gap: space.sm },
   hero: { gap: space.xs },
   heroMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.md, rowGap: 2 },
-  figureCard: { gap: space.xs, paddingVertical: space.sm },
-  figureLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, paddingVertical: space.xs, minHeight: 44 },
+  figureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  figureCard: {
+    flexGrow: 1,
+    flexBasis: 104,
+    minWidth: 0,
+    gap: 2,
+    padding: space.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
+    backgroundColor: colors.surface.card,
+  },
+  figureFull: { flexBasis: '100%' },
   card: { gap: space.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },

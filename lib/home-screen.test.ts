@@ -52,9 +52,11 @@ it('one sheet serves the opening and the reopen, the safe default selected, remo
   assert.match(sheet, /accessibilityRole="radiogroup"/);
 });
 
-it('Home’s header is the shared header on its tint, with the store’s date and, before 06:00, the business day sales still count for', () => {
+it('Home’s header is the shared header on its tint, with the store’s date and, before 06:00, the business day sales still count for — beside the greeting’s own line, never in its place', () => {
   assert.match(header, /from 'react-native-svg'/);
-  assert.match(header, /<TabHeader[\s\S]*?subtitle=\{note\}[\s\S]*?bell/);
+  assert.match(header, /<TabHeader[\s\S]*?subtitle=\{subtitle\}[\s\S]*?bell/);
+  assert.match(header, /\{note \? \([\s\S]*?\{note\}/);
+  assert.match(home, /subtitle=\{shortcutsReady \? t\('home\.welcome\.ready'\) : t\('home\.welcome\.preparing'\)\}/);
   assert.match(home, /const storeDate = data \? formatDateFns\(calendarDate\(data\.businessDay\.localDate\)/);
   assert.match(home, /const previousDayRunning = data \? data\.businessDay\.businessDate !== data\.businessDay\.localDate : false;/);
   assert.match(home, /t\('home\.day\.previous', \{ date: formatDate\(data\.businessDay\.businessDate\) \}\)/);
@@ -78,11 +80,15 @@ it('the closing entry opens the Daily closing and names the business day when it
   assert.match(home, /data\.closing\.previousDay\.needsReview \? <Chip tone="warning" label=\{t\('home\.closing\.previous'\)\}/);
 });
 
-it('the three money lines are text first: a word, its scope, the amount — no icon', () => {
-  const lines = home.slice(home.indexOf('function FigureLine('), home.indexOf('function changeColour('));
-  assert.ok(!/icon|Icon/.test(lines), 'no icon on a figure line');
-  assert.match(lines, /<MoneyValue value=\{value\} size="large" tone=\{tone\} \/>/);
+it('the three money cards are text first: a word, the amount, its scope — no icon, a tint only, side by side where they fit and stacked for large text', () => {
+  const card = home.slice(home.indexOf('function FigureCard('), home.indexOf('function changeColour('));
+  assert.ok(!/icon|Icon/.test(card), 'no icon on a figure card');
+  assert.match(card, /<MoneyValue value=\{value\} tone=\{tone\} showCurrency=\{false\} \/>/);
+  assert.match(card, /PixelRatio\.getFontScale\(\) >= 1\.2/);
+  assert.match(home, /figureRow: \{ flexDirection: 'row', flexWrap: 'wrap'/);
+  assert.match(home, /figureFull: \{ flexBasis: '100%' \}/);
   assert.match(home, /tone=\{figures\.stillOwed > 0 \? 'negative' : 'muted'\}/);
+  assert.equal((home.match(/<FigureCard\b/g) ?? []).length, 3);
 });
 
 it('every catalogue carries the opening-choice and Home keys', () => {
