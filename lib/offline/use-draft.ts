@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../branch';
 import { clearDraft, loadDraft, saveDraft } from './drafts.ts';
+import { devTiming } from '../dev-timing.ts';
 
 /**
  * Keep a screen's work on this phone (Milestone J, extended in J.1).
@@ -76,7 +77,7 @@ export function useDraft<T>(
 
   useEffect(() => {
     if (!scope || !key || !enabled || restoredFor.current !== key) return;
-    const result = saveDraft(form, scope, value, payloadVersion, recordId);
+    const result = devTiming.time(`draft written (${form})`, () => saveDraft(form, scope, value, payloadVersion, recordId));
     /*
      * Refused means THIS payload was rejected — a forbidden field or an
      * oversized draft (see `DraftNotice`). Neither an I/O hiccup nor a platform

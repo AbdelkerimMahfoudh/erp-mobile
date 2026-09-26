@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { Directory, File, FileMode, Paths, UploadType } from 'expo-file-system';
 import { ApiError } from './api-client';
+import { devTiming } from './dev-timing';
 import { getItem } from './storage';
 import { API_V1_URL, TOKEN_KEYS } from '../constants/config';
 import { useBranch } from './branch';
@@ -167,6 +168,9 @@ function answer(status: number, body: string): ParseResult {
     parsed = null;
   }
   stage('answered', { status, code: parsed?.code ?? null });
+  devTiming.end('review.parse', 'review: file parsed (round trip)');
+  // From here to the list on the screen: the review's first render, logged by the screen.
+  devTiming.mark('review.parsed');
   if (status < 200 || status >= 300) {
     throw new ApiError(parsed?.message ?? 'Could not read that file', status, parsed?.code, parsed);
   }
@@ -177,6 +181,7 @@ export function useParseReceivingFile() {
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
     mutationFn: async (input: PickedFile & { sheet?: string; mapping?: Record<string, number> }) => {
+      devTiming.mark('review.parse');
       const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
       const url = `${API_V1_URL}/purchases/file/parse`;
       const headers = {
