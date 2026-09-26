@@ -50,6 +50,8 @@ export const type = {
    * a fixed line height that cannot shrink, or the label clips (Stock pass).
    */
   tabLabel: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  /** The tab label below 360 points: five tabs leave a label 54 points, and French "Partenaires" needs 56 at 11 (docs/55 D43). */
+  tabLabelCompact: { fontSize: 10, lineHeight: 14, fontWeight: '600' },
   mono: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
 
   /**

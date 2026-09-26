@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Handshake, Boxes, Menu, Wallet } from 'lucide-react-native';
@@ -53,6 +53,14 @@ export default function TabsLayout() {
   */
   const canSeeMoney = tabHubIsVisible(granted);
   const insets = useSafeAreaInsets();
+  /*
+    A 10-point label on a narrow phone. Five tabs on a 320-point screen leave each
+    label 54 points inside the navigator's own inset, and French "Partenaires"
+    needs 56 at 11 points; a negative margin cannot lend it the inset on the web,
+    where a one-line label is capped at its button's width. Ten points is what
+    the platform's own tab bars use (docs/55 D43).
+  */
+  const compactLabels = useWindowDimensions().width < 360;
 
   // Permissions failed to resolve. Without an escape here the app is a
   // permanent spinner — the tab bar cannot decide what to show, and there is
@@ -101,7 +109,7 @@ export default function TabsLayout() {
         // An explicit line height that may not shrink: the label is an
         // overflow-hidden box, and when the item was short it was squeezed to
         // 9 of the 15 points its glyphs need.
-        tabBarLabelStyle: { ...typeScale.tabLabel, flexShrink: 0 },
+        tabBarLabelStyle: { ...(compactLabels ? typeScale.tabLabelCompact : typeScale.tabLabel), flexShrink: 0 },
         // The scene behind each tab. Unset, the navigator paints its own
         // light default, which ignores the theme entirely.
         sceneStyle: { backgroundColor: colors.surface.canvas },
