@@ -46,6 +46,15 @@ export interface HomeFigures {
   stillOwed: number;
   /** Always `these_sales`: outstanding today on the sales in the range. */
   stillOwedScope: 'these_sales';
+  /**
+   * The sales value against the window of equal length just before this one (docs/56).
+   * `available: false` when that window sold nothing — a zero base is no comparison — and
+   * the whole field is absent on an older server; either way no percentage is printed.
+   */
+  comparison?: {
+    period: { from: string; to: string };
+    salesValue: { available: true; previous: number; change: number; changePercent: number } | { available: false; previous: number; reason: string };
+  };
 }
 
 export interface HomeArrival {

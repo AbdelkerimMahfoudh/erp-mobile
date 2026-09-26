@@ -76,14 +76,19 @@ it('Home shows exactly the figures of the business-date contract, and no stock o
   for (const gone of ['home.stock.', 'home.more.title', 'lowStock', 'supplier', 'inventoryValue', 'home.figure.', 'monthToDate', 'usePeriodSummary']) {
     assert.ok(!home.includes(gone), `Home must not contain ${gone}`);
   }
-  assert.match(home, /<TabHeader[\s\S]*?bell/);
-  // The three cards the reference names, each with its way onwards.
+  // The shared header, on its tint, with the bell and the store's date — never the phone's (docs/56).
+  assert.match(home, /<HomeHeader[\s\S]*?date=\{storeDate\}/);
+  const header = code(read('../components/home/HomeHeader.tsx'));
+  assert.match(header, /<TabHeader[\s\S]*?bell/);
+  assert.ok(!home.includes('new Date()'), 'the header date is the server’s calendar date');
+  // The three cards the reference names, each with its way onwards; the closing entry opens the report and closes nothing.
   assert.match(home, /t\('home\.top\.title'\)/);
   assert.match(home, /router\.push\('\/partners\/ranking' as Href\)/);
   assert.match(home, /t\('home\.arrivals\.title'\)/);
   assert.match(home, /category: 'phone', status: 'all', sort: 'received'/);
-  assert.match(home, /t\('home\.closing\.review'\)/);
+  assert.match(home, /t\('home\.closing\.title'\)/);
   assert.match(home, /router\.push\('\/closing' as Href\)/);
+  assert.ok(!/useCloseDay|useSignOffDay|\/closings'/.test(home), 'Home never closes a day');
 });
 
 it('Home is one server read per period, and the bars are the server’s', () => {
@@ -212,10 +217,11 @@ it('Stock header counts and values on the server, cost only when sent', () => {
   assert.match(src, /enabled: Boolean\(branchId\) && canViewReports/);
 });
 
-it('every primary tab uses the shared header', () => {
+it('every primary tab uses the shared header — Home through HomeHeader, which is TabHeader on its tint', () => {
   for (const tab of ['index', 'partners', 'money-hub', 'inventory', 'more']) {
-    assert.match(read(`../app/(tabs)/${tab}.tsx`), /<TabHeader\b/, `${tab} must use TabHeader`);
+    assert.match(read(`../app/(tabs)/${tab}.tsx`), tab === 'index' ? /<HomeHeader\b/ : /<TabHeader\b/, `${tab} must use the shared header`);
   }
+  assert.match(read('../components/home/HomeHeader.tsx'), /<TabHeader\b/);
 });
 
 console.log(`layout: ${passed} passed`);

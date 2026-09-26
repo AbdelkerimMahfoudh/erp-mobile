@@ -87,6 +87,10 @@ export function checkHome(r: HomeResponse): HomeResponse {
   const missing: string[] = [];
   missing.push(...missingTexts(r, ['range.from', 'range.to', 'businessDay.businessDate', 'businessDay.localDate', 'businessDay.timezone']));
   if (r?.figures !== null) missing.push(...missingNumbers(r?.figures, HOME_FIGURES, 'figures.'));
+  // A comparison the server says is available must carry its numbers; one it does not send at all is simply not printed.
+  if (r?.figures?.comparison?.salesValue?.available === true) {
+    missing.push(...missingNumbers(r.figures.comparison.salesValue, ['previous', 'changePercent'], 'figures.comparison.salesValue.'));
+  }
   if (r?.series !== null) {
     missing.push(...missingNumbers(r?.series, ['total'], 'series.'));
     missing.push(...missingInRows(r, 'series.bars', (bar, prefix) => missingNumbers(bar, ['value'], prefix)));

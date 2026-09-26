@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
-import { ChevronRight, PackagePlus, ScanLine, ShoppingCart, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -17,9 +17,9 @@ import {
   Section,
   SegmentedControl,
   SkeletonStat,
-  TabHeader,
   Text,
 } from '../../components/ui';
+import { HomeHeader } from '../../components/home/HomeHeader';
 import { SalesBars } from '../../components/home/SalesBars';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
@@ -33,18 +33,20 @@ import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { calendarDate } from '../../lib/day-range';
 import { toFriendlyError } from '../../lib/errors';
-import { CURRENCY_CODE, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
-import { arrivalDay, freshness, standingKey, standingTone, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
+import { formatDate, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
+import { arrivalDay, changeText, changeTone, daySpan, freshness, standingKey, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
 import { useHome, type HomeArrival, type HomeBar } from '../../lib/home';
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
- * Home — the fastest operational screen (docs/50 §3.5).
+ * Home — the fastest operational screen (docs/50 §3.5, docs/56).
  *
- * Greeting, the two counter actions, what is waiting on this person, then one
- * read of the server: the period's sales value, collected, expenses and what
- * is still owed on those sales, the bars that add up to that value, the top
+ * The store's name and a greeting on one quiet tint, with the bell and the
+ * store's date; the two counter actions; what is waiting on this person; then
+ * one read of the server: the period's sales value with its bars and, when
+ * the server could compare it, how it stands against the window before;
+ * collected, expenses and what is still owed as three plain lines; the top
  * boutique of all time, the three latest phones received, and where the
  * business day stands. Every figure, date and bar is the server's, keyed on
  * the branch's business date; without `report.view` the server sends no
@@ -52,6 +54,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  */
 export default function HomeScreen() {
   const styles = useStyles();
+  const colors = useColors();
   const router = useRouter();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -106,19 +109,26 @@ export default function HomeScreen() {
   const firstName = user?.name?.trim().split(/\s+/)[0];
   const data = home.data;
   const figures = data?.figures ?? null;
-  const periodWord = t(`period.${period}` as never);
   const fresh = freshness(home.dataUpdatedAt || null);
   const failure = home.isError && !data ? toFriendlyError(home.error) : null;
   const adjusted = figures ? figures.cancellations.count > 0 || figures.returns.count > 0 : false;
 
+  /*
+    The store's calendar date, from the server's reply and in the store's timezone —
+    informational, never a picker. Before 06:00 the business day is still yesterday's,
+    so the header says which day new sales count for (docs/56).
+  */
+  const storeDate = data ? formatDateFns(calendarDate(data.businessDay.localDate), 'EEE d MMM', { locale: dateLocaleFor(getLanguage()) }) : null;
+  const previousDayRunning = data ? data.businessDay.businessDate !== data.businessDay.localDate : false;
+  const dayNote = data && previousDayRunning ? t('home.day.previous', { date: formatDate(data.businessDay.businessDate) }) : null;
+
+  /* A percentage only when the server compared against a window that sold something; otherwise not a word. */
+  const comparison = figures?.comparison?.salesValue;
+  const change = comparison?.available ? changeText(comparison.changePercent) : null;
+
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={home.isRefetching} gap="lg">
-      <TabHeader
-        context={branchName ?? t('home.branch.unknown')}
-        title={firstName ? t('home.welcome.hello', { name: firstName }) : t('home.title')}
-        subtitle={shortcutsReady ? t('home.welcome.ready') : t('home.welcome.preparing')}
-        bell
-      />
+      <HomeHeader context={branchName ?? t('home.branch.unknown')} title={firstName ? t('home.welcome.hello', { name: firstName }) : t('home.title')} date={storeDate} note={dayNote} />
 
       {/* ── The two counter actions, side by side ── */}
       {canSell || canReceive ? (
@@ -212,13 +222,27 @@ export default function HomeScreen() {
             </>
           ) : figures && data?.series ? (
             <>
-              <View>
+              {/* ── The sales value, how it compares, and its bars ── */}
+              <View style={styles.hero}>
                 <Text variant="body" tone="secondary">
                   {t('home.sales.value')}
                 </Text>
                 <MoneyValue value={figures.salesValue} size="display" accessibilityLabel={`${t('home.sales.value')} ${formatMoney(figures.salesValue)}`} />
+                <View style={styles.heroMeta}>
+                  <Text variant="caption" tone="tertiary">
+                    {formatDayRange(data.range.from, data.range.to)}
+                  </Text>
+                  {change && comparison?.available ? (
+                    <Text variant="captionStrong" style={{ color: changeColour(changeTone(comparison.changePercent), colors) }}>
+                      {period === 'today'
+                        ? t('home.compare.yesterday', { change: isolateLtr(change) })
+                        : t('home.compare.previous', { change: isolateLtr(change), days: String(daySpan(comparison ? figures.comparison!.period.from : data.range.from, comparison ? figures.comparison!.period.to : data.range.to)) })}
+                    </Text>
+                  ) : null}
+                </View>
+                <SalesBars bars={data.series.bars} unit={data.series.unit} labelOf={barLabel(data.series.unit)} height={96} />
                 <Text variant="caption" tone="tertiary">
-                  {formatDayRange(data.range.from, data.range.to)}
+                  {data.series.total === 0 ? t('home.chart.empty') : t('home.chart.basis')}
                 </Text>
                 {/* A sale cancelled in this period comes off here, on the cancellation's day; the value above keeps it on the day it was sold. */}
                 {figures.cancellations.count > 0 ? (
@@ -249,30 +273,19 @@ export default function HomeScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.statRow}>
-                <Figure label={t('home.sales.collected')} value={figures.collected} tone="success" caption={t('home.sales.collected.scope')} />
-                <Figure
+              {/* ── Collected, expenses, still owed: three plain lines, each with its scope ── */}
+              <Card style={styles.figureCard}>
+                <FigureLine label={t('home.sales.collected')} value={figures.collected} tone="positive" caption={t('home.sales.collected.scope')} />
+                <Divider />
+                <FigureLine
                   label={t('home.sales.expenses')}
                   value={figures.expenses}
-                  tone="primary"
-                  divider
+                  tone="default"
                   caption={figures.expensesReversed > 0 ? t('home.sales.expenses.reversed', { amount: isolateLtr(formatMoney(-figures.expensesReversed)) }) : undefined}
                 />
-                <Figure label={t('home.sales.owed')} value={figures.stillOwed} tone={figures.stillOwed > 0 ? 'danger' : 'primary'} divider caption={t('home.sales.owed.scope')} />
-              </View>
-
-              <View style={styles.chart}>
-                <Text variant="heading">{t(`home.chart.${period}` as never)}</Text>
-                <Text variant="caption" tone="tertiary">
-                  {t('home.chart.basis')}
-                </Text>
-                {data.series.total === 0 ? (
-                  <Text variant="caption" tone="secondary">
-                    {t('home.chart.empty')}
-                  </Text>
-                ) : null}
-                <SalesBars bars={data.series.bars} unit={data.series.unit} labelOf={barLabel(data.series.unit)} />
-              </View>
+                <Divider />
+                <FigureLine label={t('home.sales.owed')} value={figures.stillOwed} tone={figures.stillOwed > 0 ? 'negative' : 'muted'} caption={t('home.sales.owed.scope')} />
+              </Card>
             </>
           ) : null}
         </View>
@@ -280,10 +293,6 @@ export default function HomeScreen() {
 
       {data ? (
         <>
-          <Text variant="label" tone="secondary">
-            {t('home.context', { branch: branchName ?? '', period: periodWord })}
-          </Text>
-
           {/* ── Top boutique · all time ── */}
           {data.partners.available ? (
             <Card style={styles.card}>
@@ -308,7 +317,7 @@ export default function HomeScreen() {
                 </>
               ) : (
                 <View style={styles.emptyInCard}>
-                  <Text variant="bodyStrong">{data.partners.partnersExist ? t('home.top.empty.title') : t('home.top.empty.title')}</Text>
+                  <Text variant="bodyStrong">{t('home.top.empty.title')}</Text>
                   <Text variant="caption" tone="secondary">
                     {data.partners.partnersExist ? t('home.top.empty.body') : t('home.top.noPartners')}
                   </Text>
@@ -339,23 +348,21 @@ export default function HomeScreen() {
             )}
           </Card>
 
-          {/* ── The business day ── */}
+          {/* ── The business day: one entry that opens the Daily closing, and closes nothing here ── */}
           {data.closing ? (
-            <Card style={styles.card}>
-              <View style={styles.closingRow}>
-                <View style={styles.flex}>
-                  <Text variant="heading">{t('home.closing.title')}</Text>
-                  <View style={styles.standingLine}>
-                    <Text variant="body" tone="secondary">
-                      {t('home.closing.today', { standing: t(standingKey(data.closing.standing) as never) })}
-                    </Text>
-                  </View>
-                  {data.closing.previousDay.needsReview ? (
-                    <Chip tone="warning" label={t('home.closing.previous')} size="sm" dot style={styles.previousChip} />
-                  ) : null}
-                </View>
-                <Button title={t('home.closing.review')} variant="secondary" onPress={() => router.push('/closing' as Href)} />
-              </View>
+            <Card style={styles.entryCard}>
+              <ListRow
+                flat
+                title={t('home.closing.title')}
+                subtitle={
+                  data.closing.businessDate === data.businessDay.localDate
+                    ? t('home.closing.today', { standing: t(standingKey(data.closing.standing) as never) })
+                    : t('home.closing.day', { date: formatDate(data.closing.businessDate), standing: t(standingKey(data.closing.standing) as never) })
+                }
+                onPress={() => router.push('/closing' as Href)}
+                style={styles.entryRow}
+              />
+              {data.closing.previousDay.needsReview ? <Chip tone="warning" label={t('home.closing.previous')} size="sm" dot style={styles.previousChip} /> : null}
             </Card>
           ) : null}
 
@@ -373,28 +380,29 @@ export default function HomeScreen() {
   );
 }
 
-/** One of the three figures under the sales value: a word, a number, the unit. */
-function Figure({ label, value, tone, divider, caption }: { label: string; value: number; tone: 'success' | 'danger' | 'primary'; divider?: boolean; caption?: string }) {
+/** One of the three lines under the sales value: a word, its scope, the amount — text first, no icon. */
+function FigureLine({ label, value, tone, caption }: { label: string; value: number; tone: 'positive' | 'negative' | 'muted' | 'default'; caption?: string }) {
   const styles = useStyles();
-  const { t } = useTranslation();
   return (
-    <View style={[styles.figure, divider && styles.figureDivider]} accessible accessibilityLabel={`${label} ${formatMoney(value)}${caption ? `, ${caption}` : ''}`}>
-      <Text variant="caption" tone="secondary" numberOfLines={2}>
-        {label}
-      </Text>
-      <MoneyValue value={value} size="large" tone={tone === 'success' ? 'positive' : tone === 'danger' ? 'negative' : 'default'} showCurrency={false} />
-      <Text variant="caption" tone="tertiary">
-        {isolateLtr(CURRENCY_CODE)}
-      </Text>
-      {caption ? (
-        <Text variant="caption" tone="tertiary">
-          {caption}
-        </Text>
-      ) : null}
-      {/* Rendered for the screen reader only when there is nothing else to say. */}
-      {!caption && value === 0 ? <Text variant="caption" tone="tertiary" style={styles.srOnly}>{t('home.chart.empty')}</Text> : null}
+    <View style={styles.figureLine} accessible accessibilityLabel={`${label} ${formatMoney(value)}${caption ? `, ${caption}` : ''}`}>
+      <View style={styles.flex}>
+        <Text variant="body">{label}</Text>
+        {caption ? (
+          <Text variant="caption" tone="tertiary">
+            {caption}
+          </Text>
+        ) : null}
+      </View>
+      <MoneyValue value={value} size="large" tone={tone} />
     </View>
   );
+}
+
+/** The colour of the comparison — a word travels with it, so the colour never carries the meaning alone. */
+function changeColour(tone: ReturnType<typeof changeTone>, colors: ReturnType<typeof useColors>): string {
+  if (tone === 'positive') return colors.intent.success.fg;
+  if (tone === 'negative') return colors.intent.danger.fg;
+  return colors.text.secondary;
 }
 
 function SeeMore({ onPress }: { onPress: () => void }) {
@@ -464,18 +472,18 @@ const useStyles = makeStyles((colors) => ({
   fullSale: { alignSelf: 'center' },
   block: { gap: space.base },
   statRow: { flexDirection: 'row', gap: space.sm },
-  figure: { flex: 1, gap: 2, minWidth: 0 },
-  figureDivider: { borderStartWidth: 1, borderStartColor: colors.border.subtle, paddingStart: space.sm },
-  chart: { gap: space.sm },
+  hero: { gap: space.xs },
+  heroMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.md, rowGap: 2 },
+  figureCard: { gap: space.xs, paddingVertical: space.sm },
+  figureLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, paddingVertical: space.xs, minHeight: 44 },
   card: { gap: space.md },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   netLine: { marginTop: space.xs, paddingTop: space.xs, borderTopWidth: 1, borderTopColor: colors.border.subtle },
   emptyInCard: { gap: 2 },
   arrival: { paddingHorizontal: 0 },
-  closingRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  standingLine: { marginTop: 2 },
-  previousChip: { alignSelf: 'flex-start', marginTop: space.xs },
+  entryCard: { gap: space.xs, paddingVertical: space.xs },
+  entryRow: { paddingHorizontal: 0 },
+  previousChip: { alignSelf: 'flex-start', marginBottom: space.xs },
   flex: { flex: 1, minWidth: 0 },
-  srOnly: { height: 0, opacity: 0 },
 }));
