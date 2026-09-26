@@ -9,7 +9,7 @@ import {
   type ListRenderItem,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Banknote, Lock, Smartphone } from 'lucide-react-native';
 import {
   Button,
@@ -105,6 +105,8 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
   const offline = !useConnectivity((s) => s.online);
   const headerShown = useContext(HeaderShownContext);
 
+  /** The one channel the Daily closing asked to check (`cash`, or an account id): its field takes focus (docs/58). */
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
   const { mutate: recordCount } = useRecordCount();
   const [error, setError] = useState<unknown>(null);
   /** The one row being saved, by key — so the others are left alone. */
@@ -151,10 +153,11 @@ function CountingDay({ day, canCount }: { day: OpenClosing; canCount: boolean })
         last={index === last}
         disabled={!canCount || offline}
         saving={saving === rowKey(item)}
+        focused={focus !== undefined && focus === (item.channel === 'cash' ? 'cash' : (item.accountId ?? ''))}
         onSubmit={submit}
       />
     ),
-    [canCount, offline, saving, submit, last],
+    [canCount, offline, saving, submit, last, focus],
   );
 
   return (
@@ -236,6 +239,8 @@ interface ChannelLineProps {
   last: boolean;
   disabled: boolean;
   saving: boolean;
+  /** Asked for by name from the Daily closing: the field takes focus, and a saved count reopens for counting again. */
+  focused?: boolean;
   onSubmit: (body: RecordCountBody) => void;
 }
 
@@ -255,11 +260,12 @@ function sameRow(a: ChannelLineProps, b: ChannelLineProps): boolean {
     a.last === b.last &&
     a.disabled === b.disabled &&
     a.saving === b.saving &&
+    a.focused === b.focused &&
     a.onSubmit === b.onSubmit
   );
 }
 
-const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, saving, onSubmit }: ChannelLineProps) {
+const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, saving, focused = false, onSubmit }: ChannelLineProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -267,7 +273,7 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
   const [skipping, setSkipping] = useState(false);
   const [skipReason, setSkipReason] = useState('');
   /** Counting again over a saved count — a count is corrected by a new count, never edited in place. */
-  const [recounting, setRecounting] = useState(false);
+  const [recounting, setRecounting] = useState(focused);
 
   const label =
     row.channel === 'cash'
@@ -356,6 +362,7 @@ const ChannelLine = memo(function ChannelLine({ row, first, last, disabled, savi
               value={value}
               onChangeText={setValue}
               editable={!disabled && !saving}
+              autoFocus={focused && !disabled}
               containerStyle={styles.flex}
             />
             {/* One explicit Save per row. Nothing is sent as you type. */}
