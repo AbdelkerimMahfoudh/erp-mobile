@@ -51,6 +51,9 @@ export function useDraft<T>(
 
   const [restoredAt, setRestoredAt] = useState<number | null>(null);
   const [refused, setRefused] = useState(false);
+  /** The latest value, for `clear` — which is memoised and must not go stale. */
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const scope = user ? { companyId: user.companyId, branchId, userId: user.id } : null;
   const key = scope ? `${scope.companyId}|${scope.branchId}|${scope.userId}|${recordId}` : null;
@@ -61,6 +64,15 @@ export function useDraft<T>(
     state — the draft would be destroyed by the act of reading it.
   */
   const restoredFor = useRef<string | null>(null);
+  /*
+    What was last written, by content. Screens pass a fresh object literal every
+    render, so without this the draft was written on every render — and, worse,
+    written again straight after `clear()`: clearing sets state, the screen
+    re-renders, and the save effect put the just-submitted form back. An
+    expense form then reopened days later with the old date still in it. A
+    write happens only when the content actually changed.
+  */
+  const lastWritten = useRef<string | null>(null);
 
   useEffect(() => {
     if (!scope || !key || !enabled || restoredFor.current === key) return;
@@ -77,6 +89,9 @@ export function useDraft<T>(
 
   useEffect(() => {
     if (!scope || !key || !enabled || restoredFor.current !== key) return;
+    const content = JSON.stringify(value);
+    if (content === lastWritten.current) return;
+    lastWritten.current = content;
     const result = devTiming.time(`draft written (${form})`, () => saveDraft(form, scope, value, payloadVersion, recordId));
     /*
      * Refused means THIS payload was rejected — a forbidden field or an
@@ -91,6 +106,8 @@ export function useDraft<T>(
 
   const clear = useCallback(() => {
     if (scope) clearDraft(form, scope, recordId);
+    // The content on screen counts as written — nothing is put back until it changes.
+    lastWritten.current = JSON.stringify(valueRef.current);
     setRestoredAt(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, key, recordId]);

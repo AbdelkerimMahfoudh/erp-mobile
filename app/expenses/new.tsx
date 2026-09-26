@@ -79,6 +79,13 @@ export default function NewExpenseScreen() {
   const [source, setSource] = useState<MoneySource>({ kind: 'cash' });
   /** Today unless the person says otherwise. The accounting day is still the confirmation day. */
   const [spentOn, setSpentOn] = useState(localDay(new Date()));
+  /**
+   * Whether the person set the date themselves. A date they chose survives an app
+   * kill with the rest of the form; the default does not — restored on another day
+   * it would quietly date every later expense to the day the draft was born
+   * (docs/57: four expenses carried 18 September for a week).
+   */
+  const [dateTouched, setDateTouched] = useState(false);
   /** Optional. Never saved in the draft: a picked photo's uri may not survive an app kill. */
   const [receipt, setReceipt] = useState<ReceiptPhoto | null>(null);
   const [expenseClass, setExpenseClass] = useState<'variable' | 'fixed'>('variable');
@@ -109,6 +116,7 @@ export default function NewExpenseScreen() {
       reference,
       note,
       spentOn,
+      dateTouched,
     },
     (v) => {
       setCategory(v.category ?? '');
@@ -119,7 +127,10 @@ export default function NewExpenseScreen() {
       setSource(v.method === 'account' ? { kind: 'account', accountId: v.accountId ?? null } : { kind: 'cash' });
       setReference(v.reference ?? '');
       setNote(v.note ?? '');
-      setSpentOn(v.spentOn ?? localDay(new Date()));
+      // Only a date the person chose comes back; a default is today's, whatever day the draft was written.
+      const chosen = Boolean(v.dateTouched) && typeof v.spentOn === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.spentOn);
+      setSpentOn(chosen ? v.spentOn! : localDay(new Date()));
+      setDateTouched(chosen);
     },
   );
 
@@ -304,6 +315,8 @@ export default function NewExpenseScreen() {
               setAmount('');
               setNote('');
               setReference('');
+              setSpentOn(localDay(new Date()));
+              setDateTouched(false);
             }}
           />
           <Text variant="body" tone="secondary">
@@ -318,8 +331,11 @@ export default function NewExpenseScreen() {
               label={t('expenses.date')}
               icon={CalendarDays}
               value={spentOn}
-              onChangeText={setSpentOn}
-              placeholder="2026-09-18"
+              onChangeText={(v) => {
+                setSpentOn(v);
+                setDateTouched(true);
+              }}
+              placeholder={today}
               hint={spentOn === today ? t('expenses.date.today') : undefined}
               required
             />
