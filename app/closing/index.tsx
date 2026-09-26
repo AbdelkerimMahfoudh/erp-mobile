@@ -315,6 +315,31 @@ function Report({
                 <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
               ) : null}
               <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong={adjusted} />
+              {/* How the result was reached, straight after net sales — where the person may see it and it can be calculated. */}
+              {resultOk ? (
+                <>
+                  <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
+                  <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
+                  <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
+                  <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
+                  {result.fixedExpenses > 0 ? <Line label={t('dailyReport.result.beforeFixed')} value={result.resultBeforeFixed ?? 0} quiet signed /> : null}
+                  <Text variant="caption" tone="tertiary">
+                    {t('dailyReport.result.scope')}
+                  </Text>
+                </>
+              ) : resultBlocked ? (
+                <>
+                  <Text variant="bodyStrong">{t('dailyReport.result.cannot')}</Text>
+                  <Text variant="caption" tone="secondary">
+                    {t('dailyReport.result.cannot.reason', { count: String(result.missingCostLines) })}
+                  </Text>
+                </>
+              ) : null}
+              {resultOk || resultBlocked ? (
+                <Text variant="caption" tone="secondary">
+                  {t('dailyReport.result.how.body')}
+                </Text>
+              ) : null}
               <Divider />
               <Line label={t('dailyReport.sales.collected')} value={report.sales.collected.total} />
               <Line label={t('dailyReport.sales.atCheckout')} value={report.sales.collected.atCheckout} quiet />
@@ -340,37 +365,6 @@ function Report({
           </Disclosure>
         ) : null}
 
-        {/* How the result was reached — the lines behind the three figures above. */}
-        {resultOk || resultBlocked ? (
-          <Disclosure title={t('dailyReport.result.how')}>
-            <View style={styles.detail}>
-              {resultOk ? (
-                <>
-                  <Line label={t('dailyReport.sales.net')} value={result.netSales ?? 0} />
-                  <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
-                  <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
-                  <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
-                  <Divider />
-                  <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
-                  {result.fixedExpenses > 0 ? <Line label={t('dailyReport.result.beforeFixed')} value={result.resultBeforeFixed ?? 0} quiet signed /> : null}
-                  <Text variant="caption" tone="tertiary">
-                    {t('dailyReport.result.scope')}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text variant="bodyStrong">{t('dailyReport.result.cannot')}</Text>
-                  <Text variant="caption" tone="secondary">
-                    {t('dailyReport.result.cannot.reason', { count: String(result.missingCostLines) })}
-                  </Text>
-                </>
-              )}
-              <Text variant="caption" tone="secondary">
-                {t('dailyReport.result.how.body')}
-              </Text>
-            </View>
-          </Disclosure>
-        ) : null}
       </Card>
 
       <Warnings report={report} params={warningParams} />

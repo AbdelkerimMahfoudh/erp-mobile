@@ -41,12 +41,16 @@ it('the first view is the statement: sales and items, then gross profit, expense
   assert.ok(!/net profit/i.test(read('lib/i18n/en.ts').split("'dailyReport.")[1] ?? ''), 'no "net profit" wording');
 });
 
-it('Sales details explains invoiced sales, cancellations, returns, net, collected and owed, and leads to the transactions', () => {
-  const details = statement.slice(statement.indexOf("t('dailyReport.salesDetails')"), statement.indexOf("t('dailyReport.result.how')"));
-  for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'sales.collected', 'sales.atCheckout', 'sales.laterSameDay', 'sales.owed', 'countRule', 'salesDetails.transactions']) {
+it('Sales details — the one expandable of the statement — explains invoiced sales, cancellations, returns, net, how the result follows, collected and owed, and leads to the transactions', () => {
+  const details = statement.slice(statement.indexOf("t('dailyReport.salesDetails')"), statement.lastIndexOf('</Disclosure>'));
+  for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'result.cost', 'result.gross', 'result.after', 'result.scope', 'result.how.body', 'sales.collected', 'sales.atCheckout', 'sales.laterSameDay', 'sales.owed', 'countRule', 'salesDetails.transactions']) {
     assert.ok(details.includes(`t('dailyReport.${k}'`), `sales details carry ${k}`);
   }
+  // The result's lines follow net sales, before the money side; a result that cannot be calculated says so there.
+  assert.ok(details.indexOf("t('dailyReport.sales.net')") < details.indexOf("t('dailyReport.result.cost')") && details.indexOf("t('dailyReport.result.after')") < details.indexOf("t('dailyReport.sales.collected')"));
+  assert.match(details, /resultBlocked \? \([\s\S]*?t\('dailyReport\.result\.cannot'\)/);
   assert.match(details, /router\.push\(`\/sales\/period\?day=\$\{report\.date\}` as Href\)/);
+  assert.equal((statement.match(/<Disclosure\b/g) ?? []).length, 1, 'one expandable on the statement');
 });
 
 it('Check balances: the drawer and each account, what was recorded, how it stands, its own count or check', () => {
