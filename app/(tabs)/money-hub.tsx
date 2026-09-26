@@ -140,7 +140,7 @@ export default function MoneyTabScreen() {
               </View>
               <Disclosure title={t('moneyTab.channels')}>
                 <Text variant="caption" tone="secondary">
-                  {t('moneyOverview.accounts.hint')}
+                  {t('moneyOverview.accounts.hint', { date: formatDate(data.today) })}
                 </Text>
                 {data.accountsToday.length === 0 ? (
                   <Text variant="caption" tone="tertiary">
@@ -268,15 +268,15 @@ export default function MoneyTabScreen() {
                 <View style={styles.grow}>
                   <Text variant="bodyStrong">{t('moneyOverview.dailyExpenses')}</Text>
                   <MoneyValue value={data.expensesToday.total} size="large" />
-                  {/* Today's figure, whatever the period switch above says — it
-                      controls sales, never this. */}
+                  {/* Today's figure — the business day, named — whatever the period
+                      switch above says: it controls sales, never this (0074). */}
                   {data.expensesToday.reversed > 0 ? (
                     <Text variant="caption" tone="secondary">
                       {t('moneyOverview.dailyExpenses.reversed', { amount: isolateLtr(formatMoney(-data.expensesToday.reversed)) })}
                     </Text>
                   ) : null}
                   <Text variant="caption" tone="tertiary">
-                    {t('moneyOverview.dailyExpenses.hint')}
+                    {t('moneyOverview.dailyExpenses.hint', { date: formatDate(data.today) })}
                   </Text>
                 </View>
               </View>

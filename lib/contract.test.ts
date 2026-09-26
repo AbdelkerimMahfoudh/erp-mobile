@@ -82,6 +82,7 @@ it('a complete Home passes through unchanged', () => {
 
 it('Money\'s overview and sales by day from the older server are refused; complete ones pass', () => {
   const overview = {
+    today: '2026-09-26',
     cashNow: 5000,
     period: { phonesSold: 1, unitsSold: 1, salesCount: 1, salesValue: 20040, cancellations: { count: 1, value: 10040, phones: 1 }, returns: { count: 0, value: 0, phones: 0 }, adjusted: 10040, netSalesValue: 10000, collected: 10000, outstanding: 0, refunds: 0 },
     expensesToday: { total: -300, recorded: 0, reversed: 300, rows: [{ amount: -300 }] },
@@ -89,7 +90,7 @@ it('Money\'s overview and sales by day from the older server are refused; comple
   assert.equal(checkMoneyOverview(overview as never), overview);
   const old = { cashNow: 5000, period: { phonesSold: 1, salesValue: 20040, collected: 10000, outstanding: 0, refunds: 0 }, expensesToday: { total: 0, rows: [] } };
   const e = refused(() => checkMoneyOverview(old as never));
-  assert.ok(['period.unitsSold', 'period.cancellations.count', 'period.netSalesValue', 'expensesToday.reversed'].every((p) => e.missing.includes(p)), e.missing.join());
+  assert.ok(['today', 'period.unitsSold', 'period.cancellations.count', 'period.netSalesValue', 'expensesToday.reversed'].every((p) => e.missing.includes(p)), e.missing.join());
   const day = { day: '2026-09-25', sales: 1, units: 1, value: 20040, cancelled: 10040, returned: 0, returns: 0, adjusted: 10040, net: 10000, phones: 1, outstanding: 0 };
   assert.ok(checkSalesByDay({ days: [day] } as never));
   assert.deepEqual(refused(() => checkSalesByDay({ days: [{ day: '2026-09-25', sales: 2, value: 20040 }] } as never)).missing.slice(0, 2), ['days.0.units', 'days.0.cancelled']);

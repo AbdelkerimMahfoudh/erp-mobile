@@ -119,8 +119,9 @@ it('the overview previews a few sales and links to all of them', () => {
   assert.match(overview, /\.slice\(0, SALES_PREVIEW\)/);
   assert.match(overview, /t\('moneyOverview\.viewAllSales'\)/);
 });
-it('accounts are recorded movement, never called a balance', () => {
-  assert.match(overview, /t\('moneyOverview\.accounts\.hint'\)/);
+it('accounts are recorded movement, never called a balance — and say which day (docs/55 D42)', () => {
+  assert.match(overview, /t\('moneyOverview\.accounts\.hint', \{ date: formatDate\(data\.today\) \}\)/);
+  assert.match(overview, /t\('moneyOverview\.dailyExpenses\.hint', \{ date: formatDate\(data\.today\) \}\)/);
   assert.match(overview, /t\('moneyTab\.recorded'\)/);
 });
 it('Outstanding payments and the other actions come from the registry', () => {

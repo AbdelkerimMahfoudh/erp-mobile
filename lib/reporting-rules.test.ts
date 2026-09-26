@@ -103,4 +103,21 @@ it('Analytics says what "not moving" counts, and a product row keeps its width f
   assert.match(rule, /A cancelled sale does not count: its goods never left\. A returned item still counts as sold\./);
 });
 
+it('Money: the today-only figures name the business day, in every language; the tab label has its room (docs/55)', () => {
+  const money = code(read('../app/(tabs)/money-hub.tsx'));
+  assert.match(money, /t\('moneyOverview\.accounts\.hint', \{ date: formatDate\(data\.today\) \}\)/);
+  assert.match(money, /t\('moneyOverview\.dailyExpenses\.hint', \{ date: formatDate\(data\.today\) \}\)/);
+  for (const lang of ['en', 'fr', 'ar']) {
+    const file = read(`./i18n/${lang}.ts`);
+    for (const k of ['moneyOverview.accounts.hint', 'moneyOverview.dailyExpenses.hint']) {
+      const line = file.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
+      assert.ok(line.includes('({date})'), `${lang} ${k}`);
+    }
+  }
+  const tabs = code(read('../app/(tabs)/_layout.tsx'));
+  assert.match(tabs, /const compactLabels = useWindowDimensions\(\)\.width < 360;/);
+  assert.match(tabs, /tabBarLabelStyle: \{ \.\.\.\(compactLabels \? typeScale\.tabLabelCompact : typeScale\.tabLabel\), flexShrink: 0 \}/);
+  assert.match(read('./design/tokens.ts'), /tabLabelCompact: \{ fontSize: 10, lineHeight: 14, fontWeight: '600' \}/);
+});
+
 console.log(`reporting-rules: ${passed} passed`);

@@ -111,9 +111,10 @@ const MONEY_PERIOD = [
   'refunds',
 ] as const;
 
-/** The Money tab's overview: the period, the cash now, and today's expense rows. */
+/** The Money tab's overview: the business day it speaks of, the period, the cash now, and today's expense rows. */
 export function checkMoneyOverview(r: MoneyOverview): MoneyOverview {
   const missing = [
+    ...missingTexts(r, ['today']),
     ...missingNumbers(r, ['cashNow']),
     ...missingNumbers(r?.period, MONEY_PERIOD, 'period.'),
     ...missingNumbers(r?.expensesToday, ['total', 'recorded', 'reversed'], 'expensesToday.'),
