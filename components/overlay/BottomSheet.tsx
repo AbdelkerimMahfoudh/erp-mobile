@@ -18,7 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
-import { elevation, radius, space } from '../../lib/design/tokens';
+import { elevation, radius, space, touch } from '../../lib/design/tokens';
 import { motionPlan } from '../../lib/design/motion';
 import { easing } from '../../lib/design/motion-easing';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
@@ -231,11 +231,12 @@ export function BottomSheet({
                     ) : null}
                   </View>
                   {dismissible ? (
+                    /* A full 48-point target: at 36 it was the one control under the minimum on the review's item sheet (docs/55 D49). */
                     <IconButton
                       icon={X}
                       accessibilityLabel={t('action.close')}
                       onPress={animateOut}
-                      size={36}
+                      size={touch.min}
                     />
                   ) : null}
                 </View>
