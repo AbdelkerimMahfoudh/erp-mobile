@@ -145,6 +145,43 @@ export function reopenOptions(offered: readonly ReopenMode[]): { mode: ReopenMod
   return modes.map((mode, i) => ({ mode, selected: i === 0 }));
 }
 
+/**
+ * What "Open the boutique" asks before it records anything (docs/56). Before
+ * 06:00 the store's calendar date has moved on but the business date has not:
+ * the Owner, offered `start_new`, chooses between the two days; anybody else
+ * is told which business day the opening — and every sale after it — belongs
+ * to. After 06:00 there is nothing to ask. The dates are the server's.
+ */
+export type OpeningPrompt = 'choice' | 'notice' | 'none';
+
+export function openingPrompt(offered: readonly ReopenMode[] | undefined, calendarDate: string, businessDate: string): OpeningPrompt {
+  if ((offered ?? []).includes('start_new')) return 'choice';
+  return calendarDate !== businessDate ? 'notice' : 'none';
+}
+
+/**
+ * "+12 %", "−8 %" or "0 %" for a comparison the server supplied; null when it
+ * supplied none — a zero base is no comparison, and a figure from nowhere is
+ * never printed (docs/56).
+ */
+export function changeText(changePct: number | null | undefined): string | null {
+  if (typeof changePct !== 'number' || !Number.isFinite(changePct)) return null;
+  const rounded = Math.round(changePct);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+  return `${sign}${Math.abs(rounded)} %`;
+}
+
+export function changeTone(changePct: number): 'positive' | 'negative' | 'muted' {
+  const rounded = Math.round(changePct);
+  return rounded > 0 ? 'positive' : rounded < 0 ? 'negative' : 'muted';
+}
+
+/** How many calendar days a YYYY-MM-DD range covers, inclusive — a word for "vs the 7 days before", never a figure. */
+export function daySpan(from: string, to: string): number {
+  const at = (d: string) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  return Math.round((at(to) - at(from)) / 86_400_000) + 1;
+}
+
 /** Movement since the last count, or null when nothing has been counted yet. */
 export function sinceLastCountTone(value: number | null): 'success' | 'danger' | 'neutral' {
   if (value === null || value === 0) return 'neutral';

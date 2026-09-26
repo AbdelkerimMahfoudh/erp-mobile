@@ -99,6 +99,11 @@ export interface OpenClosing {
   canReopen: boolean;
   reopenRefusal: 'not_closed' | 'past_day' | 'future_day' | null;
   reopenChoices: ReopenMode[];
+  /**
+   * What "Open the boutique" may choose (docs/56): `start_new` joins `continue` before
+   * 06:00 for the Owner alone. Absent on an older server, which offers no choice.
+   */
+  openChoices?: ReopenMode[];
   nextDate: string;
   history: ClosingHistoryEntry[];
   door: DoorState;
@@ -182,13 +187,15 @@ export function useReopenDay(date?: string) {
 /**
  * "Open the boutique" (0077): records that a person opened, with the store's
  * time and their name. Anybody who may count may record it; a closed day is
- * reopened instead (`useReopenDay`).
+ * reopened instead (`useReopenDay`). Before 06:00 the Owner says which business
+ * day the opening is for (docs/56); the mode is sent only when a choice was
+ * made, so an older server that offers none is never sent a field it refuses.
  */
 export function useOpenDay(date?: string) {
   const qc = useQueryClient();
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
-    mutationFn: () => api.post<OpenClosing>('/closings/open', date ? { date } : {}),
+    mutationFn: (mode?: ReopenMode) => api.post<OpenClosing>('/closings/open', { ...(date ? { date } : {}), ...(mode ? { mode } : {}) }),
     onSuccess: (fresh) => {
       qc.setQueryData(qk.openClosing(branchId, date ?? 'today'), fresh);
       void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });

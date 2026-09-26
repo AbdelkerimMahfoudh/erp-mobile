@@ -6,9 +6,13 @@
 import assert from 'node:assert/strict';
 import {
   axisTicks,
+  changeText,
+  changeTone,
   dayChoices,
+  daySpan,
   dayWordKey,
   freshness,
+  openingPrompt,
   historyKey,
   labelledEvery,
   lastFour,
@@ -125,6 +129,34 @@ it('the date selector offers today first and walks back across month and year ed
   assert.equal(dayWordKey('2026-09-24', '2026-09-24'), 'closingHistory.today');
   assert.equal(dayWordKey('2026-09-23', '2026-09-24'), 'closingHistory.yesterday');
   assert.equal(dayWordKey('2026-09-09', '2026-09-24'), null);
+});
+
+it('Open the boutique asks the Owner before 06:00, tells anybody else which day it is, and asks nothing after (docs/56)', () => {
+  // 03:41 on the 26th: the calendar has moved on, the business date has not.
+  assert.equal(openingPrompt(['continue', 'start_new'], '2026-09-26', '2026-09-25'), 'choice');
+  assert.equal(openingPrompt(['continue'], '2026-09-26', '2026-09-25'), 'notice');
+  // An older server offers nothing at all; the notice still names the day.
+  assert.equal(openingPrompt(undefined, '2026-09-26', '2026-09-25'), 'notice');
+  // After 06:00, or once the day was started early, the two dates agree.
+  assert.equal(openingPrompt(['continue'], '2026-09-26', '2026-09-26'), 'none');
+  assert.equal(openingPrompt(undefined, '2026-09-26', '2026-09-26'), 'none');
+});
+
+it('a comparison is printed only when the server supplied one, rounded to a whole percent, with its sign', () => {
+  assert.equal(changeText(12.4), '+12 %');
+  assert.equal(changeText(-7.6), '−8 %');
+  assert.equal(changeText(0.2), '0 %');
+  assert.equal(changeText(null), null);
+  assert.equal(changeText(undefined), null);
+  assert.equal(changeText(Number.NaN), null);
+  assert.equal(changeText(Number.POSITIVE_INFINITY), null);
+  assert.deepEqual([changeTone(12.4), changeTone(-7.6), changeTone(0.2)], ['positive', 'negative', 'muted']);
+});
+
+it('a day span is inclusive: the seven days before a week are seven', () => {
+  assert.equal(daySpan('2026-09-13', '2026-09-19'), 7);
+  assert.equal(daySpan('2026-09-25', '2026-09-25'), 1);
+  assert.equal(daySpan('2026-08-31', '2026-09-25'), 26);
 });
 
 console.log(`home-day: ${passed} passed`);

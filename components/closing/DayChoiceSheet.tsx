@@ -10,22 +10,30 @@ import { useTranslation } from '../../lib/i18n';
 import { reopenOptions, type ReopenMode } from '../../lib/home-day';
 
 /**
- * The before-06:00 choice (docs/50 §3.2, reference 06).
+ * The before-06:00 choice (docs/50 §3.2, docs/56): which business day the
+ * work from now on belongs to — the previous one, still running, or the next
+ * one, started early.
  *
- * Shown only when the server offered more than "continue": after local
- * midnight, before 06:00, to somebody who may start a day early — the Owner.
- * The choices and the time in the title are the server's: at 07:25 by the
- * store's clock the early start is never offered, whatever the phone says.
- * The safe default is selected; the early start is a deliberate second tap.
- * Selling is never blocked while the sheet is open, and the sheet says so.
+ * One sheet, two intents. `reopen` (reference 06) asks it for a day that was
+ * closed; `open` asks it for "Open the boutique" BEFORE the opening is
+ * recorded, so the day the opening lands on is the one the Owner meant. Shown
+ * only when the server offered more than "continue": after local midnight,
+ * before 06:00, to somebody who may start a day early — the Owner. The dates
+ * and the time in the title are the server's: at 07:25 by the store's clock
+ * the early start is never offered, whatever the phone says. The safe default
+ * is selected; the early start is a deliberate second tap. Nothing already
+ * recorded moves whichever day is chosen, and the sheet says so.
  */
-export interface ReopenSheetProps {
+export interface DayChoiceSheetProps {
+  intent: 'reopen' | 'open';
   open: boolean;
   onClose: () => void;
-  /** The day being reopened, YYYY-MM-DD. */
+  /** The business day still running (or being reopened), YYYY-MM-DD. */
   businessDate: string;
   /** The day an early start would begin, YYYY-MM-DD. */
   nextDate: string;
+  /** The store's calendar date now, YYYY-MM-DD — named so the person sees why there is a choice. */
+  calendarDate: string;
   /** The store's wall clock as the server read it, HH:mm — the title never uses the phone's clock. */
   now: string;
   /** What the server offered. */
@@ -34,23 +42,26 @@ export interface ReopenSheetProps {
   onConfirm: (mode: ReopenMode) => void;
 }
 
-export function ReopenSheet({ open, onClose, businessDate, nextDate, now, choices, busy, onConfirm }: ReopenSheetProps) {
+export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, calendarDate, now, choices, busy, onConfirm }: DayChoiceSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const options = reopenOptions(choices);
   const [mode, setMode] = useState<ReopenMode>(options[0].mode);
+  const prefix = intent === 'open' ? 'openChoice' : 'reopen';
+  const k = (suffix: string) => `${prefix}.${suffix}` as never;
+  const dates = { date: formatDate(businessDate), next: formatDate(nextDate), previous: formatDate(businessDate), calendarDate: formatDate(calendarDate) };
 
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={t('reopen.title', { time: isolateLtr(now) })}
-      subtitle={t('reopen.question')}
+      title={t(k('title'), { time: isolateLtr(now) })}
+      subtitle={t(k('question'), dates)}
       footer={
         <View style={styles.footer}>
-          <Button title={t('reopen.confirm')} fullWidth loading={busy} disabled={busy} onPress={() => onConfirm(mode)} />
+          <Button title={t(k('confirm'))} fullWidth loading={busy} disabled={busy} onPress={() => onConfirm(mode)} />
           <Text variant="caption" tone="tertiary" align="center">
-            {t('reopen.note')}
+            {t(k('note'))}
           </Text>
         </View>
       }
@@ -60,8 +71,8 @@ export function ReopenSheet({ open, onClose, businessDate, nextDate, now, choice
           <Choice
             key={o.mode}
             selected={mode === o.mode}
-            title={o.mode === 'continue' ? t('reopen.continue.title', { date: formatDate(businessDate) }) : t('reopen.startNew.title', { date: formatDate(nextDate) })}
-            body={o.mode === 'continue' ? t('reopen.continue.body') : t('reopen.startNew.body')}
+            title={o.mode === 'continue' ? t(k('continue.title'), dates) : t(k('startNew.title'), { ...dates, date: dates.next })}
+            body={o.mode === 'continue' ? t(k('continue.body'), dates) : t(k('startNew.body'), { ...dates, date: dates.next })}
             onPress={() => setMode(o.mode)}
           />
         ))}
@@ -76,7 +87,8 @@ function Choice({ selected, title, body, onPress }: { selected: boolean; title: 
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      // The aria prop, not `accessibilityState`: React Native maps it on the phone and react-native-web 0.21 reads only it.
+      aria-checked={selected}
       accessibilityLabel={`${title}. ${body}`}
       onPress={onPress}
       style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
