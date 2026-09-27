@@ -9,15 +9,20 @@
  * whether a close may be confirmed. Imports nothing, so it runs under bare node.
  */
 
-/** How one channel stands against its expected figure (backend `Verification`). */
-export type Verification = 'counted' | 'skipped' | 'not_verified' | 'stale' | 'not_counted';
+/**
+ * How one channel stands against its expected figure (backend `Verification`).
+ * `attested`: closed on the person's word that they checked it, with no amount
+ * recorded (docs/58 D71) — never a count, never matched, no difference.
+ */
+export type Verification = 'counted' | 'skipped' | 'not_verified' | 'attested' | 'stale' | 'not_counted';
 
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 
 /**
  * The word for a verification — always shown beside its colour. An account is
  * never counted: its check is a reading of the movement its app shows, so a
- * checked account says so rather than "Counted" (docs/58 §1.2).
+ * checked account says so rather than "Counted" (docs/58 §1.2). An attested
+ * channel says "Checked; amounts not recorded" whichever channel it is.
  */
 export function verificationKey(v: Verification, channel: 'cash' | 'account' = 'cash'): string {
   if (channel === 'account' && (v === 'counted' || v === 'stale')) return `dailyReport.verify.account.${v}`;
@@ -26,16 +31,19 @@ export function verificationKey(v: Verification, channel: 'cash' | 'account' = '
 
 /**
  * Only a count is a verification. A counted channel with a difference is a
- * question, not a match; anything not counted is never green.
+ * question, not a match; anything not counted is never green — an attestation
+ * is information, neither green nor a warning.
  */
 export function verificationTone(v: Verification, difference: number | null): Tone {
   if (v === 'counted') return difference !== null && Math.abs(difference) >= 0.005 ? 'warning' : 'success';
   if (v === 'not_verified' || v === 'stale') return 'warning';
+  if (v === 'attested') return 'info';
   return 'neutral';
 }
 
 export type WarningCode =
   | 'channels_not_verified'
+  | 'channels_attested'
   | 'channels_stale'
   | 'account_movement_not_balance'
   | 'unattributed_money'
@@ -53,6 +61,7 @@ export type WarningCode =
 
 const KNOWN_WARNINGS: readonly string[] = [
   'channels_not_verified',
+  'channels_attested',
   'channels_stale',
   'account_movement_not_balance',
   'unattributed_money',
@@ -94,23 +103,23 @@ export function reasonGiven(reason: string): boolean {
 }
 
 /**
- * Whether "Close the business day" may be pressed in the review sheet.
+ * Whether "Close the business day" may be pressed in the closing popup.
  *
  * Never because counts are missing — physical checks are optional (docs/51 D2).
- * Only when the figures are live, the person may close, and — if any balance was
- * not physically checked — they have said so and why.
+ * Only when the figures are live, the person may close, and — if any balance has
+ * no amount — they have attested that they checked it (docs/58 D71); the
+ * attestation is recorded with their name and the time, and invents no figure.
  */
 export function canConfirmClose(input: {
   canClose: boolean;
   freshness: Freshness;
   requiresAcknowledgement: boolean;
-  acknowledged: boolean;
-  reason: string;
+  attested: boolean;
   busy: boolean;
 }): boolean {
   if (!input.canClose || input.busy || input.freshness !== 'live') return false;
   if (!input.requiresAcknowledgement) return true;
-  return input.acknowledged && reasonGiven(input.reason);
+  return input.attested;
 }
 
 /** Every refusal the server names (docs/51 §15), each with its own sentence. */

@@ -3,11 +3,12 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
 import { Stack, useRouter } from 'expo-router';
-import { CalendarDays, HelpCircle, PencilLine } from 'lucide-react-native';
-import { Button, Card, Chip, Disclosure, Divider, ErrorState, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, Section, SkeletonList, Text } from '../../components/ui';
+import { CalendarDays, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
+import { Button, Card, Chip, Disclosure, Divider, ErrorState, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
 import { DayChoiceSheet } from '../../components/closing/DayChoiceSheet';
-import { CloseReviewSheet } from '../../components/closing/CloseReviewSheet';
+import { CloseDaySheet } from '../../components/closing/CloseDaySheet';
+import { HistoryPanel } from '../../components/closing/HistoryPanel';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
@@ -22,7 +23,8 @@ import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
 import { useOpenClosing, useOpenDay, useReopenDay, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
 import { useDailyReport, type DailyReport } from '../../lib/closing-report';
-import { channelLabel, reportFreshness, verificationKey, verificationTone, warningKey, type Freshness } from '../../lib/closing-report-view';
+import { useClosingReminders } from '../../lib/loans';
+import { channelLabel, reportFreshness, warningKey, type Freshness } from '../../lib/closing-report-view';
 
 /**
  * The Daily closing (docs/51, docs/58): one business date as a short,
@@ -30,12 +32,13 @@ import { channelLabel, reportFreshness, verificationKey, verificationTone, warni
  *
  * First the boutique, the date, the recorded opening and the standing; then
  * the statement — sales and items, and gross profit, expenses and result where
- * the person may see them and they can be calculated — with the sales detail
- * one tap away; then *Check balances*, the drawer and each account with what
- * was recorded, how it stands and its own count; then, behind *Money
- * movements*, every in and out by channel; then the day's actions and its
- * history. Nothing is typed again, nothing is added up here, and the physical
- * check stays optional.
+ * the person may see them and they can be calculated — with the figure rows
+ * one tap away and the words behind a (?); then the money movements, always in
+ * view; then the day's actions — *Close the business day* opens the popup
+ * that asks whether the cash and account movements were checked, takes the
+ * amounts right there or the person's word, and closes — and its history as
+ * one rectangle that slides open. Nothing is typed again, nothing is added up
+ * here, and the physical check stays optional.
  *
  * The body is a plain `ScrollView` with nothing above the rows: a drag that
  * starts on a card scrolls the page (the shared `Screen` wraps its body in a
@@ -73,7 +76,14 @@ export default function DailyClosingScreen() {
         ) : report.isError || !report.data ? (
           <ErrorState error={report.error} onRetry={refresh} />
         ) : (
-          <Report report={report.data} fetchedAt={report.dataUpdatedAt} day={day.data ?? null} date={date} onRefresh={refresh} />
+          <Report
+            report={report.data}
+            fetchedAt={report.dataUpdatedAt}
+            day={day.data ?? null}
+            date={date}
+            refreshing={report.isFetching || day.isFetching}
+            onRefresh={refresh}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -123,12 +133,15 @@ function Report({
   fetchedAt,
   day,
   date,
+  refreshing,
   onRefresh,
 }: {
   report: DailyReport;
   fetchedAt: number;
   day: OpenClosing | null;
   date: string | undefined;
+  /** The report or the live view is being read again. */
+  refreshing: boolean;
   onRefresh: () => void;
 }) {
   const styles = useStyles();
@@ -145,7 +158,7 @@ function Report({
   const [openSheet, setOpenSheet] = useState(false);
   /** Remounts the opening sheet each time it is asked for, so the safe default is selected again. */
   const [openSheetNonce, setOpenSheetNonce] = useState(0);
-  const [review, setReview] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   const freshness: Freshness = reportFreshness(fetchedAt, online);
   const dateWord = formatDate(report.date);
@@ -227,8 +240,6 @@ function Report({
   const standing = report.standing;
   const closed = standing === 'closed';
   const showOpen = report.isToday && canCount && !!day?.canOpen && !closed;
-  /** A count or a check is offered on the current, unclosed day to whoever may count — the same gate the counting screen keeps. */
-  const canCheck = report.isToday && canCount && !closed;
   const openingLine = day
     ? t(
         openingKey(day.opening, report.isToday) as never,
@@ -236,13 +247,10 @@ function Report({
       )
     : null;
   const headline = report.sales ? report.sales.value : report.money.totals.in;
-  const cash = report.expected.cash;
-  const accounts = report.expected.accounts.filter((a) => a.accountId !== null);
   const result = report.result;
   const resultOk = result.status === 'ok';
   const resultBlocked = result.status === 'cannot_calculate';
   const adjusted = report.sales ? report.sales.returns.count > 0 || report.sales.cancellations.count > 0 : false;
-  const checkChannel = (focus: string) => router.push({ pathname: '/closing/count', params: { focus } } as never);
 
   return (
     <View style={styles.report}>
@@ -351,81 +359,9 @@ function Report({
             />
           </View>
         ) : null}
-
       </Card>
 
       <Warnings report={report} params={warningParams} />
-
-      {/* ── Check balances: the drawer and each account, what was recorded, how it stands, its own check ── */}
-      <Section title={t('dailyReport.checkBalances')}>
-        <Text variant="caption" tone="secondary">
-          {t('dailyReport.checkBalances.optional')}
-        </Text>
-        <Card style={styles.card}>
-          <View style={styles.between}>
-            <Text variant="bodyStrong" style={styles.flex}>
-              {t('dailyReport.expected.cash')}
-            </Text>
-            <Chip tone={verificationTone(cash.verification, cash.difference)} label={t(verificationKey(cash.verification) as never)} size="sm" dot />
-          </View>
-          <Line
-            label={
-              cash.opening.anchorDate === null
-                ? t('dailyReport.expected.noOpening')
-                : cash.opening.carriedDays > 0
-                  ? t('dailyReport.expected.openingCarried', { date: formatDate(cash.opening.anchorDate), days: String(cash.opening.carriedDays) })
-                  : t('dailyReport.expected.opening', { date: formatDate(cash.opening.anchorDate) })
-            }
-            value={cash.opening.amount}
-            quiet
-          />
-          <Line label={t('dailyReport.money.in')} value={cash.in} quiet signed />
-          <Line label={t('dailyReport.money.out')} value={-cash.out} quiet signed />
-          {/* With no counted opening the figure is only the day's recorded movement from 0 — never a confirmed drawer amount. */}
-          <Line label={t(cash.opening.anchorDate === null ? 'dailyReport.expected.movementFromZero' : 'dailyReport.expected.expected')} value={cash.expected} strong />
-          {cash.counted !== null ? (
-            <>
-              <Line label={t('dailyReport.expected.counted')} value={cash.counted} />
-              <Line label={t('dailyReport.expected.difference')} value={cash.difference ?? 0} signed tone="auto" />
-            </>
-          ) : null}
-          {canCheck ? (
-            <View style={styles.linkRow}>
-              <Button title={t('dailyReport.countCash')} variant="secondary" size="sm" onPress={() => checkChannel('cash')} />
-            </View>
-          ) : null}
-        </Card>
-        {accounts.map((a) => (
-          <Card key={a.key} style={styles.card}>
-            <View style={styles.between}>
-              <Text variant="bodyStrong" style={styles.flex}>
-                {a.label}
-              </Text>
-              <Chip tone={verificationTone(a.verification, a.difference)} label={t(verificationKey(a.verification, 'account') as never)} size="sm" dot />
-            </View>
-            {/* The movement staff recorded through the account — never its balance (docs/51 §3.5). */}
-            <Line label={t('dailyReport.expected.account')} value={a.expectedMovement} strong signed />
-            <Line label={t('dailyReport.money.in')} value={a.in} quiet signed />
-            <Line label={t('dailyReport.money.out')} value={-a.out} quiet signed />
-            {a.counted !== null ? (
-              <>
-                <Line label={t('dailyReport.account.counted')} value={a.counted} signed />
-                <Line label={t('dailyReport.expected.difference')} value={a.difference ?? 0} signed tone="auto" />
-              </>
-            ) : null}
-            {canCheck ? (
-              <View style={styles.linkRow}>
-                <Button title={t('dailyReport.checkBalance')} variant="secondary" size="sm" onPress={() => checkChannel(a.accountId ?? a.key)} />
-              </View>
-            ) : null}
-          </Card>
-        ))}
-        {accounts.length > 0 ? (
-          <Text variant="caption" tone="tertiary">
-            {t('dailyReport.expected.account.note')}
-          </Text>
-        ) : null}
-      </Section>
 
       {/*
         Money movements, always in view: each channel's recorded movement for the day (money in less money out through
@@ -438,7 +374,7 @@ function Report({
         {report.money.channels
           .filter((c) => c.countable || c.net !== 0)
           .map((c) => (
-            // The drawer is named as the Check balances card names it, so the two lists read as one.
+            // The drawer is named as the closing popup names it, so the two read as one.
             <Line key={c.key} label={c.channel === 'cash' ? t('dailyReport.expected.cash') : channelLabel(c, words)} value={c.net} signed tone="auto" />
           ))}
         <Divider />
@@ -455,12 +391,12 @@ function Report({
           <Button title={t('closingHistory.open')} fullWidth loading={openDay.isPending} disabled={!online || openDay.isPending} onPress={() => void onOpen()} />
         ) : null}
         {report.isToday && canClose && report.close?.canClose ? (
-          <Button title={t('dailyReport.close')} fullWidth variant={showOpen ? 'secondary' : 'primary'} disabled={!online} onPress={() => setReview(true)} />
+          <Button title={t('dailyReport.closeDay')} fullWidth variant={showOpen ? 'secondary' : 'primary'} disabled={!online} onPress={() => setClosing(true)} />
         ) : null}
         {report.isToday && closed && canClose && day?.canReopen ? (
           <Button title={t('closingHistory.reopen')} fullWidth variant="secondary" loading={reopen.isPending} disabled={!online || reopen.isPending} onPress={() => void onReopen()} />
         ) : null}
-        {/* A row, not a button: "Correct a transaction" keeps its whole label at 320 pt and at large text. */}
+        {/* Rows, not buttons: each keeps its whole label at 320 pt and at large text. */}
         {(canClose || canCorrect) && standing !== 'inactive' ? (
           <RowGroup>
             <ListRow
@@ -469,6 +405,7 @@ function Report({
               title={t('dailyReport.correct')}
               onPress={() => router.push({ pathname: '/closing/sources', params: { date: report.date } } as never)}
             />
+            {canClose ? <ListRow flat leading={Scale} title={t('closing.differences.link')} onPress={() => router.push('/discrepancies' as never)} /> : null}
           </RowGroup>
         ) : null}
         {report.isToday && !canClose && !closed ? (
@@ -478,24 +415,25 @@ function Report({
         ) : null}
       </View>
 
-      {/* ── What happened, in order ── */}
+      {/* What is waiting on loans, said at closing time as it always was; only when something is. */}
+      {report.isToday ? <LoanReminders /> : null}
+
+      {/* ── What happened, in order: one rectangle that slides open ── */}
       {day ? (
-        <Section title={t('dailyReport.history')}>
-          <Card style={styles.history}>
-            <Disclosure title={t('closingHistory.history')} summary={<Text variant="caption" tone="secondary">{String(day.history.length)}</Text>}>
-              {day.history.length === 0 ? (
-                <Text variant="caption" tone="secondary">
-                  {t(report.isToday ? 'closingHistory.history.empty' : 'closingHistory.history.past.empty')}
-                </Text>
-              ) : (
-                day.history.map((h, i) => <HistoryRow key={`${h.kind}-${h.at}-${i}`} entry={h} first={i === 0} />)
-              )}
-            </Disclosure>
-          </Card>
+        <View style={styles.historyBlock}>
+          <HistoryPanel title={t('dailyReport.history')} count={day.history.length}>
+            {day.history.length === 0 ? (
+              <Text variant="caption" tone="secondary" style={styles.historyEmpty}>
+                {t(report.isToday ? 'closingHistory.history.empty' : 'closingHistory.history.past.empty')}
+              </Text>
+            ) : (
+              day.history.map((h, i) => <HistoryRow key={`${h.kind}-${h.at}-${i}`} entry={h} first={i === 0} />)
+            )}
+          </HistoryPanel>
           <Text variant="caption" tone="tertiary">
             {t('closingHistory.history.note')}
           </Text>
-        </Section>
+        </View>
       ) : null}
 
       {day ? (
@@ -528,14 +466,15 @@ function Report({
         </>
       ) : null}
       {report.close ? (
-        <CloseReviewSheet
-          open={review}
-          onClose={() => {
-            setReview(false);
-            onRefresh();
-          }}
+        <CloseDaySheet
+          open={closing}
+          // The close and its refusals refresh the day themselves; closing the popup reads nothing again.
+          onClose={() => setClosing(false)}
           report={report}
+          day={day}
           freshness={freshness}
+          refreshing={refreshing}
+          canCount={canCount}
           onChanged={onRefresh}
         />
       ) : null}
@@ -554,6 +493,12 @@ function FreshnessLine({ report, freshness, fetchedAt }: { report: DailyReport; 
         <Text variant="caption" tone="secondary">
           {report.snapshot.by ? t('dailyReport.snapshot', { time: at, name: report.snapshot.by }) : t('dailyReport.snapshot.noName', { time: at })}
         </Text>
+        {/* Closed on the person's word: said as such — never as counted, never as a difference of nothing. */}
+        {(report.snapshot.verification.attested?.length ?? 0) > 0 ? (
+          <Text variant="caption" tone="tertiary">
+            {t('closeDay.checkedNoAmounts')}
+          </Text>
+        ) : null}
         {report.snapshot.verification.reason ? (
           <Text variant="caption" tone="tertiary">
             {t('dailyReport.snapshot.reason', { reason: report.snapshot.verification.reason })}
@@ -618,6 +563,44 @@ function Line({
   );
 }
 
+/**
+ * What is waiting on loans (Milestone I), shown at closing time: proposals that
+ * need an answer, payments waiting to be confirmed, balances still open. Loan
+ * data beside the closing, never inside its figures — its own query, not even
+ * made without `loan.view`, and nothing at all when nothing is waiting.
+ */
+function LoanReminders() {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const canSee = usePermission('loan.view');
+  const reminders = useClosingReminders(canSee);
+  const r = reminders.data;
+  if (!canSee || !r) return null;
+  if (r.proposalsNeedingAnswer === 0 && r.paymentsAwaitingConfirmation === 0 && r.balancesOutstanding === 0) return null;
+  return (
+    <Card variant="sunken" padding="md" style={styles.reminders}>
+      <Text variant="label">{t('closing.loans.title')}</Text>
+      {r.proposalsNeedingAnswer > 0 ? <Text variant="caption">{t('closing.loans.answer', { count: String(r.proposalsNeedingAnswer) })}</Text> : null}
+      {r.paymentsAwaitingConfirmation > 0 ? <Text variant="caption">{t('closing.loans.confirm', { count: String(r.paymentsAwaitingConfirmation) })}</Text> : null}
+      {r.balancesOutstanding > 0 ? (
+        <Text variant="caption">
+          {t('closing.loans.outstanding', { count: String(r.balancesOutstanding), amount: isolateLtr(formatMoney(r.totalOutstanding)) })}
+        </Text>
+      ) : null}
+      {/* Read from the payload, so this line cannot keep claiming something the server stopped meaning. */}
+      {!r.affectsExpectedCash ? (
+        <Text variant="caption" tone="tertiary">
+          {t('closing.loans.hint')}
+        </Text>
+      ) : null}
+      <View style={styles.linkRow}>
+        <Button title={t('nav.loans')} variant="tertiary" size="sm" onPress={() => router.push('/loans' as never)} />
+      </View>
+    </Card>
+  );
+}
+
 /** A dot, what happened, when (store time), who, and one line saying how much. */
 function HistoryRow({ entry, first }: { entry: ClosingHistoryEntry; first: boolean }) {
   const styles = useStyles();
@@ -635,11 +618,19 @@ function HistoryRow({ entry, first }: { entry: ClosingHistoryEntry; first: boole
       break;
     case 'closed':
     case 'reclosed':
-      // A close without a physical check says so — never "0 counted".
+      // A close without a physical check says so — never "0 counted"; a close on the person's word says that,
+      // and a close with the drawer counted still names the balances it took on the person's word.
       caption =
         p.countedCash == null
-          ? t('closing.history.notVerified', { count: String(p.unverifiedCount ?? '') })
-          : `${t('closing.history.counted', { amount: money(p.countedCash) })} · ${t('closing.history.difference', { amount: isolateLtr(formatMoney(Number(p.difference ?? 0), { signed: true })) })}`;
+          ? Number(p.attestedCount ?? 0) > 0 && Number(p.unverifiedCount ?? 0) === 0
+            ? t('closing.history.attested', { count: String(p.attestedCount) })
+            : t('closing.history.notVerified', { count: String(p.unverifiedCount ?? '') })
+          : [
+              `${t('closing.history.counted', { amount: money(p.countedCash) })} · ${t('closing.history.difference', { amount: isolateLtr(formatMoney(Number(p.difference ?? 0), { signed: true })) })}`,
+              Number(p.attestedCount ?? 0) > 0 ? t('closing.history.attested', { count: String(p.attestedCount) }) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ');
       break;
     case 'reopened':
     case 'auto_reopened':
@@ -700,14 +691,16 @@ const useStyles = makeStyles((colors) => ({
   card: { gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, minHeight: 28 },
-  linkRow: { flexDirection: 'row', justifyContent: 'flex-end' },
   flex: { flex: 1, minWidth: 0 },
   actions: { gap: space.sm },
   warnings: { gap: space.xs },
   warning: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   bullet: { width: 8, height: 8, borderRadius: radius.full, marginTop: 6, backgroundColor: colors.border.strong },
   bulletWarn: { backgroundColor: colors.semantic.warning },
-  history: { gap: 0 },
+  historyBlock: { gap: space.sm },
+  reminders: { gap: space.xs },
+  linkRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  historyEmpty: { paddingVertical: space.sm },
   row: { flexDirection: 'row', gap: space.md, paddingVertical: space.md },
   rowJoin: { borderTopWidth: 1, borderTopColor: colors.border.subtle },
   dot: { width: 10, height: 10, borderRadius: radius.full, marginTop: 6 },

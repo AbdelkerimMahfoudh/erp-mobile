@@ -54,6 +54,8 @@ export interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Lines the title may take before it is cut; 1 unless a sheet's title must survive large text. */
+  titleLines?: number;
   subtitle?: string;
   /** Fraction of screen height the sheet may occupy. */
   maxHeightRatio?: number;
@@ -71,6 +73,7 @@ export function BottomSheet({
   open,
   onClose,
   title,
+  titleLines = 1,
   subtitle,
   maxHeightRatio = 0.85,
   footer,
@@ -221,7 +224,7 @@ export function BottomSheet({
               {title ? (
                 <View style={styles.header}>
                   <View style={styles.headerText}>
-                    <Text variant="heading" numberOfLines={1}>
+                    <Text variant="heading" numberOfLines={titleLines}>
                       {title}
                     </Text>
                     {subtitle ? (

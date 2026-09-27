@@ -122,7 +122,15 @@ export interface DailyReport {
     }[];
   };
   warnings: ReportWarning[];
-  close: { kind: 'first' | 'reclose' | 'already_locked'; requiresAcknowledgement: boolean; unverified: string[]; verified: string[]; canClose: boolean } | null;
+  close: {
+    kind: 'first' | 'reclose' | 'already_locked';
+    requiresAcknowledgement: boolean;
+    unverified: string[];
+    verified: string[];
+    /** Closed on the person's word, with no amount (docs/58 D71); absent on an older server. */
+    attested?: string[];
+    canClose: boolean;
+  } | null;
   sections: { sales: boolean; expenses: boolean; result: boolean; close: boolean };
   reportVersion: string;
   liveVersion: string;
@@ -131,7 +139,7 @@ export interface DailyReport {
     kind: 'closed' | 'reclosed';
     at: string;
     by: string | null;
-    verification: { verified: string[]; unverified: string[]; acknowledged: boolean; reason: string | null };
+    verification: { verified: string[]; unverified: string[]; attested?: string[]; acknowledged: boolean; reason: string | null };
   } | null;
   generatedAt: string;
 }
@@ -152,6 +160,11 @@ export interface CloseDayBody {
   reportVersion: string;
   acknowledgeUnverified?: boolean;
   reason?: string;
+  /**
+   * "I've checked today's cash and account movements": every channel without a count is closed as
+   * attested — the person and the time, no amount, never matched (docs/58 D71). No reason is asked.
+   */
+  attestChecked?: boolean;
 }
 
 export interface CloseDayResult {
@@ -159,7 +172,7 @@ export interface CloseDayResult {
   date: string;
   kind: 'first' | 'reclose';
   replayed: boolean;
-  verification: { verified: string[]; unverified: string[]; acknowledged: boolean; reason: string | null };
+  verification: { verified: string[]; unverified: string[]; attested?: string[]; acknowledged: boolean; reason: string | null };
   report: DailyReport;
 }
 

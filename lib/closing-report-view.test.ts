@@ -36,6 +36,10 @@ it('only a count is a verification; nothing unchecked is ever shown green', () =
   assert.equal(verificationTone('counted', -300), 'warning');
   assert.equal(verificationTone('not_verified', null), 'warning');
   assert.equal(verificationTone('stale', null), 'warning');
+  // An attestation is information — neither green nor a warning — and one word for cash and accounts alike.
+  assert.equal(verificationTone('attested', null), 'info');
+  assert.equal(verificationKey('attested', 'account'), 'dailyReport.verify.attested');
+  assert.equal(verificationKey('attested'), 'dailyReport.verify.attested');
   assert.equal(verificationTone('skipped', null), 'neutral');
   assert.equal(verificationTone('not_counted', null), 'neutral');
   assert.equal(verificationKey('not_verified'), 'dailyReport.verify.not_verified');
@@ -46,16 +50,13 @@ it('only a count is a verification; nothing unchecked is ever shown green', () =
   assert.equal(verificationKey('counted', 'cash'), 'dailyReport.verify.counted');
 });
 
-it('closing never waits for a count — only for live figures and, when needed, an acknowledgement with a reason', () => {
-  const base = { canClose: true, freshness: 'live' as const, requiresAcknowledgement: false, acknowledged: false, reason: '', busy: false };
+it('closing never waits for a count — only for live figures and, when something has no amount, the person’s attestation', () => {
+  const base = { canClose: true, freshness: 'live' as const, requiresAcknowledgement: false, attested: false, busy: false };
   // Every channel counted, or nothing to acknowledge: closable at once.
   assert.equal(canConfirmClose(base), true);
-  // Some balance unchecked: the acknowledgement AND a written reason are both required.
-  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true }), false);
-  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, acknowledged: true }), false);
-  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, acknowledged: true, reason: '  ' }), false);
-  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, acknowledged: true, reason: 'Bankily app down' }), true);
-  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, acknowledged: false, reason: 'Bankily app down' }), false);
+  // Some balance without an amount: the person's attestation that they checked is required (docs/58 D71) — no reason, no invented figure.
+  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, attested: false }), false);
+  assert.equal(canConfirmClose({ ...base, requiresAcknowledgement: true, attested: true }), true);
   // Never on stale or offline figures, never twice at once, never without the authority.
   assert.equal(canConfirmClose({ ...base, freshness: 'stale' }), false);
   assert.equal(canConfirmClose({ ...base, freshness: 'offline' }), false);
