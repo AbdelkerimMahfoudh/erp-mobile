@@ -152,7 +152,6 @@ export default function SellScreen() {
   const companyDefaultHours = useCompanyReturnWindow();
   const canOverrideReturnPolicy = usePermission('return.policy.override');
   const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
-  const [returnPolicyReason, setReturnPolicyReason] = useState('');
   const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);
@@ -431,7 +430,6 @@ export default function SellScreen() {
     cartDraft.clear();
     // A policy chosen for one customer must never carry into the next.
     setReturnWindowHours(null);
-    setReturnPolicyReason('');
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     invalidateMoney(qc);
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
@@ -478,7 +476,7 @@ export default function SellScreen() {
         // override, and sending a value the shop may have changed since this
         // screen loaded would look like one.
         ...(effectiveWindowHours !== companyDefaultHours
-          ? { returnWindowHours: effectiveWindowHours, returnPolicyReason: returnPolicyReason.trim() }
+          ? { returnWindowHours: effectiveWindowHours }
           : {}),
         ...(options.acknowledgementToken
           ? { acknowledgementToken: options.acknowledgementToken }
@@ -563,6 +561,16 @@ export default function SellScreen() {
              * it, so the server refused and so does this.
              */
             toast.error(t('warning.rejectedConfirmation'));
+            return;
+          // The form stops all three first; these answer an older screen or a race, in the reader's language.
+          case 'too_many_payment_methods':
+            toast.error(t('sell.payment.split.max'));
+            return;
+          case 'duplicate_payment_destination':
+            toast.error(t('sell.payment.split.duplicate'));
+            return;
+          case 'split_must_equal_total':
+            toast.error(t('sell.payment.split.sum', { sum: formatMoney(payments.reduce((sum, p) => sum + p.amount, 0)), total: formatMoney(total) }));
             return;
           default:
             break;
@@ -931,8 +939,6 @@ export default function SellScreen() {
           companyDefaultHours,
           windowHours: effectiveWindowHours,
           onWindowChange: setReturnWindowHours,
-          reason: returnPolicyReason,
-          onReasonChange: setReturnPolicyReason,
           canOverride: canOverrideReturnPolicy,
         }}
       />

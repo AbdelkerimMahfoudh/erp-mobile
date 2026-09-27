@@ -151,3 +151,48 @@ export function saleDebtorFields(debtor: DebtorDraft, attachedCustomerId: string
   if (debtor.kind !== 'none') return debtorFields(debtor);
   return attachedCustomerId ? { customerId: attachedCustomerId } : {};
 }
+
+/**
+ * A split sale's money arrives in at most four places (2026-09-27): the drawer,
+ * if cash is used, counts as one of them, each account as one more. The server
+ * refuses a fifth and a place used twice, whatever a screen sends.
+ */
+export const MAX_PAYMENT_METHODS = 4;
+
+/** Where a payment part lands: the drawer, or one named account (an account not chosen yet is no place). */
+export function destinationOf(part: { method: string; receivingAccountId?: string | null }): string | null {
+  if (part.method === 'cash') return 'cash';
+  return part.receivingAccountId ? `account:${part.receivingAccountId}` : null;
+}
+
+export type SplitProblem = 'too_many' | 'duplicate' | 'sum_mismatch';
+
+/**
+ * What stops a split from completing: more than four places, one place used
+ * twice, or parts that do not add up to the amount due exactly — a split pays
+ * the whole sale; a sale paid only in part takes one method and names who owes
+ * the rest.
+ */
+export function splitProblem(parts: { method: string; amount: number; receivingAccountId?: string | null }[], total: number): SplitProblem | null {
+  if (parts.length > MAX_PAYMENT_METHODS) return 'too_many';
+  const seen = new Set<string>();
+  for (const part of parts) {
+    const place = destinationOf(part);
+    if (place === null) continue;
+    if (seen.has(place)) return 'duplicate';
+    seen.add(place);
+  }
+  if (parts.length >= 2) {
+    const sum = round2(parts.reduce((s, p) => s + (Number.isFinite(p.amount) ? p.amount : 0), 0));
+    if (Math.abs(sum - round2(total)) >= EPSILON) return 'sum_mismatch';
+  }
+  return null;
+}
+
+/** The first place a new part can use: the drawer if no part uses it, else the first account no part uses. */
+export function nextFreeSource(parts: { method: string; receivingAccountId?: string | null }[], accountIds: string[]): { kind: 'cash' } | { kind: 'account'; accountId: string } | null {
+  const used = new Set(parts.map(destinationOf).filter((d): d is string => d !== null));
+  if (!used.has('cash')) return { kind: 'cash' };
+  const free = accountIds.find((id) => !used.has(`account:${id}`));
+  return free ? { kind: 'account', accountId: free } : null;
+}

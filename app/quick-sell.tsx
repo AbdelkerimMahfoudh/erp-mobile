@@ -181,7 +181,6 @@ export default function QuickSellScreen() {
 
   const companyDefaultHours = useCompanyReturnWindow();
   const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
-  const [returnPolicyReason, setReturnPolicyReason] = useState('');
   const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;
 
   const accountsQuery = useQuery({
@@ -299,7 +298,6 @@ export default function QuickSellScreen() {
     setQuantity(1);
     setCustomer(null);
     setReturnWindowHours(null);
-    setReturnPolicyReason('');
     // Home's month figures and the shelf both moved.
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
@@ -376,7 +374,7 @@ export default function QuickSellScreen() {
         ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         ...(effectiveWindowHours !== companyDefaultHours
-          ? { returnWindowHours: effectiveWindowHours, returnPolicyReason: returnPolicyReason.trim() }
+          ? { returnWindowHours: effectiveWindowHours }
           : {}),
         ...(options.acknowledgementToken ? { acknowledgementToken: options.acknowledgementToken } : {}),
       });
@@ -437,6 +435,16 @@ export default function QuickSellScreen() {
             return;
           case 'acknowledgement_rejected':
             toast.error(t('warning.rejectedConfirmation'));
+            return;
+          // The form stops all three first; these answer an older screen or a race, in the reader's language.
+          case 'too_many_payment_methods':
+            toast.error(t('sell.payment.split.max'));
+            return;
+          case 'duplicate_payment_destination':
+            toast.error(t('sell.payment.split.duplicate'));
+            return;
+          case 'split_must_equal_total':
+            toast.error(t('sell.payment.split.sum', { sum: formatMoney(payments.reduce((sum, p) => sum + p.amount, 0)), total: formatMoney(total ?? 0) }));
             return;
           default:
             break;
@@ -798,8 +806,6 @@ export default function QuickSellScreen() {
           companyDefaultHours,
           windowHours: effectiveWindowHours,
           onWindowChange: setReturnWindowHours,
-          reason: returnPolicyReason,
-          onReasonChange: setReturnPolicyReason,
           canOverride: canOverrideReturnPolicy,
         }}
       />

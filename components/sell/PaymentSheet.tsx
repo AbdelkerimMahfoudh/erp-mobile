@@ -19,7 +19,7 @@ import { Thumbnail } from '../ui/Thumbnail';
 import { ReceivedVia, type MoneySource } from '../money/ReceivedVia';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
 import { DebtorPicker } from './DebtorPicker';
-import { debtorProblem, methodForAccount, previewSalePayment, type DebtorDraft } from '../../lib/sale-payment-rules';
+import { debtorProblem, MAX_PAYMENT_METHODS, methodForAccount, nextFreeSource, previewSalePayment, splitProblem, type DebtorDraft } from '../../lib/sale-payment-rules';
 import type { PaymentEntry } from './types';
 import type { PaymentMethod } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
@@ -39,6 +39,10 @@ import { makeStyles } from '../../lib/design/theme';
  * customer or a partner store. Complete stays disabled until that is answered,
  * a sale with a balance is reviewed in words before it is sent, and more than
  * the total can never be taken. The server recomputes all of it.
+ *
+ * A split pays the whole amount due in at most four places — the drawer counts
+ * as one — each place once (2026-09-27); a fifth is refused with the reason on
+ * screen, and so is the server's.
  */
 
 /** A configured place non-cash money can land. Only ACTIVE ones are offered. */
@@ -84,8 +88,6 @@ export interface PaymentSheetProps {
     companyDefaultHours: number;
     windowHours: number;
     onWindowChange: (hours: number) => void;
-    reason: string;
-    onReasonChange: (reason: string) => void;
     canOverride: boolean;
   };
 }
@@ -124,6 +126,8 @@ function PaymentSheetBody({
   const { t } = useTranslation();
   const [source, setSource] = useState<MoneySource>({ kind: 'cash' });
   const [split, setSplit] = useState<PaymentEntry[]>([]);
+  /** A fifth method, or a part with no place left, was asked for: said until a part is removed. */
+  const [limitHit, setLimitHit] = useState<'max' | 'noPlace' | null>(null);
   const [receivedText, setReceivedText] = useState(String(total));
   const [debtor, setDebtor] = useState<DebtorDraft>(() =>
     presetCustomer ? { kind: 'customer_existing', customerId: presetCustomer.id, name: presetCustomer.name ?? '' } : { kind: 'none' },
@@ -141,14 +145,17 @@ function PaymentSheetBody({
   const receivedNow = Number(receivedText);
   const paid = isSplitting ? splitTotal : Number.isFinite(receivedNow) && receivedNow > 0 ? receivedNow : 0;
   const remaining = Math.round((total - paid) * 100) / 100;
-  /** More than the total is never taken: change is not a payment. */
-  const overpaid = remaining < -0.005;
+  /**
+   * Two or more parts are a split, and pay the whole amount due; one part — the split just opened, or all but one
+   * removed — is a one-method payment like any other: it may leave a balance, owed by the named debtor.
+   */
+  const multiSplit = split.length >= 2;
+  /** More than the total is never taken: change is not a payment. A split is judged by its own rule below. */
+  const overpaid = !multiSplit && remaining < -0.005;
   const preview = previewSalePayment(total, paid);
-  const owedBy = debtorProblem(Math.max(0, remaining), debtor);
-  const owing = remaining > 0.005;
-
-  const policyChanged = returnPolicy.windowHours !== returnPolicy.companyDefaultHours;
-  const policyNeedsReason = policyChanged && returnPolicy.reason.trim().length === 0;
+  const owing = !multiSplit && remaining > 0.005;
+  const owedBy = owing ? debtorProblem(remaining, debtor) : null;
+  const splitIssue = multiSplit ? splitProblem(split, total) : null;
 
   /**
    * Every non-cash payment must name the account it reached, and the server
@@ -164,7 +171,8 @@ function PaymentSheetBody({
   const debtorToSend: DebtorDraft = owing ? debtor : { kind: 'none' };
 
   const method = methodOf(source);
-  const sourceLabel = source.kind === 'cash' ? t('payment.cash') : (accountOf(source.accountId)?.label ?? '');
+  const labelOf = (s: MoneySource) => (s.kind === 'cash' ? t('payment.cash') : (accountOf(s.accountId)?.label ?? ''));
+  const sourceLabel = labelOf(source);
 
   const complete = async () => {
     // A balance is money the shop is agreeing to wait for: say it in words
@@ -175,7 +183,8 @@ function PaymentSheetBody({
         title: t('sellDebt.review.title'),
         message: t('sellDebt.review.body', {
           received: formatMoney(paid),
-          method: isSplitting ? t('sell.payment.split') : sourceLabel,
+          // Owing is never a split: the one method is the drawer's or the one part's.
+          method: isSplitting && split[0] ? labelOf(sourceOf(split[0])) : sourceLabel,
           remaining: formatMoney(remaining),
           name,
         }),
@@ -214,18 +223,49 @@ function PaymentSheetBody({
   };
 
   const addSplitRow = () => {
-    setSplit((prev) => [
-      ...prev,
-      {
-        key: uuidv4(),
-        method: prev.length === 0 ? method : 'cash',
-        ...(prev.length === 0 && source.kind === 'account' && source.accountId ? { receivingAccountId: source.accountId } : {}),
-        // Pre-fill with what is still owed so the common "rest on cash" case
-        // needs no typing.
-        amount: prev.length === 0 ? total : Math.max(0, remaining),
-      },
-    ]);
+    if (split.length >= MAX_PAYMENT_METHODS) {
+      setLimitHit('max');
+      return;
+    }
+    // Every place this shop has is already taken: a new part would only repeat one.
+    if (split.length > 0 && nextFreeSource(split, accounts.map((a) => a.id)) === null) {
+      setLimitHit('noPlace');
+      return;
+    }
+    setSplit((prev) => {
+      if (prev.length === 0) {
+        return [
+          {
+            key: uuidv4(),
+            method,
+            ...(source.kind === 'account' && source.accountId ? { receivingAccountId: source.accountId } : {}),
+            amount: total,
+          },
+        ];
+      }
+      // A new part takes a place no part uses yet, and what is still due, so the common "rest elsewhere" needs no typing.
+      const next = nextFreeSource(prev, accounts.map((a) => a.id));
+      if (next === null) return prev;
+      const covered = prev.reduce((sum, entry) => sum + entry.amount, 0);
+      return [
+        ...prev,
+        {
+          key: uuidv4(),
+          method: methodOf(next),
+          ...(next.kind === 'account' ? { receivingAccountId: next.accountId } : {}),
+          amount: Math.max(0, Math.round((total - covered) * 100) / 100),
+        },
+      ];
+    });
   };
+  const removeSplitRow = (key: string) => {
+    setSplit((prev) => prev.filter((x) => x.key !== key));
+    setLimitHit(null);
+  };
+  /** A part's account choices: every account except those another part already uses. */
+  const accountsFor = (entry: PaymentEntry) =>
+    accounts.filter((a) => a.id === entry.receivingAccountId || !split.some((o) => o.key !== entry.key && o.method !== 'cash' && o.receivingAccountId === a.id));
+  const splitSum = Math.round(splitTotal * 100) / 100;
 
   const setEntrySource = (key: string, next: MoneySource) =>
     setSplit((prev) =>
@@ -252,7 +292,7 @@ function PaymentSheetBody({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={overpaid || owedBy !== null || policyNeedsReason || !accountsSettled}
+            disabled={overpaid || owedBy !== null || !accountsSettled || splitIssue !== null}
             onPress={() => void complete()}
           />
           {overpaid ? (
@@ -267,9 +307,11 @@ function PaymentSheetBody({
             <Text variant="caption" tone="tertiary" align="center">
               {t('sell.payment.account.required')}
             </Text>
-          ) : policyNeedsReason ? (
+          ) : splitIssue ? (
             <Text variant="caption" tone="tertiary" align="center">
-              {t('returns.policy.reasonRequired')}
+              {splitIssue === 'sum_mismatch'
+                ? t('sell.payment.split.sum', { sum: formatMoney(splitSum), total: formatMoney(total) })
+                : t(splitIssue === 'duplicate' ? 'sell.payment.split.duplicate' : 'sell.payment.split.max')}
             </Text>
           ) : null}
         </>
@@ -299,7 +341,7 @@ function PaymentSheetBody({
           </>
         ) : null}
 
-        {remaining > 0.005 ? (
+        {owing ? (
           <>
             <Card variant="warning" style={styles.owed}>
               <View style={styles.owedFigure}>
@@ -339,7 +381,7 @@ function PaymentSheetBody({
                       label={t('recordPayment.method')}
                       value={sourceOf(entry)}
                       onChange={(next) => setEntrySource(entry.key, next)}
-                      accounts={accounts}
+                      accounts={accountsFor(entry)}
                     />
                     <View style={styles.splitRow}>
                       <View style={styles.grow}>
@@ -355,7 +397,7 @@ function PaymentSheetBody({
                         icon={X}
                         accessibilityLabel={t('action.remove')}
                         size={36}
-                        onPress={() => setSplit((prev) => prev.filter((x) => x.key !== entry.key))}
+                        onPress={() => removeSplitRow(entry.key)}
                         disabled={index === 0 && split.length === 1}
                       />
                     </View>
@@ -370,6 +412,11 @@ function PaymentSheetBody({
               icon={Plus}
               onPress={addSplitRow}
             />
+            {limitHit ? (
+              <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
+                {t(limitHit === 'max' ? 'sell.payment.split.max' : 'sell.payment.split.noPlace')}
+              </Text>
+            ) : null}
           </View>
         </Disclosure>
       </ScrollView>

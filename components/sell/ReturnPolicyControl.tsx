@@ -5,7 +5,6 @@ import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { allowedWindowChoices, describeWindow } from '../../lib/return-policy';
 import { FilterChip } from '../ui/Chip';
-import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 
 /**
@@ -21,9 +20,8 @@ import { Text } from '../ui/Text';
  * refuses that regardless of what this screen offers; the screen simply does not
  * offer what would be refused.
  *
- * A real change demands a reason, because "why was this sale different?" is the
- * question an Owner asks three months later, and the answer has to be recorded
- * while somebody still knows it.
+ * No reason is asked (2026-09-27): the change is recorded with who made it and
+ * the window it set, on the sale and in the audit.
  */
 
 export interface ReturnPolicyControlProps {
@@ -32,8 +30,6 @@ export interface ReturnPolicyControlProps {
   /** What this sale will carry. Equal to the default until somebody changes it. */
   windowHours: number;
   onWindowChange: (hours: number) => void;
-  reason: string;
-  onReasonChange: (reason: string) => void;
   canOverride: boolean;
 }
 
@@ -41,13 +37,10 @@ export function ReturnPolicyControl({
   companyDefaultHours,
   windowHours,
   onWindowChange,
-  reason,
-  onReasonChange,
   canOverride,
 }: ReturnPolicyControlProps) {
   const { t } = useTranslation();
   const choices = allowedWindowChoices(companyDefaultHours, canOverride);
-  const overridden = windowHours !== companyDefaultHours;
 
   /**
    * A preview, and only a preview. The sale does not exist yet, so there is no
@@ -94,16 +87,6 @@ export function ReturnPolicyControl({
         </Text>
       ) : null}
 
-      {overridden ? (
-        <TextField
-          label={t('returns.policy.reason')}
-          value={reason}
-          onChangeText={onReasonChange}
-          placeholder={t('returns.policy.reason')}
-          required
-          hint={reason.trim() ? undefined : t('returns.policy.reasonRequired')}
-        />
-      ) : null}
     </View>
   );
 }

@@ -10,11 +10,14 @@ import {
   collectionProblem,
   debtorFields,
   debtorProblem,
+  MAX_PAYMENT_METHODS,
   methodForAccount,
+  nextFreeSource,
   paidAtFrom,
   previewSalePayment,
   remainingAfter,
   saleDebtorFields,
+  splitProblem,
 } from './sale-payment-rules.ts';
 
 let passed = 0;
@@ -172,9 +175,33 @@ it('nothing received now sends no payment at all', () => {
   assert.match(sheet, /paid > 0\s*\?\s*\[/);
   assert.match(sheet, /:\s*\[\],\s*debtorToSend/);
 });
-it('the debtor is asked for only when something is left owing', () => {
-  assert.match(sheet, /remaining > 0\.005 \? \(/);
+it('the debtor is asked for only when a one-method payment leaves something owing — one part counts as one method; a split pays the whole amount (2026-09-27)', () => {
+  assert.match(sheet, /const multiSplit = split\.length >= 2;/);
+  assert.match(sheet, /const owing = !multiSplit && remaining > 0\.005;/);
+  assert.match(sheet, /const overpaid = !multiSplit && remaining < -0\.005;/);
+  assert.match(sheet, /\{owing \? \(\s*<>\s*<Card variant="warning"/);
   assert.match(sheet, /<DebtorPicker/);
+});
+it('a split: at most four places, each once, parts equal to the amount due — refused with the reason on screen', () => {
+  assert.match(sheet, /const splitIssue = multiSplit \? splitProblem\(split, total\) : null;/);
+  assert.match(sheet, /disabled=\{overpaid \|\| owedBy !== null \|\| !accountsSettled \|\| splitIssue !== null\}/);
+  assert.match(sheet, /if \(split\.length >= MAX_PAYMENT_METHODS\) \{\s*setLimitHit\('max'\);\s*return;/);
+  assert.match(sheet, /nextFreeSource\(split, accounts\.map\(\(a\) => a\.id\)\) === null\) \{\s*setLimitHit\('noPlace'\);/);
+  assert.match(sheet, /\{t\(limitHit === 'max' \? 'sell\.payment\.split\.max' : 'sell\.payment\.split\.noPlace'\)\}/);
+  assert.match(sheet, /accounts=\{accountsFor\(entry\)\}/);
+  assert.ok(!/returns\.policy\.reason|policyNeedsReason/.test(sheet), 'no "Why is this sale different?" and no blocker for it');
+  // The rule itself.
+  assert.equal(MAX_PAYMENT_METHODS, 4);
+  const part = (method: string, amount: number, receivingAccountId?: string) => ({ method, amount, receivingAccountId });
+  assert.equal(splitProblem([part('cash', 3400), part('mobile', 2000, 'b'), part('mobile', 1000, 'm'), part('bank', 600, 's')], 7000), null);
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 1000, 'a'), part('mobile', 1000, 'b'), part('mobile', 1000, 'c'), part('mobile', 1000, 'd')], 7000), 'too_many');
+  assert.equal(splitProblem([part('cash', 3000), part('cash', 4000)], 7000), 'duplicate');
+  assert.equal(splitProblem([part('mobile', 3000, 'b'), part('bank', 4000, 'b')], 7000), 'duplicate');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 2000, 'b')], 7000), 'sum_mismatch');
+  assert.equal(splitProblem([part('cash', 7000)], 7000), null, 'one part is not a split');
+  assert.deepEqual(nextFreeSource([part('cash', 1)], ['b', 'm']), { kind: 'account', accountId: 'b' });
+  assert.deepEqual(nextFreeSource([part('mobile', 1, 'b')], ['b', 'm']), { kind: 'cash' });
+  assert.equal(nextFreeSource([part('cash', 1), part('mobile', 1, 'b')], ['b']), null);
 });
 it('both sale screens carry the debtor through every retry', () => {
   for (const f of ['../app/(tabs)/sell.tsx', '../app/quick-sell.tsx']) {
