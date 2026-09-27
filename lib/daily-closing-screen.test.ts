@@ -42,7 +42,7 @@ it('the first view is the statement: sales and items, then gross profit, expense
 });
 
 it('Sales details — the one expandable of the statement — is figure rows only: invoiced, (cancelled, returned when nonzero), net, cost, gross profit, expenses, result; the words behind a (?)', () => {
-  const details = statement.slice(statement.indexOf('{detailsOpen ? ('), statement.lastIndexOf('</Card>'));
+  const details = statement.slice(statement.indexOf('<View style={styles.detail}>'), statement.indexOf('</Expandable>'));
   for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'result.cost', 'result.gross', 'expenses.title', 'result.after']) {
     assert.ok(details.includes(`t('dailyReport.${k}'`), `sales details carry ${k}`);
   }
@@ -56,11 +56,27 @@ it('Sales details — the one expandable of the statement — is figure rows onl
   assert.ok(!screen.includes('/sales/period'), 'no link to the transactions from the statement');
   // The explanation is asked for, never shown: a (?) beside the title opens it in its own dialog.
   assert.match(statement, /<IconButton\s+icon=\{HelpCircle\}[\s\S]*?accessibilityLabel=\{t\('dailyReport\.salesDetails\.help'\)\}[\s\S]*?dialog\.alert\(\{[\s\S]*?t\('dailyReport\.countRule'\)/);
-  assert.ok(!/<Disclosure\b/.test(statement), 'the statement’s one expandable is Sales details, built on the page');
-  // One line: the title with its chevron right beside it, the (?) at the end; the rows keep the statement's full width.
-  assert.match(statement, /<View style=\{styles\.detailsHead\}>\s*<Pressable[\s\S]*?aria-expanded=\{detailsOpen\}[\s\S]*?<Text variant="bodyStrong" style=\{styles\.shrink\}>\s*\{t\('dailyReport\.salesDetails'\)\}\s*<\/Text>\s*<View style=\{detailsOpen \? styles\.up : null\}>\s*<ChevronDown[\s\S]*?<\/Pressable>\s*<IconButton\s+icon=\{HelpCircle\}/);
-  assert.match(screen, /detailsToggle: \{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space\.xs, minHeight: touch\.min \}/);
-  assert.match(details, /^\{detailsOpen \? \(\s*<View style=\{styles\.detail\}>\s*<Line label=\{t\('dailyReport\.salesDetails\.invoiced'\)\}/);
+  assert.ok(!/<Disclosure\b/.test(statement), 'the statement’s one expandable is Sales details');
+  // One line on the shared Expandable: the title with its chevron right after it, the (?) at the end, handed over as
+  // `trailing` so it opens the explanation and never the rows.
+  assert.match(
+    statement,
+    /<Expandable\s+title=\{t\('dailyReport\.salesDetails'\)\}\s+tone="accent"\s+chevron="afterTitle"\s+open=\{detailsOpen\}\s+onOpenChange=\{setDetailsOpen\}\s+trailing=\{\s*<IconButton\s+icon=\{HelpCircle\}[\s\S]*?\/>\s*\}\s*>\s*<View style=\{styles\.detail\}>/,
+  );
+  assert.ok(!details.includes('HelpCircle'), 'the (?) is not among the rows');
+  const expandable = code(read('components/ui/Expandable.tsx'));
+  assert.match(expandable, /<\/Pressable>\s*\{trailing\}\s*<\/View>/, 'trailing sits beside the toggle, outside it');
+  // The rows keep their styles and the statement's full width: the accent body adds no horizontal inset.
+  assert.match(details, /^<View style=\{styles\.detail\}>\s*<Line label=\{t\('dailyReport\.salesDetails\.invoiced'\)\}/);
+  assert.match(expandable, /accentBody: \{ paddingTop: space\.sm \}/);
+  // The toggle built on the page is gone with its styles.
+  assert.ok(!/<Pressable\b|ChevronDown|detailsHead|detailsToggle|styles\.up\b|styles\.shrink\b/.test(screen), 'no hand-built toggle left');
+  // A light-violet wash, the title underlined in the accent, the chevron straight after the words.
+  assert.match(expandable, /wash: \{ backgroundColor: colors\.intent\.info\.bg, borderRadius: radius\.sm \}/);
+  assert.match(expandable, /link: \{ textDecorationLine: 'underline' \}/);
+  assert.match(expandable, /const ink = solid \? colors\.intent\.info\.onSolid : colors\.text\.accent;/);
+  assert.match(expandable, /\{edge \? <View style=\{\{ width: size \}\} \/> : null\}\s*\{words\}\s*\{turn\}/);
+  assert.match(expandable, /words: \{ flexShrink: 1, minWidth: 0 \}/);
 });
 
 it('no balance cards on the page: the drawer and the accounts are checked inside the closing popup, and the separate counting page is gone', () => {
@@ -149,33 +165,55 @@ it('Close the business day: a short popup — the question, then the amounts rig
   }
 });
 
-it('Closing history is one rectangle: a header with the count and the chevron at the end, the entries sliding out beneath it, none of the motion under reduced motion', () => {
+it('Closing history is one rectangle: a purple header saying "Closing history" and how many events, the chevron at the right edge, the entries sliding out beneath it, none of the motion under reduced motion', () => {
   assert.match(screen, /<HistoryPanel title=\{t\('dailyReport\.history'\)\} count=\{day\.history\.length\}>/);
   assert.ok(!/<Section title=\{t\('dailyReport\.history'\)\}>/.test(screen), 'no second "Closing history" heading');
   assert.ok(!screen.includes("t('closingHistory.history')"), 'the disclosure title is gone with it');
   const panel = code(read('components/closing/HistoryPanel.tsx'));
+  const expandable = code(read('components/ui/Expandable.tsx'));
+  // The count in words under the title, never a bare number; the same words in the announced name.
+  assert.match(panel, /const meta = count === 0 \? t\('closing\.history\.events\.none'\) : count === 1 \? t\('closing\.history\.events\.one'\) : t\('closing\.history\.events', \{ count \}\);/);
+  assert.ok(panel.includes('<Expandable title={title} meta={meta} tone="solid" chevron="edge" accessibilityLabel={`${title}, ${meta}`}>'), 'a solid header, chevron at the edge, title and count announced');
+  assert.ok(!/<Pressable\b|useSharedValue/.test(panel), 'the panel is a thin wrapper; the motion lives in Expandable');
   // The phone's setting as it is now, not as it was when the app started.
-  assert.match(panel, /const reduceMotion = useReduceMotionSetting\(\);/);
+  assert.match(expandable, /const reduceMotion = useReduceMotionSetting\(\);/);
   const live = code(read('lib/design/use-reduce-motion.ts'));
   // One subscription for the app: react-native-web keys listeners by the handler's text, and may return none.
   assert.match(live, /AccessibilityInfo\.addEventListener\('reduceMotionChanged', tell\);/);
   assert.ok(!/\.remove\(\)/.test(live), 'no subscription is removed per component');
   assert.match(live, /const \[reduce, setReduce\] = useState\(known \?\? atLaunch\);/);
   assert.match(live, /return \(\) => \{\s*listeners\.delete\(setReduce\);\s*\};/);
-  assert.ok(panel.includes('accessibilityLabel={`${title}, ${count}`}'), 'the count is part of the announced name');
-  assert.match(panel, /progress\.value = reduceMotion \? \(next \? 1 : 0\) : withTiming\(next \? 1 : 0/);
-  assert.match(panel, /height: contentHeight \* progress\.value/);
-  assert.match(panel, /translateY: \(progress\.value - 1\) \* SLIDE/);
-  // One purple header across the card (the info intent's solid, white on it), title and count centred, a larger
-  // chevron fixed at the physical right edge in both directions — it turns, it never changes sides (2026-09-27).
-  assert.match(panel, /const purple = colors\.intent\.info\.solid;\s*const onPurple = colors\.intent\.info\.onSolid;/);
-  assert.match(panel, /styles\.head, \{ backgroundColor: purple \}/);
-  assert.match(panel, /centre: \{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center'/);
-  assert.match(panel, /const rightEdge = Platform\.OS === 'web' \? \{ right: space\.base \} : layoutIsRTL\(\) \? \{ start: space\.base \} : \{ end: space\.base \};/);
-  assert.match(panel, /<Animated\.View style=\{\[styles\.chevron, rightEdge, chevronStyle\]\}>\s*<ChevronDown size=\{CHEVRON\} strokeWidth=\{2\.5\} color=\{onPurple\} \/>/);
-  assert.match(panel, /const CHEVRON = 28;/);
-  assert.ok(!/colors\.brand\[/.test(panel), 'semantic colours only');
-  assert.match(panel, /accessibilityState=\{\{ expanded: open \}\}/);
+  // The reveal: the body is as tall as the measured rows times the progress, and the rows hang from its bottom, so
+  // they come out from beneath the header and fold back the same way; both snap under reduced motion.
+  assert.match(expandable, /const SLIDE = \{ duration: duration\.base, easing: Easing\.out\(Easing\.cubic\) \};/);
+  assert.match(expandable, /progress\.value = reduceMotion \? to : withTiming\(to, SLIDE\);/);
+  assert.match(expandable, /height: measured\.value \* progress\.value/);
+  assert.match(expandable, /translateY: \(progress\.value - 1\) \* measured\.value/);
+  assert.match(expandable, /<Animated\.View onLayout=\{onLayout\} style=\{\[styles\.measure, /);
+  assert.match(expandable, /measure: \{ position: 'absolute', left: 0, right: 0, top: 0 \}/);
+  // An event arriving while open eases the body to its new height; the first measure lands as it is.
+  assert.match(expandable, /measured\.value = height\.current !== null && isOpen && !reduceMotion \? withTiming\(h, SLIDE\) : h;/);
+  // Closed, the chevron points forward (right, or left in Arabic); open, down. The wrapper turns, never the SVG.
+  assert.match(expandable, /const closedAngle = layoutIsRTL\(\) \? 90 : -90;/);
+  assert.ok(expandable.includes('rotate: `${(1 - progress.value) * closedAngle}deg`'), 'the chevron turns with the reveal');
+  assert.match(expandable, /<Animated\.View style=\{turnStyle\}>\s*<ChevronDown size=\{size\} strokeWidth=\{solid \? 2\.5 : 2\} color=\{ink\} \/>/);
+  // The purple of the day's main button (the info intent's solid, darker while held), white on it, in its own card
+  // with the button's radius; the chevron kept at the physical right edge in both directions.
+  assert.match(expandable, /solid \? \{ backgroundColor: pressed \? colors\.intent\.info\.solidPressed : colors\.intent\.info\.solid \} : styles\.wash/);
+  assert.match(expandable, /card: \{ overflow: 'hidden', borderRadius: radius\.md \}/);
+  assert.match(expandable, /solidToggle: \{ minHeight: touch\.comfortable,/);
+  assert.match(expandable, /edge \? \{ flexDirection: layoutIsRTL\(\) \? 'row-reverse' : 'row' \} : null/);
+  assert.match(expandable, /centre: \{ flex: 1, minWidth: 0, alignItems: 'center', gap: 2 \}/);
+  assert.ok(!/numberOfLines/.test(expandable), 'the title wraps at large text');
+  assert.ok(!/colors\.brand\[/.test(expandable), 'semantic colours only');
+  // Pressed state from usePressed and a plain style array — native drops a function style.
+  assert.match(expandable, /const \{ pressed, pressHandlers \} = usePressed\(\);/);
+  assert.match(expandable, /\{\.\.\.pressHandlers\}\s*style=\{\[/);
+  assert.ok(!/style=\{\s*(\(|function\b)/.test(expandable), 'no function style');
+  // Announced as a button that says whether it is open; folded rows hidden from readers.
+  assert.match(expandable, /accessibilityRole="button"/);
+  assert.match(expandable, /accessibilityState=\{\{ expanded: isOpen \}\}\s*aria-expanded=\{isOpen\}/);
+  assert.match(expandable, /aria-hidden=\{!isOpen\}\s*accessibilityElementsHidden=\{!isOpen\}\s*importantForAccessibility=\{isOpen \? 'auto' : 'no-hide-descendants'\}/);
   assert.match(screen, /day\.history\.map\(\(h, i\) => <HistoryRow/);
 });
 
@@ -212,7 +250,7 @@ it('Close the business day, Correct a transaction, Unsettled differences and Clo
 });
 
 it('every catalogue carries the section and popup words, and none of the removed page’s', () => {
-  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.help', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.debtSettled', 'dailyReport.movements.total', 'dailyReport.movements.total.note', 'dailyReport.result.cannot.short', 'dailyReport.closeDay', 'closeDay.question', 'closeDay.count.unsaved', 'closeDay.alreadyClosed'];
+  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.help', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.debtSettled', 'dailyReport.movements.total', 'dailyReport.movements.total.note', 'dailyReport.result.cannot.short', 'dailyReport.closeDay', 'closeDay.question', 'closeDay.count.unsaved', 'closeDay.alreadyClosed', 'closing.history.events.none', 'closing.history.events.one', 'closing.history.events'];
   const gone = ['dailyReport.checkBalances', 'dailyReport.countCash', 'dailyReport.checkBalance', 'dailyReport.close', 'closeReview.acknowledge', 'closingCheck.title', 'closing.skip.action', 'closingHistory.history', 'closing.loans.title', 'returns.policy.reason', 'returns.policy.reasonRequired'];
   for (const lang of ['en', 'fr', 'ar']) {
     const catalogue = read(`lib/i18n/${lang}.ts`);

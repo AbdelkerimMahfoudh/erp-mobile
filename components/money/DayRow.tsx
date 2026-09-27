@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronDown, ChevronRight, ChevronUp } from 'lucide-react-native';
 import { MoneyValue, Text } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { isRTL } from '../../lib/i18n';
@@ -33,6 +34,7 @@ export function DayRow({
 }) {
   const styles = useStyles();
   const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
   const Chevron = open === undefined ? ChevronRight : open ? ChevronUp : ChevronDown;
   return (
     <Pressable
@@ -40,7 +42,8 @@ export function DayRow({
       accessibilityLabel={`${title}, ${caption}`}
       accessibilityState={open === undefined ? undefined : { expanded: open }}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, divider ? styles.divider : null, pressed && styles.pressed]}
+      {...pressHandlers}
+      style={[styles.row, divider ? styles.divider : null, pressed ? styles.pressed : null]}
     >
       <View style={styles.body}>
         <Text variant="bodyStrong">{title}</Text>

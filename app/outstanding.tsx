@@ -13,11 +13,12 @@ import {
   StatusChip,
   Text,
 } from '../components/ui';
+import { usePressed } from '../components/ui/use-pressed';
 import { space, touch } from '../lib/design/tokens';
 import { makeStyles } from '../lib/design/theme';
 import { formatDate, formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
-import { useOutstanding, type OutstandingDebtor } from '../lib/money-overview';
+import { useOutstanding, type OutstandingDebtor, type OutstandingSale } from '../lib/money-overview';
 
 /**
  * Who owes the shop money, and for what (0074).
@@ -91,27 +92,38 @@ function DebtorCard({ debtor: d }: { debtor: OutstandingDebtor }) {
           <MoneyValue value={d.owed} />
         </View>
         {d.sales.map((s) => (
-          <Pressable
-            key={s.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${s.product ?? s.invoiceNo}, ${formatMoney(s.remaining)}`}
-            onPress={() => router.push(`/sales/${s.id}` as Href)}
-            style={({ pressed }) => [styles.sale, pressed && styles.pressed]}
-          >
-            <View style={styles.grow}>
-              <Text variant="body">{s.product ?? t('saleRow.noProduct', { invoice: s.invoiceNo })}</Text>
-              <Text variant="caption" tone="secondary">
-                {formatDate(s.soldAt)} · {t('saleRow.received', { amount: formatMoney(s.received) })}
-              </Text>
-              <View style={styles.chip}>
-                <StatusChip domain="sale" value={s.payStatus} size="sm" />
-              </View>
-            </View>
-            <Text variant="bodyStrong">{formatMoney(s.remaining)}</Text>
-          </Pressable>
+          <OwedSale key={s.id} sale={s} onPress={() => router.push(`/sales/${s.id}` as Href)} />
         ))}
       </Card>
     </Section>
+  );
+}
+
+/** One sale still owed on, as a line of its debtor's card; it opens the sale. */
+function OwedSale({ sale: s, onPress }: { sale: OutstandingSale; onPress: () => void }) {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  const { pressed, pressHandlers } = usePressed();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${s.product ?? s.invoiceNo}, ${formatMoney(s.remaining)}`}
+      onPress={onPress}
+      {...pressHandlers}
+      style={[styles.sale, pressed ? styles.pressed : null]}
+    >
+      <View style={styles.grow}>
+        <Text variant="body">{s.product ?? t('saleRow.noProduct', { invoice: s.invoiceNo })}</Text>
+        <Text variant="caption" tone="secondary">
+          {formatDate(s.soldAt)} · {t('saleRow.received', { amount: formatMoney(s.received) })}
+        </Text>
+        <View style={styles.chip}>
+          <StatusChip domain="sale" value={s.payStatus} size="sm" />
+        </View>
+      </View>
+      <Text variant="bodyStrong">{formatMoney(s.remaining)}</Text>
+    </Pressable>
   );
 }
 

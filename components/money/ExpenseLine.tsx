@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { MoneyValue, Text } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatMoney, formatTime } from '../../lib/format';
@@ -13,6 +14,7 @@ export function ExpenseLine({ expense: e, onPress }: { expense: ExpenseToday; on
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
+  const { pressed, pressHandlers } = usePressed();
   const source = e.method === 'cash' ? t('moneyOverview.paidFromCash') : e.accountLabel;
   // A reversal is its own negative row, named as the Daily closing names it (docs/53).
   const description = e.kind === 'reversal' ? t('dailyReport.expenses.reversal', { category: e.description }) : e.description;
@@ -38,7 +40,8 @@ export function ExpenseLine({ expense: e, onPress }: { expense: ExpenseToday; on
       accessibilityRole="button"
       accessibilityLabel={`${description}, ${formatMoney(e.amount)}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      {...pressHandlers}
+      style={[styles.row, pressed ? styles.pressed : null]}
     >
       {body}
     </Pressable>

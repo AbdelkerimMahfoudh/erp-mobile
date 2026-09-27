@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { Button, Text } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDate } from '../../lib/format';
@@ -84,6 +85,7 @@ export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, 
 function Choice({ selected, title, body, onPress }: { selected: boolean; title: string; body: string; onPress: () => void }) {
   const styles = useStyles();
   const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -91,7 +93,8 @@ function Choice({ selected, title, body, onPress }: { selected: boolean; title: 
       aria-checked={selected}
       accessibilityLabel={`${title}. ${body}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+      {...pressHandlers}
+      style={[styles.choice, selected ? styles.choiceSelected : null, pressed ? styles.pressed : null]}
     >
       <View style={[styles.radio, selected && { borderColor: colors.semantic.primary }]}>
         {selected ? <View style={[styles.radioDot, { backgroundColor: colors.semantic.primary }]} /> : null}

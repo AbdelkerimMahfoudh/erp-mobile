@@ -19,6 +19,7 @@ import {
   Text,
   TextField,
 } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
@@ -501,13 +502,15 @@ const StockOption = React.memo(function StockOption({
   const id = identifierOf(row);
   const name = row.product ? `${row.product.brand} ${row.product.model}` : id;
   const tracking = row.product?.trackingType ?? 'imei';
+  const { pressed, pressHandlers } = usePressed();
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={name}
       onPress={() => onChoose(row)}
-      style={({ pressed }) => [styles.option, selected ? styles.optionSelected : null, pressed && styles.pressed]}
+      {...pressHandlers}
+      style={[styles.option, selected ? styles.optionSelected : null, pressed ? styles.pressed : null]}
     >
       <View style={[styles.grow, styles.optionText]}>
         <Text variant="bodyStrong">{name}</Text>

@@ -1,10 +1,10 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
 import { Stack, useRouter } from 'expo-router';
-import { CalendarDays, ChevronDown, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
-import { Button, Card, Chip, Divider, ErrorState, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
+import { CalendarDays, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
+import { Button, Card, Chip, Divider, ErrorState, Expandable, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
 import { DayChoiceSheet } from '../../components/closing/DayChoiceSheet';
 import { CloseDaySheet } from '../../components/closing/CloseDaySheet';
@@ -12,7 +12,7 @@ import { HistoryPanel } from '../../components/closing/HistoryPanel';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
-import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
+import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
@@ -148,7 +148,6 @@ function Report({
   const router = useRouter();
   const { branchName } = useBranch();
   const online = useConnectivity((s) => s.online);
-  const colors = useColors();
   const canCount = usePermission('closing.count');
   const canClose = usePermission('closing.perform');
   const canCorrect = usePermission('financial.correction.request');
@@ -310,27 +309,17 @@ function Report({
         {/*
           Sales details: the figure rows only — how the sales value becomes the result. A cancellation or a return
           row appears only when it has a value and is needed to explain net sales. What the figures mean is one tap
-          away on the (?) beside the title, never on the page.
+          away on the (?), never on the page. One line: the title with its chevron right after it, the (?) at the end
+          and outside the toggle — the rows below keep the full width, so every amount sits in the statement's column.
         */}
         {report.sales ? (
-          <View>
-            {/* One line: the title with its chevron right beside it, the (?) at the end — the rows below keep the full width, so every amount sits in the statement's column. */}
-            <View style={styles.detailsHead}>
-              <Pressable
-                onPress={() => setDetailsOpen((v) => !v)}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: detailsOpen }}
-                aria-expanded={detailsOpen}
-                accessibilityLabel={t('dailyReport.salesDetails')}
-                style={({ pressed }) => [styles.detailsToggle, pressed ? { opacity: pressedOpacity } : null]}
-              >
-                <Text variant="bodyStrong" style={styles.shrink}>
-                  {t('dailyReport.salesDetails')}
-                </Text>
-                <View style={detailsOpen ? styles.up : null}>
-                  <ChevronDown size={18} color={colors.text.tertiary} />
-                </View>
-              </Pressable>
+          <Expandable
+            title={t('dailyReport.salesDetails')}
+            tone="accent"
+            chevron="afterTitle"
+            open={detailsOpen}
+            onOpenChange={setDetailsOpen}
+            trailing={
               <IconButton
                 icon={HelpCircle}
                 variant="plain"
@@ -349,32 +338,31 @@ function Report({
                   })
                 }
               />
+            }
+          >
+            <View style={styles.detail}>
+              <Line label={t('dailyReport.salesDetails.invoiced')} value={report.sales.value} />
+              {report.sales.cancellations.count > 0 && report.sales.cancellations.value !== 0 ? (
+                <Line
+                  label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count), items: String(report.sales.cancellations.items) })}
+                  value={-report.sales.cancellations.value}
+                  signed
+                />
+              ) : null}
+              {report.sales.returns.count > 0 && report.sales.returns.netRefundDue !== 0 ? (
+                <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
+              ) : null}
+              <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong={adjusted} />
+              {resultOk ? (
+                <>
+                  <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
+                  <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
+                  <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
+                  <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
+                </>
+              ) : null}
             </View>
-            {detailsOpen ? (
-              <View style={styles.detail}>
-                <Line label={t('dailyReport.salesDetails.invoiced')} value={report.sales.value} />
-                {report.sales.cancellations.count > 0 && report.sales.cancellations.value !== 0 ? (
-                  <Line
-                    label={t('dailyReport.sales.cancelled', { count: String(report.sales.cancellations.count), items: String(report.sales.cancellations.items) })}
-                    value={-report.sales.cancellations.value}
-                    signed
-                  />
-                ) : null}
-                {report.sales.returns.count > 0 && report.sales.returns.netRefundDue !== 0 ? (
-                  <Line label={t('dailyReport.sales.returns', { count: String(report.sales.returns.count) })} value={-report.sales.returns.netRefundDue} signed />
-                ) : null}
-                <Line label={t('dailyReport.sales.net')} value={report.sales.netSalesValue} strong={adjusted} />
-                {resultOk ? (
-                  <>
-                    <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
-                    <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
-                    <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
-                    <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
-                  </>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
+          </Expandable>
         ) : null}
       </Card>
 
@@ -664,10 +652,6 @@ const useStyles = makeStyles((colors) => ({
   statement: { gap: space.md },
   statementLines: { gap: space.xs },
   detail: { gap: space.xs },
-  detailsHead: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  detailsToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: touch.min },
-  shrink: { flexShrink: 1 },
-  up: { transform: [{ rotate: '180deg' }] },
   card: { gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, minHeight: 28 },

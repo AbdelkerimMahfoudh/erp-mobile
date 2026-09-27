@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { Text } from './Text';
+import { usePressed } from './use-pressed';
 import { pressedOpacity, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -26,6 +27,7 @@ export function Disclosure({ title, summary, initiallyOpen = false, onOpenChange
   const styles = useStyles();
   const colors = useColors();
   const [open, setOpen] = useState(initiallyOpen);
+  const { pressed, pressHandlers } = usePressed();
   return (
     <View>
       <Pressable
@@ -37,7 +39,8 @@ export function Disclosure({ title, summary, initiallyOpen = false, onOpenChange
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={title}
-        style={({ pressed }) => [styles.head, pressed ? { opacity: pressedOpacity } : null]}
+        {...pressHandlers}
+        style={[styles.head, pressed ? { opacity: pressedOpacity } : null]}
       >
         <Text variant="bodyStrong" style={styles.title}>
           {title}

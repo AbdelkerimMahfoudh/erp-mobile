@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { Text } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { isRTL } from '../../lib/i18n';
@@ -14,8 +15,9 @@ import { isRTL } from '../../lib/i18n';
 export function LinkRow({ title, onPress }: { title: string; onPress: () => void }) {
   const styles = useStyles();
   const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" onPress={onPress} {...pressHandlers} style={[styles.row, pressed ? styles.pressed : null]}>
       <Text variant="bodyStrong" tone="accent" style={styles.title}>
         {title}
       </Text>

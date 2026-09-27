@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { ChevronRight, Plus, Store, UserRound } from 'lucide-react-native';
 import { Button, SegmentedControl, Text, TextField } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { SelectSheet } from '../overlay';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -38,6 +39,7 @@ export function DebtorPicker({
   const [picking, setPicking] = useState(false);
   const [storesOpen, setStoresOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const selectPress = usePressed();
   const customers = useCustomers(search, kind === 'customer' && picking);
   const counterparties = useCounterparties();
   const stores = (counterparties.data?.rows ?? []).filter((c) => c.kind === 'connected_store' && c.canStartDealing !== false);
@@ -73,25 +75,14 @@ export function DebtorPicker({
           <View style={styles.wrap}>
             <TextField label={t('sellDebt.searchCustomers')} value={search} onChangeText={setSearch} autoFocus />
             {(customers.data?.rows ?? []).slice(0, 6).map((c: Customer) => (
-              <Pressable
+              <CustomerOption
                 key={c.id}
-                accessibilityRole="button"
+                customer={c}
                 onPress={() => {
                   setPicking(false);
                   onChange({ kind: 'customer_existing', customerId: c.id, name: c.name ?? c.phone ?? '' });
                 }}
-                style={({ pressed }) => [styles.option, pressed && styles.pressed]}
-              >
-                <UserRound size={18} color={colors.text.tertiary} />
-                <View style={styles.grow}>
-                  <Text variant="body">{c.name ?? c.phone ?? '—'}</Text>
-                  {c.name && c.phone ? (
-                    <Text variant="caption" tone="secondary">
-                      {c.phone}
-                    </Text>
-                  ) : null}
-                </View>
-              </Pressable>
+              />
             ))}
             <Button title={t('sellDebt.typeNew')} variant="tertiary" size="sm" onPress={() => setPicking(false)} />
           </View>
@@ -124,7 +115,8 @@ export function DebtorPicker({
               accessibilityRole="button"
               accessibilityLabel={t('sellDebt.storePick')}
               onPress={() => setStoresOpen(true)}
-              style={({ pressed }) => [styles.select, pressed && styles.pressed]}
+              {...selectPress.pressHandlers}
+              style={[styles.select, selectPress.pressed ? styles.pressed : null]}
             >
               <Text variant="body" tone={value.kind === 'store' ? 'primary' : 'placeholder'} style={styles.grow}>
                 {value.kind === 'store' ? value.name : t('sellDebt.chooseStore')}
@@ -166,6 +158,26 @@ export function DebtorPicker({
         </View>
       )}
     </View>
+  );
+}
+
+/** One customer found by the search; choosing it records the debt against them. */
+function CustomerOption({ customer: c, onPress }: { customer: Customer; onPress: () => void }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} {...pressHandlers} style={[styles.option, pressed ? styles.pressed : null]}>
+      <UserRound size={18} color={colors.text.tertiary} />
+      <View style={styles.grow}>
+        <Text variant="body">{c.name ?? c.phone ?? '—'}</Text>
+        {c.name && c.phone ? (
+          <Text variant="caption" tone="secondary">
+            {c.phone}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
   );
 }
 

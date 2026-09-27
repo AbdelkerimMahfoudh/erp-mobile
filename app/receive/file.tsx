@@ -20,6 +20,7 @@ import {
 } from '../../components/ui';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
 import { RowAction } from '../../components/receive/RowAction';
+import { usePressed } from '../../components/ui/use-pressed';
 import {
   PurchasePaymentPicker,
   purchasePaymentBody,
@@ -735,6 +736,7 @@ const GroupRow = React.memo(function GroupRow({
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
+  const { pressed, pressHandlers } = usePressed();
   const Chevron = open ? ChevronDown : ChevronRight;
 
   return (
@@ -744,7 +746,8 @@ const GroupRow = React.memo(function GroupRow({
         accessibilityState={{ expanded: open }}
         accessibilityLabel={label}
         onPress={() => onToggle(groupKey)}
-        style={({ pressed }) => [styles.groupHead, pressed && styles.pressed]}
+        {...pressHandlers}
+        style={[styles.groupHead, pressed ? styles.pressed : null]}
       >
         <View style={styles.grow}>
           <Text variant="bodyStrong">{label}</Text>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { Chip, MoneyValue, StatusChip, Text, Thumbnail } from '../ui';
+import { usePressed } from '../ui/use-pressed';
 import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDateTime, formatMoney, formatTime } from '../../lib/format';
@@ -31,6 +32,7 @@ export function SaleRow({
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
+  const { pressed, pressHandlers } = usePressed();
   const owes = sale.balanceDue > 0;
   const where = sale.accountLabels.length > 0 ? sale.accountLabels.join(' · ') : sale.paymentMethods.map((m) => t(`payment.${m}` as never)).join(' · ');
   const when = showDate ? formatDateTime(sale.soldAt) : formatTime(sale.soldAt);
@@ -40,7 +42,8 @@ export function SaleRow({
       accessibilityRole="button"
       accessibilityLabel={`${sale.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo })}, ${formatMoney(sale.total)}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      {...pressHandlers}
+      style={[styles.row, pressed ? styles.pressed : null]}
     >
       <Thumbnail />
       <View style={styles.body}>
