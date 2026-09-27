@@ -72,11 +72,11 @@ const screen = (p: string) => code(readFileSync(new URL(p, import.meta.url), 'ut
 it('a lock found on the first read stands in for the screen; one that comes later covers it, and the screen stays mounted beneath', () => {
   const gate = screen('../components/day/DayGate.tsx');
   assert.match(gate, /const \[shown, setShown\] = useState\(false\);\s*if \(!shown && !reading && !gate\.locked\) setShown\(true\);\s*const covered = shown && gate\.locked;/);
-  assert.match(gate, /if \(!shown && gate\.locked\) return <DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/>;/);
+  assert.match(gate, /if \(!shown && gate\.locked\) return <DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>;/);
   // One tree, covered or not, so the lock coming up never remounts the screen: nothing typed is lost.
   assert.match(
     gate,
-    /return \(\s*<View style=\{styles\.fill\}>\s*<View\s+style=\{styles\.fill\}\s+pointerEvents=\{covered \? 'none' : 'auto'\}\s+aria-hidden=\{covered\}\s+accessibilityElementsHidden=\{covered\}\s+importantForAccessibility=\{covered \? 'no-hide-descendants' : 'auto'\}\s*>\s*\{children\}\s*<\/View>\s*\{gate\.locked \? \(\s*<View style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>\s*<DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/>/,
+    /return \(\s*<View style=\{styles\.fill\}>\s*<View\s+style=\{styles\.fill\}\s+pointerEvents=\{covered \? 'none' : 'auto'\}\s+aria-hidden=\{covered\}\s+accessibilityElementsHidden=\{covered\}\s+importantForAccessibility=\{covered \? 'no-hide-descendants' : 'auto'\}\s*>\s*\{children\}\s*<\/View>\s*\{gate\.locked \? \(\s*<View style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>\s*<DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>/,
   );
   assert.equal(gate.match(/\{children\}/g)?.length, 1, 'the screen is rendered in one place only');
   assert.match(gate, /cover: \{ backgroundColor: colors\.surface\.canvas \}/);

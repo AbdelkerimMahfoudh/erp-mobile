@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import { Lock } from 'lucide-react-native';
-import { Button, Screen, Text } from '../ui';
+import { Screen, Text } from '../ui';
+import { HeaderBack } from '../navigation/HeaderBack';
 import { OpenStoreNow } from './OpenStoreNow';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -25,7 +26,7 @@ import { dayGate } from '../../lib/day-gate';
  * so the item, the price and whatever was typed are still there once the store
  * is open again.
  */
-export function DayGate({ children }: { children: React.ReactNode }) {
+export function DayGate({ children, backRoute }: { children: React.ReactNode; backRoute?: string }) {
   const styles = useStyles();
   const colors = useColors();
   const canCount = usePermission('closing.count');
@@ -51,7 +52,7 @@ export function DayGate({ children }: { children: React.ReactNode }) {
       </Screen>
     );
   }
-  if (!shown && gate.locked) return <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} />;
+  if (!shown && gate.locked) return <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} backRoute={backRoute} />;
   return (
     <View style={styles.fill}>
       {/* Covered, the screen is out of reach of touch and of screen readers until the store is open again. */}
@@ -66,27 +67,28 @@ export function DayGate({ children }: { children: React.ReactNode }) {
       </View>
       {gate.locked ? (
         <View style={[StyleSheet.absoluteFill, styles.cover]}>
-          <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} />
+          <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} backRoute={backRoute} />
         </View>
       ) : null}
     </View>
   );
 }
 
-function DayClosedScreen({ businessDate, mayOpen }: { businessDate: string; mayOpen: boolean }) {
+function DayClosedScreen({ businessDate, mayOpen, backRoute }: { businessDate: string; mayOpen: boolean; backRoute?: string }) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
-  const router = useRouter();
+  const navigation = useNavigation();
   return (
     <Screen>
+      {/* A stack screen's header already carries the back arrow; a screen without one (Sell) names its route for ours. */}
+      {backRoute ? <HeaderBack route={backRoute} navigation={navigation.getParent() ?? navigation} /> : null}
       <View style={styles.centre}>
         <Lock size={32} color={colors.text.tertiary} />
         <Text variant="title" align="center">
           {t('gate.closed.title')}
         </Text>
         <OpenStoreNow businessDate={businessDate} mayOpen={mayOpen} />
-        <Button title={t('action.back')} variant="tertiary" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
       </View>
     </Screen>
   );

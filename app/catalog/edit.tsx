@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorState, Screen, SkeletonList } from '../../components/ui';
 import {
@@ -29,7 +30,7 @@ import type { ProductDetail } from '../../types/api';
 export default function EditProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/catalog/edit');
   const queryClient = useQueryClient();
   const canManage = usePermission('catalog.manage');
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
@@ -70,7 +71,7 @@ export default function EditProductScreen() {
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       void queryClient.invalidateQueries({ queryKey: ['inventory'] });
       toast.success(t('catalog.form.updated'));
-      router.back();
+      leave();
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {

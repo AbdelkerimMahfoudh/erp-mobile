@@ -92,7 +92,8 @@ it('Home: Receive then Sell side by side, no several-items link, and Open store 
 it('Sell and Receive are guarded where they are reached, not only on Home (2026-09-27)', () => {
   for (const [file, name] of [['../app/quick-sell.tsx', 'QuickSellScreen'], ['../app/(tabs)/sell.tsx', 'SellScreen'], ['../app/quick-receive.tsx', 'QuickReceiveScreen'], ['../app/receive.tsx', 'ReceiveScreen'], ['../app/receive/pick.tsx', 'PickReceivingFileScreen'], ['../app/receive/file.tsx', 'FileReviewScreen']]) {
     const src = code(read(file));
-    assert.match(src, new RegExp(`export default function ${name}Route\\(\\) \\{\\s*return \\(\\s*<DayGate>\\s*<${name} \\/>\\s*<\\/DayGate>`), `${file} sits behind the guard`);
+    // Sell, outside the stack header, names its route so the closed panel carries its back arrow.
+    assert.match(src, new RegExp(`export default function ${name}Route\\(\\) \\{\\s*return \\(\\s*<DayGate(?: backRoute="\\/sell")?>\\s*<${name} \\/>\\s*<\\/DayGate>`), `${file} sits behind the guard`);
     assert.ok(!new RegExp(`export default function ${name}\\(`).test(src), `${file}: the screen itself is not the route`);
   }
   const gate = code(read('../components/day/DayGate.tsx'));

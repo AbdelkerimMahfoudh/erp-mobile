@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import {
   Button,
   Card,
@@ -43,7 +44,7 @@ import {
  */
 export default function DiscrepancyScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/discrepancies/[id]');
   const { id } = useLocalSearchParams<{ id: string }>();
   const canDecide = usePermission('debt.manage');
 
@@ -208,7 +209,7 @@ export default function DiscrepancyScreen() {
                     expectedVersion: d.version,
                   },
                   {
-                    onSuccess: () => router.back(),
+                    onSuccess: () => leave(),
                     onError: (e) =>
                       setError(e instanceof ApiError ? e.message : t('discrepancy.failed')),
                   },

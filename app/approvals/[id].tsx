@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { Check, X } from 'lucide-react-native';
 import {
   Button,
@@ -69,7 +70,7 @@ import {
 export default function ApprovalDetailScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/approvals/[id]');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const online = useConnectivity((s) => s.online);
@@ -150,7 +151,7 @@ export default function ApprovalDetailScreen() {
     try {
       await cancel.mutateAsync(row.id);
       toast.success(t('approval.cancelled'));
-      router.back();
+      leave();
     } catch (e) {
       toast.error(toErrorMessage(e));
     }

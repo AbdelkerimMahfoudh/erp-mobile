@@ -17,6 +17,7 @@ import {
   Text,
 } from '../components/ui';
 import { ScanTarget } from '../components/scanner';
+import { useLeave } from '../components/navigation/HeaderBack';
 import { SelectSheet } from '../components/overlay';
 import { PaymentSheet, type ReceivingAccount } from '../components/sell/PaymentSheet';
 import { SaleSuccess } from '../components/sell/SaleSuccess';
@@ -120,6 +121,8 @@ interface SaleResponse {
 }
 
 function QuickSellScreen() {
+  // With no history (a notification, a cold start) leaving goes to the logical parent, never nowhere.
+  const leave = useLeave('/quick-sell');
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
@@ -659,7 +662,7 @@ function QuickSellScreen() {
               <IconButton
                 icon={isRTL() ? ArrowRight : ArrowLeft}
                 accessibilityLabel={t('action.back')}
-                onPress={() => (picked || mode !== 'choose' ? chooseAnother() : router.back())}
+                onPress={() => (picked || mode !== 'choose' ? chooseAnother() : leave())}
               />
             ),
           }}

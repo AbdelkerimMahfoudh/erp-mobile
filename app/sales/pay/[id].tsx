@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLeave } from '../../../components/navigation/HeaderBack';
 import { CalendarDays, Coins } from 'lucide-react-native';
 import {
   Button,
@@ -75,7 +76,7 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/sales/pay/[id]', { id: sale.id });
   const record = useRecordSalePayment(sale.id);
   const { accounts } = useSelectableAccounts();
   const mark = useRecentSuccess((s) => s.mark);
@@ -136,7 +137,7 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
         onSuccess: () => {
           // The sale says it, once, when we get back there.
           mark(`payment:${sale.id}`);
-          router.back();
+          leave();
         },
       },
     );

@@ -253,16 +253,15 @@ export default function NewExpenseScreen() {
         options={{
           headerShown: true,
           title: reviewing ? t('expenses.review.title') : t('expenses.add.title'),
-          headerBackVisible: !reviewing,
-          headerLeft: reviewing
-            ? () => (
-                <IconButton
-                  icon={isRTL() ? ArrowRight : ArrowLeft}
-                  accessibilityLabel={t('action.back')}
-                  onPress={() => setStep('form')}
-                />
-              )
-            : undefined,
+          // Reviewing is the second step: its arrow returns to the form. On the form the shared arrow leaves the screen.
+          ...(reviewing
+            ? {
+                headerBackVisible: false,
+                headerLeft: () => (
+                  <IconButton icon={isRTL() ? ArrowRight : ArrowLeft} accessibilityLabel={t('action.back')} onPress={() => setStep('form')} />
+                ),
+              }
+            : {}),
         }}
       />
 

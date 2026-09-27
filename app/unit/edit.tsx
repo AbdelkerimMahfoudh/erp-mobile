@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Package } from 'lucide-react-native';
 import {
@@ -62,7 +63,7 @@ interface UnitEditData {
 
 export default function UnitEditScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/unit/edit');
   const { identifier } = useLocalSearchParams<{ identifier: string }>();
   const canEdit = usePermission('unit.add');
 
@@ -89,7 +90,7 @@ export default function UnitEditScreen() {
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data ? (
-        <EditForm unit={query.data} onSaved={() => router.back()} onStale={() => void query.refetch()} />
+        <EditForm unit={query.data} onSaved={leave} onStale={() => void query.refetch()} />
       ) : null}
     </Screen>
   );

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, CheckCircle2, ChevronDown, ChevronRight, FileSpreadsheet, RotateCcw, Trash2 } from 'lucide-react-native';
 import {
@@ -137,6 +138,7 @@ function FileReviewScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
+  const leave = useLeave('/receive/file');
   const qc = useQueryClient();
   const { branchId, branchName } = useBranch();
   const batch = useFileBatch((s) => s.batch);
@@ -403,7 +405,7 @@ function FileReviewScreen() {
           icon={FileSpreadsheet}
           title={t('fileReceive.gone.title')}
           body={t('fileReceive.gone.body')}
-          action={{ label: t('action.back'), onPress: () => router.back() }}
+          action={{ label: t('action.back'), onPress: leave }}
         />
       </Screen>
     );
@@ -470,7 +472,7 @@ function FileReviewScreen() {
     });
     if (!ok) return;
     clear();
-    router.back();
+    leave();
   };
 
   // ── the payment step ──────────────────────────────────────────────────────
@@ -570,7 +572,7 @@ function FileReviewScreen() {
         removeClippedSubviews
         ListHeaderComponent={
           <View style={styles.header}>
-            <DraftNotice draft={draft} onDiscard={() => { clear(); router.back(); }} />
+            <DraftNotice draft={draft} onDiscard={() => { clear(); leave(); }} />
 
             {/* The three figures, and nothing else, at a glance. */}
             <View style={styles.tiles}>

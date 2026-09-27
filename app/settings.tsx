@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useNavigation } from 'expo-router';
+import { useNavigation, Stack } from 'expo-router';
 import { usePreventRemove } from '../lib/navigation/router-internals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
@@ -96,6 +96,7 @@ function draftOf(s: OwnerSettings): Draft {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const header = <Stack.Screen options={{ headerShown: true, title: t('settings.title') }} />;
   const queryClient = useQueryClient();
   const navigation = useNavigation();
   const canManage = usePermission('settings.manage');
@@ -210,7 +211,7 @@ export default function SettingsScreen() {
   if (settings.isLoading) {
     return (
       <Screen>
-        <Text variant="title">{t('settings.title')}</Text>
+        {header}
         <SkeletonList count={5} />
       </Screen>
     );
@@ -219,6 +220,7 @@ export default function SettingsScreen() {
   if (settings.isError) {
     return (
       <Screen>
+        {header}
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
       </Screen>
     );
@@ -230,6 +232,7 @@ export default function SettingsScreen() {
   if (!owner || !canManage) {
     return (
       <Screen>
+        {header}
         {/* A real 403 shape, so the state renders the same lock and wording
             an actual server refusal would. */}
         <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
@@ -257,7 +260,7 @@ export default function SettingsScreen() {
       }
     >
       <View>
-        <Text variant="title">{t('settings.title')}</Text>
+        {header}
         <Text variant="caption" tone="secondary" style={styles.subtitle}>
           {t('settings.subtitle')}
         </Text>

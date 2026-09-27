@@ -1,4 +1,5 @@
 import React from 'react';
+import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react-native';
@@ -36,6 +37,7 @@ import type { UserDeviceView } from '../types/api';
  */
 export default function DevicesScreen() {
   const { t } = useTranslation();
+  const header = <Stack.Screen options={{ headerShown: true, title: t('devices.title') }} />;
   const { signOut } = useAuth();
   const queryClient = useQueryClient();
 
@@ -80,7 +82,7 @@ export default function DevicesScreen() {
   if (devicesQuery.isLoading) {
     return (
       <Screen>
-        <Text variant="title">{t('devices.title')}</Text>
+        {header}
         <SkeletonList count={3} />
       </Screen>
     );
@@ -89,6 +91,7 @@ export default function DevicesScreen() {
   if (devicesQuery.isError) {
     return (
       <Screen>
+        {header}
         <ErrorState error={devicesQuery.error} onRetry={() => void devicesQuery.refetch()} />
       </Screen>
     );
@@ -102,7 +105,7 @@ export default function DevicesScreen() {
   return (
     <Screen gap="xl">
       <View>
-        <Text variant="title">{t('devices.title')}</Text>
+        {header}
         <Text variant="caption" tone="secondary" style={styles.subtitle}>
           {t('devices.subtitle')}
         </Text>

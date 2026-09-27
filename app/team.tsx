@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users } from 'lucide-react-native';
@@ -53,6 +54,7 @@ const cleanedPhone = (raw: string) => {
 
 export default function TeamScreen() {
   const { t } = useTranslation();
+  const header = <Stack.Screen options={{ headerShown: true, title: t('team.title') }} />;
   const canManage = usePermission('user.manage');
   const [editing, setEditing] = useState<TeamUser | null>(null);
 
@@ -89,6 +91,7 @@ export default function TeamScreen() {
   if (!canManage) {
     return (
       <Screen>
+        {header}
         <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
       </Screen>
     );
@@ -97,7 +100,7 @@ export default function TeamScreen() {
   if (usersQuery.isLoading) {
     return (
       <Screen>
-        <Text variant="title">{t('team.title')}</Text>
+        {header}
         <SkeletonList count={5} />
       </Screen>
     );
@@ -106,6 +109,7 @@ export default function TeamScreen() {
   if (usersQuery.isError) {
     return (
       <Screen>
+        {header}
         <ErrorState error={usersQuery.error} onRetry={() => void usersQuery.refetch()} />
       </Screen>
     );
@@ -116,7 +120,7 @@ export default function TeamScreen() {
   return (
     <Screen gap="xl">
       <View>
-        <Text variant="title">{t('team.title')}</Text>
+        {header}
         <Text variant="caption" tone="secondary" style={styles.subtitle}>
           {t('team.subtitle')}
         </Text>

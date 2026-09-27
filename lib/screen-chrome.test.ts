@@ -80,9 +80,10 @@ it('tab pages keep the inset they genuinely need', () => {
    * set `headerShown: false`, so the context is false there and `edges` is
    * untouched — which is why this is one change rather than forty-six.
    */
-  for (const layout of ['app/_layout.tsx', 'app/(tabs)/_layout.tsx']) {
-    assert.match(source(layout), /headerShown: false/, `${layout} hides its header`);
-  }
+  assert.match(source('app/(tabs)/_layout.tsx'), /headerShown: false/, 'the tab navigator hides its header');
+  // The root stack shows a header on child routes only (their back arrow); the `(tabs)` route is none of them.
+  assert.match(source('app/_layout.tsx'), /headerShown: routeOfName\(route\.name\) in BACK_PARENTS,/);
+  assert.ok(!/'\/':/.test(source('lib/navigation/back.ts').split('export const NO_BACK')[0]), 'the tabs are never a child route');
   // And no tab screen declares one.
   for (const route of routes('app/(tabs)')) {
     assert.ok(

@@ -4,6 +4,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Package, PackagePlus } from 'lucide-react-native';
 import { Button, EmptyState, Screen, Text } from '../components/ui';
+import { useLeave } from '../components/navigation/HeaderBack';
 import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
 import { BottomSheet } from '../components/overlay/BottomSheet';
@@ -116,6 +117,8 @@ function isUncertain(e: unknown): boolean {
 }
 
 function ReceiveScreen() {
+  // With no history (a notification, a cold start) leaving goes to the logical parent, never nowhere.
+  const leave = useLeave('/receive');
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -517,7 +520,7 @@ function ReceiveScreen() {
 
   const confirmLeave = async () => {
     if (staged.length === 0) {
-      router.back();
+      leave();
       return;
     }
     const ok = await dialog.confirm({
@@ -526,7 +529,7 @@ function ReceiveScreen() {
       confirmLabel: t('dialog.discard.confirm'),
       tone: 'danger',
     });
-    if (ok) router.back();
+    if (ok) leave();
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -562,7 +565,7 @@ function ReceiveScreen() {
                 setDone(null);
               }}
             />
-            <Button title={t('action.done')} variant="secondary" fullWidth onPress={() => router.back()} />
+            <Button title={t('action.done')} variant="secondary" fullWidth onPress={leave} />
           </View>
         </View>
       </Screen>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import {
   Button,
   Card,
@@ -32,7 +33,7 @@ import { thisMonth, useCreateGoal, type GoalMetric, type GoalScope } from '../..
  */
 export default function NewGoalScreen() {
   const { t } = useTranslation();
-  const router = useRouter();
+  const leave = useLeave('/goals/new');
   const branchId = useBranch((s) => s.branchId);
   const create = useCreateGoal();
   const team = useAssignableTeam();
@@ -165,7 +166,7 @@ export default function NewGoalScreen() {
             {
               onSuccess: () => {
                 draft.clear();
-                router.back();
+                leave();
               },
               onError: (e) => setError(e instanceof ApiError ? e.message : t('goals.set.failed')),
             },

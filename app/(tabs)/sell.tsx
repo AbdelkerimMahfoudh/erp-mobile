@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigation } from 'expo-router';
 import { ScanLine, Trash2, UserRound } from 'lucide-react-native';
 import {
   Button,
@@ -14,6 +15,7 @@ import {
 } from '../../components/ui';
 import { ProductConfirmationCard } from '../../components/product';
 import { ScanTarget } from '../../components/scanner';
+import { HeaderBack } from '../../components/navigation/HeaderBack';
 import { BottomSheet, SelectSheet } from '../../components/overlay';
 import { CartLineRow } from '../../components/sell/CartLineRow';
 import { PaymentSheet, type ReceivingAccount } from '../../components/sell/PaymentSheet';
@@ -101,6 +103,9 @@ interface PendingScan {
 
 function SellScreen() {
   const { t } = useTranslation();
+  // Sell sits in the tab navigator, pushed above Quick Sell; its back is the stack's, the same step as the swipe.
+  const navigation = useNavigation();
+  const stack = navigation.getParent() ?? navigation;
   const qc = useQueryClient();
   const { user } = useAuth();
   const { branchId, branchName } = useBranch();
@@ -799,6 +804,7 @@ function SellScreen() {
           <>
             {/* Title and branch, as on Stock: which shop this sale is being taken in. */}
             <View style={styles.titleRow}>
+              <HeaderBack route="/sell" navigation={stack} />
               <View style={styles.titleText}>
                 <Text variant="title" accessibilityRole="header">
                   {t('sell.title')}
@@ -1022,7 +1028,8 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   titleText: {
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   list: {
@@ -1045,7 +1052,7 @@ const styles = StyleSheet.create({
 /** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
 export default function SellScreenRoute() {
   return (
-    <DayGate>
+    <DayGate backRoute="/sell">
       <SellScreen />
     </DayGate>
   );

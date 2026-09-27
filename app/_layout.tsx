@@ -9,6 +9,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { OfflineBanner } from '../components/ui';
+import { headerBackFor } from '../components/navigation/HeaderBack';
+import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
 import { useI18n } from '../lib/i18n';
 import { ThemeProvider, useColors, useTheme } from '../lib/design/theme';
 
@@ -125,8 +127,19 @@ function AppShell() {
             the system back button is unaffected either way.
           */}
           <Stack
-            screenOptions={{
-              headerShown: false,
+            screenOptions={({ route, navigation }) => ({
+              /*
+                Every child route has the header, in every state — loading and
+                errors included — so its back arrow is always there; the tabs,
+                the signed-out group and the entry flows keep none. With history
+                the native arrow stays (and with it the swipe); without it — a
+                notification, a deep link, a cold start — ours goes to the
+                route's logical parent (lib/navigation/back.ts). A screen names
+                its own title; until it does, the header has none.
+              */
+              headerShown: routeOfName(route.name) in BACK_PARENTS,
+              title: '',
+              headerLeft: headerBackFor(routeOfName(route.name), route.params as Record<string, unknown> | undefined, navigation),
               /*
                 The back button is the arrow alone. iOS otherwise labels it with
                 the previous screen's title, and a tab screen's parent is the
@@ -141,7 +154,7 @@ function AppShell() {
               // transition; left unset it is white, which flashes on every
               // push in dark mode.
               contentStyle: { backgroundColor: colors.surface.canvas },
-            }}
+            })}
           >
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="select-branch" />

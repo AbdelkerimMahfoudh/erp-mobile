@@ -1,4 +1,5 @@
 import React from 'react';
+import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { InlineNotice, RowGroup, Screen, Text, Toggle } from '../components/ui';
 import { LanguageRow } from '../components/navigation/LanguageRow';
@@ -42,13 +43,14 @@ import { makeStyles, useTheme } from '../lib/design/theme';
 export default function AppearanceScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
+  const header = <Stack.Screen options={{ headerShown: true, title: t('appearance.title') }} />;
   const { isDark, setTheme } = useTheme();
   const restartRequired = useI18n((s) => s.restartRequired);
 
   return (
     <Screen>
       <View style={styles.intro}>
-        <Text variant="title">{t('appearance.title')}</Text>
+        {header}
         <Text variant="caption" tone="secondary">
           {t('appearance.subtitle')}
         </Text>

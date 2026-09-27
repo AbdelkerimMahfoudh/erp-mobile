@@ -14,6 +14,7 @@ import {
   TextField,
 } from '../components/ui';
 import { ScanTarget } from '../components/scanner';
+import { useLeave } from '../components/navigation/HeaderBack';
 import type { AcceptedImei } from '../components/scanner/ScannerSheet';
 import { ProductConfirmationCard } from '../components/product';
 import { SelectSheet } from '../components/overlay';
@@ -92,6 +93,8 @@ interface Scanned {
 }
 
 function QuickReceiveScreen() {
+  // With no history (a notification, a cold start) leaving goes to the logical parent, never nowhere.
+  const leave = useLeave('/quick-receive');
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -423,7 +426,7 @@ function QuickReceiveScreen() {
               fullWidth
               onPress={startAnother}
             />
-            <Button title={t('action.done')} variant="secondary" fullWidth onPress={() => router.back()} />
+            <Button title={t('action.done')} variant="secondary" fullWidth onPress={leave} />
           </View>
         </View>
       </Screen>
@@ -478,7 +481,7 @@ function QuickReceiveScreen() {
               <IconButton
                 icon={isRTL() ? ArrowRight : ArrowLeft}
                 accessibilityLabel={t('action.back')}
-                onPress={() => router.back()}
+                onPress={leave}
               />
             ),
           }}

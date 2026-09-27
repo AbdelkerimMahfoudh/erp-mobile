@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { ScanLine } from 'lucide-react-native';
 import {
   Button,
@@ -40,6 +41,7 @@ import { uuidv4 } from '../../lib/utils';
 export default function NewReturnScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const leave = useLeave('/returns/new');
   const canRequest = usePermission('return.request');
   const params = useLocalSearchParams<{ saleItemId?: string; identifier?: string; product?: string }>();
 
@@ -250,7 +252,7 @@ export default function NewReturnScreen() {
           title={t('action.cancel')}
           variant="tertiary"
           onPress={async () => {
-            if (await confirmDiscard()) router.back();
+            if (await confirmDiscard()) leave();
           }}
         />
       </View>

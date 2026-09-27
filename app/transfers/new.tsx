@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useLeave } from '../../components/navigation/HeaderBack';
 import { PackageSearch, ScanLine, Trash2 } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -66,6 +67,7 @@ import type { InventoryPage, InventoryStockRow, UserBranch } from '../../types/a
 export default function NewTransferScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const exit = useLeave('/transfers/new');
   const { branchId, branchName } = useBranch();
   const branches = useQuery({
     queryKey: qk.branches,
@@ -116,7 +118,7 @@ export default function NewTransferScreen() {
 
   const leave = async () => {
     if (!dirty) {
-      router.back();
+      exit();
       return;
     }
     const ok = await dialog.confirm({
@@ -126,7 +128,7 @@ export default function NewTransferScreen() {
       cancelLabel: t('transfers.new.keep'),
       tone: 'danger',
     });
-    if (ok) router.back();
+    if (ok) exit();
   };
 
   const addUnit = (identifier: string, product?: string | null) => {
