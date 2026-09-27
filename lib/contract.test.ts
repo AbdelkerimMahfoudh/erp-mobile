@@ -84,13 +84,20 @@ it('Money\'s overview and sales by day from the older server are refused; comple
   const overview = {
     today: '2026-09-26',
     cashNow: 5000,
+    moneyToday: {
+      channels: [
+        { channel: 'cash', accountId: null, label: 'CASH', isUnattributed: false, moneyIn: 3400, moneyOut: 0, net: 3400 },
+        { channel: 'account', accountId: 'b', label: 'Bankily', isUnattributed: false, moneyIn: 3600, moneyOut: 0, net: 3600 },
+      ],
+      total: { moneyIn: 7000, moneyOut: 0, net: 7000 },
+    },
     period: { phonesSold: 1, unitsSold: 1, salesCount: 1, salesValue: 20040, cancellations: { count: 1, value: 10040, phones: 1 }, returns: { count: 0, value: 0, phones: 0 }, adjusted: 10040, netSalesValue: 10000, collected: 10000, outstanding: 0, refunds: 0 },
     expensesToday: { total: -300, recorded: 0, reversed: 300, rows: [{ amount: -300 }] },
   };
   assert.equal(checkMoneyOverview(overview as never), overview);
   const old = { cashNow: 5000, period: { phonesSold: 1, salesValue: 20040, collected: 10000, outstanding: 0, refunds: 0 }, expensesToday: { total: 0, rows: [] } };
   const e = refused(() => checkMoneyOverview(old as never));
-  assert.ok(['today', 'period.unitsSold', 'period.cancellations.count', 'period.netSalesValue', 'expensesToday.reversed'].every((p) => e.missing.includes(p)), e.missing.join());
+  assert.ok(['today', 'period.unitsSold', 'period.cancellations.count', 'period.netSalesValue', 'expensesToday.reversed', 'moneyToday.total.net', 'moneyToday.channels'].every((p) => e.missing.includes(p)), e.missing.join());
   const day = { day: '2026-09-25', sales: 1, units: 1, value: 20040, cancelled: 10040, returned: 0, returns: 0, adjusted: 10040, net: 10000, phones: 1, outstanding: 0 };
   assert.ok(checkSalesByDay({ days: [day] } as never));
   assert.deepEqual(refused(() => checkSalesByDay({ days: [{ day: '2026-09-25', sales: 2, value: 20040 }] } as never)).missing.slice(0, 2), ['days.0.units', 'days.0.cancelled']);
@@ -111,7 +118,7 @@ it('the reads use the check, and the screens say the server needs updating', () 
   assert.match(code(read('./errors.ts')), /if \(error instanceof IncompatibleResponse\) \{\s*return generic\('contract\.incompatible\.title', 'contract\.incompatible\.body', true\);/);
   const screen = code(read('../app/(tabs)/index.tsx'));
   assert.match(screen, /const failure = home\.isError && !data \? toFriendlyError\(home\.error\) : null;/);
-  assert.match(code(read('../app/(tabs)/money-hub.tsx')), /isIncompatible\(overview\.error\) \? t\('contract\.incompatible\.title'\)/);
+  assert.match(code(read('../app/(tabs)/money-hub.tsx')), /isIncompatible\(card\.error\) \? t\('contract\.incompatible\.title'\)/);
   assert.match(code(read('../app/sales/period.tsx')), /overview\.isError \? \(/);
 });
 

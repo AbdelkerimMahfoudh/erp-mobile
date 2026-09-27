@@ -108,13 +108,17 @@ it('the overview reads the server overview, and adds nothing up itself', () => {
   assert.match(overview, /useMoneyOverview\(range\.from, range\.to/);
   assert.ok(!/\.reduce\(/.test(overview), 'no figure is summed on the phone');
   // "Items sold" is every item, less cancelled ones (docs/53 R6) — it used to show phones only.
-  for (const f of ['data.cashNow', 'data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.unitsSold']) {
+  for (const f of ['cardData.moneyToday.total.net', 'cardData.moneyToday.channels', 'data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.unitsSold']) {
     assert.ok(overview.includes(f), `${f} comes from the server`);
   }
+  // A drawer estimate is never added to account movement: the card shows one basis, the server's total of its rows.
+  assert.ok(!/[dD]ata\.cashNow/.test(overview), 'the drawer estimate is not on the card');
+  // The card is always today's, on its own query: another period never blanks it, and Today shares its cache.
+  assert.match(overview, /const todayRange = usePeriodRange\('today'\);\s*const card = useMoneyOverview\(todayRange\.from, todayRange\.to, \{ enabled: canViewFigures \}\);/);
 });
-it('Sales value, Collected, Still owed and Cash are four different labels', () => {
-  for (const k of ['moneyOverview.salesValue', 'moneyOverview.collected', 'moneyOverview.outstanding', 'moneyOverview.cashNow']) {
-    assert.match(overview, new RegExp(`t\\('${k.replace('.', '\\.')}'\\)`));
+it('Sales value, Collected, Still owed and Money recorded today are four different labels', () => {
+  for (const k of ['moneyOverview.salesValue', 'moneyOverview.collected', 'moneyOverview.outstanding', 'moneyTab.today.title']) {
+    assert.match(overview, new RegExp(`t\\('${k.replace(/\./g, '\\.')}'\\)`));
   }
 });
 it('the overview previews a few sales and links to all of them', () => {
@@ -122,10 +126,11 @@ it('the overview previews a few sales and links to all of them', () => {
   assert.match(overview, /\.slice\(0, SALES_PREVIEW\)/);
   assert.match(overview, /t\('moneyOverview\.viewAllSales'\)/);
 });
-it('accounts are recorded movement, never called a balance — and say which day (docs/55 D42)', () => {
-  assert.match(overview, /t\('moneyOverview\.accounts\.hint', \{ date: formatDate\(data\.today\) \}\)/);
+it('each method is recorded movement, never called a balance — and the card says which day (docs/55 D42, 2026-09-27)', () => {
+  assert.match(overview, /t\('moneyTab\.today\.hint', \{ date: formatDate\(cardData\.today\) \}\)/);
   assert.match(overview, /t\('moneyOverview\.dailyExpenses\.hint', \{ date: formatDate\(data\.today\) \}\)/);
-  assert.match(overview, /t\('moneyTab\.recorded'\)/);
+  const en = read('./i18n/en.ts');
+  assert.match(en, /'moneyTab\.today\.hint': 'Money in less money out, recorded in this app today \(\{date\}\) for each method\. Not a drawer count, not an account balance\.'/);
 });
 it('Outstanding payments and the other actions come from the registry', () => {
   assert.match(overview, /visibleChildren\(hub, granted\)/);

@@ -17,9 +17,12 @@ import type { DebtorKind, PaymentMethod, SalePayStatus, SalePaymentState } from 
  * quietly disagree with the closing.
  */
 
-export interface AccountToday {
+/** One method's money today: recorded in, recorded out, and the difference (2026-09-27). */
+export interface MethodMoney {
+  channel: 'cash' | 'account';
   accountId: string | null;
-  label: string | null;
+  /** `CASH` / `UNATTRIBUTED` sentinels, or the account's label. */
+  label: string;
   isUnattributed: boolean;
   moneyIn: number;
   moneyOut: number;
@@ -45,10 +48,13 @@ export interface MoneyOverview {
   from: string;
   to: string;
   today: string;
-  /** Cash the drawer should hold now — the closing's own expected figure. */
+  /** Cash the drawer should hold now — the closing's own expected figure (the expense screens' estimate). */
   cashNow: number;
-  /** What moved through each account today. Deliberately not a balance. */
-  accountsToday: AccountToday[];
+  /**
+   * Every configured method on one basis: money in less money out recorded on the current business day, no opening
+   * for any of them; `total` is the server's sum of exactly these rows. Not a drawer count, not a provider balance.
+   */
+  moneyToday: { channels: MethodMoney[]; total: { moneyIn: number; moneyOut: number; net: number } };
   period: {
     phonesSold: number;
     /** Every item on the invoices less items on cancelled invoices — what "Items sold" shows (docs/53 R6). */

@@ -120,6 +120,8 @@ export function checkMoneyOverview(r: MoneyOverview): MoneyOverview {
   const missing = [
     ...missingTexts(r, ['today']),
     ...missingNumbers(r, ['cashNow']),
+    ...missingNumbers(r?.moneyToday?.total, ['moneyIn', 'moneyOut', 'net'], 'moneyToday.total.'),
+    ...missingInRows(r, 'moneyToday.channels', (row, prefix) => [...missingTexts(row, ['label'], prefix), ...missingNumbers(row, ['moneyIn', 'moneyOut', 'net'], prefix)]),
     ...missingNumbers(r?.period, MONEY_PERIOD, 'period.'),
     ...missingNumbers(r?.expensesToday, ['total', 'recorded', 'reversed'], 'expensesToday.'),
     ...missingInRows(r, 'expensesToday.rows', (row, prefix) => missingNumbers(row, ['amount'], prefix)),

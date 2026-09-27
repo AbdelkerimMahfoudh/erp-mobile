@@ -56,6 +56,8 @@ export interface MoneyValueProps {
   fallback?: string;
   /** Off inside a column or card already labelled as money. */
   showCurrency?: boolean;
+  /** Decimal places; whole units unless a set of figures must visibly add up with its cents. */
+  decimals?: number;
   /** Screen-reader label, when the surrounding text does not already say it. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
@@ -109,6 +111,7 @@ export function MoneyValue({
   signed = false,
   fallback = ABSENT,
   showCurrency = true,
+  decimals,
   accessibilityLabel,
   style,
   testID,
@@ -116,7 +119,7 @@ export function MoneyValue({
   const colors = useColors();
   const styles = useStyles();
   const missing = value == null;
-  const text = missing ? fallback : formatMoney(value, { signed, showCurrency });
+  const text = missing ? fallback : formatMoney(value, { signed, showCurrency, decimals });
 
   return (
     <View style={[styles.row, style]} testID={testID}>

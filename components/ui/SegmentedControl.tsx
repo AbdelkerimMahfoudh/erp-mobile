@@ -66,7 +66,8 @@ export function SegmentedControl<T extends string>({
       style={[
         buttons ? styles.buttons : styles.track,
         variant === 'filled' ? styles.filledTrack : null,
-        { height, opacity: disabled ? disabledOpacity : 1 },
+        // A floor, not a ceiling: at the largest text a label takes a second line instead of being cut (2026-09-27).
+        { minHeight: height, opacity: disabled ? disabledOpacity : 1 },
         style,
       ]}
     >
@@ -106,7 +107,7 @@ export function SegmentedControl<T extends string>({
             <Text
               variant={selected ? 'labelStrong' : 'label'}
               align="center"
-              numberOfLines={buttons ? 2 : 1}
+              numberOfLines={2}
               style={[{ color: foreground }, buttons ? styles.buttonLabel : null]}
             >
               {option.label}

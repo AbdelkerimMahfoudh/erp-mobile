@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useNavigation, useRouter, type Href } from 'expo-router';
 import { Package, Plus, Receipt, Wallet } from 'lucide-react-native';
 import {
   Button,
   Card,
-  Disclosure,
   InlineNotice,
   ListRow,
   MoneyValue,
@@ -32,7 +31,7 @@ import { isIncompatible } from '../../lib/errors';
 import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
-import { useMoneyOverview, useSalesByDay, type AccountToday, type SalesDay } from '../../lib/money-overview';
+import { useMoneyOverview, useSalesByDay, type MethodMoney, type SalesDay } from '../../lib/money-overview';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
 import { usePeriod, type PeriodKey } from '../../lib/period';
 import { usePeriodRange } from '../../lib/home';
@@ -50,10 +49,11 @@ const DAYS_PREVIEW = 3;
  * Four questions, answered in the order a shopkeeper asks them, each with its
  * own words so none is mistaken for another:
  *
- * 1. **Right now** — the cash the store should hold, and what moved through
- *    each account today. The cash figure is the daily closing's own expected
- *    drawer, so Money and the closing cannot disagree. Accounts show what was
- *    recorded, never a "balance": the app does not see the account itself.
+ * 1. **Today, by method** — the money recorded today through the drawer and
+ *    through each configured account, on one basis (money in less money out,
+ *    no opening for any of them), with the server's total of exactly those
+ *    rows. It is recorded movement: never a drawer count and never an account's
+ *    balance, which the app does not see (2026-09-27).
  * 2. **This period** — phones sold, the full sales value, what was actually
  *    collected, and what is still owed. "Sales value" is never called money
  *    received, and a later collection never raises the sales figures.
@@ -79,8 +79,33 @@ export default function MoneyTabScreen() {
   const offline = !useConnectivity((s) => s.online);
 
   const key = usePeriod((s) => s.key);
+  const setKey = usePeriod((s) => s.setKey);
+  /*
+    Today on every arrival at the tab — the first visit, or from another tab — and whatever the person then picks
+    while here stays: a screen opened from the tab (Results, a day's sales) and its way back are not an arrival, and
+    a background refetch changes no choice. The tab stays mounted while another tab shows, and its own route never
+    changes, so the tab bar's state says when the person left: the choice goes back to Today then, before they return.
+  */
+  const navigation = useNavigation();
+  // The first visit, before the first paint, so it never shows or fetches a choice made elsewhere.
+  useLayoutEffect(() => setKey('today'), [setKey]);
+  useEffect(
+    () =>
+      navigation.addListener('state', (e) => {
+        const tabs = e.data.state;
+        if (tabs.routes[tabs.index]?.name !== 'money-hub') setKey('today');
+      }),
+    [navigation, setKey],
+  );
   const range = usePeriodRange(key);
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
+  // The card is today's whatever the period: its own query on today's range (the same cache as Today's), so it never
+  // blanks while another period loads.
+  const todayRange = usePeriodRange('today');
+  const card = useMoneyOverview(todayRange.from, todayRange.to, { enabled: canViewFigures });
+  const cardData = card.data;
+  // Whole units, unless a figure carries cents: then every figure on the card shows them, so the rows visibly add up.
+  const cardDecimals = cardData && [cardData.moneyToday.total.net, ...cardData.moneyToday.channels.map((c) => c.net)].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
   const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
   const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });
 
@@ -99,6 +124,7 @@ export default function MoneyTabScreen() {
         canViewFigures
           ? () => {
               void overview.refetch();
+              void card.refetch();
               void (key === 'today' ? sales.refetch() : days.refetch());
             }
           : undefined
@@ -111,16 +137,16 @@ export default function MoneyTabScreen() {
         <Section gap="md">
           {offline ? <InlineNotice tone="warning">{t('money.offline')}</InlineNotice> : null}
 
-          {/* 1. Right now: the cash the store should hold, and the accounts one tap away. */}
-          {overview.isPending ? (
+          {/* 1. Today: the money recorded for each method, and their total. */}
+          {card.isPending ? (
             <SkeletonStat />
-          ) : overview.isError || !data ? (
+          ) : card.isError || !cardData ? (
             <InlineNotice
               tone="warning"
-              title={isIncompatible(overview.error) ? t('contract.incompatible.title') : t('moneyTab.unavailable')}
-              action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void overview.refetch()} />}
+              title={isIncompatible(card.error) ? t('contract.incompatible.title') : t('moneyTab.unavailable')}
+              action={<Button title={t('action.retry')} variant="tertiary" size="sm" onPress={() => void card.refetch()} />}
             >
-              {isIncompatible(overview.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable.body')}
+              {isIncompatible(card.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable.body')}
             </InlineNotice>
           ) : (
             <Card variant="accent" style={styles.cash}>
@@ -128,31 +154,23 @@ export default function MoneyTabScreen() {
                 <View style={styles.cashIcon}>
                   <Wallet color={colors.text.accent} size={22} />
                 </View>
-                <View style={styles.grow}>
-                  <Text variant="body" tone="secondary">
-                    {t('moneyOverview.cashNow')}
-                  </Text>
-                  <MoneyValue value={data.cashNow} size="display" />
-                  <Text variant="caption" tone="tertiary">
-                    {t('moneyOverview.cashNow.hint')}
-                  </Text>
-                </View>
+                <Text variant="body" tone="secondary" style={styles.grow}>
+                  {t('moneyTab.today.title')}
+                </Text>
               </View>
-              <Disclosure title={t('moneyTab.channels')}>
-                <Text variant="caption" tone="secondary">
-                  {t('moneyOverview.accounts.hint', { date: formatDate(data.today) })}
-                </Text>
-                {data.accountsToday.length === 0 ? (
-                  <Text variant="caption" tone="tertiary">
-                    {t('moneyOverview.accounts.none')}
-                  </Text>
-                ) : (
-                  data.accountsToday.map((a) => <AccountLine key={a.accountId ?? 'unattributed'} account={a} />)
-                )}
+              {/* The total on a line of its own: the card's whole width, so large text does not cut it short. */}
+              <View style={styles.total}>
+                <MoneyValue value={cardData.moneyToday.total.net} size="display" signed={cardData.moneyToday.total.net < 0} decimals={cardDecimals} />
                 <Text variant="caption" tone="tertiary">
-                  {t('moneyTab.recorded')}
+                  {t('moneyTab.today.hint', { date: formatDate(cardData.today) })}
                 </Text>
-              </Disclosure>
+              </View>
+              {/* Every configured method beneath the total — the drawer first — and the total is the server's sum of these rows. */}
+              <View style={styles.methods}>
+                {cardData.moneyToday.channels.map((m) => (
+                  <MethodLine key={m.accountId ?? (m.isUnattributed ? 'unattributed' : 'cash')} method={m} decimals={cardDecimals} />
+                ))}
+              </View>
             </Card>
           )}
 
@@ -397,21 +415,20 @@ function DaysPreview({
   );
 }
 
-/** One account today: its name as it stood, and what was recorded in and out. */
-function AccountLine({ account: a }: { account: AccountToday }) {
+/** One method's money today: its name, what was recorded in and out, and the net — beneath the card's total. */
+function MethodLine({ method: m, decimals }: { method: MethodMoney; decimals: number }) {
   const styles = useStyles();
   const { t } = useTranslation();
+  const name = m.channel === 'cash' ? t('moneyTab.cash') : m.isUnattributed ? t('moneyOverview.account.unattributed') : m.label;
   return (
-    <View style={styles.account}>
-      <View style={styles.line}>
-        <Text variant="bodyStrong" style={styles.grow}>
-          {a.isUnattributed ? t('moneyOverview.account.unattributed') : a.label}
+    <View style={styles.method}>
+      <View style={styles.grow}>
+        <Text variant="bodyStrong">{name}</Text>
+        <Text variant="caption" tone="tertiary">
+          {t('moneyOverview.account.inOut', { in: isolateLtr(formatMoney(m.moneyIn, { decimals })), out: isolateLtr(formatMoney(m.moneyOut, { decimals })) })}
         </Text>
-        <MoneyValue value={a.net} size="small" tone="auto" signed />
       </View>
-      <Text variant="caption" tone="secondary">
-        {t('moneyOverview.account.inOut', { in: formatMoney(a.moneyIn), out: formatMoney(a.moneyOut) })}
-      </Text>
+      <MoneyValue value={m.net} size="small" signed={m.net !== 0} tone="auto" decimals={decimals} />
     </View>
   );
 }
@@ -435,5 +452,7 @@ const useStyles = makeStyles((colors) => ({
   block: { gap: space.md },
   list: { gap: space.xs },
   line: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  account: { gap: 2, paddingVertical: space.xs },
+  total: { gap: 2 },
+  methods: { gap: space.xs },
+  method: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
 }));

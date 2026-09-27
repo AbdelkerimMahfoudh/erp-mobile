@@ -181,8 +181,17 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   ]);
   assert.deepEqual(t, { moneyIn: 1500.1, moneyOut: 200.05, net: 1300.05 });
   const src = code(read('../app/(tabs)/money-hub.tsx'));
-  assert.match(src, /t\('moneyTab\.recorded'\)/);
-  assert.match(src, /<Disclosure title=\{t\('moneyTab\.channels'\)\}>/);
+  // The card: every method beneath the server's total, on one basis, said for what it is (2026-09-27).
+  assert.match(src, /t\('moneyTab\.today\.title'\)/);
+  assert.match(src, /<MoneyValue value=\{cardData\.moneyToday\.total\.net\} size="display" signed=\{cardData\.moneyToday\.total\.net < 0\} decimals=\{cardDecimals\} \/>/);
+  assert.match(src, /cardData\.moneyToday\.channels\.map\(\(m\) => \(\s*<MethodLine[^>]*decimals=\{cardDecimals\} \/>/);
+  assert.ok(!/<Disclosure\b/.test(src), 'the methods are not behind a disclosure');
+  // Today on every arrival at the tab; a choice made there stays through screens opened from it and refetches.
+  // The tab stays mounted behind another tab, so leaving is read from the tab bar's own state, not the route.
+  assert.match(src, /navigation\.addListener\('state', \(e\) => \{\s*const tabs = e\.data\.state;\s*if \(tabs\.routes\[tabs\.index\]\?\.name !== 'money-hub'\) setKey\('today'\);/);
+  // The first visit before the first paint, so it never shows or fetches a choice made elsewhere.
+  assert.match(src, /useLayoutEffect\(\(\) => setKey\('today'\), \[setKey\]\);/);
+  assert.ok(!/useSegments\(/.test(src), 'a mounted tab never sees its route change');
   assert.match(src, /visibleChildren\(hub, granted\)/, 'actions come from the registry');
   assert.match(src, /enabled: canViewFigures/, 'figures need report.view');
 });
