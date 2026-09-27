@@ -259,4 +259,19 @@ it('every catalogue carries the section and popup words, and none of the removed
   }
 });
 
+it('the popup says Sell and Receive wait after the close, no line says a sale reopens the day, and "no events" fits any day (2026-09-27)', () => {
+  const words = {
+    en: ['After closing, Sell and Receive wait until the Owner or a named delegate opens the store again.', 'No events'],
+    fr: ['Après la clôture, la vente et la réception attendent que le propriétaire ou un délégué désigné rouvre la boutique.', 'Aucun événement'],
+    ar: ['بعد الإقفال، يتوقف البيع والاستلام حتى يعيد المالك أو مفوَّض مسمّى فتح المتجر.', 'لا أحداث'],
+  };
+  for (const [lang, [selling, none]] of Object.entries(words)) {
+    const catalogue = read(`lib/i18n/${lang}.ts`);
+    assert.ok(catalogue.includes(`'closeReview.selling': '${selling}',`), `${lang}: closeReview.selling`);
+    assert.ok(catalogue.includes(`'closing.history.events.none': '${none}',`), `${lang}: closing.history.events.none`);
+    assert.ok(!catalogue.includes("'closingHistory.closed.note':"), `${lang} still says a sale reopens the day`);
+  }
+  assert.match(code(read('components/closing/CloseDaySheet.tsx')), /\{t\('closeReview\.selling'\)\}/);
+});
+
 console.log(`daily-closing-screen: ${passed} passed`);

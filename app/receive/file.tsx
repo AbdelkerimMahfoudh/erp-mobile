@@ -38,6 +38,7 @@ import { formatMoney } from '../../lib/format';
 import { isRTL, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { invalidateMoney } from '../../lib/money-invalidation';
+import { toast } from '../../lib/toast';
 import { useDraft } from '../../lib/offline/use-draft';
 import { DraftNotice } from '../../components/DraftNotice';
 import { useFileBatch } from '../../lib/file-batch-store';
@@ -66,6 +67,7 @@ import {
 import { groupSummaries, reviewRows, toggleOpenGroup, type ReviewFilter, type ReviewRowData } from '../../lib/file-review-rows';
 import type { PurchaseOutcome } from '../../lib/receive-outcome';
 import { DayGate } from '../../components/day/DayGate';
+import { isStoreClosedRefusal } from '../../lib/day-gate';
 
 /**
  * Reviewing a delivery read out of a file.
@@ -227,7 +229,16 @@ function FileReviewScreen() {
       setDone({ units: outcome.unitsCreated, total: outcome.total });
       clear();
     },
-    onError: (e) => setError(toErrorMessage(e)),
+    onError: (e) => {
+      // The day closed under this screen: nothing was received. Reading the day again brings up the lock and Open store now.
+      if (isStoreClosedRefusal(e)) {
+        toast.error(t('gate.refused.receive'));
+        qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
+        qc.invalidateQueries({ queryKey: qk.home(branchId) });
+        return;
+      }
+      setError(toErrorMessage(e));
+    },
   });
 
   const toggleGroup = useCallback((key: string) => {

@@ -197,6 +197,7 @@ it('recognises every code the sale flow acts on', () => {
     'duplicate_payment_destination',
     'overpayment',
     'debtor_required',
+    'store_closed',
   ]) {
     assert.equal(refusalOf(code), code);
   }

@@ -80,8 +80,10 @@ it('Sell and Receive are guarded where they are reached, not only on Home (2026-
   const gate = code(read('../components/day/DayGate.tsx'));
   assert.match(gate, /const businessDay = useBusinessDay\(\{ enabled: canCount, fresh: true \}\);/);
   // The first read only: a short wait rather than a screen that appears and is taken away.
-  assert.match(gate, /if \(canCount && businessDay\.isPending && businessDay\.fetchStatus !== 'idle'\) \{/);
-  assert.match(gate, /if \(!gate\.locked\) return <>\{children\}<\/>;/);
+  assert.match(gate, /const reading = canCount && businessDay\.isPending && businessDay\.fetchStatus !== 'idle';/);
+  assert.match(gate, /if \(!shown && reading\) \{/);
+  // A lock found later covers the screen instead of swapping it out (lib/day-gate.test.ts pins how).
+  assert.ok(!/return <>\{children\}<\/>/.test(gate), 'a later lock never swaps the screen out');
   // The reopen finishes once the day is read again, and a refusal reads it again too.
   const closingHooks = code(read('./closing.ts'));
   assert.match(closingHooks, /return Promise\.all\(\[\s*qc\.invalidateQueries\(\{ queryKey: qk\.openClosing\(branchId, date \?\? 'today'\) \}\),\s*qc\.invalidateQueries\(\{ queryKey: qk\.businessDay\(branchId\) \}\),/);

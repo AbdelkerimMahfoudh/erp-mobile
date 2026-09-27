@@ -621,7 +621,7 @@ function HistoryRow({ entry, first }: { entry: ClosingHistoryEntry; first: boole
       <View style={styles.rowBody}>
         <View style={styles.between}>
           <Text variant="bodyStrong" style={styles.flex}>
-            {`${t(historyKey(entry.kind) as never)}${withItem && p.item ? ` · ${String(p.item)}` : ''}`}
+            {`${t(historyKey(entry.kind, p.cause) as never)}${withItem && p.item ? ` · ${String(p.item)}` : ''}`}
           </Text>
           <Text variant="body" tone="secondary">
             {isolateLtr(entry.localTime)}

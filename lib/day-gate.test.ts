@@ -1,13 +1,14 @@
 /**
  * The counter's lock (2026-09-27, docs/59 D76): Sell and Receive wait while the
  * boutique's current business day is closed, and Open store now is offered to
- * those who may reopen it.
+ * those who may reopen it. A lock that comes after the screen was shown covers
+ * it rather than unmounting it, so a refused sale or receipt loses nothing.
  *
  *   node lib/day-gate.test.ts
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dayGate } from './day-gate.ts';
+import { dayGate, isStoreClosedRefusal } from './day-gate.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -50,6 +51,65 @@ it('Home and the guard ask the light business-day view, only for those it is for
   // The full day view (for the choice sheet) is read only once the counter is locked, inside Open store now.
   const open = readFileSync(new URL('../components/day/OpenStoreNow.tsx', import.meta.url), 'utf8');
   assert.match(open, /const view = useOpenClosing\(undefined, \{ enabled: mayOpen \}\);/);
+});
+
+const refusal = (status: number, code?: string) =>
+  Object.assign(new Error('The store is closed for business day 2026-09-27. Nothing was sold.'), { status, code });
+
+it('the server’s closed-store refusal is known by its status and code, never by its sentence', () => {
+  assert.equal(isStoreClosedRefusal(refusal(409, 'store_closed')), true);
+  assert.equal(isStoreClosedRefusal(refusal(409)), false);
+  assert.equal(isStoreClosedRefusal(refusal(409, 'idempotency_conflict')), false);
+  assert.equal(isStoreClosedRefusal(refusal(400, 'store_closed')), false);
+  assert.equal(isStoreClosedRefusal(new TypeError('Network request failed')), false);
+  assert.equal(isStoreClosedRefusal(undefined), false);
+  assert.equal(isStoreClosedRefusal(null), false);
+});
+
+const code = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const screen = (p: string) => code(readFileSync(new URL(p, import.meta.url), 'utf8'));
+
+it('a lock found on the first read stands in for the screen; one that comes later covers it, and the screen stays mounted beneath', () => {
+  const gate = screen('../components/day/DayGate.tsx');
+  assert.match(gate, /const \[shown, setShown\] = useState\(false\);\s*if \(!shown && !reading && !gate\.locked\) setShown\(true\);\s*const covered = shown && gate\.locked;/);
+  assert.match(gate, /if \(!shown && gate\.locked\) return <DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/>;/);
+  // One tree, covered or not, so the lock coming up never remounts the screen: nothing typed is lost.
+  assert.match(
+    gate,
+    /return \(\s*<View style=\{styles\.fill\}>\s*<View\s+style=\{styles\.fill\}\s+pointerEvents=\{covered \? 'none' : 'auto'\}\s+aria-hidden=\{covered\}\s+accessibilityElementsHidden=\{covered\}\s+importantForAccessibility=\{covered \? 'no-hide-descendants' : 'auto'\}\s*>\s*\{children\}\s*<\/View>\s*\{gate\.locked \? \(\s*<View style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>\s*<DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/>/,
+  );
+  assert.equal(gate.match(/\{children\}/g)?.length, 1, 'the screen is rendered in one place only');
+  assert.match(gate, /cover: \{ backgroundColor: colors\.surface\.canvas \}/);
+  assert.match(gate, /useEffect\(\(\) => \{\s*if \(covered\) Keyboard\.dismiss\(\);\s*\}, \[covered\]\);/);
+});
+
+// The toast and the day read again (and Home with it), nothing else: the guard covers the screen, whose draft stays as it was beneath.
+const readsDayAgain = String.raw`\s*qc\.invalidateQueries\(\{ queryKey: qk\.businessDay\(branchId\) \}\);\s*qc\.invalidateQueries\(\{ queryKey: qk\.home\(branchId\) \}\);\s*return;`;
+
+it('a sale refused on a closed day says so and reads the day again, so the lock and Open store now appear', () => {
+  for (const file of ['../app/quick-sell.tsx', '../app/(tabs)/sell.tsx']) {
+    const src = screen(file);
+    assert.match(src, new RegExp(String.raw`case 'store_closed':\s*toast\.error\(t\('gate\.refused\.sale'\)\);` + readsDayAgain), file);
+    // The below-cost question still follows the named refusals.
+    assert.match(src, /e\.status === 400 && \/reason\/i\.test\(e\.message\) && !options\.overrideReason/, file);
+  }
+});
+
+it('a receipt refused on a closed day says so and reads the day again; the key-conflict answer stays', () => {
+  for (const file of ['../app/quick-receive.tsx', '../app/receive.tsx', '../app/receive/file.tsx']) {
+    const src = screen(file);
+    assert.match(src, new RegExp(String.raw`if \(isStoreClosedRefusal\(e\)\) \{\s*toast\.error\(t\('gate\.refused\.receive'\)\);` + readsDayAgain + String.raw`\s*\}`), file);
+  }
+  for (const file of ['../app/quick-receive.tsx', '../app/receive.tsx']) {
+    assert.match(screen(file), /if \(e instanceof ApiError && e\.status === 409 && \/already used\/i\.test\(e\.message\)\) \{\s*void dialog\.alert\(\{ title: t\('receive\.uncertain\.title'\), message: t\('receive\.keyConflict'\) \}\);\s*return;\s*\}\s*if \(isStoreClosedRefusal\(e\)\)/, file);
+  }
+});
+
+it('both refusals are written in every language', () => {
+  for (const locale of ['en', 'fr', 'ar']) {
+    const src = readFileSync(new URL(`./i18n/${locale}.ts`, import.meta.url), 'utf8');
+    for (const key of ['gate.refused.sale', 'gate.refused.receive']) assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
+  }
 });
 
 console.log(`day-gate: ${passed} passed`);

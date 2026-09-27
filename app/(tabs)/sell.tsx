@@ -584,6 +584,12 @@ function SellScreen() {
             toast.error(t('sellDebt.problem.debtor_required', { amount: isolateLtr(formatMoney(Math.max(0, total - received))) }));
             return;
           }
+          // The day closed under this screen: nothing was sold. Reading the day again brings up the lock and Open store now.
+          case 'store_closed':
+            toast.error(t('gate.refused.sale'));
+            qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
+            qc.invalidateQueries({ queryKey: qk.home(branchId) });
+            return;
           default:
             break;
         }

@@ -23,6 +23,10 @@ import type { ReopenMode } from '../../lib/home-day';
  * day has been read again, so Sell and Receive open on the server's answer and
  * the button cannot be pressed twice in between. Somebody who may not open the
  * store is told who can, instead of being shown a dead button.
+ *
+ * This is the way back to the counter: the server refuses a sale or a receipt
+ * on a closed day and never reopens it for them. Only a later payment on an
+ * existing sale still reopens today's closed day.
  */
 export interface OpenStoreNowProps {
   /** The closed business day, from the light business-day view. */

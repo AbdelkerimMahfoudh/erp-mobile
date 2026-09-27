@@ -54,6 +54,7 @@ import type {
 import { makeStyles, useColors } from '../lib/design/theme';
 import { invalidateMoney } from '../lib/money-invalidation';
 import { DayGate } from '../components/day/DayGate';
+import { isStoreClosedRefusal } from '../lib/day-gate';
 
 /**
  * Quick Receive — one phone, from Home, camera first.
@@ -366,6 +367,13 @@ function QuickReceiveScreen() {
     onError: (e) => {
       if (e instanceof ApiError && e.status === 409 && /already used/i.test(e.message)) {
         void dialog.alert({ title: t('receive.uncertain.title'), message: t('receive.keyConflict') });
+        return;
+      }
+      // The day closed under this screen: nothing was received. Reading the day again brings up the lock and Open store now.
+      if (isStoreClosedRefusal(e)) {
+        toast.error(t('gate.refused.receive'));
+        qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
+        qc.invalidateQueries({ queryKey: qk.home(branchId) });
         return;
       }
       if (isUncertain(e)) {

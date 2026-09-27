@@ -1,5 +1,5 @@
-import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Keyboard, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Lock } from 'lucide-react-native';
 import { Button, Screen, Text } from '../ui';
@@ -15,9 +15,15 @@ import { dayGate } from '../../lib/day-gate';
  * The guard on Sell and Receive themselves (2026-09-27, `docs/59` D76), so
  * Home's buttons are not the only one: reached by a link, the Stock tab or the
  * back stack, a sale or a receipt still waits while the current business day is
- * closed. The screen behind it is not mounted until the day is known to be open
- * — its draft and its hooks start fresh then — and *Open store now* is offered
- * right here. Read fresh on every arrival; a failed read never blocks anybody.
+ * closed. Found closed on the first read, the lock stands in for the screen,
+ * which is not mounted until the day is known to be open — its draft and its
+ * hooks start fresh then — and *Open store now* is offered right here. Read
+ * fresh on every arrival; a failed read never blocks anybody, because the
+ * server itself refuses a sale or a receipt on a closed day (`store_closed`)
+ * instead of reopening it. The screen that meets that refusal reads the day
+ * again, which brings this lock up over it: the screen stays mounted beneath,
+ * so the item, the price and whatever was typed are still there once the store
+ * is open again.
  */
 export function DayGate({ children }: { children: React.ReactNode }) {
   const styles = useStyles();
@@ -26,8 +32,17 @@ export function DayGate({ children }: { children: React.ReactNode }) {
   const canPerform = usePermission('closing.perform');
   const businessDay = useBusinessDay({ enabled: canCount, fresh: true });
   const gate = dayGate(canCount ? businessDay.data : undefined, canPerform);
+  const reading = canCount && businessDay.isPending && businessDay.fetchStatus !== 'idle';
+  // Once the screen has been on show, a lock that comes later covers it rather than taking it away.
+  const [shown, setShown] = useState(false);
+  if (!shown && !reading && !gate.locked) setShown(true);
+  const covered = shown && gate.locked;
+  // A keyboard left up would keep typing into a field nobody can see.
+  useEffect(() => {
+    if (covered) Keyboard.dismiss();
+  }, [covered]);
   // The first read only: a brief wait instead of a screen that would appear and then be taken away.
-  if (canCount && businessDay.isPending && businessDay.fetchStatus !== 'idle') {
+  if (!shown && reading) {
     return (
       <Screen>
         <View style={styles.centre}>
@@ -36,8 +51,26 @@ export function DayGate({ children }: { children: React.ReactNode }) {
       </Screen>
     );
   }
-  if (!gate.locked) return <>{children}</>;
-  return <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} />;
+  if (!shown && gate.locked) return <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} />;
+  return (
+    <View style={styles.fill}>
+      {/* Covered, the screen is out of reach of touch and of screen readers until the store is open again. */}
+      <View
+        style={styles.fill}
+        pointerEvents={covered ? 'none' : 'auto'}
+        aria-hidden={covered}
+        accessibilityElementsHidden={covered}
+        importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
+      >
+        {children}
+      </View>
+      {gate.locked ? (
+        <View style={[StyleSheet.absoluteFill, styles.cover]}>
+          <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} />
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 function DayClosedScreen({ businessDate, mayOpen }: { businessDate: string; mayOpen: boolean }) {
@@ -59,6 +92,9 @@ function DayClosedScreen({ businessDate, mayOpen }: { businessDate: string; mayO
   );
 }
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles((colors) => ({
   centre: { flexGrow: 1, alignItems: 'stretch', justifyContent: 'center', gap: space.base, paddingVertical: space['2xl'] },
+  fill: { flex: 1 },
+  /** Opaque, so nothing of the screen beneath shows through the lock. */
+  cover: { backgroundColor: colors.surface.canvas },
 }));

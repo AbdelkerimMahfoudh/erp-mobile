@@ -4,6 +4,7 @@
  *   node lib/home-day.test.ts
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   axisTicks,
   changeText,
@@ -107,6 +108,23 @@ it('every history kind has a catalogue key, and an unknown one falls back rather
   assert.equal(historyKey('sale'), 'closing.history.sale');
   assert.equal(historyKey('auto_reopened'), 'closing.history.auto_reopened');
   assert.equal(historyKey('something_new'), 'closing.history.other');
+});
+
+it('a day reopened by itself says what reopened it: a payment, a receipt on an older event, else a sale', () => {
+  assert.equal(historyKey('auto_reopened', 'payment'), 'closing.history.auto_reopened.payment');
+  assert.equal(historyKey('auto_reopened', 'purchase'), 'closing.history.auto_reopened.purchase');
+  assert.equal(historyKey('auto_reopened', 'sale'), 'closing.history.auto_reopened');
+  assert.equal(historyKey('auto_reopened', undefined), 'closing.history.auto_reopened');
+  assert.equal(historyKey('auto_reopened', 'refund'), 'closing.history.auto_reopened', 'an unknown cause reads as before');
+  assert.equal(historyKey('reopened', 'payment'), 'closing.history.reopened', 'only a reopen by itself carries a cause');
+  // The closing screen passes the event's own cause, as the server records it.
+  assert.match(readFileSync(new URL('../app/closing/index.tsx', import.meta.url), 'utf8'), /t\(historyKey\(entry\.kind, p\.cause\) as never\)/);
+  const words = { en: ['Reopened by a payment', 'Reopened by a receipt'], fr: ['Rouverte par un paiement', 'Rouverte par une réception'], ar: ['أُعيد فتحه بدفعة', 'أُعيد فتحه باستلام'] };
+  for (const [locale, [payment, purchase]] of Object.entries(words)) {
+    const cat = readFileSync(new URL(`./i18n/${locale}.ts`, import.meta.url), 'utf8');
+    assert.ok(cat.includes(`'closing.history.auto_reopened.payment': '${payment}',`), `${locale}: payment`);
+    assert.ok(cat.includes(`'closing.history.auto_reopened.purchase': '${purchase}',`), `${locale}: purchase`);
+  }
 });
 
 it('the opening line: explicit open or reopen, today or on a past date, else no time recorded (0077)', () => {

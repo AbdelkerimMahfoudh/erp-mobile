@@ -216,6 +216,8 @@ export type SaleRefusal =
   | 'duplicate_payment_destination'
   | 'overpayment'
   | 'debtor_required'
+  // The current business day is closed (2026-09-27): nothing was sold, and the store is opened first.
+  | 'store_closed'
   | 'unknown';
 
 const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
@@ -231,6 +233,7 @@ const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
   'duplicate_payment_destination',
   'overpayment',
   'debtor_required',
+  'store_closed',
 ]);
 
 export function refusalOf(code: string | undefined): SaleRefusal {
