@@ -133,13 +133,14 @@ export interface BusinessDayView {
 }
 
 /** Which business day it is at this branch — the server's answer, never the phone's clock. */
-export function useBusinessDay(options: { enabled?: boolean } = {}) {
+export function useBusinessDay(options: { enabled?: boolean; fresh?: boolean } = {}) {
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.businessDay(branchId),
     queryFn: () => api.get<BusinessDayView>('/closings/business-day'),
     enabled: (options.enabled ?? true) && Boolean(branchId),
-    staleTime: 60_000,
+    // `fresh`: read again on every arrival — the Sell and Receive guard must not act on a minute-old answer.
+    staleTime: options.fresh ? 0 : 60_000,
   });
 }
 

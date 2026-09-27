@@ -58,6 +58,7 @@ import { recoverUncertainSale, refreshAfterUncertainty } from '../lib/sale-recov
 import { makeStyles } from '../lib/design/theme';
 import { selectableAccounts } from '../lib/receiving-accounts';
 import { invalidateMoney } from '../lib/money-invalidation';
+import { DayGate } from '../components/day/DayGate';
 
 /**
  * Quick Sell — "Sell an item": one item, from Home.
@@ -118,7 +119,7 @@ interface SaleResponse {
   returnPolicy: ReturnPolicySnapshot;
 }
 
-export default function QuickSellScreen() {
+function QuickSellScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
@@ -880,3 +881,12 @@ const useStyles = makeStyles(() => ({
     gap: space.md,
   },
 }));
+
+/** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
+export default function QuickSellScreenRoute() {
+  return (
+    <DayGate>
+      <QuickSellScreen />
+    </DayGate>
+  );
+}

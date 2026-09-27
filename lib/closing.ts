@@ -117,7 +117,7 @@ export interface OpenClosing {
   previousDay: { businessDate: string; standing: DayStanding; needsReview: boolean } | null;
 }
 
-export function useOpenClosing(date?: string) {
+export function useOpenClosing(date?: string, options: { enabled?: boolean } = {}) {
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.openClosing(branchId, date ?? 'today'),
@@ -125,6 +125,8 @@ export function useOpenClosing(date?: string) {
     // The expected figures move as the day's work is confirmed, so a stale view
     // would show somebody a shortage they do not have.
     staleTime: 0,
+    // Only for those the view is for (`closing.count`): Home and the Sell/Receive guard ask for it too.
+    enabled: (options.enabled ?? true) && Boolean(branchId),
   });
 }
 
@@ -175,11 +177,20 @@ export function useReopenDay(date?: string) {
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
     mutationFn: (mode: ReopenMode) => api.post<OpenClosing>('/closings/reopen', { mode, ...(date ? { date } : {}) }),
+    // Returned, so the reopen finishes only once the day has been read again: the counter opens on the server's
+    // answer, and Open store now cannot be pressed twice in between (docs/59 D76).
     onSuccess: () => {
+      invalidateMoney(qc);
+      return Promise.all([
+        qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') }),
+        qc.invalidateQueries({ queryKey: qk.businessDay(branchId) }),
+        qc.invalidateQueries({ queryKey: ['home', branchId] }),
+      ]);
+    },
+    // Refused — the day was reopened elsewhere, or 06:00 passed: read it again, so a stale lock clears itself.
+    onError: () => {
       void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
       void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
-      void qc.invalidateQueries({ queryKey: ['home', branchId] });
-      invalidateMoney(qc);
     },
   });
 }

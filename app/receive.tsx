@@ -59,6 +59,7 @@ import type {
 } from '../types/api';
 import { makeStyles, useColors } from '../lib/design/theme';
 import { invalidateMoney } from '../lib/money-invalidation';
+import { DayGate } from '../components/day/DayGate';
 
 /**
  * Receive — the bulk workflow.
@@ -113,7 +114,7 @@ function isUncertain(e: unknown): boolean {
   return !(e instanceof ApiError) || e.status >= 500;
 }
 
-export default function ReceiveScreen() {
+function ReceiveScreen() {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -837,3 +838,12 @@ const useStyles = makeStyles((colors) => ({
     gap: space.md,
   },
 }));
+
+/** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
+export default function ReceiveScreenRoute() {
+  return (
+    <DayGate>
+      <ReceiveScreen />
+    </DayGate>
+  );
+}

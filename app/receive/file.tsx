@@ -64,6 +64,7 @@ import {
 } from '../../lib/file-receiving';
 import { groupSummaries, reviewRows, toggleOpenGroup, type ReviewFilter, type ReviewRowData } from '../../lib/file-review-rows';
 import type { PurchaseOutcome } from '../../lib/receive-outcome';
+import { DayGate } from '../../components/day/DayGate';
 
 /**
  * Reviewing a delivery read out of a file.
@@ -129,7 +130,7 @@ type Step = 'review' | 'payment';
 
 const Separator = () => <ListSeparator inset={false} />;
 
-export default function FileReviewScreen() {
+function FileReviewScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
@@ -1081,3 +1082,12 @@ const useStyles = makeStyles((colors) => ({
   sheet: { gap: space.md, padding: space.base },
   sheetActions: { gap: space.sm },
 }));
+
+/** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
+export default function FileReviewScreenRoute() {
+  return (
+    <DayGate>
+      <FileReviewScreen />
+    </DayGate>
+  );
+}

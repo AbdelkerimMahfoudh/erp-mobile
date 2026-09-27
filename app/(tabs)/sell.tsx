@@ -55,6 +55,7 @@ import { selectableAccounts } from '../../lib/receiving-accounts';
 import { invalidateMoney } from '../../lib/money-invalidation';
 import { classifySubmitFailure } from '../../lib/sale-submission';
 import { recoverUncertainSale, refreshAfterUncertainty } from '../../lib/sale-recovery';
+import { DayGate } from '../../components/day/DayGate';
 
 /**
  * Sell — the fastest screen in the app.
@@ -98,7 +99,7 @@ interface PendingScan {
   needsPrice: boolean;
 }
 
-export default function SellScreen() {
+function SellScreen() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -1023,3 +1024,12 @@ const styles = StyleSheet.create({
     padding: space.base,
   },
 });
+
+/** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
+export default function SellScreenRoute() {
+  return (
+    <DayGate>
+      <SellScreen />
+    </DayGate>
+  );
+}

@@ -11,6 +11,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useBranch } from '../../lib/branch';
 import { useFileBatch } from '../../lib/file-batch-store';
 import { parseFailureKey, useParseReceivingFile, type ParseResult, type PickedFile } from '../../lib/file-receiving';
+import { DayGate } from '../../components/day/DayGate';
 
 /**
  * Choosing the file, and choosing what inside it to read.
@@ -21,7 +22,7 @@ import { parseFailureKey, useParseReceivingFile, type ParseResult, type PickedFi
  * one sheet the sheets are listed with what each one looks like, so the
  * instructions page is never mistaken for the stock.
  */
-export default function PickReceivingFileScreen() {
+function PickReceivingFileScreen() {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -169,3 +170,12 @@ const useStyles = makeStyles(() => ({
   card: { gap: space.sm },
   loading: { alignItems: 'center', gap: space.xs, paddingVertical: space.lg },
 }));
+
+/** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
+export default function PickReceivingFileScreenRoute() {
+  return (
+    <DayGate>
+      <PickReceivingFileScreen />
+    </DayGate>
+  );
+}

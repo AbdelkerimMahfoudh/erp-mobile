@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { PixelRatio, View } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AppState, PixelRatio, View } from 'react-native';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
 import { ChevronRight, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
@@ -20,6 +20,8 @@ import {
   Text,
 } from '../../components/ui';
 import { HomeHeader } from '../../components/home/HomeHeader';
+import { OpenStoreNow } from '../../components/day/OpenStoreNow';
+import { dayGate } from '../../lib/day-gate';
 import { SalesBars } from '../../components/home/SalesBars';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
@@ -35,7 +37,7 @@ import { calendarDate } from '../../lib/day-range';
 import { toFriendlyError } from '../../lib/errors';
 import { CURRENCY_CODE, formatDate, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
 import { arrivalDay, changeText, changeTone, daySpan, freshness, standingKey, type HomePeriod, HOME_PERIODS } from '../../lib/home-day';
-import { useHome, type HomeArrival, type HomeBar } from '../../lib/home';
+import { useBusinessDay, useHome, type HomeArrival, type HomeBar } from '../../lib/home';
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -67,7 +69,28 @@ export default function HomeScreen() {
   const canReceive = usePermission('purchase.manage');
   const canViewTransfers = usePermission('transfer.view');
   const canViewReturns = usePermission('return.view');
+  const canCount = usePermission('closing.count');
+  const canPerform = usePermission('closing.perform');
   const shortcutsReady = Boolean(branchId) && permissionsReady;
+  /*
+    The server's business day decides the counter (2026-09-27, docs/59 D76): while the current day is closed, Sell
+    and Receive wait and Open store now sits beneath them. The light business-day view, read again whenever Home
+    comes back into view, on pull-to-refresh and when the app returns to the foreground — so a day closed or opened
+    elsewhere, or 06:00 passing, is not missed. Nobody the view is not for is judged on a cached answer.
+  */
+  const businessDay = useBusinessDay({ enabled: permissionsReady && canCount });
+  const gate = dayGate(canCount ? businessDay.data : undefined, canPerform);
+  const refetchDay = businessDay.refetch;
+  const readDay = useCallback(() => {
+    if (permissionsReady && canCount) void refetchDay();
+  }, [permissionsReady, canCount, refetchDay]);
+  useFocusEffect(readDay);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') readDay();
+    });
+    return () => sub.remove();
+  }, [readDay]);
 
   const home = useHome(period, { enabled: permissionsReady });
   const transfers = useQuery({
@@ -93,6 +116,7 @@ export default function HomeScreen() {
   */
   const onRefresh = () => {
     if (permissionsReady) void home.refetch();
+    readDay();
     if (canViewTransfers) void transfers.refetch();
     if (canViewReturns) {
       void refunds.refetch();
@@ -136,46 +160,36 @@ export default function HomeScreen() {
         note={dayNote}
       />
 
-      {/* ── The two counter actions, side by side ── */}
+      {/* ── The two counter actions, side by side: Receive on the start side, Sell on the end side ── */}
       {canSell || canReceive ? (
         <View style={styles.shortcuts}>
           <View style={styles.actionRow}>
-            {canSell ? (
-              <Button
-                title={t('home.shortcut.sell')}
-                icon={ScanLine}
-                size="lg"
-                disabled={!shortcutsReady}
-                onPress={() => router.push('/quick-sell' as Href)}
-                accessibilityHint={t('home.shortcut.sell.hint')}
-                style={styles.action}
-              />
-            ) : null}
             {canReceive ? (
               <Button
                 title={t('home.shortcut.receive')}
                 icon={PackagePlus}
                 variant="secondary"
                 size="lg"
-                disabled={!shortcutsReady}
+                disabled={!shortcutsReady || gate.locked}
                 onPress={() => router.push('/quick-receive' as Href)}
                 accessibilityHint={t('home.shortcut.receive.hint')}
                 style={styles.action}
               />
             ) : null}
+            {canSell ? (
+              <Button
+                title={t('home.shortcut.sell')}
+                icon={ScanLine}
+                size="lg"
+                disabled={!shortcutsReady || gate.locked}
+                onPress={() => router.push('/quick-sell' as Href)}
+                accessibilityHint={t('home.shortcut.sell.hint')}
+                style={styles.action}
+              />
+            ) : null}
           </View>
-          {canSell ? (
-            <Button
-              title={t('home.shortcut.fullSale')}
-              icon={ChevronRight}
-              iconPosition="end"
-              variant="tertiary"
-              size="sm"
-              disabled={!shortcutsReady}
-              onPress={() => router.push('/(tabs)/sell')}
-              style={styles.fullSale}
-            />
-          ) : null}
+          {/* Selling several items stays inside Sell; while the day is closed, the store is opened first, here. */}
+          {gate.locked ? <OpenStoreNow businessDate={gate.businessDate} mayOpen={gate.mayOpen} /> : null}
         </View>
       ) : null}
 
@@ -481,14 +495,13 @@ function PendingRow({ icon, label, count, onPress }: { icon: LucideIcon; label: 
 }
 
 const useStyles = makeStyles((colors) => ({
-  shortcuts: { gap: space.xs },
+  shortcuts: { gap: space.md },
   /*
     Side by side where both labels fit; one above the other below ~360 points, where
     "Réceptionner" needed 90 of the 71 points a half-width button leaves (docs/54).
   */
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   action: { flexGrow: 1, flexBasis: 160 },
-  fullSale: { alignSelf: 'center' },
   block: { gap: space.base },
   statRow: { flexDirection: 'row', gap: space.sm },
   hero: { gap: space.xs },

@@ -103,9 +103,9 @@ it('the Partners tab label is translated in all three languages', () => {
 
 // ── full Sell stays reachable, and old links resolve ────────────────────────
 
-it('Home links to the full sale, so a multi-item cart is never stranded', () => {
+it('several items are sold from inside Sell, not from a second link on Home (2026-09-27)', () => {
   const home = read('../app/(tabs)/index.tsx');
-  assert.match(home, /\/\(tabs\)\/sell/);
+  assert.ok(!/\/\(tabs\)\/sell/.test(home), 'Home carries Sell and Receive only');
 });
 
 it('Quick Sell offers the full sale too', () => {

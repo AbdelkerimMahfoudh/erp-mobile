@@ -288,7 +288,7 @@ export function visibleGroups(granted: ReadonlySet<string>): { group: MoreGroup;
  */
 export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Bottom tab — Home.',
-  '/sell': 'The full sale — no longer a tab, still a route. Reached from Home and Quick Sell; kept so links and the saved cart keep working.',
+  '/sell': 'The full sale — no longer a tab, still a route. Reached from Quick Sell (Home’s Sell, docs/59 D75); kept so links and the saved cart keep working.',
   '/stores': 'Legacy link — redirects to the Partners tab.',
   '/partners/[id]': 'One store this shop deals with, opened from Partners.',
   '/inventory': 'Bottom tab — Inventory.',

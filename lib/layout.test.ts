@@ -54,15 +54,38 @@ it('Money and Results read the same period store and the same selector', () => {
 
 // ── Home ────────────────────────────────────────────────────────────────────
 
-it('Home: Sell and Receive side by side, with the several-items link under them', () => {
+it('Home: Receive then Sell side by side, no several-items link, and Open store now beneath them while the day is closed (2026-09-27)', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
-  const row = home.slice(home.indexOf('styles.actionRow'), home.indexOf("t('home.shortcut.fullSale')"));
-  assert.match(row, /t\('home\.shortcut\.sell'\)/);
-  assert.match(row, /t\('home\.shortcut\.receive'\)/);
+  const row = home.slice(home.indexOf('styles.actionRow'), home.indexOf('<OpenStoreNow'));
+  assert.ok(row.indexOf("t('home.shortcut.receive')") < row.indexOf("t('home.shortcut.sell')"), 'Receive on the start side, Sell on the end side');
   assert.match(home, /router\.push\('\/quick-sell' as Href\)/);
   assert.match(home, /router\.push\('\/quick-receive' as Href\)/);
-  assert.match(home, /router\.push\('\/\(tabs\)\/sell'\)/);
+  assert.ok(!home.includes("t('home.shortcut.fullSale')") && !/router\.push\('\/\(tabs\)\/sell'\)/.test(home), 'several items live inside Sell');
+  assert.equal((row.match(/disabled=\{!shortcutsReady \|\| gate\.locked\}/g) ?? []).length, 2, 'both wait while the day is closed');
+  assert.match(home, /const gate = dayGate\(canCount \? businessDay\.data : undefined, canPerform\);/);
+  assert.match(home, /\{gate\.locked \? <OpenStoreNow businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/> : null\}/);
+  // Read again on focus, on pull-to-refresh and when the app returns, so a stale lock clears itself.
+  assert.match(home, /useFocusEffect\(readDay\);/);
+  assert.match(home, /AppState\.addEventListener\('change', \(next\) => \{\s*if \(next === 'active'\) readDay\(\);/);
+  assert.match(home, /const onRefresh = \(\) => \{\s*if \(permissionsReady\) void home\.refetch\(\);\s*readDay\(\);/);
   assert.match(read('../app/(tabs)/index.tsx'), /actionRow: \{ flexDirection: 'row'/);
+});
+
+it('Sell and Receive are guarded where they are reached, not only on Home (2026-09-27)', () => {
+  for (const [file, name] of [['../app/quick-sell.tsx', 'QuickSellScreen'], ['../app/(tabs)/sell.tsx', 'SellScreen'], ['../app/quick-receive.tsx', 'QuickReceiveScreen'], ['../app/receive.tsx', 'ReceiveScreen'], ['../app/receive/pick.tsx', 'PickReceivingFileScreen'], ['../app/receive/file.tsx', 'FileReviewScreen']]) {
+    const src = code(read(file));
+    assert.match(src, new RegExp(`export default function ${name}Route\\(\\) \\{\\s*return \\(\\s*<DayGate>\\s*<${name} \\/>\\s*<\\/DayGate>`), `${file} sits behind the guard`);
+    assert.ok(!new RegExp(`export default function ${name}\\(`).test(src), `${file}: the screen itself is not the route`);
+  }
+  const gate = code(read('../components/day/DayGate.tsx'));
+  assert.match(gate, /const businessDay = useBusinessDay\(\{ enabled: canCount, fresh: true \}\);/);
+  // The first read only: a short wait rather than a screen that appears and is taken away.
+  assert.match(gate, /if \(canCount && businessDay\.isPending && businessDay\.fetchStatus !== 'idle'\) \{/);
+  assert.match(gate, /if \(!gate\.locked\) return <>\{children\}<\/>;/);
+  // The reopen finishes once the day is read again, and a refusal reads it again too.
+  const closingHooks = code(read('./closing.ts'));
+  assert.match(closingHooks, /return Promise\.all\(\[\s*qc\.invalidateQueries\(\{ queryKey: qk\.openClosing\(branchId, date \?\? 'today'\) \}\),\s*qc\.invalidateQueries\(\{ queryKey: qk\.businessDay\(branchId\) \}\),/);
+  assert.match(closingHooks, /onError: \(\) => \{\s*void qc\.invalidateQueries\(\{ queryKey: qk\.openClosing/);
 });
 
 it('Home shows exactly the figures of the business-date contract, and no stock or menu section', () => {
