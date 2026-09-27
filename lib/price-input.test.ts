@@ -10,7 +10,7 @@
  * nobody chose.
  */
 import assert from 'node:assert/strict';
-import { parsePrice, canSave } from './price-input.ts';
+import { parsePrice, canSave, parseAmount, maskAmount } from './price-input.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -78,6 +78,33 @@ it('offers Save only for a real change', () => {
   assert.equal(canSave('', 17000), false, 'blank is not a change');
   assert.equal(canSave('-5', 17000), false, 'invalid is not a change');
   assert.equal(canSave('17000', null), true, 'first price for an unpriced item');
+});
+
+it('the money field keeps Arabic-Indic digits as ASCII, one point, and a minus only where the figure may be below zero', () => {
+  assert.equal(maskAmount('١٢٣٤'), '1234', 'the Arabic keyboard types an amount, not nothing');
+  assert.equal(maskAmount('۱۲۳۴'), '1234');
+  assert.equal(maskAmount('١٢٫٥'), '12.5', 'the Arabic decimal separator is a point');
+  assert.equal(maskAmount('12,5'), '12.5', 'a comma is the French decimal separator');
+  assert.equal(maskAmount('1.2.3'), '1.23', 'a second separator is dropped as typed, as before');
+  assert.equal(maskAmount('12a3'), '123');
+  assert.equal(maskAmount('-300'), '300', 'no minus where a figure cannot be below zero');
+  assert.equal(maskAmount('-300', true), '-300', 'an account’s net movement may be');
+  assert.equal(maskAmount('-٣٠٠', true), '-300');
+  assert.equal(maskAmount('3-00', true), '300', 'a minus counts only at the start');
+  assert.equal(maskAmount('', true), '');
+});
+
+it('a counted amount is parsed as strictly as a price, and signed only where allowed', () => {
+  assert.deepEqual(parseAmount('١٢٣٤'), { ok: true, value: 1234 });
+  assert.deepEqual(parseAmount('-300', { allowNegative: true }), { ok: true, value: -300 });
+  assert.deepEqual(parseAmount('-300'), { ok: false, reason: 'negative' });
+  assert.deepEqual(parseAmount('-0.5', { allowNegative: true }), { ok: true, value: -0.5 });
+  for (const bad of ['.', '-', '-.', '1.2.3', 'NaN', 'Infinity', '--3']) {
+    assert.equal(parseAmount(bad, { allowNegative: true }).ok, false, `expected ${bad} to be refused`);
+  }
+  assert.deepEqual(parseAmount('12.345', { allowNegative: true }), { ok: false, reason: 'too_precise' });
+  assert.deepEqual(parseAmount('   '), { ok: false, reason: 'empty' });
+  assert.deepEqual(parsePrice('-300'), { ok: false, reason: 'negative' }, 'a price stays unsigned');
 });
 
 console.log(`\n${passed} passed`);

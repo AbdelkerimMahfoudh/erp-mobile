@@ -11,6 +11,56 @@ export type ParsedPrice =
   | { ok: true; value: number }
   | { ok: false; reason: 'empty' | 'not_a_number' | 'negative' | 'too_precise' };
 
+/** Any amount typed: a price, a count of the drawer, a movement shown by an account's app. */
+export type ParsedAmount = ParsedPrice;
+
+/**
+ * Arabic-Indic ٠-٩ and Extended Arabic-Indic ۰-۹ as ASCII digits, and the Arabic
+ * decimal separator ٫ as a point. The Arabic keyboard types these; dropping them
+ * would leave an Arabic-speaking person unable to type an amount at all.
+ */
+export function toAsciiDigits(input: string): string {
+  return input
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/٫/g, '.');
+}
+
+/**
+ * What a money field keeps of each keystroke: digits (Arabic-Indic ones as
+ * ASCII), one decimal point (typed as `.`, `,` or `٫`), and — only where the
+ * figure may be below zero — a leading minus. Anything else is dropped as typed.
+ */
+export function maskAmount(text: string, allowNegative = false): string {
+  const ascii = toAsciiDigits(text).replace(/,/g, '.');
+  const negative = allowNegative && ascii.trimStart().startsWith('-');
+  const [head, ...tail] = ascii.replace(/[^0-9.]/g, '').split('.');
+  return (negative ? '-' : '') + (tail.length ? `${head}.${tail.join('')}` : head);
+}
+
+/**
+ * Turn a typed amount into a number the API will accept, or say why it will not.
+ * Below zero only where the caller allows it (an account's net movement can be);
+ * never NaN, never more than the two decimals `DECIMAL(14,2)` holds.
+ */
+export function parseAmount(input: string, { allowNegative = false }: { allowNegative?: boolean } = {}): ParsedAmount {
+  const normalised = toAsciiDigits(input.trim()).replace(/\s|,/g, '');
+
+  if (!normalised) return { ok: false, reason: 'empty' };
+  if (!/^-?\d*\.?\d*$/.test(normalised) || normalised === '.' || normalised === '-' || normalised === '-.') {
+    return { ok: false, reason: 'not_a_number' };
+  }
+
+  const value = Number(normalised);
+  if (!Number.isFinite(value)) return { ok: false, reason: 'not_a_number' };
+  if (value < 0 && !allowNegative) return { ok: false, reason: 'negative' };
+
+  const decimals = normalised.split('.')[1]?.length ?? 0;
+  if (decimals > 2) return { ok: false, reason: 'too_precise' };
+
+  return { ok: true, value };
+}
+
 /**
  * Turn a typed price into a number the API will accept, or say why it will not.
  *
@@ -21,28 +71,7 @@ export type ParsedPrice =
  * ships inconsistent ICU data, so formatting stays with `lib/format`.
  */
 export function parsePrice(input: string): ParsedPrice {
-  const normalised = input
-    .trim()
-    // Arabic-Indic ٠-٩ and Extended Arabic-Indic ۰-۹ → ASCII.
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    // Arabic decimal separator.
-    .replace(/٫/g, '.')
-    .replace(/\s|,/g, '');
-
-  if (!normalised) return { ok: false, reason: 'empty' };
-  if (!/^-?\d*\.?\d*$/.test(normalised) || normalised === '.' || normalised === '-') {
-    return { ok: false, reason: 'not_a_number' };
-  }
-
-  const value = Number(normalised);
-  if (!Number.isFinite(value)) return { ok: false, reason: 'not_a_number' };
-  if (value < 0) return { ok: false, reason: 'negative' };
-
-  const decimals = normalised.split('.')[1]?.length ?? 0;
-  if (decimals > 2) return { ok: false, reason: 'too_precise' };
-
-  return { ok: true, value };
+  return parseAmount(input);
 }
 
 /** Save is offered only for a valid price that actually differs from the current one. */

@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import {
+  Platform,
   StyleSheet,
   TextInput,
   View,
@@ -11,6 +12,7 @@ import { Eye, EyeOff } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
 import { textAlign, writingDirection } from '../../lib/design/direction';
 import { CURRENCY_CODE } from '../../lib/format';
+import { maskAmount } from '../../lib/price-input';
 import { useTranslation } from '../../lib/i18n';
 import { IconButton } from './IconButton';
 import { Text } from './Text';
@@ -38,9 +40,11 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   /**
    * `identifier` pins the input LTR with tabular figures, for IMEIs, serials
    * and barcodes. Those are machine values and must never be reordered by
-   * Arabic layout or "corrected" by autocapitalisation.
+   * Arabic layout or "corrected" by autocapitalisation. `amount` keeps the
+   * reading side's alignment but writes left to right, so a signed figure reads
+   * "-300" in Arabic too, as the app shows every figure.
    */
-  variant?: 'default' | 'identifier';
+  variant?: 'default' | 'identifier' | 'amount';
   containerStyle?: StyleProp<ViewStyle>;
 }
 
@@ -68,6 +72,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const [focused, setFocused] = useState(false);
   const [revealed, setReveal] = useState(false);
   const isIdentifier = variant === 'identifier';
+  const isAmount = variant === 'amount';
 
   /**
    * Any secure field gets a reveal toggle, automatically.
@@ -132,7 +137,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             {
               color: editable ? colors.text.primary : colors.text.disabled,
               textAlign: isIdentifier ? 'left' : textAlign('start'),
-              writingDirection: writingDirection(isIdentifier),
+              writingDirection: writingDirection(isIdentifier || isAmount),
             },
             isIdentifier ? styles.identifierInput : null,
             // A revealed password keeps the monospaced treatment so characters
@@ -172,9 +177,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   );
 });
 
-export interface MoneyFieldProps extends Omit<TextFieldProps, 'keyboardType' | 'variant'> {
+export interface MoneyFieldProps extends Omit<TextFieldProps, 'keyboardType' | 'inputMode' | 'variant'> {
   /** Hide the trailing currency code where a column header already says it. */
   showCurrency?: boolean;
+  /** A figure that may be below zero (an account's net movement): keeps a leading minus and offers a keyboard with one. */
+  allowNegative?: boolean;
 }
 
 /**
@@ -182,20 +189,19 @@ export interface MoneyFieldProps extends Omit<TextFieldProps, 'keyboardType' | '
  * into a sale, and shows the currency inline so nobody has to wonder.
  */
 export const MoneyField = forwardRef<TextInput, MoneyFieldProps>(function MoneyField(
-  { showCurrency = true, onChangeText, trailing, ...rest },
+  { showCurrency = true, allowNegative = false, onChangeText, trailing, ...rest },
   ref,
 ) {
   return (
     <TextField
       ref={ref}
-      keyboardType="decimal-pad"
-      inputMode="decimal"
-      onChangeText={(text) => {
-        // Digits and a single separator; both `.` and `,` accepted, `.` stored.
-        const normalized = text.replace(/,/g, '.').replace(/[^0-9.]/g, '');
-        const [head, ...tail] = normalized.split('.');
-        onChangeText?.(tail.length ? `${head}.${tail.join('')}` : head);
-      }}
+      // The decimal pads have no minus key: a signed figure takes Android's signed pad, or iOS's numbers-and-punctuation.
+      // `inputMode` would override `keyboardType`, so it is set only for the unsigned pad.
+      keyboardType={allowNegative ? Platform.select({ ios: 'numbers-and-punctuation', default: 'numeric' }) : 'decimal-pad'}
+      inputMode={allowNegative ? undefined : 'decimal'}
+      variant={allowNegative ? 'amount' : 'default'}
+      // Digits (Arabic-Indic ones as ASCII) and a single separator; `.`, `,` and `٫` accepted, `.` stored.
+      onChangeText={(text) => onChangeText?.(maskAmount(text, allowNegative))}
       trailing={
         trailing ?? (showCurrency ? (
           <Text variant="label" tone="tertiary">
