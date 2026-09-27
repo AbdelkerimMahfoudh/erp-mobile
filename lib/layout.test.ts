@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { periodDays, periodRange } from './period.ts';
+import { periodDays, periodRange, usePeriod } from './period.ts';
 import { resultLines } from './results.ts';
 import { movementTotals } from './money-movement-rules.ts';
 import { MONEY_QUERY_PREFIXES, invalidateMoney } from './money-invalidation.ts';
@@ -50,6 +50,24 @@ it('Money and Results read the same period store and the same selector', () => {
     assert.match(src, /usePeriodRange\(key\)/);
     assert.match(src, /<PeriodSelector \/>/);
   }
+});
+
+it('Home and Money open on Today at launch and on every arrival from another tab; the screens opened from Money keep its choice', () => {
+  assert.equal(usePeriod.getState().key, 'today', 'the shared period starts on Today');
+  const home = code(read('../app/(tabs)/index.tsx'));
+  assert.match(home, /useState<HomePeriod>\('today'\)/);
+  assert.match(home, /useTodayOnArrival\(\(\) => setPeriod\('today'\)\)/);
+  assert.match(code(read('../app/(tabs)/money-hub.tsx')), /useTodayOnArrival\(\(\) => setKey\('today'\)\)/);
+  // Results and a day's sales share Money's choice: only their selector changes it, nothing puts it back.
+  for (const file of ['../app/money.tsx', '../app/sales/period.tsx']) {
+    const src = code(read(file));
+    assert.ok(!/setKey\(/.test(src), `${file} never resets the period`);
+    assert.ok(!src.includes('useTodayOnArrival'), `${file} is not an arrival`);
+  }
+  // The Daily closing's date bar is a date, not a period: its own state, untouched by an arrival.
+  const closing = code(read('../app/closing/index.tsx'));
+  assert.match(closing, /useState<string \| undefined>\(undefined\)/);
+  assert.ok(!closing.includes('useTodayOnArrival'), 'the closing keeps its own date');
 });
 
 // ── Home ────────────────────────────────────────────────────────────────────
@@ -206,17 +224,21 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   ]);
   assert.deepEqual(t, { moneyIn: 1500.1, moneyOut: 200.05, net: 1300.05 });
   const src = code(read('../app/(tabs)/money-hub.tsx'));
-  // The card: every method beneath the server's total, on one basis, said for what it is (2026-09-27).
+  // Today's card: every method beneath the server's total, on one basis, said for what it is (2026-09-27).
   assert.match(src, /t\('moneyTab\.today\.title'\)/);
-  assert.match(src, /<MoneyValue value=\{cardData\.moneyToday\.total\.net\} size="display" signed=\{cardData\.moneyToday\.total\.net < 0\} decimals=\{cardDecimals\} \/>/);
+  assert.match(src, /<MoneyValue value=\{cardData\.moneyToday\.total\.net\} size="large" signed=\{cardData\.moneyToday\.total\.net < 0\} decimals=\{cardDecimals\} \/>/);
   assert.match(src, /cardData\.moneyToday\.channels\.map\(\(m\) => \(\s*<MethodLine[^>]*decimals=\{cardDecimals\} \/>/);
+  // One focal figure: the money held is the display figure, today's movement sits below it at a smaller size.
+  assert.equal(src.match(/size="display"/g)?.length, 1);
+  assert.match(src, /<MoneyValue value=\{held\.total\} size="display"/);
   assert.ok(!/<Disclosure\b/.test(src), 'the methods are not behind a disclosure');
   // Today on every arrival at the tab; a choice made there stays through screens opened from it and refetches.
-  // The tab stays mounted behind another tab, so leaving is read from the tab bar's own state, not the route.
-  assert.match(src, /navigation\.addListener\('state', \(e\) => \{\s*const tabs = e\.data\.state;\s*if \(tabs\.routes\[tabs\.index\]\?\.name !== 'money-hub'\) setKey\('today'\);/);
-  // The first visit before the first paint, so it never shows or fetches a choice made elsewhere.
-  assert.match(src, /useLayoutEffect\(\(\) => setKey\('today'\), \[setKey\]\);/);
+  // The tab stays mounted behind another tab, so leaving is read from the tab bar's own state (lib/tab-arrival.test.ts).
+  assert.match(src, /useTodayOnArrival\(\(\) => setKey\('today'\)\)/);
   assert.ok(!/useSegments\(/.test(src), 'a mounted tab never sees its route change');
+  // Pull-to-refresh reads the business day again, so a tab left open across 06:00 moves on with the card.
+  assert.match(src, /const refetchDay = useBusinessDay\(\{ enabled: canCount \}\)\.refetch;/);
+  assert.match(src, /\? \(\) => \{\s*if \(canCount\) void refetchDay\(\);\s*void overview\.refetch\(\);/);
   assert.match(src, /visibleChildren\(hub, granted\)/, 'actions come from the registry');
   assert.match(src, /enabled: canViewFigures/, 'figures need report.view');
 });

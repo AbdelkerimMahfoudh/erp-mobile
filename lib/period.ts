@@ -7,6 +7,10 @@ import { create } from 'zustand';
  * two screens quietly answer different questions. So the choice lives here,
  * outside either screen, and both read it.
  *
+ * It starts on Today, and the Money tab puts it back to Today whenever the
+ * person arrives there from another tab (`useTodayOnArrival`); a choice made
+ * on Money stays through Results, a day's sales and the way back.
+ *
  * Days are the branch's BUSINESS dates (0076), the way the server keys every
  * rollup, the closing and every period endpoint; `usePeriodRange` (in `lib/home.ts`,
  * so this file stays importable under bare node) asks the server which day it is. "This month" is month-to-date, the same
@@ -43,7 +47,7 @@ interface PeriodState {
 }
 
 export const usePeriod = create<PeriodState>((set) => ({
-  key: 'month',
+  key: 'today',
   setKey: (key) => set({ key }),
 }));
 

@@ -110,6 +110,11 @@ export const PERMISSIONS = [
   'closing.count',
   'closing.perform',
   /**
+   * 0082: saying what an account holds now anchors every figure Money tracks for
+   * it afterwards. The Owner's alone, never delegated.
+   */
+  'money.anchor.record',
+  /**
    * Owner-only, and deliberately not part of `closing.perform` — a Manager
    * holds that. Deciding that a named person owes the business money is not an
    * operational act.

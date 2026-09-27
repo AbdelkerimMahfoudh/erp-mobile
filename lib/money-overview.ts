@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { invalidateMoney } from './money-invalidation';
@@ -29,6 +29,53 @@ export interface MethodMoney {
   net: number;
 }
 
+/**
+ * What one method holds as this app tracks it: an amount known to be true at one moment (the anchor) plus everything
+ * recorded since, carried across midnight (2026-09-27). Never a provider's balance.
+ */
+export interface TrackedMethod {
+  /** `cash`, or `account:<uuid>`. */
+  key: string;
+  channel: 'cash' | 'account';
+  accountId: string | null;
+  /** The account's label; '' for cash, which the phone names in its own language. */
+  label: string;
+  /** The drawer is the branch's; an account is the company's, whichever branch moved it. */
+  scope: 'branch' | 'company';
+  isActive: boolean;
+  known: boolean;
+  /** Null when the records cannot establish it — never 0. */
+  position: number | null;
+  unknownReason: 'no_counted_close' | 'no_anchor' | null;
+  anchor: {
+    /** Cash starts from a counted close; an account from the amount the Owner read off its app. */
+    source: 'counted_close' | 'declared';
+    amount: number;
+    at: string | null;
+    businessDate: string;
+    byName: string | null;
+  } | null;
+  sinceAnchorNet: number | null;
+}
+
+export interface TrackedMoney {
+  asOf: string;
+  businessDate: string;
+  basis: 'anchor_plus_recorded_movement';
+  /** The company's stores: an account's figure covers all of them. */
+  branchCount: number;
+  /**
+   * Whether the accounts are listed. Their amounts are the company's, so only the Owner, who may set them, sees them;
+   * anyone else gets this branch's drawer alone, and no total.
+   */
+  accountsVisible: boolean;
+  /** Cash first, then the active accounts in the shop's order, then a switched-off account that has an anchor. */
+  methods: TrackedMethod[];
+  /** The server's sum of the positions, only when the accounts are listed and every method is known — never a total over a gap. */
+  total: number | null;
+  unknownKeys: string[];
+}
+
 export interface ExpenseToday {
   /** `reversal`: part of an expense reversed today — its amount is negative (docs/53). */
   kind?: 'expense' | 'reversal';
@@ -55,6 +102,8 @@ export interface MoneyOverview {
    * for any of them; `total` is the server's sum of exactly these rows. Not a drawer count, not a provider balance.
    */
   moneyToday: { channels: MethodMoney[]; total: { moneyIn: number; moneyOut: number; net: number } };
+  /** What each method holds, as tracked — a position, never mixed with today's movement above. */
+  trackedMoney: TrackedMoney;
   period: {
     phonesSold: number;
     /** Every item on the invoices less items on cancelled invoices — what "Items sold" shows (docs/53 R6). */
@@ -208,6 +257,68 @@ export function useRecordSalePayment(saleId: string) {
   });
 
   return mutation;
+}
+
+// ── what an account holds ───────────────────────────────────────────────────
+
+export interface RecordAnchorInput {
+  accountId: string;
+  amount: number;
+  note: string;
+}
+
+export interface RecordedAnchor {
+  anchor: {
+    id: string;
+    accountId: string;
+    label: string;
+    amount: number;
+    at: string;
+    businessDate: string;
+    trackedBefore: number | null;
+    difference: number | null;
+    note: string | null;
+    byName: string | null;
+  };
+  /** The account's line of the card, worked out again after the save. */
+  method: TrackedMethod;
+}
+
+/**
+ * The Owner saying what an account holds now, read off the account's own app (0082).
+ *
+ * **One key per amount sent, within one opening of the sheet.** A retry of the
+ * same account, amount and note keeps its key, so "Save" again after a timeout
+ * is the same anchor, not a second one taken later; a changed amount is a new
+ * anchor with a new key, never a refused conflict. The sheet calls `reset()` as
+ * it opens and closes, so the same amount saved another time is a new anchor,
+ * never the replay of one whose answer was lost earlier. Once saved, the next
+ * amount always gets a fresh key.
+ */
+export function useRecordMoneyAnchor() {
+  const qc = useQueryClient();
+  const attempt = useRef<{ clientUuid: string; payload: string } | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: ({ accountId, amount, note }: RecordAnchorInput) => {
+      const payload = { accountId, amount, ...(note.trim() ? { note: note.trim() } : {}) };
+      const sent = JSON.stringify(payload);
+      if (attempt.current?.payload !== sent) attempt.current = { clientUuid: uuidv4(), payload: sent };
+      return api.post<RecordedAnchor>('/money/anchors', { clientUuid: attempt.current.clientUuid, ...payload });
+    },
+    onSuccess: () => {
+      attempt.current = null;
+    },
+    // The top card, on every Money read that carries it — after a failure too: a lost answer may still have saved it.
+    onSettled: () => invalidateMoney(qc),
+  });
+  const { reset: resetMutation } = mutation;
+  // A new attempt: a fresh key for whatever it saves, and nothing left showing from the last one.
+  const reset = useCallback(() => {
+    attempt.current = null;
+    resetMutation();
+  }, [resetMutation]);
+  return { ...mutation, reset };
 }
 
 // ── where new money may arrive ──────────────────────────────────────────────

@@ -80,20 +80,34 @@ it('a complete Home passes through unchanged', () => {
   assert.equal(checkHome(ok), ok);
 });
 
+const cashHeld = () => ({
+  key: 'cash', channel: 'cash', accountId: null, label: '', scope: 'branch', isActive: true, known: true, position: 3400, unknownReason: null,
+  anchor: { source: 'counted_close', amount: 3400, at: '2026-09-25T20:00:00.000Z', businessDate: '2026-09-25', byName: 'Mariam' }, sinceAnchorNet: 0,
+});
+const bankilyHeld = () => ({
+  key: 'account:b', channel: 'account', accountId: 'b', label: 'Bankily', scope: 'company', isActive: true, known: true, position: 3600, unknownReason: null,
+  anchor: { source: 'declared', amount: 3000, at: '2026-09-25T09:00:00.000Z', businessDate: '2026-09-25', byName: null }, sinceAnchorNet: 600,
+});
+const moneyOverview = () => ({
+  today: '2026-09-26',
+  cashNow: 5000,
+  moneyToday: {
+    channels: [
+      { channel: 'cash', accountId: null, label: 'CASH', isUnattributed: false, moneyIn: 3400, moneyOut: 0, net: 3400 },
+      { channel: 'account', accountId: 'b', label: 'Bankily', isUnattributed: false, moneyIn: 3600, moneyOut: 0, net: 3600 },
+    ],
+    total: { moneyIn: 7000, moneyOut: 0, net: 7000 },
+  },
+  trackedMoney: {
+    asOf: '2026-09-26T08:00:00.000Z', businessDate: '2026-09-26', basis: 'anchor_plus_recorded_movement', branchCount: 1, accountsVisible: true,
+    methods: [cashHeld(), bankilyHeld()], total: 7000, unknownKeys: [] as string[],
+  },
+  period: { phonesSold: 1, unitsSold: 1, salesCount: 1, salesValue: 20040, cancellations: { count: 1, value: 10040, phones: 1 }, returns: { count: 0, value: 0, phones: 0 }, adjusted: 10040, netSalesValue: 10000, collected: 10000, outstanding: 0, refunds: 0 },
+  expensesToday: { total: -300, recorded: 0, reversed: 300, rows: [{ amount: -300 }] },
+});
+
 it('Money\'s overview and sales by day from the older server are refused; complete ones pass', () => {
-  const overview = {
-    today: '2026-09-26',
-    cashNow: 5000,
-    moneyToday: {
-      channels: [
-        { channel: 'cash', accountId: null, label: 'CASH', isUnattributed: false, moneyIn: 3400, moneyOut: 0, net: 3400 },
-        { channel: 'account', accountId: 'b', label: 'Bankily', isUnattributed: false, moneyIn: 3600, moneyOut: 0, net: 3600 },
-      ],
-      total: { moneyIn: 7000, moneyOut: 0, net: 7000 },
-    },
-    period: { phonesSold: 1, unitsSold: 1, salesCount: 1, salesValue: 20040, cancellations: { count: 1, value: 10040, phones: 1 }, returns: { count: 0, value: 0, phones: 0 }, adjusted: 10040, netSalesValue: 10000, collected: 10000, outstanding: 0, refunds: 0 },
-    expensesToday: { total: -300, recorded: 0, reversed: 300, rows: [{ amount: -300 }] },
-  };
+  const overview = moneyOverview();
   assert.equal(checkMoneyOverview(overview as never), overview);
   const old = { cashNow: 5000, period: { phonesSold: 1, salesValue: 20040, collected: 10000, outstanding: 0, refunds: 0 }, expensesToday: { total: 0, rows: [] } };
   const e = refused(() => checkMoneyOverview(old as never));
@@ -101,6 +115,56 @@ it('Money\'s overview and sales by day from the older server are refused; comple
   const day = { day: '2026-09-25', sales: 1, units: 1, value: 20040, cancelled: 10040, returned: 0, returns: 0, adjusted: 10040, net: 10000, phones: 1, outstanding: 0 };
   assert.ok(checkSalesByDay({ days: [day] } as never));
   assert.deepEqual(refused(() => checkSalesByDay({ days: [{ day: '2026-09-25', sales: 2, value: 20040 }] } as never)).missing.slice(0, 2), ['days.0.units', 'days.0.cancelled']);
+});
+
+it('money held: an unknown method is a null position and a null total, and passes — never read as zero (2026-09-27)', () => {
+  const partial = moneyOverview();
+  partial.trackedMoney.methods = [
+    { ...cashHeld(), known: false, position: null, unknownReason: 'no_counted_close', anchor: null, sinceAnchorNet: null },
+    bankilyHeld(),
+  ] as never;
+  (partial.trackedMoney as { total: number | null }).total = null;
+  partial.trackedMoney.unknownKeys = ['cash'];
+  assert.equal(checkMoneyOverview(partial as never), partial);
+});
+
+it('money held: a reply without it, a known method without its figure or anchor, or an absent total is refused', () => {
+  const without = moneyOverview() as { trackedMoney?: unknown };
+  delete without.trackedMoney;
+  const e = refused(() => checkMoneyOverview(without as never));
+  assert.ok(['trackedMoney.branchCount', 'trackedMoney.accountsVisible', 'trackedMoney.total', 'trackedMoney.methods'].every((p) => e.missing.includes(p)), e.missing.join());
+
+  const gaps = moneyOverview();
+  gaps.trackedMoney.methods = [{ ...cashHeld(), position: null }, { ...bankilyHeld(), anchor: null }] as never;
+  delete (gaps.trackedMoney as { total?: unknown }).total;
+  assert.deepEqual(refused(() => checkMoneyOverview(gaps as never)).missing, [
+    'trackedMoney.total',
+    'trackedMoney.methods.0.position',
+    'trackedMoney.methods.1.anchor.amount',
+    'trackedMoney.methods.1.anchor.businessDate',
+  ]);
+
+  // An unknown method must still say null: a position left out is not "unknown".
+  const absent = moneyOverview();
+  const noPosition: Record<string, unknown> = { ...cashHeld(), known: false };
+  delete noPosition.position;
+  absent.trackedMoney.methods = [noPosition] as never;
+  assert.deepEqual(refused(() => checkMoneyOverview(absent as never)).missing, ['trackedMoney.methods.0.position']);
+});
+
+it('money held for someone other than the Owner: the drawer alone and no total pass; whether the accounts are shown must be said as a boolean', () => {
+  const drawer = moneyOverview();
+  drawer.trackedMoney.accountsVisible = false;
+  drawer.trackedMoney.methods = [cashHeld()];
+  (drawer.trackedMoney as { total: number | null }).total = null;
+  assert.equal(checkMoneyOverview(drawer as never), drawer);
+
+  for (const said of [undefined, null, 'false', 0]) {
+    const unsaid = moneyOverview() as { trackedMoney: Record<string, unknown> };
+    if (said === undefined) delete unsaid.trackedMoney.accountsVisible;
+    else unsaid.trackedMoney.accountsVisible = said;
+    assert.deepEqual(refused(() => checkMoneyOverview(unsaid as never)).missing, ['trackedMoney.accountsVisible'], String(said));
+  }
 });
 
 it('an incompatible reply is not retried; any other failure is retried once', () => {

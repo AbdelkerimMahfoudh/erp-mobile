@@ -40,6 +40,7 @@ import { arrivalDay, changeText, changeTone, daySpan, freshness, standingKey, ty
 import { useBusinessDay, useHome, type HomeArrival, type HomeBar } from '../../lib/home';
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { useTodayOnArrival } from '../../lib/use-tab-arrival';
 
 /**
  * Home — the fastest operational screen (docs/50 §3.5, docs/56).
@@ -62,7 +63,10 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { branchId, branchName } = useBranch();
   const offline = !useConnectivity((s) => s.online);
-  const [period, setPeriod] = useState<HomePeriod>('week');
+  // Today at launch and on every arrival from another tab; a choice made here stays through Quick sell, the Daily
+  // closing and the way back.
+  const [period, setPeriod] = useState<HomePeriod>('today');
+  useTodayOnArrival(() => setPeriod('today'));
 
   const permissionsReady = usePermissionStatus() === 'ready';
   const canSell = usePermission('sale.create');

@@ -134,6 +134,117 @@ it('each method is recorded movement, never called a balance — and the card sa
   const en = read('./i18n/en.ts');
   assert.match(en, /'moneyTab\.today\.hint': 'Money in less money out, recorded in this app today \(\{date\}\) for each method\. Not a drawer count, not an account balance\.'/);
 });
+it('the top card is the money held as the server tracks it: its total, or no figure at all while a method is unknown (2026-09-27)', () => {
+  const heldAt = overview.indexOf("t('moneyTab.held.title')");
+  const todayAt = overview.indexOf("t('moneyTab.today.title')");
+  assert.ok(heldAt > 0 && todayAt > heldAt, 'Money held comes first, Money recorded today after it');
+  const held = overview.slice(heldAt, todayAt);
+  assert.match(overview, /const held = cardData\?\.trackedMoney;/);
+  // The figure is the server's total, never a sum made here; without one the line names the unknown methods instead.
+  assert.match(held, /\) : held\.total !== null \? \(\s*<MoneyValue value=\{held\.total\} size="display" signed=\{held\.total < 0\} decimals=\{heldDecimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong">\s*\{t\('moneyTab\.held\.incomplete', \{/);
+  assert.match(held, /names: held\.methods\s*\.filter\(\(m\) => !m\.known\)\s*\.map\(\(m\) => \(m\.channel === 'cash' \? t\('moneyTab\.cash'\) : m\.label\)\)/);
+  assert.equal(held.match(/<MoneyValue/g)?.length, 1, 'the total is the card’s only figure outside the method rows');
+  assert.ok(!/\.reduce\(|position \+|\+ m\.position/.test(overview), 'no position is added up on the phone');
+  assert.match(held, /t\('moneyTab\.held\.hint'\)/);
+  assert.match(held, /held\.methods\.map\(\(m\) => \(\s*<HeldLine\s+key=\{m\.key\}\s+method=\{m\}\s+branchCount=\{held\.branchCount\}\s+decimals=\{heldDecimals\}/);
+  // Cents on any figure, the starting amounts included, put every figure of the card at two decimals.
+  assert.match(overview, /const heldDecimals = held && \[held\.total, \.\.\.held\.methods\.flatMap\(\(m\) => \[m\.position, m\.anchor\?\.amount \?\? null\]\)\]\.some\(/);
+});
+it('money held for someone other than the Owner: the drawer, a line saying the accounts are the Owner’s, and no total (TM-3)', () => {
+  const heldAt = overview.indexOf("t('moneyTab.held.title')");
+  const held = overview.slice(heldAt, overview.indexOf("t('moneyTab.today.title')"));
+  // Asked first, so no figure is ever shown for the drawer alone, and the unknown-methods line never stands in for it.
+  assert.match(held, /<View style=\{styles\.total\}>\s*\{!held\.accountsVisible \? \(\s*<Text variant="bodyStrong">\{t\('moneyTab\.held\.ownerOnly'\)\}<\/Text>\s*\) : held\.total !== null \? \(/);
+  // The rows are the server's list: the drawer alone when the accounts are not shown.
+  assert.match(held, /held\.methods\.map\(\(m\) => \(/);
+  const lib = code(read('./money-overview.ts'));
+  assert.match(lib, /branchCount: number;\s*accountsVisible: boolean;/);
+  assert.match(code(read('./contract.ts')), /typeof r\?\.trackedMoney\?\.accountsVisible === 'boolean' \? \[\] : \['trackedMoney\.accountsVisible'\]/);
+  const words = { en: 'Account amounts are shown to the Owner.', fr: 'Les montants des comptes sont visibles par le propriétaire.', ar: 'مبالغ الحسابات يراها المالك.' };
+  for (const [locale, line] of Object.entries(words)) assert.ok(read(`./i18n/${locale}.ts`).includes(`'moneyTab.held.ownerOnly': '${line}',`), locale);
+});
+it('each held method: a position or the word Unknown — never a 0 — and where it starts from, or which start is missing', () => {
+  const line = overview.slice(overview.indexOf('function HeldLine'), overview.indexOf('function MethodLine'));
+  assert.match(line, /const position = m\.known \? m\.position : null;/);
+  assert.match(line, /\{position !== null \? \(\s*<MoneyValue value=\{position\} size="small" signed=\{position < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong" tone="secondary">\s*\{t\('moneyTab\.held\.unknown'\)\}/);
+  assert.match(line, /const name = cash \? t\('moneyTab\.cash'\) : m\.scope === 'company' && branchCount > 1 \? `\$\{m\.label\} \$\{t\('moneyTab\.held\.wholeBusiness'\)\}` : m\.label;/);
+  assert.match(line, /!anchor\s*\?\s*t\(cash \? 'moneyTab\.held\.cash\.unknown' : 'moneyTab\.held\.account\.unknown'\)/);
+  assert.match(line, /cash\s*\?\s*t\('moneyTab\.held\.cash\.known', \{ date \}\)/);
+  assert.match(line, /const amount = anchor \? isolateLtr\(formatMoney\(anchor\.amount, \{ decimals \}\)\) : '';/);
+  assert.match(line, /anchor\.byName\s*\?\s*t\('moneyTab\.held\.account\.knownBy', \{ amount, date, name: anchor\.byName \}\)\s*:\s*t\('moneyTab\.held\.account\.known', \{ amount, date \}\)/);
+});
+it('Set amount is offered on each account row to whoever holds money.anchor.record, and to nobody else', () => {
+  assert.match(overview, /const canAnchor = usePermission\('money\.anchor\.record'\);/);
+  assert.match(overview, /onSetAmount=\{\s*canAnchor && m\.channel === 'account'\s*\?\s*\(\) => \{\s*setAnchorFor\(m\);\s*setAnchorOpen\(true\);\s*\}\s*:\s*undefined\s*\}/);
+  const line = overview.slice(overview.indexOf('function HeldLine'), overview.indexOf('function MethodLine'));
+  assert.match(line, /\{onSetAmount \? \(\s*<View style=\{styles\.action\}>\s*<Button\s+title=\{t\('moneyTab\.held\.setAmount'\)\}[\s\S]*?variant="tertiary"\s+size="sm"\s+onPress=\{onSetAmount\}/);
+  assert.match(overview, /\{canAnchor \? <SetStartingAmountSheet open=\{anchorOpen\} account=\{anchorFor\} onClose=\{\(\) => setAnchorOpen\(false\)\} \/> : null\}/);
+  assert.match(read('./permissions.ts'), /'money\.anchor\.record',/);
+});
+it('Money recorded today stays a card of its own, right below, with its rows and nothing held in it', () => {
+  const todayAt = overview.indexOf("t('moneyTab.today.title')");
+  const today = overview.slice(todayAt, overview.indexOf('</Card>', todayAt));
+  const between = overview.slice(overview.indexOf("t('moneyTab.held.title')"), todayAt);
+  assert.equal(between.match(/<\/Card>/g)?.length, 1, 'the held card closes before today’s opens');
+  assert.match(between, /<\/Card>\s*<Card style=\{styles\.cash\}>/);
+  assert.match(today, /cardData\.moneyToday\.total\.net/);
+  assert.match(today, /t\('moneyTab\.today\.hint', \{ date: formatDate\(cardData\.today\) \}\)/);
+  assert.match(today, /cardData\.moneyToday\.channels\.map\(\(m\) => \(\s*<MethodLine/);
+  assert.ok(!/held|trackedMoney/.test(today), 'no position among today’s movement');
+  assert.ok(!/moneyToday/.test(between), 'no movement among the positions');
+});
+it('the starting-amount sheet posts the account, the amount and a key bound to them, then says so and refreshes Money', () => {
+  const lib = code(read('./money-overview.ts'));
+  const anchorHook = lib.slice(lib.indexOf('export function useRecordMoneyAnchor'));
+  assert.match(anchorHook, /const payload = \{ accountId, amount, \.\.\.\(note\.trim\(\) \? \{ note: note\.trim\(\) \} : \{\}\) \};/);
+  assert.match(anchorHook, /if \(attempt\.current\?\.payload !== sent\) attempt\.current = \{ clientUuid: uuidv4\(\), payload: sent \};/);
+  assert.match(anchorHook, /api\.post<RecordedAnchor>\('\/money\/anchors', \{ clientUuid: attempt\.current\.clientUuid, \.\.\.payload \}\)/);
+  assert.match(anchorHook, /onSuccess: \(\) => \{\s*attempt\.current = null;\s*\},/);
+  // Money is read again however the request ended: a lost answer may still have saved the amount.
+  assert.match(anchorHook, /onSettled: \(\) => invalidateMoney\(qc\),/);
+  // The key lives for one opening of the sheet: reset forgets it, with whatever the last attempt left showing.
+  assert.match(anchorHook, /const reset = useCallback\(\(\) => \{\s*attempt\.current = null;\s*resetMutation\(\);\s*\}, \[resetMutation\]\);\s*return \{ \.\.\.mutation, reset \};/);
+  const anchorSheet = code(read('../components/money/SetStartingAmountSheet.tsx'));
+  assert.match(anchorSheet, /const record = useRecordMoneyAnchor\(\);\s*const \{ reset: newAttempt \} = record;/);
+  assert.match(anchorSheet, /useEffect\(\(\) => \{\s*if \(open\) newAttempt\(\);\s*\}, \[open, newAttempt\]\);/);
+  assert.match(anchorSheet, /<BottomSheet\s+open=\{open\}\s+onClose=\{close\}\s+title=\{t\('moneyTab\.anchor\.title', \{ account: name \}\)\}/);
+  // Whatever closed it, the next opening starts empty, with a new key: a figure typed for one account is never saved for another.
+  assert.match(anchorSheet, /const close = \(\) => \{\s*setAmount\(''\);\s*setNote\(''\);\s*newAttempt\(\);\s*onClose\(\);/);
+  // Save is pinned above the keyboard, and the fields scroll beneath it.
+  assert.match(anchorSheet, /footer=\{\s*<Button\s+title=\{t\('moneyTab\.anchor\.save'\)\}/);
+  assert.match(anchorSheet, /<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle=\{styles\.body\}>/);
+  assert.match(anchorSheet, /t\('moneyTab\.anchor\.body', \{ account: name \}\)/);
+  // Zero or more: the field offers no minus and the amount is read as non-negative, two decimals at most.
+  assert.match(anchorSheet, /const parsed = parseAmount\(amount\);/);
+  assert.ok(!/allowNegative/.test(anchorSheet), 'what an account holds is never below zero');
+  assert.match(anchorSheet, /record\.mutate\(\s*\{ accountId: account\.accountId, amount: parsed\.value, note \},/);
+  assert.match(anchorSheet, /onSuccess: \(\) => \{\s*toast\.success\(t\('moneyTab\.anchor\.saved'\)\);\s*onClose\(\);/);
+  // No answer is not a refusal: a timeout says the amount may be saved, and to look before trying again.
+  assert.match(
+    anchorSheet,
+    /toast\.error\(\s*t\(e instanceof RequestTimeout \? 'moneyTab\.anchor\.maybeSaved' : e instanceof ApiError && e\.status === 403 \? 'moneyTab\.anchor\.forbidden' : 'moneyTab\.anchor\.failed'\),\s*\)/,
+  );
+  assert.match(anchorSheet, /import \{ RequestTimeout \} from '\.\.\/\.\.\/lib\/offline\/classify';/);
+  assert.match(anchorSheet, /title=\{t\('moneyTab\.anchor\.save'\)\}[\s\S]*?disabled=\{record\.isPending \|\| !online \|\| !parsed\.ok\}/);
+  assert.match(anchorSheet, /label=\{t\('moneyTab\.anchor\.note'\)\} value=\{note\} onChangeText=\{setNote\} maxLength=\{255\}/);
+});
+it('the money-held words are in all three languages', () => {
+  const keys = [
+    'title', 'hint', 'incomplete', 'ownerOnly', 'unknown', 'wholeBusiness', 'cash.known', 'cash.unknown', 'account.known', 'account.knownBy', 'account.unknown', 'setAmount',
+  ].map((k) => `moneyTab.held.${k}`).concat(['title', 'body', 'amount', 'note', 'save', 'saved', 'failed', 'maybeSaved', 'forbidden'].map((k) => `moneyTab.anchor.${k}`));
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    for (const k of keys) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
+  }
+  const en = read('./i18n/en.ts');
+  assert.match(en, /'moneyTab\.held\.title': 'Money held'/);
+  assert.match(en, /'moneyTab\.held\.hint': 'Starting amounts plus everything recorded in this app since\. Not a bank or wallet balance\.'/);
+  assert.match(en, /'moneyTab\.held\.incomplete': 'Not every method is tracked yet: \{names\}\.'/);
+  assert.match(en, /'moneyTab\.held\.unknown': 'Unknown'/);
+  assert.match(en, /'moneyTab\.held\.account\.knownBy': 'From \{amount\} on \{date\} by \{name\}, plus what was recorded since\.'/);
+  assert.match(en, /'moneyTab\.anchor\.body': 'Open the \{account\} app and enter the amount it shows now\. From now on, this app adds what is recorded here\.'/);
+  assert.match(en, /'moneyTab\.anchor\.maybeSaved': 'The answer did not arrive\. The amount may have been saved — check Money held before trying again\.'/);
+});
 it('Outstanding payments and the other actions come from the registry', () => {
   assert.match(overview, /visibleChildren\(hub, granted\)/);
   assert.ok(!/'\/outstanding'|'\/expenses'|'\/closing'|'\/loans'/.test(overview), 'no route is written into the tab');
@@ -334,6 +445,7 @@ const NEW_SCREENS = [
   '../app/sales/pay/[id].tsx',
   '../app/outstanding.tsx',
   '../components/money/SaleRow.tsx',
+  '../components/money/SetStartingAmountSheet.tsx',
   '../components/sell/DebtorPicker.tsx',
 ];
 

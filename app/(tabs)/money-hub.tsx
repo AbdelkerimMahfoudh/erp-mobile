@@ -1,7 +1,7 @@
-import React, { useEffect, useLayoutEffect } from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
-import { useNavigation, useRouter, type Href } from 'expo-router';
-import { Package, Plus, Receipt, Wallet } from 'lucide-react-native';
+import { useRouter, type Href } from 'expo-router';
+import { ArrowLeftRight, Package, Plus, Receipt, Wallet } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -22,6 +22,7 @@ import { ExpenseLine } from '../../components/money/ExpenseLine';
 import { LinkRow } from '../../components/money/LinkRow';
 import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
+import { SetStartingAmountSheet } from '../../components/money/SetStartingAmountSheet';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
@@ -31,12 +32,13 @@ import { isIncompatible } from '../../lib/errors';
 import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
-import { useMoneyOverview, useSalesByDay, type MethodMoney, type SalesDay } from '../../lib/money-overview';
+import { useMoneyOverview, useSalesByDay, type MethodMoney, type SalesDay, type TrackedMethod } from '../../lib/money-overview';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
 import { usePeriod, type PeriodKey } from '../../lib/period';
-import { usePeriodRange } from '../../lib/home';
+import { useBusinessDay, usePeriodRange } from '../../lib/home';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
+import { useTodayOnArrival } from '../../lib/use-tab-arrival';
 
 /** How many sales the overview previews before "View all sales". */
 const SALES_PREVIEW = 3;
@@ -49,11 +51,16 @@ const DAYS_PREVIEW = 3;
  * Four questions, answered in the order a shopkeeper asks them, each with its
  * own words so none is mistaken for another:
  *
- * 1. **Today, by method** — the money recorded today through the drawer and
- *    through each configured account, on one basis (money in less money out,
- *    no opening for any of them), with the server's total of exactly those
- *    rows. It is recorded movement: never a drawer count and never an account's
- *    balance, which the app does not see (2026-09-27).
+ * 1. **Money held, then today by method** — two cards, never merged. The first
+ *    is what the app tracks as held in the drawer and in each configured
+ *    account: a starting amount plus everything recorded since, carried across
+ *    midnight. A method the records cannot establish says Unknown and why, and
+ *    then there is no total at all — never a made-up 0, never a total over a
+ *    gap, never an account's balance, which the app does not see. The accounts
+ *    are the company's, so only the Owner sees them: anyone else gets the
+ *    drawer, a line saying so, and no total. The second is today's money in
+ *    less money out per method, with the server's total of exactly those rows:
+ *    movement, not a position (2026-09-27).
  * 2. **This period** — phones sold, the full sales value, what was actually
  *    collected, and what is still owed. "Sales value" is never called money
  *    received, and a later collection never raises the sales figures.
@@ -80,32 +87,31 @@ export default function MoneyTabScreen() {
 
   const key = usePeriod((s) => s.key);
   const setKey = usePeriod((s) => s.setKey);
+  // Today on every arrival at the tab; a choice made here stays through Results, a day's sales and the way back.
+  useTodayOnArrival(() => setKey('today'));
   /*
-    Today on every arrival at the tab — the first visit, or from another tab — and whatever the person then picks
-    while here stays: a screen opened from the tab (Results, a day's sales) and its way back are not an arrival, and
-    a background refetch changes no choice. The tab stays mounted while another tab shows, and its own route never
-    changes, so the tab bar's state says when the person left: the choice goes back to Today then, before they return.
+    Pull-to-refresh reads the business day again too, the way Home does, so a tab left open across 06:00 moves on
+    with the card. Only for somebody the server answers (`closing.count`): `refetch()` asks even when disabled.
   */
-  const navigation = useNavigation();
-  // The first visit, before the first paint, so it never shows or fetches a choice made elsewhere.
-  useLayoutEffect(() => setKey('today'), [setKey]);
-  useEffect(
-    () =>
-      navigation.addListener('state', (e) => {
-        const tabs = e.data.state;
-        if (tabs.routes[tabs.index]?.name !== 'money-hub') setKey('today');
-      }),
-    [navigation, setKey],
-  );
+  const canCount = usePermission('closing.count');
+  const refetchDay = useBusinessDay({ enabled: canCount }).refetch;
   const range = usePeriodRange(key);
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
-  // The card is today's whatever the period: its own query on today's range (the same cache as Today's), so it never
-  // blanks while another period loads.
+  // The two top cards are today's whatever the period: their own query on today's range (the same cache as Today's),
+  // so they never blank while another period loads.
   const todayRange = usePeriodRange('today');
   const card = useMoneyOverview(todayRange.from, todayRange.to, { enabled: canViewFigures });
   const cardData = card.data;
   // Whole units, unless a figure carries cents: then every figure on the card shows them, so the rows visibly add up.
   const cardDecimals = cardData && [cardData.moneyToday.total.net, ...cardData.moneyToday.channels.map((c) => c.net)].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
+  const held = cardData?.trackedMoney;
+  // The same rule for the held card, its starting amounts included: an amount with cents is never shown rounded.
+  const heldDecimals = held && [held.total, ...held.methods.flatMap((m) => [m.position, m.anchor?.amount ?? null])].some((v) => v !== null && Math.round(v * 100) % 100 !== 0) ? 2 : 0;
+  // Only the Owner sets what an account holds; everyone else sees the card without the action.
+  const canAnchor = usePermission('money.anchor.record');
+  // The account being set is kept after closing, so the sheet's title stays while it slides away.
+  const [anchorFor, setAnchorFor] = useState<TrackedMethod | null>(null);
+  const [anchorOpen, setAnchorOpen] = useState(false);
   const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
   const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });
 
@@ -123,6 +129,7 @@ export default function MoneyTabScreen() {
       onRefresh={
         canViewFigures
           ? () => {
+              if (canCount) void refetchDay();
               void overview.refetch();
               void card.refetch();
               void (key === 'today' ? sales.refetch() : days.refetch());
@@ -137,10 +144,9 @@ export default function MoneyTabScreen() {
         <Section gap="md">
           {offline ? <InlineNotice tone="warning">{t('money.offline')}</InlineNotice> : null}
 
-          {/* 1. Today: the money recorded for each method, and their total. */}
           {card.isPending ? (
             <SkeletonStat />
-          ) : card.isError || !cardData ? (
+          ) : card.isError || !cardData || !held ? (
             <InlineNotice
               tone="warning"
               title={isIncompatible(card.error) ? t('contract.incompatible.title') : t('moneyTab.unavailable')}
@@ -149,29 +155,80 @@ export default function MoneyTabScreen() {
               {isIncompatible(card.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable.body')}
             </InlineNotice>
           ) : (
-            <Card variant="accent" style={styles.cash}>
-              <View style={styles.head}>
-                <View style={styles.cashIcon}>
-                  <Wallet color={colors.text.accent} size={22} />
+            <>
+              {/* 1a. Money held: what each method holds as tracked, and their total only when every one is known. */}
+              <Card variant="accent" style={styles.cash}>
+                <View style={styles.head}>
+                  <View style={styles.cashIcon}>
+                    <Wallet color={colors.text.accent} size={22} />
+                  </View>
+                  <Text variant="body" tone="secondary" style={styles.grow}>
+                    {t('moneyTab.held.title')}
+                  </Text>
                 </View>
-                <Text variant="body" tone="secondary" style={styles.grow}>
-                  {t('moneyTab.today.title')}
-                </Text>
-              </View>
-              {/* The total on a line of its own: the card's whole width, so large text does not cut it short. */}
-              <View style={styles.total}>
-                <MoneyValue value={cardData.moneyToday.total.net} size="display" signed={cardData.moneyToday.total.net < 0} decimals={cardDecimals} />
-                <Text variant="caption" tone="tertiary">
-                  {t('moneyTab.today.hint', { date: formatDate(cardData.today) })}
-                </Text>
-              </View>
-              {/* Every configured method beneath the total — the drawer first — and the total is the server's sum of these rows. */}
-              <View style={styles.methods}>
-                {cardData.moneyToday.channels.map((m) => (
-                  <MethodLine key={m.accountId ?? (m.isUnattributed ? 'unattributed' : 'cash')} method={m} decimals={cardDecimals} />
-                ))}
-              </View>
-            </Card>
+                {/* The server's total, or no figure at all: with a method unknown, or the accounts not shown, a total would be a made-up number. */}
+                <View style={styles.total}>
+                  {!held.accountsVisible ? (
+                    <Text variant="bodyStrong">{t('moneyTab.held.ownerOnly')}</Text>
+                  ) : held.total !== null ? (
+                    <MoneyValue value={held.total} size="display" signed={held.total < 0} decimals={heldDecimals} />
+                  ) : (
+                    <Text variant="bodyStrong">
+                      {t('moneyTab.held.incomplete', {
+                        names: held.methods
+                          .filter((m) => !m.known)
+                          .map((m) => (m.channel === 'cash' ? t('moneyTab.cash') : m.label))
+                          .join(' · '),
+                      })}
+                    </Text>
+                  )}
+                  <Text variant="caption" tone="tertiary">
+                    {t('moneyTab.held.hint')}
+                  </Text>
+                </View>
+                <View style={styles.methods}>
+                  {held.methods.map((m) => (
+                    <HeldLine
+                      key={m.key}
+                      method={m}
+                      branchCount={held.branchCount}
+                      decimals={heldDecimals}
+                      onSetAmount={
+                        canAnchor && m.channel === 'account'
+                          ? () => {
+                              setAnchorFor(m);
+                              setAnchorOpen(true);
+                            }
+                          : undefined
+                      }
+                    />
+                  ))}
+                </View>
+              </Card>
+
+              {/* 1b. Today: the money recorded in and out for each method, and their total — movement, kept apart from what is held. */}
+              <Card style={styles.cash}>
+                <View style={styles.head}>
+                  <Thumbnail icon={ArrowLeftRight} />
+                  <Text variant="body" tone="secondary" style={styles.grow}>
+                    {t('moneyTab.today.title')}
+                  </Text>
+                </View>
+                {/* The total on a line of its own: the card's whole width, so large text does not cut it short. */}
+                <View style={styles.total}>
+                  <MoneyValue value={cardData.moneyToday.total.net} size="large" signed={cardData.moneyToday.total.net < 0} decimals={cardDecimals} />
+                  <Text variant="caption" tone="tertiary">
+                    {t('moneyTab.today.hint', { date: formatDate(cardData.today) })}
+                  </Text>
+                </View>
+                {/* Every configured method beneath the total — the drawer first — and the total is the server's sum of these rows. */}
+                <View style={styles.methods}>
+                  {cardData.moneyToday.channels.map((m) => (
+                    <MethodLine key={m.accountId ?? (m.isUnattributed ? 'unattributed' : 'cash')} method={m} decimals={cardDecimals} />
+                  ))}
+                </View>
+              </Card>
+            </>
           )}
 
           <PeriodSelector />
@@ -353,6 +410,8 @@ export default function MoneyTabScreen() {
           ))}
         </RowGroup>
       ) : null}
+
+      {canAnchor ? <SetStartingAmountSheet open={anchorOpen} account={anchorFor} onClose={() => setAnchorOpen(false)} /> : null}
     </Screen>
   );
 }
@@ -415,6 +474,66 @@ function DaysPreview({
   );
 }
 
+/**
+ * One method's money held: its name, what the app tracks it holds — or Unknown, never a 0 — and what that starts
+ * from, or which starting amount is missing. An account is the company's: with several stores it says so.
+ */
+function HeldLine({
+  method: m,
+  branchCount,
+  decimals,
+  onSetAmount,
+}: {
+  method: TrackedMethod;
+  branchCount: number;
+  decimals: number;
+  onSetAmount?: () => void;
+}) {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  const cash = m.channel === 'cash';
+  const name = cash ? t('moneyTab.cash') : m.scope === 'company' && branchCount > 1 ? `${m.label} ${t('moneyTab.held.wholeBusiness')}` : m.label;
+  const position = m.known ? m.position : null;
+  const anchor = m.known ? m.anchor : null;
+  const date = anchor ? formatDate(anchor.businessDate) : '';
+  const amount = anchor ? isolateLtr(formatMoney(anchor.amount, { decimals })) : '';
+  const caption = !anchor
+    ? t(cash ? 'moneyTab.held.cash.unknown' : 'moneyTab.held.account.unknown')
+    : cash
+      ? t('moneyTab.held.cash.known', { date })
+      : anchor.byName
+        ? t('moneyTab.held.account.knownBy', { amount, date, name: anchor.byName })
+        : t('moneyTab.held.account.known', { amount, date });
+  return (
+    <View style={styles.held}>
+      <View style={styles.grow}>
+        <Text variant="bodyStrong">{name}</Text>
+        <Text variant="caption" tone="tertiary">
+          {caption}
+        </Text>
+        {onSetAmount ? (
+          <View style={styles.action}>
+            <Button
+              title={t('moneyTab.held.setAmount')}
+              accessibilityLabel={`${t('moneyTab.held.setAmount')}, ${m.label}`}
+              variant="tertiary"
+              size="sm"
+              onPress={onSetAmount}
+            />
+          </View>
+        ) : null}
+      </View>
+      {position !== null ? (
+        <MoneyValue value={position} size="small" signed={position < 0} decimals={decimals} />
+      ) : (
+        <Text variant="bodyStrong" tone="secondary">
+          {t('moneyTab.held.unknown')}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 /** One method's money today: its name, what was recorded in and out, and the net — beneath the card's total. */
 function MethodLine({ method: m, decimals }: { method: MethodMoney; decimals: number }) {
   const styles = useStyles();
@@ -455,4 +574,8 @@ const useStyles = makeStyles((colors) => ({
   total: { gap: 2 },
   methods: { gap: space.xs },
   method: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
+  /** The figure level with the name, however long the caption under it runs. */
+  held: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, minHeight: 44, paddingVertical: space.xs },
+  /** A row, so the button sits on the reading side in either direction instead of stretching. */
+  action: { flexDirection: 'row' },
 }));

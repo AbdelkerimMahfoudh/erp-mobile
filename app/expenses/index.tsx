@@ -140,7 +140,8 @@ export default function ExpensesScreen() {
       footer={
         <>
           <Button title={t('expenses.report.action')} icon={Plus} fullWidth onPress={() => router.push('/expenses/new' as Href)} />
-          <Button title={t('expenses.backToMoney', { tab: t('tab.money') })} variant="secondary" fullWidth onPress={() => router.navigate('/(tabs)/money-hub' as Href)} />
+          {/* Back down to the tabs already open, never a second set of them: Money keeps the period chosen there. */}
+          <Button title={t('expenses.backToMoney', { tab: t('tab.money') })} variant="secondary" fullWidth onPress={() => router.dismissTo('/(tabs)/money-hub' as Href)} />
         </>
       }
     >

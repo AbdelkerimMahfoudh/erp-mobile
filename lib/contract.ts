@@ -43,6 +43,11 @@ function missingTexts(value: unknown, paths: readonly string[], prefix = ''): st
   return paths.filter((p) => !isText(at(value, p))).map((p) => `${prefix}${p}`);
 }
 
+/** Paths that are neither a finite number nor an explicit null: null is the server saying "not known", absent is not. */
+function missingNumbersOrNull(value: unknown, paths: readonly string[], prefix = ''): string[] {
+  return paths.filter((p) => at(value, p) !== null && !isNumber(at(value, p))).map((p) => `${prefix}${p}`);
+}
+
 /** Every element of an array at `path`, each checked; the array itself must be there. */
 function missingInRows(value: unknown, path: string, check: (row: unknown, prefix: string) => string[]): string[] {
   const rows = at(value, path);
@@ -115,13 +120,34 @@ const MONEY_PERIOD = [
   'refunds',
 ] as const;
 
-/** The Money tab's overview: the business day it speaks of, the period, the cash now, and today's expense rows. */
+/**
+ * One method of the money held. An unknown one says so with a null position; a known one carries its figure and the
+ * anchor it starts from, or the card would print a line it cannot explain. Cash's label is '' by design.
+ */
+function missingInTracked(row: unknown, prefix: string): string[] {
+  const known = at(row, 'known');
+  return [
+    ...missingTexts(row, ['key', 'channel'], prefix),
+    ...(typeof at(row, 'label') === 'string' ? [] : [`${prefix}label`]),
+    ...(typeof known === 'boolean' ? [] : [`${prefix}known`]),
+    ...(known === true
+      ? [...missingNumbers(row, ['position', 'anchor.amount'], prefix), ...missingTexts(row, ['anchor.businessDate'], prefix)]
+      : missingNumbersOrNull(row, ['position'], prefix)),
+  ];
+}
+
+/** The Money tab's overview: the business day it speaks of, the money held, the period, the cash now, and today's expense rows. */
 export function checkMoneyOverview(r: MoneyOverview): MoneyOverview {
   const missing = [
     ...missingTexts(r, ['today']),
     ...missingNumbers(r, ['cashNow']),
     ...missingNumbers(r?.moneyToday?.total, ['moneyIn', 'moneyOut', 'net'], 'moneyToday.total.'),
     ...missingInRows(r, 'moneyToday.channels', (row, prefix) => [...missingTexts(row, ['label'], prefix), ...missingNumbers(row, ['moneyIn', 'moneyOut', 'net'], prefix)]),
+    ...missingNumbers(r?.trackedMoney, ['branchCount'], 'trackedMoney.'),
+    // Said either way, never guessed: without it the card cannot tell the drawer alone from every method.
+    ...(typeof r?.trackedMoney?.accountsVisible === 'boolean' ? [] : ['trackedMoney.accountsVisible']),
+    ...missingNumbersOrNull(r?.trackedMoney, ['total'], 'trackedMoney.'),
+    ...missingInRows(r, 'trackedMoney.methods', missingInTracked),
     ...missingNumbers(r?.period, MONEY_PERIOD, 'period.'),
     ...missingNumbers(r?.expensesToday, ['total', 'recorded', 'reversed'], 'expensesToday.'),
     ...missingInRows(r, 'expensesToday.rows', (row, prefix) => missingNumbers(row, ['amount'], prefix)),
