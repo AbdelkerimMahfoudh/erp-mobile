@@ -6,7 +6,9 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { formatMoney } from './money-format.ts';
 import {
+  amountProblem,
   collectionProblem,
   debtorFields,
   debtorProblem,
@@ -173,40 +175,133 @@ it('a collection refreshes cash, the account, the overview and the sale', () => 
 const sheet = code(read('../components/sell/PaymentSheet.tsx'));
 
 it('the sheet may take less than the total, and never more', () => {
-  assert.match(sheet, /disabled=\{overpaid \|\| owedBy !== null/);
+  assert.match(sheet, /disabled=\{amountBad \|\| overpaid \|\| owedBy !== null/);
   assert.match(sheet, /previewSalePayment\(total, paid\)/);
 });
 it('nothing received now sends no payment at all', () => {
   assert.match(sheet, /paid > 0\s*\?\s*\[/);
   assert.match(sheet, /:\s*\[\],\s*debtorToSend/);
 });
-it('the debtor is asked for only when a one-method payment leaves something owing — one part counts as one method; a split pays the whole amount (2026-09-27)', () => {
-  assert.match(sheet, /const multiSplit = split\.length >= 2;/);
-  assert.match(sheet, /const owing = !multiSplit && remaining > 0\.005;/);
-  assert.match(sheet, /const overpaid = !multiSplit && remaining < -0\.005;/);
-  assert.match(sheet, /\{owing \? \(\s*<>\s*<Card variant="warning"/);
+it('whatever the money taken now leaves — one method or a split — is owed by a named debtor (2026-09-27)', () => {
+  assert.ok(!/multiSplit/.test(sheet), 'a split is not judged apart from one method');
+  assert.match(sheet, /const owing = remaining > 0\.005;/);
+  assert.match(sheet, /const overpaid = remaining < -0\.005;/);
+  assert.match(sheet, /const debtorBlock = owing \? \(\s*<>\s*<Card variant="warning"/);
   assert.match(sheet, /<DebtorPicker/);
+  assert.match(sheet, /title=\{owing \? t\('sell\.payment\.review'\) : t\('sell\.payment\.complete'\)\}/);
 });
-it('a split: at most four places, each once, parts equal to the amount due — refused with the reason on screen', () => {
-  assert.match(sheet, /const splitIssue = multiSplit \? splitProblem\(split, total\) : null;/);
-  assert.match(sheet, /disabled=\{overpaid \|\| owedBy !== null \|\| !accountsSettled \|\| splitIssue !== null\}/);
+it('what is owed sits under the one-method field, and after the parts while splitting, so nothing jumps above the amount being typed', () => {
+  const field = sheet.indexOf("t('sell.payment.receivedNow')");
+  const single = sheet.indexOf('{isSplitting ? null : debtorBlock}');
+  const disclosure = sheet.indexOf('<Disclosure');
+  const parts = sheet.indexOf('parts.map((entry) =>');
+  const disclosureEnd = sheet.indexOf('</Disclosure>');
+  const split = sheet.indexOf('{isSplitting ? debtorBlock : null}');
+  assert.ok(field > 0 && single > field && single < disclosure, 'one method: under the received field');
+  assert.ok(parts > disclosure && disclosureEnd > parts && split > disclosureEnd, 'splitting: after the parts and the More options content');
+  assert.equal(sheet.match(/debtorBlock/g)?.length, 3, 'defined once, rendered in exactly these two places');
+});
+it('a split: at most four places, each once, each with an amount — refused with the reason on screen', () => {
+  assert.match(sheet, /const splitIssue = isSplitting \? splitProblem\(parts\) : null;/);
+  assert.match(sheet, /disabled=\{amountBad \|\| overpaid \|\| owedBy !== null \|\| !accountsSettled \|\| splitIssue !== null\}/);
   assert.match(sheet, /if \(split\.length >= MAX_PAYMENT_METHODS\) \{\s*setLimitHit\('max'\);\s*return;/);
   assert.match(sheet, /nextFreeSource\(split, accounts\.map\(\(a\) => a\.id\)\) === null\) \{\s*setLimitHit\('noPlace'\);/);
   assert.match(sheet, /\{t\(limitHit === 'max' \? 'sell\.payment\.split\.max' : 'sell\.payment\.split\.noPlace'\)\}/);
   assert.match(sheet, /accounts=\{accountsFor\(entry\)\}/);
+  assert.match(sheet, /splitIssue === 'too_many'\s*\?\s*'sell\.payment\.split\.max'\s*:\s*splitIssue === 'duplicate'\s*\?\s*'sell\.payment\.split\.duplicate'\s*:\s*'sell\.payment\.split\.empty'/);
+  assert.match(sheet, /\) : overpaid \? \(\s*<Text[^>]*>\s*\{isSplitting\s*\?\s*t\('sell\.payment\.split\.over', \{ sum: formatMoney\(splitSum, \{ decimals \}\), total: formatMoney\(total, \{ decimals \}\) \}\)\s*:\s*t\('sell\.payment\.exactOnly'\)\}/);
+  assert.ok(!/sell\.payment\.split\.sum|sum_mismatch/.test(sheet), 'a split no longer has to pay the whole amount');
+  assert.ok(!/\.filter\(\(entry\) => entry\.amount > 0\)/.test(sheet), 'an empty part is refused on screen, never dropped on the way out');
   assert.ok(!/returns\.policy\.reason|policyNeedsReason/.test(sheet), 'no "Why is this sale different?" and no blocker for it');
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    assert.ok(!cat.includes("'sell.payment.split.sum':"), `${locale} still says a split pays the whole amount`);
+    for (const k of ['sell.payment.split.over', 'sell.payment.split.empty', 'sellDebt.review.bodySplit']) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
+  }
+  assert.match(read('./i18n/en.ts'), /'sell\.payment\.split\.over': 'The parts add up to \{sum\}, more than the \{total\} due\. Lower a part\.'/);
   // The rule itself.
   assert.equal(MAX_PAYMENT_METHODS, 4);
-  const part = (method: string, amount: number, receivingAccountId?: string) => ({ method, amount, receivingAccountId });
-  assert.equal(splitProblem([part('cash', 3400), part('mobile', 2000, 'b'), part('mobile', 1000, 'm'), part('bank', 600, 's')], 7000), null);
-  assert.equal(splitProblem([part('cash', 3000), part('mobile', 1000, 'a'), part('mobile', 1000, 'b'), part('mobile', 1000, 'c'), part('mobile', 1000, 'd')], 7000), 'too_many');
-  assert.equal(splitProblem([part('cash', 3000), part('cash', 4000)], 7000), 'duplicate');
-  assert.equal(splitProblem([part('mobile', 3000, 'b'), part('bank', 4000, 'b')], 7000), 'duplicate');
-  assert.equal(splitProblem([part('cash', 3000), part('mobile', 2000, 'b')], 7000), 'sum_mismatch');
-  assert.equal(splitProblem([part('cash', 7000)], 7000), null, 'one part is not a split');
+  // A part as typed: its amount is the field's text.
+  const part = (method: string, amount: number | string, receivingAccountId?: string) => ({ method, amountText: String(amount), receivingAccountId });
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 2000, 'b')]), null, 'parts may pay part of the sale');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 1000, 'b'), part('mobile', 1000, 'm'), part('bank', 600, 's')]), null, 'four places under the total');
+  assert.equal(splitProblem([part('cash', 3400), part('mobile', 2000, 'b'), part('mobile', 1000, 'm'), part('bank', 600, 's')]), null, 'four places paying it all');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 1000, 'a'), part('mobile', 1000, 'b'), part('mobile', 1000, 'c'), part('mobile', 1000, 'd')]), 'too_many');
+  assert.equal(splitProblem([part('cash', 3000), part('cash', 4000)]), 'duplicate');
+  assert.equal(splitProblem([part('mobile', 3000, 'b'), part('bank', 4000, 'b')]), 'duplicate');
+  assert.equal(splitProblem([part('mobile', 3000, 'ab12'), part('mobile', 2000, 'AB12')]), 'duplicate', 'one account written two ways is one place');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', 0, 'b')]), 'empty_part');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', '.', 'b')]), 'empty_part', 'a lone decimal point is no amount');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', '', 'b')]), 'empty_part', 'nor is a blank field');
+  assert.equal(splitProblem([part('cash', 3000), part('mobile', -5, 'b')]), 'empty_part');
+  assert.equal(splitProblem([part('cash', 7000)]), null, 'one part');
   assert.deepEqual(nextFreeSource([part('cash', 1)], ['b', 'm']), { kind: 'account', accountId: 'b' });
   assert.deepEqual(nextFreeSource([part('mobile', 1, 'b')], ['b', 'm']), { kind: 'cash' });
   assert.equal(nextFreeSource([part('cash', 1), part('mobile', 1, 'b')], ['b']), null);
+  assert.equal(nextFreeSource([part('cash', 1), part('mobile', 1, 'AB12')], ['ab12']), null, 'the same account whatever its letter case');
+});
+it('a split that pays part of the sale: paid + owed is the sale amount, and the status says which', () => {
+  for (const amounts of [[3000, 2000], [3000, 1000, 1000, 600], [3400, 2000, 1000, 600], [1500.5, 499.5]]) {
+    const paid = amounts.reduce((sum, a) => sum + a, 0);
+    const { remaining, status } = previewSalePayment(7000, paid);
+    assert.equal(Math.round((paid + remaining) * 100) / 100, 7000, amounts.join(' + '));
+    assert.equal(status, remaining === 0 ? 'paid' : 'partial', amounts.join(' + '));
+  }
+});
+it('a split part keeps its amount as typed, and nothing empty is sent', () => {
+  assert.match(sheet, /const \[parts, setParts\] = useState<SplitPart\[\]>\(\[\]\);/);
+  assert.match(sheet, /parts\.map\(\(\{ amountText, \.\.\.part \}\) => \(\{ \.\.\.part, amount: Number\(amountText\) \}\)\)/);
+  assert.match(sheet, /value=\{entry\.amountText\}/);
+  assert.match(sheet, /\{ \.\.\.x, amountText: text \}/);
+  assert.match(sheet, /split\.map\(\(entry\) => \(\{\s*\.\.\.entry,/);
+});
+it('the review names each part when more than one is sent; one part or one method keeps the one-method sentence', () => {
+  assert.match(sheet, /split\.length > 1\s*\?\s*t\('sellDebt\.review\.bodySplit', \{/);
+  assert.match(sheet, /parts: split\.map\(\(entry\) => `\$\{labelOf\(sourceOf\(entry\)\)\} \$\{isolateLtr\(formatMoney\(entry\.amount, \{ decimals \}\)\)\}`\)\.join\(' \+ '\)/);
+  assert.match(sheet, /:\s*t\('sellDebt\.review\.body', \{\s*received: formatMoney\(paid, \{ decimals \}\),\s*method: isSplitting && split\[0\] \? labelOf\(sourceOf\(split\[0\]\)\) : sourceLabel,/);
+  assert.match(read('./i18n/en.ts'), /'sellDebt\.review\.bodySplit': "\{received\} received now: \{parts\}\. \{remaining\} will be owed by \{name\}\."/);
+});
+it('an amount past two decimals — or under 0.01 — is never sent: Complete waits, and the sheet says why', () => {
+  assert.equal(amountProblem(''), 'empty');
+  assert.equal(amountProblem('.'), 'empty', 'an amount on its way');
+  assert.equal(amountProblem('0'), 'empty');
+  assert.equal(amountProblem('0.01'), null);
+  assert.equal(amountProblem('1500.5'), null);
+  assert.equal(amountProblem('1500.55'), null);
+  assert.equal(amountProblem('1500.555'), 'bad_amount');
+  assert.equal(amountProblem('0.001'), 'bad_amount', 'under 0.01 is past two decimals');
+  const part = (method: string, amountText: string, receivingAccountId?: string) => ({ method, amountText, receivingAccountId });
+  assert.equal(splitProblem([part('cash', '3000'), part('mobile', '1000.555', 'b')]), 'bad_amount');
+  assert.equal(splitProblem([part('cash', '0.005'), part('mobile', '2000', 'b')]), 'bad_amount');
+  assert.equal(splitProblem([part('cash', '3000.25'), part('mobile', '1000.5', 'b')]), null);
+  assert.equal(splitProblem([part('cash', ''), part('mobile', '1000.555', 'b')]), 'empty_part', 'a part still to type is said first');
+  // One method or a split, the same judgement, first in line: Complete waits, and the line says two decimals at most.
+  assert.match(sheet, /const amountBad = isSplitting \? splitIssue === 'bad_amount' : amountProblem\(receivedText\) === 'bad_amount';/);
+  assert.match(sheet, /\{amountBad \? \(\s*<Text variant="caption" tone="tertiary" align="center">\s*\{t\('closeDay\.count\.invalid'\)\}\s*<\/Text>\s*\) : overpaid \?/);
+  for (const locale of ['en', 'fr', 'ar']) assert.ok(read(`./i18n/${locale}.ts`).includes("'closeDay.count.invalid':"), locale);
+});
+it('the last split part can be removed: back to one method, with that part’s amount and place', () => {
+  const remove = sheet.slice(sheet.indexOf('const removeSplitRow'), sheet.indexOf('const accountsFor'));
+  assert.match(remove, /const last = parts\.length === 1 && parts\[0\]\.key === key \? parts\[0\] : null;\s*if \(last\) \{\s*setReceivedText\(last\.amountText\);\s*setSource\(sourceOf\(last\)\);\s*\}/);
+  const button = sheet.slice(sheet.indexOf('icon={X}'), sheet.indexOf('/>', sheet.indexOf('icon={X}')));
+  assert.match(button, /onPress=\{\(\) => removeSplitRow\(entry\.key\)\}/);
+  assert.ok(!/disabled=/.test(button), 'no part is held on screen');
+});
+it('a split opens on the amount already typed as received, when the sale can take it; else on the total', () => {
+  assert.match(sheet, /const typed = Number\(receivedText\);[\s\S]*?amountText: Number\.isFinite\(typed\) && typed > 0 && typed <= total \? receivedText : String\(total\),/);
+});
+it('with cents anywhere, every figure of the sheet shows them, so received and owed add up to the total shown', () => {
+  assert.match(sheet, /const decimals = \[total, paid, remaining, \.\.\.split\.map\(\(entry\) => entry\.amount\)\]\.some\(\(v\) => Number\.isFinite\(v\) && Math\.round\(v \* 100\) % 100 !== 0\) \? 2 : 0;/);
+  const calls = sheet.match(/formatMoney\([^()]*\)/g) ?? [];
+  assert.ok(calls.length >= 9, `expected every figure, found ${calls.length}`);
+  for (const call of calls) assert.match(call, /, \{ decimals \}\)$/, call);
+  assert.match(sheet, /<MoneyValue value=\{total\} size="large" decimals=\{decimals\} \/>/);
+  assert.match(sheet, /<MoneyValue value=\{remaining\} size="large" decimals=\{decimals\} \/>/);
+  // 1 500,50 received of 7 000 leaves 5 499,50: whole units would print 1 501 + 5 500, which is not 7 000.
+  const shown = (v: number, decimals: number) => Number(formatMoney(v, { decimals, showCurrency: false }).replace(/\s/g, '').replace(',', '.'));
+  const { remaining } = previewSalePayment(7000, 1500.5);
+  assert.equal(shown(1500.5, 2) + shown(remaining, 2), shown(7000, 2));
+  assert.notEqual(shown(1500.5, 0) + shown(remaining, 0), shown(7000, 0));
 });
 it('both sale screens carry the debtor through every retry', () => {
   for (const f of ['../app/(tabs)/sell.tsx', '../app/quick-sell.tsx']) {

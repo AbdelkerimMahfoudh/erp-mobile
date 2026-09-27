@@ -10,6 +10,7 @@
  * exist so the screen does not offer a button that is going to fail.
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   approvalFor,
   canCancel,
@@ -192,6 +193,10 @@ it('recognises every code the sale flow acts on', () => {
     'approval_unit_transferred',
     'approval_cost_changed',
     'acknowledgement_rejected',
+    'too_many_payment_methods',
+    'duplicate_payment_destination',
+    'overpayment',
+    'debtor_required',
   ]) {
     assert.equal(refusalOf(code), code);
   }
@@ -205,6 +210,46 @@ it('treats anything else as unknown rather than guessing', () => {
    */
   assert.equal(refusalOf('something_new'), 'unknown');
   assert.equal(refusalOf(undefined), 'unknown');
+  // A split may pay part of the sale now (2026-09-27); the server no longer sends this.
+  assert.equal(refusalOf('split_must_equal_total'), 'unknown');
+});
+
+const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const code = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+it('both sale screens answer the money refusals in the reader’s language', () => {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const screens = [
+    { file: '../app/(tabs)/sell.tsx', total: 'total' },
+    // Quick sell has no total until a price is set.
+    { file: '../app/quick-sell.tsx', total: 'total ?? 0' },
+  ];
+  for (const { file, total } of screens) {
+    const screen = code(read(file));
+    const due = escape(total);
+    const left = escape(total.includes('??') ? `(${total}) - received` : `${total} - received`);
+    const received = String.raw`const received = payments\.reduce\(\(sum, p\) => sum \+ p\.amount, 0\);\s*`;
+    assert.match(screen, /case 'too_many_payment_methods':\s*toast\.error\(t\('sell\.payment\.split\.max'\)\);/, file);
+    assert.match(screen, /case 'duplicate_payment_destination':\s*toast\.error\(t\('sell\.payment\.split\.duplicate'\)\);/, file);
+    assert.match(
+      screen,
+      new RegExp(
+        String.raw`case 'overpayment': \{\s*` + received + String.raw`toast\.error\(\s*payments\.length > 1\s*` +
+          String.raw`\? t\('sell\.payment\.split\.over', \{ sum: isolateLtr\(formatMoney\(received\)\), total: isolateLtr\(formatMoney\(` + due + String.raw`\)\) \}\)\s*` +
+          String.raw`: t\('sell\.payment\.exactOnly'\),`,
+      ),
+      `${file}: more than the total, said for a split or for one method`,
+    );
+    assert.match(
+      screen,
+      new RegExp(
+        String.raw`case 'debtor_required': \{\s*` + received +
+          String.raw`toast\.error\(t\('sellDebt\.problem\.debtor_required', \{ amount: isolateLtr\(formatMoney\(Math\.max\(0, ` + left + String.raw`\)\)\) \}\)\);`,
+      ),
+      `${file}: a balance nobody owes names the amount left`,
+    );
+    assert.ok(!/split_must_equal_total|sell\.payment\.split\.sum/.test(screen), `${file} still expects a split to pay the whole amount`);
+  }
 });
 
 console.log(`\n${passed} passed`);

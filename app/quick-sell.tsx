@@ -437,16 +437,27 @@ function QuickSellScreen() {
           case 'acknowledgement_rejected':
             toast.error(t('warning.rejectedConfirmation'));
             return;
-          // The form stops all three first; these answer an older screen or a race, in the reader's language.
+          // The form stops each of these first; these answer an older screen or a race, in the reader's language.
           case 'too_many_payment_methods':
             toast.error(t('sell.payment.split.max'));
             return;
           case 'duplicate_payment_destination':
             toast.error(t('sell.payment.split.duplicate'));
             return;
-          case 'split_must_equal_total':
-            toast.error(t('sell.payment.split.sum', { sum: formatMoney(payments.reduce((sum, p) => sum + p.amount, 0)), total: formatMoney(total ?? 0) }));
+          case 'overpayment': {
+            const received = payments.reduce((sum, p) => sum + p.amount, 0);
+            toast.error(
+              payments.length > 1
+                ? t('sell.payment.split.over', { sum: isolateLtr(formatMoney(received)), total: isolateLtr(formatMoney(total ?? 0)) })
+                : t('sell.payment.exactOnly'),
+            );
             return;
+          }
+          case 'debtor_required': {
+            const received = payments.reduce((sum, p) => sum + p.amount, 0);
+            toast.error(t('sellDebt.problem.debtor_required', { amount: isolateLtr(formatMoney(Math.max(0, (total ?? 0) - received))) }));
+            return;
+          }
           default:
             break;
         }

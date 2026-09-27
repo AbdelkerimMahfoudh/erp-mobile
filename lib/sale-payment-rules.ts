@@ -7,6 +7,7 @@
  * choose the words for what it said.
  */
 
+import { parseAmount } from './price-input.ts';
 import type { PaymentMethod, SalePayStatus } from '../types/api';
 
 const EPSILON = 0.005;
@@ -159,21 +160,39 @@ export function saleDebtorFields(debtor: DebtorDraft, attachedCustomerId: string
  */
 export const MAX_PAYMENT_METHODS = 4;
 
-/** Where a payment part lands: the drawer, or one named account (an account not chosen yet is no place). */
+/**
+ * Where a payment part lands: the drawer, or one named account (an account not
+ * chosen yet is no place). The id is compared without its letter case, as the
+ * server compares it: one account written two ways is still one place.
+ */
 export function destinationOf(part: { method: string; receivingAccountId?: string | null }): string | null {
   if (part.method === 'cash') return 'cash';
-  return part.receivingAccountId ? `account:${part.receivingAccountId}` : null;
+  return part.receivingAccountId ? `account:${part.receivingAccountId.toLowerCase()}` : null;
 }
 
-export type SplitProblem = 'too_many' | 'duplicate' | 'sum_mismatch';
+/**
+ * Whether a payment amount can be sent as typed, read the way every money field
+ * is (`parseAmount`): `empty` while the field is blank, unfinished ("." on its
+ * way to ".5") or not above zero; `bad_amount` past two decimals, which is also
+ * every figure under 0.01. The server keeps two decimals, so a finer figure
+ * would be refused or rounded into one nobody typed.
+ */
+export function amountProblem(text: string): 'empty' | 'bad_amount' | null {
+  const parsed = parseAmount(text);
+  if (!parsed.ok) return parsed.reason === 'too_precise' ? 'bad_amount' : 'empty';
+  return parsed.value > 0 ? null : 'empty';
+}
+
+export type SplitProblem = 'too_many' | 'duplicate' | 'empty_part' | 'bad_amount';
 
 /**
  * What stops a split from completing: more than four places, one place used
- * twice, or parts that do not add up to the amount due exactly — a split pays
- * the whole sale; a sale paid only in part takes one method and names who owes
- * the rest.
+ * twice, a part with no amount (the server refuses a part of nothing, so it is
+ * typed or removed), or one past two decimals. Each part is judged as typed.
+ * What the parts add up to is judged as for one method: all or part of the
+ * sale, the rest owed by a named debtor, never more than the total.
  */
-export function splitProblem(parts: { method: string; amount: number; receivingAccountId?: string | null }[], total: number): SplitProblem | null {
+export function splitProblem(parts: { method: string; amountText: string; receivingAccountId?: string | null }[]): SplitProblem | null {
   if (parts.length > MAX_PAYMENT_METHODS) return 'too_many';
   const seen = new Set<string>();
   for (const part of parts) {
@@ -182,10 +201,9 @@ export function splitProblem(parts: { method: string; amount: number; receivingA
     if (seen.has(place)) return 'duplicate';
     seen.add(place);
   }
-  if (parts.length >= 2) {
-    const sum = round2(parts.reduce((s, p) => s + (Number.isFinite(p.amount) ? p.amount : 0), 0));
-    if (Math.abs(sum - round2(total)) >= EPSILON) return 'sum_mismatch';
-  }
+  const amounts = parts.map((part) => amountProblem(part.amountText));
+  if (amounts.includes('empty')) return 'empty_part';
+  if (amounts.includes('bad_amount')) return 'bad_amount';
   return null;
 }
 
@@ -193,6 +211,6 @@ export function splitProblem(parts: { method: string; amount: number; receivingA
 export function nextFreeSource(parts: { method: string; receivingAccountId?: string | null }[], accountIds: string[]): { kind: 'cash' } | { kind: 'account'; accountId: string } | null {
   const used = new Set(parts.map(destinationOf).filter((d): d is string => d !== null));
   if (!used.has('cash')) return { kind: 'cash' };
-  const free = accountIds.find((id) => !used.has(`account:${id}`));
+  const free = accountIds.find((id) => !used.has(`account:${id.toLowerCase()}`));
   return free ? { kind: 'account', accountId: free } : null;
 }

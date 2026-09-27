@@ -211,10 +211,11 @@ export type SaleRefusal =
   | 'approval_unit_transferred'
   | 'approval_cost_changed'
   | 'acknowledgement_rejected'
-  // A split's parts (2026-09-27): a fifth method, one place twice, parts that do not add up to the amount due.
+  // The money taken now (2026-09-27): a fifth method, one place twice, more than the total, a balance nobody owes.
   | 'too_many_payment_methods'
   | 'duplicate_payment_destination'
-  | 'split_must_equal_total'
+  | 'overpayment'
+  | 'debtor_required'
   | 'unknown';
 
 const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
@@ -228,7 +229,8 @@ const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
   'acknowledgement_rejected',
   'too_many_payment_methods',
   'duplicate_payment_destination',
-  'split_must_equal_total',
+  'overpayment',
+  'debtor_required',
 ]);
 
 export function refusalOf(code: string | undefined): SaleRefusal {

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Plus, X } from 'lucide-react-native';
+import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { formatMoney } from '../../lib/format';
@@ -19,7 +20,16 @@ import { Thumbnail } from '../ui/Thumbnail';
 import { ReceivedVia, type MoneySource } from '../money/ReceivedVia';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
 import { DebtorPicker } from './DebtorPicker';
-import { debtorProblem, MAX_PAYMENT_METHODS, methodForAccount, nextFreeSource, previewSalePayment, splitProblem, type DebtorDraft } from '../../lib/sale-payment-rules';
+import {
+  amountProblem,
+  debtorProblem,
+  MAX_PAYMENT_METHODS,
+  methodForAccount,
+  nextFreeSource,
+  previewSalePayment,
+  splitProblem,
+  type DebtorDraft,
+} from '../../lib/sale-payment-rules';
 import type { PaymentEntry } from './types';
 import type { PaymentMethod } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
@@ -40,9 +50,13 @@ import { makeStyles } from '../../lib/design/theme';
  * a sale with a balance is reviewed in words before it is sent, and more than
  * the total can never be taken. The server recomputes all of it.
  *
- * A split pays the whole amount due in at most four places — the drawer counts
- * as one — each place once (2026-09-27); a fifth is refused with the reason on
- * screen, and so is the server's.
+ * A split takes the money in at most four places — the drawer counts as one —
+ * each place once (2026-09-27); a fifth is refused with the reason on screen,
+ * and so is the server's. Its parts are judged as one method is: they pay all
+ * or part of the sale, never more than the total, and whatever they leave is
+ * owed by a named debtor. A split starts from the amount already typed and,
+ * down to its last part removed, goes back to one method with that amount.
+ * Every amount is judged as typed: past two decimals, nothing is sent.
  */
 
 /** A configured place non-cash money can land. Only ACTIVE ones are offered. */
@@ -60,6 +74,9 @@ export interface ReceivingAccount {
  * server refuses an account on a cash payment. Everything else must name one.
  */
 const needsAccount = (method: PaymentMethod) => method !== 'cash';
+
+/** A split part while it is typed: its amount is the field's text, as the received amount is. */
+type SplitPart = Omit<PaymentEntry, 'amount'> & { amountText: string };
 
 export interface PaymentSheetProps {
   open: boolean;
@@ -125,7 +142,8 @@ function PaymentSheetBody({
   const styles = useStyles();
   const { t } = useTranslation();
   const [source, setSource] = useState<MoneySource>({ kind: 'cash' });
-  const [split, setSplit] = useState<PaymentEntry[]>([]);
+  /** The split's parts, each amount kept as typed so a decimal point on its way to "1500.5" survives. */
+  const [parts, setParts] = useState<SplitPart[]>([]);
   /** A fifth method, or a part with no place left, was asked for: said until a part is removed. */
   const [limitHit, setLimitHit] = useState<'max' | 'noPlace' | null>(null);
   const [receivedText, setReceivedText] = useState(String(total));
@@ -137,25 +155,27 @@ function PaymentSheetBody({
   /** The method a source implies: cash, or whatever kind of account it is. */
   const methodOf = (s: MoneySource): PaymentMethod =>
     s.kind === 'cash' ? 'cash' : methodForAccount(accountOf(s.accountId)?.provider ?? 'other');
-  const sourceOf = (entry: PaymentEntry): MoneySource =>
+  const sourceOf = (entry: Pick<PaymentEntry, 'method' | 'receivingAccountId'>): MoneySource =>
     entry.method === 'cash' ? { kind: 'cash' } : { kind: 'account', accountId: entry.receivingAccountId ?? null };
 
-  const splitTotal = useMemo(() => split.reduce((sum, entry) => sum + entry.amount, 0), [split]);
+  /** The parts in numbers, for the figures and the request: a blank or unfinished amount reads 0 or NaN, and splitProblem stops it. */
+  const split = useMemo<PaymentEntry[]>(() => parts.map(({ amountText, ...part }) => ({ ...part, amount: Number(amountText) })), [parts]);
+  const splitTotal = useMemo(() => split.reduce((sum, entry) => sum + (Number.isFinite(entry.amount) ? entry.amount : 0), 0), [split]);
   const isSplitting = split.length > 0;
   const receivedNow = Number(receivedText);
   const paid = isSplitting ? splitTotal : Number.isFinite(receivedNow) && receivedNow > 0 ? receivedNow : 0;
   const remaining = Math.round((total - paid) * 100) / 100;
-  /**
-   * Two or more parts are a split, and pay the whole amount due; one part — the split just opened, or all but one
-   * removed — is a one-method payment like any other: it may leave a balance, owed by the named debtor.
-   */
-  const multiSplit = split.length >= 2;
-  /** More than the total is never taken: change is not a payment. A split is judged by its own rule below. */
-  const overpaid = !multiSplit && remaining < -0.005;
+  /** More than the total is never taken, split or not: change is not a payment. */
+  const overpaid = remaining < -0.005;
   const preview = previewSalePayment(total, paid);
-  const owing = !multiSplit && remaining > 0.005;
+  // Whatever the money taken now leaves, one method or four, is owed by a named debtor.
+  const owing = remaining > 0.005;
   const owedBy = owing ? debtorProblem(remaining, debtor) : null;
-  const splitIssue = multiSplit ? splitProblem(split, total) : null;
+  // Judged as typed: blank is nothing received now (or a part still to type), past two decimals is never sent.
+  const splitIssue = isSplitting ? splitProblem(parts) : null;
+  const amountBad = isSplitting ? splitIssue === 'bad_amount' : amountProblem(receivedText) === 'bad_amount';
+  // Whole units, unless a figure carries cents: then every figure shows them, so received and owed add up to the total shown.
+  const decimals = [total, paid, remaining, ...split.map((entry) => entry.amount)].some((v) => Number.isFinite(v) && Math.round(v * 100) % 100 !== 0) ? 2 : 0;
 
   /**
    * Every non-cash payment must name the account it reached, and the server
@@ -181,27 +201,33 @@ function PaymentSheetBody({
       const name = debtor.kind === 'none' ? '' : debtor.name;
       const ok = await dialog.confirm({
         title: t('sellDebt.review.title'),
-        message: t('sellDebt.review.body', {
-          received: formatMoney(paid),
-          // Owing is never a split: the one method is the drawer's or the one part's.
-          method: isSplitting && split[0] ? labelOf(sourceOf(split[0])) : sourceLabel,
-          remaining: formatMoney(remaining),
-          name,
-        }),
+        message:
+          split.length > 1
+            ? t('sellDebt.review.bodySplit', {
+                received: isolateLtr(formatMoney(paid, { decimals })),
+                // "Cash 3 000 MRU + Bankily 2 000 MRU": each figure isolated, so Arabic keeps every amount beside its method.
+                parts: split.map((entry) => `${labelOf(sourceOf(entry))} ${isolateLtr(formatMoney(entry.amount, { decimals }))}`).join(' + '),
+                remaining: isolateLtr(formatMoney(remaining, { decimals })),
+                name,
+              })
+            : t('sellDebt.review.body', {
+                received: formatMoney(paid, { decimals }),
+                method: isSplitting && split[0] ? labelOf(sourceOf(split[0])) : sourceLabel,
+                remaining: formatMoney(remaining, { decimals }),
+                name,
+              }),
         confirmLabel: t('sell.payment.complete'),
       });
       if (!ok) return;
     }
     if (isSplitting) {
       onComplete(
-        split
-          .filter((entry) => entry.amount > 0)
-          .map((entry) => ({
-            ...entry,
-            // Cash carries no account: the drawer belongs to none, and the
-            // database refuses the alternative.
-            receivingAccountId: needsAccount(entry.method) ? entry.receivingAccountId : undefined,
-          })),
+        split.map((entry) => ({
+          ...entry,
+          // Cash carries no account: the drawer belongs to none, and the
+          // database refuses the alternative.
+          receivingAccountId: needsAccount(entry.method) ? entry.receivingAccountId : undefined,
+        })),
         debtorToSend,
       );
     } else {
@@ -232,43 +258,53 @@ function PaymentSheetBody({
       setLimitHit('noPlace');
       return;
     }
-    setSplit((prev) => {
+    setParts((prev) => {
       if (prev.length === 0) {
+        // The first part keeps what was typed as received now, when the sale can take it; otherwise the whole total.
+        const typed = Number(receivedText);
         return [
           {
             key: uuidv4(),
             method,
             ...(source.kind === 'account' && source.accountId ? { receivingAccountId: source.accountId } : {}),
-            amount: total,
+            amountText: Number.isFinite(typed) && typed > 0 && typed <= total ? receivedText : String(total),
           },
         ];
       }
       // A new part takes a place no part uses yet, and what is still due, so the common "rest elsewhere" needs no typing.
+      // With nothing left due it starts empty, ready for a figure rather than a 0 to delete first.
       const next = nextFreeSource(prev, accounts.map((a) => a.id));
       if (next === null) return prev;
-      const covered = prev.reduce((sum, entry) => sum + entry.amount, 0);
+      const covered = prev.reduce((sum, part) => sum + (Number(part.amountText) || 0), 0);
+      const due = Math.round((total - covered) * 100) / 100;
       return [
         ...prev,
         {
           key: uuidv4(),
           method: methodOf(next),
           ...(next.kind === 'account' ? { receivingAccountId: next.accountId } : {}),
-          amount: Math.max(0, Math.round((total - covered) * 100) / 100),
+          amountText: due > 0 ? String(due) : '',
         },
       ];
     });
   };
   const removeSplitRow = (key: string) => {
-    setSplit((prev) => prev.filter((x) => x.key !== key));
+    // The last part removed is the one method again, with that part's amount and place: nothing typed is lost.
+    const last = parts.length === 1 && parts[0].key === key ? parts[0] : null;
+    if (last) {
+      setReceivedText(last.amountText);
+      setSource(sourceOf(last));
+    }
+    setParts((prev) => prev.filter((x) => x.key !== key));
     setLimitHit(null);
   };
   /** A part's account choices: every account except those another part already uses. */
-  const accountsFor = (entry: PaymentEntry) =>
+  const accountsFor = (entry: SplitPart) =>
     accounts.filter((a) => a.id === entry.receivingAccountId || !split.some((o) => o.key !== entry.key && o.method !== 'cash' && o.receivingAccountId === a.id));
   const splitSum = Math.round(splitTotal * 100) / 100;
 
   const setEntrySource = (key: string, next: MoneySource) =>
-    setSplit((prev) =>
+    setParts((prev) =>
       prev.map((x) =>
         x.key === key
           ? {
@@ -279,6 +315,24 @@ function PaymentSheetBody({
           : x,
       ),
     );
+
+  const debtorBlock = owing ? (
+    <>
+      <Card variant="warning" style={styles.owed}>
+        <View style={styles.owedFigure}>
+          <Text variant="caption" tone="secondary">
+            {t('sellDebt.remaining')}
+          </Text>
+          <MoneyValue value={remaining} size="large" decimals={decimals} />
+        </View>
+        <StatusChip domain="sale" value={preview.status} />
+      </Card>
+      <DebtorPicker value={debtor} onChange={setDebtor} onLeave={onClose} />
+      <Text variant="caption" tone="tertiary">
+        {t('sellDebt.onlyReceived', { amount: formatMoney(paid, { decimals }) })}
+      </Text>
+    </>
+  ) : null;
 
   return (
     <BottomSheet
@@ -292,16 +346,22 @@ function PaymentSheetBody({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={overpaid || owedBy !== null || !accountsSettled || splitIssue !== null}
+            disabled={amountBad || overpaid || owedBy !== null || !accountsSettled || splitIssue !== null}
             onPress={() => void complete()}
           />
-          {overpaid ? (
+          {amountBad ? (
             <Text variant="caption" tone="tertiary" align="center">
-              {t('sell.payment.exactOnly')}
+              {t('closeDay.count.invalid')}
+            </Text>
+          ) : overpaid ? (
+            <Text variant="caption" tone="tertiary" align="center">
+              {isSplitting
+                ? t('sell.payment.split.over', { sum: formatMoney(splitSum, { decimals }), total: formatMoney(total, { decimals }) })
+                : t('sell.payment.exactOnly')}
             </Text>
           ) : owedBy ? (
             <Text variant="caption" tone="tertiary" align="center">
-              {t(`sellDebt.problem.${owedBy}` as never, { amount: formatMoney(remaining) })}
+              {t(`sellDebt.problem.${owedBy}` as never, { amount: formatMoney(remaining, { decimals }) })}
             </Text>
           ) : !accountsSettled ? (
             <Text variant="caption" tone="tertiary" align="center">
@@ -309,9 +369,13 @@ function PaymentSheetBody({
             </Text>
           ) : splitIssue ? (
             <Text variant="caption" tone="tertiary" align="center">
-              {splitIssue === 'sum_mismatch'
-                ? t('sell.payment.split.sum', { sum: formatMoney(splitSum), total: formatMoney(total) })
-                : t(splitIssue === 'duplicate' ? 'sell.payment.split.duplicate' : 'sell.payment.split.max')}
+              {t(
+                splitIssue === 'too_many'
+                  ? 'sell.payment.split.max'
+                  : splitIssue === 'duplicate'
+                    ? 'sell.payment.split.duplicate'
+                    : 'sell.payment.split.empty',
+              )}
             </Text>
           ) : null}
         </>
@@ -331,7 +395,7 @@ function PaymentSheetBody({
           <Text variant="caption" tone="secondary">
             {t('saleDetail.total')}
           </Text>
-          <MoneyValue value={total} size="large" />
+          <MoneyValue value={total} size="large" decimals={decimals} />
         </View>
 
         {!isSplitting ? (
@@ -341,23 +405,7 @@ function PaymentSheetBody({
           </>
         ) : null}
 
-        {owing ? (
-          <>
-            <Card variant="warning" style={styles.owed}>
-              <View style={styles.owedFigure}>
-                <Text variant="caption" tone="secondary">
-                  {t('sellDebt.remaining')}
-                </Text>
-                <MoneyValue value={remaining} size="large" />
-              </View>
-              <StatusChip domain="sale" value={preview.status} />
-            </Card>
-            <DebtorPicker value={debtor} onChange={setDebtor} onLeave={onClose} />
-            <Text variant="caption" tone="tertiary">
-              {t('sellDebt.onlyReceived', { amount: formatMoney(paid) })}
-            </Text>
-          </>
-        ) : null}
+        {isSplitting ? null : debtorBlock}
 
         <Disclosure title={t('sell.payment.moreOptions')} initiallyOpen={isSplitting}>
           <View style={styles.more}>
@@ -375,7 +423,7 @@ function PaymentSheetBody({
                 <Text variant="label" tone="secondary">
                   {t('sell.payment.split')}
                 </Text>
-                {split.map((entry, index) => (
+                {parts.map((entry) => (
                   <View key={entry.key} style={styles.splitEntry}>
                     <ReceivedVia
                       label={t('recordPayment.method')}
@@ -386,9 +434,9 @@ function PaymentSheetBody({
                     <View style={styles.splitRow}>
                       <View style={styles.grow}>
                         <MoneyField
-                          value={String(entry.amount)}
+                          value={entry.amountText}
                           onChangeText={(text) =>
-                            setSplit((prev) => prev.map((x) => (x.key === entry.key ? { ...x, amount: Number(text) || 0 } : x)))
+                            setParts((prev) => prev.map((x) => (x.key === entry.key ? { ...x, amountText: text } : x)))
                           }
                           showCurrency={false}
                         />
@@ -398,7 +446,6 @@ function PaymentSheetBody({
                         accessibilityLabel={t('action.remove')}
                         size={36}
                         onPress={() => removeSplitRow(entry.key)}
-                        disabled={index === 0 && split.length === 1}
                       />
                     </View>
                   </View>
@@ -419,6 +466,9 @@ function PaymentSheetBody({
             ) : null}
           </View>
         </Disclosure>
+
+        {/* While splitting, what is owed comes after the parts, so nothing jumps above the amount being typed. */}
+        {isSplitting ? debtorBlock : null}
       </ScrollView>
     </BottomSheet>
   );
