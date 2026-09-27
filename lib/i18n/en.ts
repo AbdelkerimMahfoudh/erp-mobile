@@ -1012,11 +1012,6 @@ export const en = {
   'counterparty.add.failed': 'That could not be saved',
 
   // Shown on the closing screen. A nudge, never a figure.
-  'closing.loans.title': 'Money owed',
-  'closing.loans.answer': '{count} waiting for your answer',
-  'closing.loans.confirm': '{count} payments waiting for you to confirm',
-  'closing.loans.outstanding': '{count} still open, {amount} in total',
-  'closing.loans.hint': 'None of this changes the cash you should have or today’s profit.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
   'sync.notDurable': 'This browser cannot keep work on the device. Everything here needs a connection, and nothing is saved if you close the tab.',

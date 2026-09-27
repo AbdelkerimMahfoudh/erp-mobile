@@ -1073,12 +1073,6 @@ export const fr: Catalogue = {
   'counterparty.add.failed': 'Cela n’a pas pu être enregistré',
 
   // Shown on the closing screen. A nudge, never a figure.
-  'closing.loans.title': 'Argent dû',
-  'closing.loans.answer': '{count} en attente de votre réponse',
-  'closing.loans.confirm': '{count} paiements en attente de votre confirmation',
-  'closing.loans.outstanding': '{count} encore ouverts, {amount} au total',
-  'closing.loans.hint':
-    'Rien de tout cela ne change les espèces que vous devriez avoir ni le bénéfice du jour.',
 
   // The Sync centre (Milestone J). Nothing here may claim the server agreed.
   'sync.notDurable': 'Ce navigateur ne peut rien conserver sur l’appareil. Tout ici exige une connexion, et rien n’est enregistré si vous fermez l’onglet.',

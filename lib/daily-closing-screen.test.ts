@@ -42,7 +42,7 @@ it('the first view is the statement: sales and items, then gross profit, expense
 });
 
 it('Sales details — the one expandable of the statement — is figure rows only: invoiced, (cancelled, returned when nonzero), net, cost, gross profit, expenses, result; the words behind a (?)', () => {
-  const details = statement.slice(statement.indexOf("t('dailyReport.salesDetails')"), statement.lastIndexOf('</Disclosure>'));
+  const details = statement.slice(statement.indexOf('{detailsOpen ? ('), statement.lastIndexOf('</Card>'));
   for (const k of ['salesDetails.invoiced', 'sales.cancelled', 'sales.returns', 'sales.net', 'result.cost', 'result.gross', 'expenses.title', 'result.after']) {
     assert.ok(details.includes(`t('dailyReport.${k}'`), `sales details carry ${k}`);
   }
@@ -56,7 +56,11 @@ it('Sales details — the one expandable of the statement — is figure rows onl
   assert.ok(!screen.includes('/sales/period'), 'no link to the transactions from the statement');
   // The explanation is asked for, never shown: a (?) beside the title opens it in its own dialog.
   assert.match(statement, /<IconButton\s+icon=\{HelpCircle\}[\s\S]*?accessibilityLabel=\{t\('dailyReport\.salesDetails\.help'\)\}[\s\S]*?dialog\.alert\(\{[\s\S]*?t\('dailyReport\.countRule'\)/);
-  assert.equal((statement.match(/<Disclosure\b/g) ?? []).length, 1, 'one expandable on the statement');
+  assert.ok(!/<Disclosure\b/.test(statement), 'the statement’s one expandable is Sales details, built on the page');
+  // One line: the title with its chevron right beside it, the (?) at the end; the rows keep the statement's full width.
+  assert.match(statement, /<View style=\{styles\.detailsHead\}>\s*<Pressable[\s\S]*?aria-expanded=\{detailsOpen\}[\s\S]*?<Text variant="bodyStrong" style=\{styles\.shrink\}>\s*\{t\('dailyReport\.salesDetails'\)\}\s*<\/Text>\s*<View style=\{detailsOpen \? styles\.up : null\}>\s*<ChevronDown[\s\S]*?<\/Pressable>\s*<IconButton\s+icon=\{HelpCircle\}/);
+  assert.match(screen, /detailsToggle: \{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space\.xs, minHeight: touch\.min \}/);
+  assert.match(details, /^\{detailsOpen \? \(\s*<View style=\{styles\.detail\}>\s*<Line label=\{t\('dailyReport\.salesDetails\.invoiced'\)\}/);
 });
 
 it('no balance cards on the page: the drawer and the accounts are checked inside the closing popup, and the separate counting page is gone', () => {
@@ -162,7 +166,15 @@ it('Closing history is one rectangle: a header with the count and the chevron at
   assert.match(panel, /progress\.value = reduceMotion \? \(next \? 1 : 0\) : withTiming\(next \? 1 : 0/);
   assert.match(panel, /height: contentHeight \* progress\.value/);
   assert.match(panel, /translateY: \(progress\.value - 1\) \* SLIDE/);
-  assert.match(panel, /<Animated\.View style=\{chevronStyle\}>\s*<ChevronDown/);
+  // One purple header across the card (the info intent's solid, white on it), title and count centred, a larger
+  // chevron fixed at the physical right edge in both directions — it turns, it never changes sides (2026-09-27).
+  assert.match(panel, /const purple = colors\.intent\.info\.solid;\s*const onPurple = colors\.intent\.info\.onSolid;/);
+  assert.match(panel, /styles\.head, \{ backgroundColor: purple \}/);
+  assert.match(panel, /centre: \{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center'/);
+  assert.match(panel, /const rightEdge = Platform\.OS === 'web' \? \{ right: space\.base \} : layoutIsRTL\(\) \? \{ start: space\.base \} : \{ end: space\.base \};/);
+  assert.match(panel, /<Animated\.View style=\{\[styles\.chevron, rightEdge, chevronStyle\]\}>\s*<ChevronDown size=\{CHEVRON\} strokeWidth=\{2\.5\} color=\{onPurple\} \/>/);
+  assert.match(panel, /const CHEVRON = 28;/);
+  assert.ok(!/colors\.brand\[/.test(panel), 'semantic colours only');
   assert.match(panel, /accessibilityState=\{\{ expanded: open \}\}/);
   assert.match(screen, /day\.history\.map\(\(h, i\) => <HistoryRow/);
 });
@@ -184,10 +196,10 @@ it('Money movements is always in view: each channel’s recorded movement, a lin
 
 it('Close the business day, Correct a transaction, Unsettled differences and Closing history are there, on the same contract as before', () => {
   assert.match(screen, /<CloseDaySheet[\s\S]*?onClose=\{\(\) => setClosing\(false\)\}[\s\S]*?report=\{report\}[\s\S]*?day=\{day\}[\s\S]*?freshness=\{freshness\}[\s\S]*?canCount=\{canCount\}/);
-  // The loan reminders the counting page carried stay at closing time, as their own query and only when something waits.
-  assert.match(screen, /\{report\.isToday \? <LoanReminders \/> : null\}/);
-  assert.match(screen, /const reminders = useClosingReminders\(canSee\);/);
-  assert.match(screen, /r\.proposalsNeedingAnswer === 0 && r\.paymentsAwaitingConfirmation === 0 && r\.balancesOutstanding === 0\) return null;/);
+  // The Money owed card is gone, counts, amount, words and link (2026-09-27); Debt settled stays in Money movements.
+  assert.ok(!/LoanReminders|useClosingReminders|closing\.loans\./.test(screen), 'no Money owed card');
+  assert.ok(!read('lib/loans.ts').includes('useClosingReminders'), 'its hook is gone with it');
+  assert.match(screen, /t\('dailyReport\.movements\.debtSettled'\)/);
   // A close with the drawer counted still names the balances it took on the person's word.
   assert.match(screen, /Number\(p\.attestedCount \?\? 0\) > 0 \? t\('closing\.history\.attested', \{ count: String\(p\.attestedCount\) \}\) : null,/);
   assert.match(screen, /title=\{t\('dailyReport\.correct'\)\}[\s\S]*?pathname: '\/closing\/sources'/);
@@ -200,8 +212,8 @@ it('Close the business day, Correct a transaction, Unsettled differences and Clo
 });
 
 it('every catalogue carries the section and popup words, and none of the removed page’s', () => {
-  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.help', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.debtSettled', 'dailyReport.movements.total', 'dailyReport.movements.total.note', 'dailyReport.result.cannot.short', 'dailyReport.closeDay', 'closeDay.question', 'closeDay.count.unsaved', 'closeDay.alreadyClosed', 'closing.loans.title'];
-  const gone = ['dailyReport.checkBalances', 'dailyReport.countCash', 'dailyReport.checkBalance', 'dailyReport.close', 'closeReview.acknowledge', 'closingCheck.title', 'closing.skip.action', 'closingHistory.history'];
+  const keys = ['dailyReport.salesDetails', 'dailyReport.salesDetails.invoiced', 'dailyReport.salesDetails.help', 'dailyReport.account.counted', 'dailyReport.movements', 'dailyReport.movements.debtSettled', 'dailyReport.movements.total', 'dailyReport.movements.total.note', 'dailyReport.result.cannot.short', 'dailyReport.closeDay', 'closeDay.question', 'closeDay.count.unsaved', 'closeDay.alreadyClosed'];
+  const gone = ['dailyReport.checkBalances', 'dailyReport.countCash', 'dailyReport.checkBalance', 'dailyReport.close', 'closeReview.acknowledge', 'closingCheck.title', 'closing.skip.action', 'closingHistory.history', 'closing.loans.title', 'returns.policy.reason', 'returns.policy.reasonRequired'];
   for (const lang of ['en', 'fr', 'ar']) {
     const catalogue = read(`lib/i18n/${lang}.ts`);
     for (const key of keys) assert.ok(catalogue.includes(`'${key}':`), `${lang} lacks ${key}`);

@@ -86,18 +86,6 @@ export interface LoanDetail extends LoanSummary {
   ledger: LoanLedgerEntry[];
 }
 
-export interface ClosingReminders {
-  proposalsNeedingAnswer: number;
-  paymentsAwaitingConfirmation: number;
-  balancesOutstanding: number;
-  totalOutstanding: number;
-  /**
-   * Always false. Read from the payload rather than assumed, so if the rule
-   * ever changed the screen would not keep quietly asserting the old one.
-   */
-  affectsExpectedCash: boolean;
-}
-
 export function useLoans(group?: LoanGroup) {
   const branchId = useBranch((s) => s.branchId);
   return useQuery({
@@ -118,21 +106,6 @@ export function useLoan(id: string | undefined) {
   });
 }
 
-/**
- * What is waiting, shown on the closing screen.
- *
- * Deliberately its own query rather than folded into the closing payload: it is
- * loan data displayed beside a closing, and it changes no figure the closing
- * computes. Keeping it separate makes that impossible to get wrong by accident.
- */
-export function useClosingReminders(enabled = true) {
-  return useQuery({
-    queryKey: qk.loanReminders(),
-    queryFn: () => api.get<ClosingReminders>('/loans/closing-reminders'),
-    enabled,
-  });
-}
-
 /** One invalidation for every write, so no screen shows a stale balance. */
 function useLoanMutation<TBody>(path: (id: string) => string) {
   const qc = useQueryClient();
@@ -145,7 +118,6 @@ function useLoanMutation<TBody>(path: (id: string) => string) {
       for (const g of ['pending', 'accepted', 'confirmed'] as const) {
         void qc.invalidateQueries({ queryKey: qk.loans(branchId, g) });
       }
-      void qc.invalidateQueries({ queryKey: qk.loanReminders() });
     },
   });
 }
@@ -188,7 +160,6 @@ export function useCreateLoan() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.loans(branchId, 'all') });
       void qc.invalidateQueries({ queryKey: qk.loans(branchId, 'pending') });
-      void qc.invalidateQueries({ queryKey: qk.loanReminders() });
     },
   });
 }

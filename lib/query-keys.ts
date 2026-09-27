@@ -117,7 +117,6 @@ export const qk = {
    */
   loans: (branchId: string | null, group: string) => ['loans', branchId, group] as const,
   loan: (id: string) => ['loan', id] as const,
-  loanReminders: () => ['loan-reminders'] as const,
   /** Company-level, not branch-level: a subscription covers the whole shop. */
   entitlement: () => ['entitlement'] as const,
   /** Recorded money per channel for a period — branch-scoped, like the closing it reads. */

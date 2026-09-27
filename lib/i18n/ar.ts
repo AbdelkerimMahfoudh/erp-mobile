@@ -1002,11 +1002,6 @@ export const ar: Catalogue = {
   'counterparty.add.failed': 'تعذّر الحفظ',
 
   // تظهر في شاشة الإغلاق. تنبيه، وليست رقمًا.
-  'closing.loans.title': 'أموال مستحقّة',
-  'closing.loans.answer': '{count} بانتظار ردّك',
-  'closing.loans.confirm': '{count} دفعات بانتظار تأكيدك',
-  'closing.loans.outstanding': '{count} ما زالت مفتوحة، بمجموع {amount}',
-  'closing.loans.hint': 'لا شيء من هذا يغيّر النقد المتوقّع أو ربح اليوم.',
 
   // مركز المزامنة (المرحلة J). لا شيء هنا يدّعي أنّ الخادم وافق.
   'sync.notDurable': 'لا يمكن لهذا المتصفّح حفظ العمل على الجهاز. كل شيء هنا يحتاج اتصالًا، ولا يُحفظ شيء إذا أغلقت التبويب.',
