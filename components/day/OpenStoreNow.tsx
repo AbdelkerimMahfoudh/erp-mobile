@@ -24,18 +24,22 @@ import type { ReopenMode } from '../../lib/home-day';
  * the button cannot be pressed twice in between. Somebody who may not open the
  * store is told who can, instead of being shown a dead button.
  *
- * This is the way back to the counter: the server refuses a sale or a receipt
- * on a closed day and never reopens it for them. Only a later payment on an
- * existing sale still reopens today's closed day.
+ * This is the only way back to the counter: the server refuses a sale, a
+ * receipt or a later payment on a debt while the day is closed, and nothing
+ * reopens it by itself (docs/61).
  */
 export interface OpenStoreNowProps {
   /** The closed business day, from the light business-day view. */
   businessDate: string;
   /** `closing.perform`: the Owner or a named delegate. */
   mayOpen: boolean;
+  /** What the store being closed stops here, said to someone who may open it; Sell and Receive by default. */
+  closedText?: string;
+  /** Once the store is open again — a screen holding refused work lets it be sent again, on purpose. */
+  onOpened?: () => void;
 }
 
-export function OpenStoreNow({ businessDate, mayOpen }: OpenStoreNowProps) {
+export function OpenStoreNow({ businessDate, mayOpen, closedText, onOpened }: OpenStoreNowProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const online = useConnectivity((s) => s.online);
@@ -53,6 +57,7 @@ export function OpenStoreNow({ businessDate, mayOpen }: OpenStoreNowProps) {
     try {
       await reopen.mutateAsync(mode);
       setSheet(false);
+      onOpened?.();
       toast.success(mode === 'start_new' && day ? t('reopen.started', { date: formatDate(day.nextDate) }) : t('reopen.done', { date }));
     } catch (e) {
       toast.error(toFriendlyError(e).body || t('reopen.failed'));
@@ -79,7 +84,7 @@ export function OpenStoreNow({ businessDate, mayOpen }: OpenStoreNowProps) {
   return (
     <View style={styles.block}>
       <Text variant="body" tone="secondary" align="center">
-        {mayOpen ? t('home.store.closed', { date }) : t('home.store.noPermission', { date })}
+        {mayOpen ? (closedText ?? t('home.store.closed', { date })) : t('home.store.noPermission', { date })}
       </Text>
       {mayOpen ? (
         <Button

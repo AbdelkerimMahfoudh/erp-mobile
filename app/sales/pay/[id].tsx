@@ -21,10 +21,13 @@ import {
 } from '../../../components/ui';
 import { ReceivedVia, type MoneySource } from '../../../components/money/ReceivedVia';
 import { toErrorMessage } from '../../../lib/errors';
+import { OpenStoreNow } from '../../../components/day/OpenStoreNow';
+import { closedDayOf } from '../../../lib/day-gate';
+import { usePermission } from '../../../lib/permissions';
 import { dialog } from '../../../lib/dialog';
 import { radius, space } from '../../../lib/design/tokens';
 import { makeStyles, useColors } from '../../../lib/design/theme';
-import { formatMoney } from '../../../lib/format';
+import { formatDate, formatMoney } from '../../../lib/format';
 import { useTranslation } from '../../../lib/i18n';
 import { useRecordSalePayment, useSelectableAccounts } from '../../../lib/money-overview';
 import { useRecentSuccess } from '../../../lib/recent-success';
@@ -80,6 +83,13 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
   const record = useRecordSalePayment(sale.id);
   const { accounts } = useSelectableAccounts();
   const mark = useRecentSuccess((s) => s.mark);
+  /*
+    The store closed under this payment (docs/61): nothing was recorded. The form
+    stays as typed; someone who may open the store does it here, and the refusal
+    clears so the same payment can be sent again, on purpose, under the same key.
+  */
+  const closedDay = closedDayOf(record.error);
+  const mayOpen = usePermission('closing.perform');
 
   const now = new Date();
   const [amount, setAmount] = useState('');
@@ -226,7 +236,21 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
           {t(`recordPayment.problem.${problem}` as never, { remaining: formatMoney(sale.balanceDue) })}
         </InlineNotice>
       ) : null}
-      {record.isError ? <InlineNotice tone="danger">{toErrorMessage(record.error)}</InlineNotice> : null}
+      {closedDay ? (
+        <>
+          <InlineNotice tone="danger" title={t('gate.closed.title')}>
+            {t('recordPayment.storeClosed')}
+          </InlineNotice>
+          <OpenStoreNow
+            businessDate={closedDay}
+            mayOpen={mayOpen}
+            closedText={t('recordPayment.storeClosed.open', { date: formatDate(closedDay) })}
+            onOpened={() => record.reset()}
+          />
+        </>
+      ) : record.isError ? (
+        <InlineNotice tone="danger">{toErrorMessage(record.error)}</InlineNotice>
+      ) : null}
 
       <Text variant="caption" tone="tertiary" align="center">
         {t('recordPayment.onlyReceived')}

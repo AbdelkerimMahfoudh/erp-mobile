@@ -5,6 +5,7 @@ import { useBranch } from './branch';
 import { invalidateMoney } from './money-invalidation';
 import { checkMoneyOverview, checkSalesByDay, retryUnlessIncompatible } from './contract';
 import { qk } from './query-keys';
+import { isStoreClosedRefusal } from './day-gate';
 import { uuidv4 } from './utils';
 import type { DebtorKind, PaymentMethod, SalePayStatus, SalePaymentState } from '../types/api';
 
@@ -253,6 +254,13 @@ export function useRecordSalePayment(saleId: string) {
       void qc.invalidateQueries({ queryKey: ['open-closing'] });
       // Cash, the chosen account, the overview, collected and outstanding.
       invalidateMoney(qc);
+    },
+    onError: (e) => {
+      // The store closed under this payment: the day is read again, so Home and the counter show the lock too.
+      if (isStoreClosedRefusal(e)) {
+        void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
+        void qc.invalidateQueries({ queryKey: qk.home(branchId) });
+      }
     },
   });
 

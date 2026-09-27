@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dayGate, isStoreClosedRefusal } from './day-gate.ts';
+import { closedDayOf, dayGate, isStoreClosedRefusal } from './day-gate.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -109,6 +109,37 @@ it('both refusals are written in every language', () => {
   for (const locale of ['en', 'fr', 'ar']) {
     const src = readFileSync(new URL(`./i18n/${locale}.ts`, import.meta.url), 'utf8');
     for (const key of ['gate.refused.sale', 'gate.refused.receive']) assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
+  }
+});
+
+it('the closed day a refusal names comes from its field, never from its sentence', () => {
+  const answer = (status: number, code: string, body?: unknown) => Object.assign(new Error('The store is closed for business day 2026-09-27.'), { status, code, body });
+  assert.equal(closedDayOf(answer(409, 'store_closed', { code: 'store_closed', businessDate: '2026-09-27' })), '2026-09-27');
+  assert.equal(closedDayOf(answer(409, 'store_closed', { code: 'store_closed' })), null, 'no field, no date — the sentence is never read');
+  assert.equal(closedDayOf(answer(409, 'store_closed', { businessDate: 'yesterday' })), null);
+  assert.equal(closedDayOf(answer(409, 'day_already_closed', { businessDate: '2026-09-27' })), null);
+  assert.equal(closedDayOf(undefined), null);
+});
+
+it('a later payment refused on a closed day keeps the form and offers to open the store, then lets it be sent again (docs/61)', () => {
+  const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const pay = code(read('../app/sales/pay/[id].tsx'));
+  assert.match(pay, /const closedDay = closedDayOf\(record\.error\);/);
+  assert.match(pay, /const mayOpen = usePermission\('closing\.perform'\);/);
+  assert.match(pay, /<InlineNotice tone="danger" title=\{t\('gate\.closed\.title'\)\}>\s*\{t\('recordPayment\.storeClosed'\)\}/);
+  assert.match(pay, /<OpenStoreNow\s+businessDate=\{closedDay\}\s+mayOpen=\{mayOpen\}\s+closedText=\{t\('recordPayment\.storeClosed\.open', \{ date: formatDate\(closedDay\) \}\)\}\s+onOpened=\{\(\) => record\.reset\(\)\}/);
+  // Nothing clears the typed payment on a refusal: the fields are only set by the person.
+  assert.ok(!/setAmount\(''\)|setNote\(''\)|setReference\(''\)/.test(pay), 'the form is never cleared by a refusal');
+  const hook = code(read('./money-overview.ts'));
+  // The request key changes only on success, so the retry after opening is the same payment, not a second one.
+  assert.match(hook, /onSuccess: \(\) => \{\s*key\.current = uuidv4\(\);/);
+  assert.match(hook, /onError: \(e\) => \{\s*if \(isStoreClosedRefusal\(e\)\) \{\s*void qc\.invalidateQueries\(\{ queryKey: qk\.businessDay\(branchId\) \}\);/);
+  const open = code(read('../components/day/OpenStoreNow.tsx'));
+  assert.match(open, /setSheet\(false\);\s*onOpened\?\.\(\);/);
+  assert.match(open, /\{mayOpen \? \(closedText \?\? t\('home\.store\.closed', \{ date \}\)\) : t\('home\.store\.noPermission', \{ date \}\)\}/);
+  for (const locale of ['en', 'fr', 'ar']) {
+    const src = read(`./i18n/${locale}.ts`);
+    for (const key of ['recordPayment.storeClosed', 'recordPayment.storeClosed.open']) assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
   }
 });
 

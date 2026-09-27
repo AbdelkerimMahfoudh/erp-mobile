@@ -8,10 +8,9 @@
  * branch's current day, its standing), never from the phone's clock. A person
  * that view is not for (no `closing.count`), or a view not loaded yet, is not
  * held back by the phone: the server's own rule then stands — a sale or a
- * receipt reaching a closed day is refused (`store_closed`), never a quiet
- * reopen — so nobody is locked out by a failed read or by another person's
- * cached answer. Only a later payment on an existing sale still reopens today's
- * closed day.
+ * receipt — or a later payment on a debt — reaching a closed day is refused
+ * (`store_closed`), never a quiet reopen, so nobody is locked out by a failed
+ * read or by another person's cached answer (docs/61).
  *
  * Pure, so it can be run directly under Node.
  */
@@ -34,4 +33,14 @@ export function dayGate(day: { standing: DayStanding; businessDate: string } | n
 export function isStoreClosedRefusal(error: unknown): boolean {
   const e = (error ?? {}) as { status?: unknown; code?: unknown };
   return e.status === 409 && e.code === 'store_closed';
+}
+
+/**
+ * The closed business day a `store_closed` refusal names (the server sends it
+ * as a field, never only in the sentence), or null for any other answer.
+ */
+export function closedDayOf(error: unknown): string | null {
+  if (!isStoreClosedRefusal(error)) return null;
+  const day = (error as { body?: { businessDate?: unknown } }).body?.businessDate;
+  return typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
 }

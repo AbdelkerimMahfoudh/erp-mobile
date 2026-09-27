@@ -190,8 +190,9 @@ export function sinceLastCountTone(value: number | null): 'success' | 'danger' |
 
 /**
  * The i18n key that names one history entry. A day reopened by itself says what
- * reopened it, from the event's `cause`: today only a later payment can; older
- * events may name a sale or a receipt, and one naming nothing reads as a sale.
+ * reopened it, from the event's `cause`. Nothing reopens a day by itself any
+ * more (docs/61); these are older events — a payment, a receipt, a sale — and
+ * one naming nothing reads as a sale.
  */
 export function historyKey(kind: string, cause?: unknown): string {
   switch (kind) {

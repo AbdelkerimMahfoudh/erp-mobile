@@ -259,11 +259,11 @@ it('every catalogue carries the section and popup words, and none of the removed
   }
 });
 
-it('the popup says Sell and Receive wait after the close, no line says a sale reopens the day, and "no events" fits any day (2026-09-27)', () => {
+it('the popup says Sell, Receive and debt payments wait after the close, no line says a sale reopens the day, and "no events" fits any day (2026-09-27)', () => {
   const words = {
-    en: ['After closing, Sell and Receive wait until the Owner or a named delegate opens the store again.', 'No events'],
-    fr: ['Après la clôture, la vente et la réception attendent que le propriétaire ou un délégué désigné rouvre la boutique.', 'Aucun événement'],
-    ar: ['بعد الإقفال، يتوقف البيع والاستلام حتى يعيد المالك أو مفوَّض مسمّى فتح المتجر.', 'لا أحداث'],
+    en: ['After closing, Sell, Receive and payments on debts wait until the Owner or a named delegate opens the store again.', 'No events'],
+    fr: ['Après la clôture, la vente, la réception et les paiements de dettes attendent que le propriétaire ou un délégué désigné rouvre la boutique.', 'Aucun événement'],
+    ar: ['بعد الإقفال، يتوقف البيع والاستلام وتسديد الديون حتى يعيد المالك أو مفوَّض مسمّى فتح المتجر.', 'لا أحداث'],
   };
   for (const [lang, [selling, none]] of Object.entries(words)) {
     const catalogue = read(`lib/i18n/${lang}.ts`);
