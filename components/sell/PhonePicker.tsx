@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Check, CheckCircle2, Keyboard, Package, ScanBarcode, SlidersHorizontal } from 'lucide-react-native';
@@ -12,7 +12,6 @@ import {
   Identifier,
   InlineNotice,
   ListRow,
-  ListSeparator,
   RowGroup,
   SearchInput,
   SkeletonList,
@@ -23,7 +22,7 @@ import {
 import { BottomSheet } from '../overlay/BottomSheet';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
-import { radius, space, touch } from '../../lib/design/tokens';
+import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -248,7 +247,9 @@ const NO_FILTER: StockFilter = { brand: null, tracking: null };
 const labelOf = (row: InventoryUnitRow) =>
   row.product ? [`${row.product.brand} ${row.product.model}`, row.product.variant].filter(Boolean).join(' · ') : identifierOf(row);
 
-const Separator = () => <ListSeparator inset={false} />;
+/** Air between the shelf's cards: each item is its own target, set in from both edges. */
+const Gap = () => <View style={{ height: space.sm }} />;
+const keyOfRow = (row: InventoryUnitRow) => row.id;
 
 /**
  * Picking the item off the shelf: this branch's serialized stock, searchable
@@ -317,6 +318,20 @@ export function StockPicker({
     .filter(Boolean)
     .join(' · ');
 
+  // The latest onSelect behind one stable callback: the parent passes a fresh arrow each render, which would
+  // otherwise re-render every visible row whenever anything changed.
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+  const choose = useCallback((row: InventoryUnitRow) => onSelectRef.current(identifierOf(row), labelOf(row)), []);
+  const renderRow = useCallback(
+    ({ item: row }: { item: InventoryUnitRow }) => (
+      <StockOption row={row} price={priceOf(row.productId)} selected={selected === identifierOf(row)} onChoose={choose} />
+    ),
+    [priceOf, selected, choose],
+  );
+
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = stock;
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
@@ -326,21 +341,16 @@ export function StockPicker({
     <>
       <FlatList
         data={rows}
-        keyExtractor={(row) => row.id}
-        renderItem={({ item: row }) => (
-          <StockOption
-            row={row}
-            price={priceOf(row.productId)}
-            selected={selected === identifierOf(row)}
-            onPress={() => onSelect(identifierOf(row), labelOf(row))}
-          />
-        )}
-        ItemSeparatorComponent={Separator}
+        keyExtractor={keyOfRow}
+        renderItem={renderRow}
+        ItemSeparatorComponent={Gap}
         contentContainerStyle={styles.shelf}
         keyboardShouldPersistTaps="handled"
         onEndReached={loadMore}
         onEndReachedThreshold={0.6}
         initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
         windowSize={5}
         removeClippedSubviews
         accessibilityRole="radiogroup"
@@ -468,21 +478,22 @@ function StockFilterSheet({
 }
 
 /**
- * One item on the shelf: what it is, its last four digits labelled by type, its
- * price, and whether it is the one picked. A flat row on the shared surface —
- * the price and the selection control sit side by side in one trailing column,
- * so the control is always at the far edge and never under the price.
+ * One item on the shelf (2026-09-27): a card set in from both edges, its name,
+ * then its variant, then its last four digits labelled by type, each on its own
+ * line with air between them; the price and the selection control side by side
+ * at the far edge, so the control is never under the price. The whole card is
+ * the target, 64 pt at least.
  */
 const StockOption = React.memo(function StockOption({
   row,
   price,
   selected,
-  onPress,
+  onChoose,
 }: {
   row: InventoryUnitRow;
   price: StockSummaryRow['price'];
   selected: boolean;
-  onPress: () => void;
+  onChoose: (row: InventoryUnitRow) => void;
 }) {
   const styles = useStyles();
   const colors = useColors();
@@ -495,10 +506,10 @@ const StockOption = React.memo(function StockOption({
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={name}
-      onPress={onPress}
+      onPress={() => onChoose(row)}
       style={({ pressed }) => [styles.option, selected ? styles.optionSelected : null, pressed && styles.pressed]}
     >
-      <View style={styles.grow}>
+      <View style={[styles.grow, styles.optionText]}>
         <Text variant="bodyStrong">{name}</Text>
         {row.product?.variant ? (
           <Text variant="caption" tone="secondary">
@@ -514,7 +525,7 @@ const StockOption = React.memo(function StockOption({
       </View>
       <View style={styles.trailing}>
         {price ? (
-          <Text variant="bodyStrong" align="end">
+          <Text variant="bodyStrong" align="end" style={styles.price}>
             {price.min === price.max
               ? formatMoney(price.min)
               : `${formatMoney(price.min, { showCurrency: false })} – ${formatMoney(price.max)}`}
@@ -611,7 +622,7 @@ function Detail({ label, value }: { label: string; value: string }) {
 const useStyles = makeStyles((colors) => ({
   stack: { gap: space.md },
   grow: { flex: 1, minWidth: 0 },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: pressedOpacity },
   phoneHead: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   imeiLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
   chipRow: { flexDirection: 'row', paddingTop: space.xs },
@@ -621,19 +632,26 @@ const useStyles = makeStyles((colors) => ({
   shelfHead: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base, paddingBottom: space.sm },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   more: { paddingVertical: space.base },
-  // A flat row on the shelf's one surface: no border, no radius, a hairline between rows.
+  // A card on the shelf, set in from both edges like the search above it: a hairline border, room inside.
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     minHeight: touch.large,
-    paddingVertical: space.sm,
+    marginHorizontal: space.base,
+    paddingVertical: space.md,
     paddingHorizontal: space.base,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     backgroundColor: colors.surface.card,
   },
   optionSelected: {
     backgroundColor: colors.intent.info.bg,
+    borderColor: colors.intent.info.solid,
   },
+  optionText: { gap: space.xs },
+  price: { minWidth: 72 },
   trailing: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexShrink: 0 },
   radio: {
     width: 22,
