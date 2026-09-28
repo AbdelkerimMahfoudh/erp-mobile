@@ -19,6 +19,8 @@ export { Card, Section, Divider, Spacer, type CardProps, type SectionProps } fro
 export { Screen, type ScreenProps } from './Screen';
 export {
   Button,
+  buttonChrome,
+  buttonLabelVariant,
   type ButtonProps,
   type ButtonSize,
   type ButtonVariant,
@@ -43,6 +45,7 @@ export { ListRow, type ListRowProps } from './ListRow';
 export { RowGroup, DEFAULT_SEPARATOR_INSET, type RowGroupProps } from './RowGroup';
 export { ListSeparator } from './ListSeparator';
 export { MoneyValue, type MoneyValueProps, type MoneySize, type MoneyTone } from './MoneyValue';
+export { TextMeasure, type TextMeasureProps } from './TextMeasure';
 export { InlineNotice, type InlineNoticeProps } from './InlineNotice';
 export { PermissionNotice, type PermissionNoticeProps } from './PermissionNotice';
 export { OfflineBanner } from './OfflineBanner';

@@ -12,7 +12,9 @@ import { useTranslation } from '../../lib/i18n';
  * The one header every primary tab uses.
  *
  * Context line (branch, sometimes role) → one heading → at most one short line,
- * with actions on the far side. Because every tab renders this, the title sits
+ * with actions on the far side. The context names the store and is never cut: a
+ * name longer than its line, or large system text, wraps it onto the next line
+ * (docs/61 §13). Because every tab renders this, the title sits
  * at the same height on Home, Partners, Money, Stock and More, and a loading
  * list below it can never push it down: nothing in here waits for data.
  *
@@ -35,7 +37,7 @@ export function TabHeader({ context, title, subtitle, bell, actions }: TabHeader
     <View style={styles.row}>
       <View style={styles.text}>
         {context ? (
-          <Text variant="label" tone="secondary" numberOfLines={1}>
+          <Text variant="label" tone="secondary">
             {context}
           </Text>
         ) : null}

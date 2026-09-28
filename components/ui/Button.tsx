@@ -111,6 +111,13 @@ const SIZES: Record<ButtonSize, { height: number; paddingX: number; icon: number
   lg: { height: touch.comfortable, paddingX: space.lg, icon: 20, variant: 'bodyStrong' },
 };
 
+/** The type a button of this size draws its label in — what a layout measures the label with. */
+export const buttonLabelVariant = (size: ButtonSize) => SIZES[size].variant;
+
+/** A button's width beside its label: both paddings, the icon and its gap, a hairline border either side. */
+export const buttonChrome = (size: ButtonSize, withIcon: boolean): number =>
+  2 * SIZES[size].paddingX + (withIcon ? SIZES[size].icon + space.sm : 0) + 2;
+
 export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> {
   title: string;
   /** `ghost` is the former name for `tertiary` and is still accepted. */

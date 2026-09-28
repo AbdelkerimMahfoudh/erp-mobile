@@ -6,6 +6,8 @@ import { format as formatDateFns } from 'date-fns';
 import { ChevronRight, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
+  buttonChrome,
+  buttonLabelVariant,
   Card,
   Chip,
   Divider,
@@ -18,6 +20,7 @@ import {
   SegmentedControl,
   SkeletonStat,
   Text,
+  TextMeasure,
 } from '../../components/ui';
 import { HomeHeader } from '../../components/home/HomeHeader';
 import { OpenStoreNow } from '../../components/day/OpenStoreNow';
@@ -32,7 +35,8 @@ import { dateLocaleFor } from '../../lib/date-locale';
 import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
-import { radius, space } from '../../lib/design/tokens';
+import { radius, space, type as typeScale } from '../../lib/design/tokens';
+import { sideBySideBasis } from '../../lib/label-fit';
 import { calendarDate } from '../../lib/day-range';
 import { toFriendlyError } from '../../lib/errors';
 import { CURRENCY_CODE, formatDate, formatDayRange, formatMoney, formatRelative } from '../../lib/format';
@@ -41,6 +45,9 @@ import { useBusinessDay, useHome, type HomeArrival, type HomeBar } from '../../l
 import type { RefundSummary, ReturnPage, TransferCounts } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTodayOnArrival } from '../../lib/use-tab-arrival';
+
+/** The width each counter action asks for with ordinary text: the two fit side by side from ~360 points (docs/54). */
+const ACTION_BASIS = 160;
 
 /**
  * Home — the fastest operational screen (docs/50 §3.5, docs/56).
@@ -84,6 +91,15 @@ export default function HomeScreen() {
   */
   const businessDay = useBusinessDay({ enabled: permissionsReady && canCount });
   const gate = dayGate(canCount ? businessDay.data : undefined, canPerform);
+  /*
+    Receive and Sell side by side while both labels fit their half of the row, one above the other when
+    either would not — on a narrow phone ("Réceptionner" needs 90 of the 71 points a half leaves at 320,
+    docs/54) and with large system text (117 of 108 at 393 points with 1.3× text). Measured, so a label is
+    never cut (docs/61 §13); with ordinary text on a wide phone nothing changes.
+  */
+  const [actionWidths, setActionWidths] = useState<Record<string, number>>({});
+  const actionTitles = [...(canReceive ? [t('home.shortcut.receive')] : []), ...(canSell ? [t('home.shortcut.sell')] : [])];
+  const actionBasis = sideBySideBasis(ACTION_BASIS, actionTitles.map((title) => actionWidths[title] ?? 0), buttonChrome('lg', true));
   const refetchDay = businessDay.refetch;
   const readDay = useCallback(() => {
     if (permissionsReady && canCount) void refetchDay();
@@ -177,7 +193,7 @@ export default function HomeScreen() {
                 disabled={!shortcutsReady || gate.locked}
                 onPress={() => router.push('/quick-receive' as Href)}
                 accessibilityHint={t('home.shortcut.receive.hint')}
-                style={styles.action}
+                style={[styles.action, { flexBasis: actionBasis }]}
               />
             ) : null}
             {canSell ? (
@@ -188,9 +204,14 @@ export default function HomeScreen() {
                 disabled={!shortcutsReady || gate.locked}
                 onPress={() => router.push('/quick-sell' as Href)}
                 accessibilityHint={t('home.shortcut.sell.hint')}
-                style={styles.action}
+                style={[styles.action, { flexBasis: actionBasis }]}
               />
             ) : null}
+            <TextMeasure
+              texts={actionTitles}
+              style={typeScale[buttonLabelVariant('lg')]}
+              onWidth={(title, w) => setActionWidths((prev) => (prev[title] === w ? prev : { ...prev, [title]: w }))}
+            />
           </View>
           {/* Selling several items stays inside Sell; while the day is closed, the store is opened first, here. */}
           {gate.locked ? <OpenStoreNow businessDate={gate.businessDate} mayOpen={gate.mayOpen} /> : null}
@@ -500,12 +521,9 @@ function PendingRow({ icon, label, count, onPress }: { icon: LucideIcon; label: 
 
 const useStyles = makeStyles((colors) => ({
   shortcuts: { gap: space.md },
-  /*
-    Side by side where both labels fit; one above the other below ~360 points, where
-    "Réceptionner" needed 90 of the 71 points a half-width button leaves (docs/54).
-  */
+  /* Side by side while both labels fit: each button asks for the measured actionBasis. */
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  action: { flexGrow: 1, flexBasis: 160 },
+  action: { flexGrow: 1 },
   block: { gap: space.base },
   statRow: { flexDirection: 'row', gap: space.sm },
   hero: { gap: space.xs },

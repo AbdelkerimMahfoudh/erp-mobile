@@ -115,8 +115,10 @@ it('Money: the today-only figures name the business day, in every language; the 
     }
   }
   const tabs = code(read('../app/(tabs)/_layout.tsx'));
-  assert.match(tabs, /const compactLabels = useWindowDimensions\(\)\.width < 360;/);
-  assert.match(tabs, /tabBarLabelStyle: \{ \.\.\.\(compactLabels \? typeScale\.tabLabelCompact : typeScale\.tabLabel\), flexShrink: 0 \}/);
+  assert.match(tabs, /const \{ width \} = useWindowDimensions\(\);\s+const compactLabels = width < 360;/);
+  assert.match(tabs, /const labelType = compactLabels \? typeScale\.tabLabelCompact : typeScale\.tabLabel;/);
+  // Each name at that size, or just small enough to fit its tab (docs/61 §13, lib/label-fit.test.ts).
+  assert.match(tabs, /return \{ \.\.\.labelType, flexShrink: 0, \.\.\.\(scale < 1 \? \{ fontSize: labelType\.fontSize \* scale \} : null\) \};/);
   assert.match(read('./design/tokens.ts'), /tabLabelCompact: \{ fontSize: 10, lineHeight: 14, fontWeight: '600' \}/);
 });
 
