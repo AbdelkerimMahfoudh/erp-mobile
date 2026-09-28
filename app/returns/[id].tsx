@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   Identifier,
+  MoneyValue,
   RowGroup,
   Screen,
   Section,
@@ -18,6 +19,7 @@ import {
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { dialog } from '../../lib/dialog';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { returnStages } from '../../lib/return-timeline';
@@ -594,7 +596,7 @@ function Amount({
       >
         {label}
       </Text>
-      <Text variant={strong ? 'bodyStrong' : small ? 'caption' : 'body'}>{formatMoney(value)}</Text>
+      <MoneyValue value={value} size="small" tone={small && !strong ? 'muted' : 'default'} />
     </View>
   );
 }
@@ -608,14 +610,13 @@ const styles = StyleSheet.create({
   groupedRow: { padding: space.md, gap: space.xs },
   inlineChips: { flexDirection: 'row', gap: space.xs, marginTop: space.sm, flexWrap: 'wrap' },
   chipTop: { marginTop: space.sm },
+  // The amount beside its words, or below them when it needs more than half the row (docs/61 §8).
   amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    ...AMOUNT_ROW,
     paddingVertical: space.xs,
-    gap: space.sm,
+    columnGap: space.sm,
   },
-  amountLabel: { flexShrink: 1 },
+  amountLabel: AMOUNT_LABEL,
   timelineRow: { marginTop: space.sm },
   actions: {
     position: 'absolute',

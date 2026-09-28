@@ -862,6 +862,8 @@ function SellScreen() {
                 title={t('sell.charge', { amount: isolateLtr(formatMoney(total)) })}
                 size="lg"
                 fullWidth
+                // The amount is never cut: a long one takes a second line.
+                wrap
                 /**
                  * Shut while there is no connection. A sale taken now would
                  * fail at the server and the customer would already have paid;
@@ -980,7 +982,7 @@ function SellScreen() {
         keyExtractor={(c: Customer) => c.id}
         labelExtractor={(c: Customer) => c.name ?? ''}
         descriptionExtractor={(c: Customer) => c.phone ?? undefined}
-        valueExtractor={(c: Customer) => (c.balance > 0 ? formatMoney(c.balance) : undefined)}
+        valueExtractor={(c: Customer) => (c.balance > 0 ? <MoneyValue value={c.balance} size="small" /> : undefined)}
         leadingIcon={UserRound}
         selectedKeys={customer ? [customer.id] : []}
         searchPlaceholder={t('sell.customer.search')}

@@ -7,6 +7,7 @@ import {
   EmptyState,
   ErrorState,
   FilterChip,
+  MoneyValue,
   Screen,
   SearchInput,
   SkeletonList,
@@ -15,7 +16,7 @@ import {
 import { ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
-import { formatMoney, formatSmartDateTime, formatDateTime } from '../../lib/format';
+import { formatSmartDateTime, formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { policyStatus } from '../../lib/return-policy';
@@ -193,7 +194,7 @@ function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
         </View>
 
         <View style={styles.rowAmount}>
-          <Text variant="heading">{formatMoney(row.total)}</Text>
+          <MoneyValue value={row.total} size="default" />
           {/* Status by colour AND words, and only when it is not the ordinary
               case — a "Paid" badge on every row is noise that hides the two
               rows that actually need chasing. */}

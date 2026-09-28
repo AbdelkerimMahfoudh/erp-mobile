@@ -15,6 +15,7 @@ import {
   ListRow,
   ListSeparator,
   MoneyField,
+  MoneyValue,
   RowGroup,
   Screen,
   Text,
@@ -506,7 +507,7 @@ function FileReviewScreen() {
             {t('fileReceive.step', { current: '2', total: '3' })}
           </Text>
           <Text variant="body">{t('fileReceive.payable', { count: String(counts.ready) })}</Text>
-          <Text variant="display">{formatMoney(counts.selectedCost)}</Text>
+          <MoneyValue value={counts.selectedCost} size="display" />
           <Text variant="caption" tone="secondary">
             {t('fileReceive.branch', { branch: branchName ?? t('home.branch.unknown') })}
           </Text>

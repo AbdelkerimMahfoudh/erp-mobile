@@ -7,6 +7,7 @@ import { Identifier, Text } from './Text';
 import type { IconComponent } from './Button';
 import { usePressed } from './use-pressed';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 
 /**
  * The list row.
@@ -17,6 +18,9 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * touch target and press feedback are solved once.
  *
  * Layout: [leading] title / subtitle / identifier … [trailing value] [chevron]
+ *
+ * The value moves under the title when it would need more than half the row —
+ * a narrow phone, large text, a long amount — so neither is cut (docs/61 §8).
  */
 
 export interface ListRowProps {
@@ -108,42 +112,44 @@ export function ListRow({
     >
       <Leading leading={leading} />
 
-      <View style={styles.body}>
-        <Text variant="bodyStrong" numberOfLines={2}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text variant="caption" tone="tertiary" numberOfLines={subtitleLines}>
-            {subtitle}
+      <View style={styles.main}>
+        <View style={styles.body}>
+          <Text variant="bodyStrong" numberOfLines={2}>
+            {title}
           </Text>
-        ) : null}
-        {identifier ? (
-          <Identifier tone="tertiary" numberOfLines={1}>
-            {identifier}
-          </Identifier>
-        ) : null}
-      </View>
-
-      {accessory}
-
-      {value ? (
-        <View style={styles.valueBlock}>
-          {typeof value === 'string' ? (
-            <Text variant="bodyStrong" tone={valueTone} align="end" numberOfLines={1}>
-              {value}
-            </Text>
-          ) : (
-            // A node brings its own type — a MoneyValue keeps its tabular
-            // figures so a column of balances lines up down the list.
-            value
-          )}
-          {valueCaption ? (
-            <Text variant="caption" tone="tertiary" align="end" numberOfLines={1}>
-              {valueCaption}
+          {subtitle ? (
+            <Text variant="caption" tone="tertiary" numberOfLines={subtitleLines}>
+              {subtitle}
             </Text>
           ) : null}
+          {identifier ? (
+            <Identifier tone="tertiary" numberOfLines={1}>
+              {identifier}
+            </Identifier>
+          ) : null}
         </View>
-      ) : null}
+
+        {accessory}
+
+        {value ? (
+          <View style={styles.valueBlock}>
+            {typeof value === 'string' ? (
+              <Text variant="bodyStrong" tone={valueTone} align="end" numberOfLines={1}>
+                {value}
+              </Text>
+            ) : (
+              // A node brings its own type — a MoneyValue keeps its tabular
+              // figures so a column of balances lines up down the list.
+              value
+            )}
+            {valueCaption ? (
+              <Text variant="caption" tone="tertiary" align="end" numberOfLines={1}>
+                {valueCaption}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       {showChevron ? (
         <View style={mirror()}>
@@ -213,8 +219,13 @@ const useStyles = makeStyles((colors) => ({
     borderRadius: 0,
     borderWidth: 0,
   },
-  body: {
+  /** Title, accessory and value: side by side, or the value below when it needs more than half (AMOUNT_ROW). */
+  main: {
     flex: 1,
+    ...AMOUNT_ROW,
+  },
+  body: {
+    ...AMOUNT_LABEL,
     gap: 1,
   },
   valueBlock: {

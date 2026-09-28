@@ -2,11 +2,11 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { radius, space } from '../../lib/design/tokens';
-import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { StatusChip } from '../ui/Chip';
 import { IconButton } from '../ui/IconButton';
 import { MoneyField } from '../ui/Field';
+import { MoneyValue } from '../ui/MoneyValue';
 import { Stepper } from '../ui/Stepper';
 import { Identifier, Text } from '../ui/Text';
 import { lineTotal, type CartLine } from './types';
@@ -61,9 +61,7 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
         </View>
 
         <View style={styles.end}>
-          <Text variant="title" align="end">
-            {formatMoney(lineTotal(line))}
-          </Text>
+          <MoneyValue value={lineTotal(line)} size="large" />
           <IconButton
             icon={X}
             accessibilityLabel={t('action.remove')}

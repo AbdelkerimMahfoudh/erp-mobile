@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
@@ -359,7 +360,7 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
           <Text variant="body" style={styles.lineName}>
             {line.product ?? ''}
           </Text>
-          <Text variant="bodyStrong">{formatMoney(line.price * line.quantity)}</Text>
+          <MoneyValue value={line.price * line.quantity} size="small" />
         </View>
       ) : null}
       <View style={styles.lineMeta}>
@@ -417,7 +418,7 @@ function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
         <Text variant="bodyStrong" style={styles.lineName}>
           {`${formatDateTime(new Date(p.paidAt))} · ${via}`}
         </Text>
-        <Text variant="bodyStrong">{formatMoney(p.amount)}</Text>
+        <MoneyValue value={p.amount} size="small" />
       </View>
       <Text variant="caption" tone="secondary">
         {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
@@ -458,10 +459,10 @@ function Fact({ label, value, money, strong }: { label: string; value?: string; 
 function Amount({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
     <View style={styles.amountRow}>
-      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'}>
+      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.factLabel}>
         {label}
       </Text>
-      <Text variant={strong ? 'bodyStrong' : 'body'}>{formatMoney(value)}</Text>
+      <MoneyValue value={value} size="small" />
     </View>
   );
 }
@@ -483,11 +484,12 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   line: { gap: space.xs },
-  lineHead: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
-  lineName: { flexShrink: 1 },
+  // An amount beside its words, or below them when it needs more than half the row (docs/61 §8).
+  lineHead: { ...AMOUNT_ROW, alignItems: 'flex-start', columnGap: space.sm },
+  lineName: AMOUNT_LABEL,
   lineMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
-  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.xs, gap: space.sm },
-  factLabel: { flexShrink: 0 },
+  amountRow: { ...AMOUNT_ROW, paddingVertical: space.xs, columnGap: space.sm },
+  factLabel: AMOUNT_LABEL,
   factValue: { flex: 1 },
   payment: { gap: 2 },
 });

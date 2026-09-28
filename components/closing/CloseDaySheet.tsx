@@ -3,6 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { Button, Chip, Divider, InlineNotice, MoneyField, MoneyValue, Text } from '../ui';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles } from '../../lib/design/theme';
 import { isolateLtr } from '../../lib/design/direction';
 import { formatDate, formatMoney } from '../../lib/format';
@@ -324,8 +325,8 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
 function Line({ label, value, strong, signed }: { label: string; value: number; strong?: boolean; signed?: boolean }) {
   const styles = useStyles();
   return (
-    <View style={styles.between}>
-      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.flex}>
+    <View style={styles.line}>
+      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.lineLabel}>
         {label}
       </Text>
       <MoneyValue value={value} size={strong ? 'default' : 'small'} signed={signed} tone={signed ? 'auto' : 'default'} />
@@ -339,6 +340,9 @@ const useStyles = makeStyles(() => ({
   row: { gap: space.xs },
   countLine: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  // The amount beside its words, or below them when it needs more than half the line (docs/61 §8).
+  line: { ...AMOUNT_ROW, columnGap: space.sm },
+  lineLabel: AMOUNT_LABEL,
   end: { flexDirection: 'row', justifyContent: 'flex-end' },
   flex: { flex: 1, minWidth: 0 },
   footer: { gap: space.sm },

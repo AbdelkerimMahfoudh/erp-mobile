@@ -19,6 +19,7 @@ import {
 } from '../components/ui';
 import { isolateLtr } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../lib/design/amount-row';
 import { makeStyles } from '../lib/design/theme';
 import { formatMoney } from '../lib/format';
 import { useConnectivity } from '../lib/connectivity';
@@ -197,8 +198,9 @@ function Unavailable({ summary }: { summary: PeriodSummary }) {
 
 const useStyles = makeStyles((colors) => ({
   card: { gap: space.sm },
-  line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  lineLabel: { flex: 1 },
+  // The amount beside its words, or below them when it needs more than half the line (docs/61 §8).
+  line: { ...AMOUNT_ROW, columnGap: space.sm },
+  lineLabel: AMOUNT_LABEL,
   rule: { height: 1, backgroundColor: colors.border.subtle },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
 }));

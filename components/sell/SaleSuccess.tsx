@@ -8,6 +8,7 @@ import { useTranslation } from '../../lib/i18n';
 import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/receipt';
 import { toast } from '../../lib/toast';
 import { Button } from '../ui/Button';
+import { MoneyValue } from '../ui/MoneyValue';
 import { Text } from '../ui/Text';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -65,9 +66,7 @@ export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: Sa
         </Text>
       </View>
 
-      <Text variant="display" align="center">
-        {formatMoney(total)}
-      </Text>
+      <MoneyValue value={total} size="display" />
 
       {margin !== undefined ? (
         <Text variant="bodyStrong" tone="success" align="center">

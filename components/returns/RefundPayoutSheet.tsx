@@ -3,11 +3,11 @@ import { StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
-import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { Button } from '../ui/Button';
+import { MoneyValue } from '../ui/MoneyValue';
 import { TextField } from '../ui/Field';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { Text } from '../ui/Text';
@@ -115,7 +115,7 @@ export function RefundPayoutSheet({
           <Text variant="caption" tone="secondary">
             {t('refund.amountLabel')}
           </Text>
-          <Text variant="title">{formatMoney(netAmountDue)}</Text>
+          <MoneyValue value={netAmountDue} size="large" />
           <Text variant="caption" tone="tertiary">
             {t('refund.amountLocked')}
           </Text>

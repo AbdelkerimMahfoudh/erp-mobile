@@ -85,6 +85,37 @@ export function formatMoney(value?: number | null, options: MoneyOptions = {}): 
   return showCurrency ? `${withSign}${CURRENCY_SEPARATOR}${CURRENCY_CODE}` : withSign;
 }
 
+/**
+ * A money figure in its two parts — the signed number and the currency — so a
+ * narrow screen can lay them out on two lines instead of cutting the figure
+ * (docs/61 §8). Joined with the no-break space they read exactly as
+ * `formatMoney` writes them.
+ */
+export interface MoneyParts {
+  number: string;
+  currency: string | null;
+}
+
+export function moneyParts(value: number, options: MoneyOptions = {}): MoneyParts {
+  const { showCurrency = true, decimals = DEFAULT_DECIMALS, signed = false } = options;
+  const body = formatNumber(value, decimals);
+  return { number: signed && value > 0 ? `+${body}` : body, currency: showCurrency ? CURRENCY_CODE : null };
+}
+
+/** The two parts on one line, as `formatMoney` writes them. */
+export function joinMoney(parts: MoneyParts): string {
+  return parts.currency ? `${parts.number}${CURRENCY_SEPARATOR}${parts.currency}` : parts.number;
+}
+
+/**
+ * The number with ordinary spaces between its digit groups — where it may
+ * break, as the very last resort, between whole groups and never inside one.
+ * The sign stays with the first group.
+ */
+export function breakableNumber(number: string): string {
+  return number.split(GROUP_SEPARATOR).join(' ');
+}
+
 /** True when a money field was withheld rather than being genuinely zero. */
 export function isMoneyHidden(value?: number | null): boolean {
   return value === undefined || value === null;

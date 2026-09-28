@@ -122,7 +122,7 @@ function OwedSale({ sale: s, onPress }: { sale: OutstandingSale; onPress: () => 
           <StatusChip domain="sale" value={s.payStatus} size="sm" />
         </View>
       </View>
-      <Text variant="bodyStrong">{formatMoney(s.remaining)}</Text>
+      <MoneyValue value={s.remaining} size="small" />
     </Pressable>
   );
 }

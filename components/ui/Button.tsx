@@ -128,6 +128,11 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
   style?: StyleProp<ViewStyle>;
   /** Accepted so NativeWind-styled call sites keep working. */
   className?: string;
+  /**
+   * A label that must never be cut — one that carries an amount — wraps onto a
+   * second line instead of ending in "…" (docs/61 §8).
+   */
+  wrap?: boolean;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -144,6 +149,7 @@ export function Button({
   haptic,
   onPress,
   style,
+  wrap = false,
   ...rest
 }: ButtonProps) {
   const DISABLED = useDisabled();
@@ -262,7 +268,7 @@ export function Button({
       {iconPosition === 'start' ? (
         <Leading loading={loading} Icon={Icon} color={v.foreground} size={s.icon} />
       ) : null}
-      <Text variant={s.variant} align="center" style={labelStyle} numberOfLines={1}>
+      <Text variant={s.variant} align="center" style={labelStyle} numberOfLines={wrap ? undefined : 1}>
         {title}
       </Text>
       {iconPosition === 'end' ? (

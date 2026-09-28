@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Package, PackagePlus } from 'lucide-react-native';
-import { Button, EmptyState, Screen, Text } from '../components/ui';
+import { Button, EmptyState, MoneyValue, Screen, Text } from '../components/ui';
 import { useLeave } from '../components/navigation/HeaderBack';
 import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
@@ -42,7 +42,6 @@ import {
 import { radius, space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
-import { formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
 import { useDraft } from '../lib/offline/use-draft';
 import { DraftNotice } from '../components/DraftNotice';
@@ -548,9 +547,7 @@ function ReceiveScreen() {
           <Text variant="body" tone="secondary" align="center">
             {t('receive.done.summary', { units: done.units, lines: done.response.stockLines })}
           </Text>
-          <Text variant="display" align="center">
-            {formatMoney(done.response.total)}
-          </Text>
+          <MoneyValue value={done.response.total} size="display" />
           <RefusedNotice lines={refused} />
           <View style={styles.successActions}>
             <Button
@@ -623,7 +620,7 @@ function ReceiveScreen() {
                 <Text variant="body" tone="secondary">
                   {t('receive.estimated', { count: unitTotal })}
                 </Text>
-                <Text variant="title">{formatMoney(costTotal)}</Text>
+                <MoneyValue value={costTotal} size="large" />
               </View>
               <PurchasePaymentPicker value={payment} onChange={setPayment} />
               <Button

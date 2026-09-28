@@ -9,6 +9,7 @@ import {
   IconButton,
   InlineNotice,
   MoneyField,
+  MoneyValue,
   Screen,
   Text,
   TextField,
@@ -31,7 +32,6 @@ import { isRTL } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
-import { formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
 import { useDraft } from '../lib/offline/use-draft';
 import { DraftNotice } from '../components/DraftNotice';
@@ -415,9 +415,7 @@ function QuickReceiveScreen() {
           <Text variant="body" tone="secondary" align="center">
             {t('quick.receive.done.body', { product: done.label, branch: branchName ?? '' })}
           </Text>
-          <Text variant="display" align="center">
-            {formatMoney(done.outcome.total)}
-          </Text>
+          <MoneyValue value={done.outcome.total} size="display" />
           <View style={styles.successActions}>
             <Button
               title={t('quick.receive.done.another')}
@@ -457,7 +455,7 @@ function QuickReceiveScreen() {
                 <Text variant="body" tone="secondary">
                   {t('quick.receive.payNow')}
                 </Text>
-                <Text variant="title">{formatMoney(total)}</Text>
+                <MoneyValue value={total} size="large" />
               </View>
               {!uncertain ? <PurchasePaymentPicker value={payment} onChange={setPayment} /> : null}
               <Button

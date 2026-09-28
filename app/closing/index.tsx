@@ -13,6 +13,7 @@ import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
@@ -558,7 +559,7 @@ function Line({
   const styles = useStyles();
   return (
     <View style={styles.line}>
-      <Text variant={strong ? 'bodyStrong' : quiet ? 'caption' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.flex}>
+      <Text variant={strong ? 'bodyStrong' : quiet ? 'caption' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.lineLabel}>
         {label}
       </Text>
       <MoneyValue value={value} size={strong ? 'default' : 'small'} signed={signed} tone={tone ?? (quiet ? 'muted' : 'default')} />
@@ -654,7 +655,9 @@ const useStyles = makeStyles((colors) => ({
   detail: { gap: space.xs },
   card: { gap: space.sm },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, minHeight: 28 },
+  // The amount beside its words, or below them when it needs more than half the line (docs/61 §8).
+  line: { ...AMOUNT_ROW, minHeight: 28 },
+  lineLabel: AMOUNT_LABEL,
   flex: { flex: 1, minWidth: 0 },
   actions: { gap: space.sm },
   warnings: { gap: space.xs },

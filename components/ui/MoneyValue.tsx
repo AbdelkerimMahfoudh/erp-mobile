@@ -1,8 +1,10 @@
-import React from 'react';
-import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, View, type LayoutChangeEvent, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { moneyColors, type Palette } from '../../lib/design/colors';
 import { type } from '../../lib/design/tokens';
-import { ABSENT, formatMoney } from '../../lib/format';
+import { ABSENT } from '../../lib/format';
+import { breakableNumber, joinMoney, moneyParts } from '../../lib/money-format';
+import { FULL, fitMoney, nextRoom, shrinkFloor } from '../../lib/money-fit';
 import { Text } from './Text';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -21,6 +23,14 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  *
  * All are tabular-nums, so a column of prices lines up and can be compared at a
  * glance instead of read one by one.
+ *
+ * **Never cut** (docs/61 §8). A financial amount keeps every digit, its sign,
+ * its decimals and the whole `MRU`; nothing ends in "…". When the width is
+ * short — a narrow phone, large system text, a long figure — it shrinks a
+ * little (never below the app's floor or body size), then puts `MRU` on the
+ * next line, and only as a last resort breaks the number between digit groups
+ * (`lib/money-fit.ts`). The widths come from the device: the figure's own box,
+ * and the number and whole figure measured at full size by an invisible copy.
  *
  * **Latin digits in Arabic too.** Arabic-Indic numerals render inconsistently
  * across Hermes/ICU builds, and a price that renders differently on two phones
@@ -104,6 +114,17 @@ function resolveColor(colors: Palette, tone: MoneyTone, value?: number | null): 
   }
 }
 
+interface Measured {
+  /** The text and size the widths belong to: a new figure is measured afresh. */
+  key: string;
+  /** The room the figure may use. */
+  room: number;
+  /** The signed number at full size, on one line. */
+  number: number;
+  /** The whole figure (number, space, currency) at full size, on one line. */
+  inline: number;
+}
+
 export function MoneyValue({
   value,
   size = 'default',
@@ -119,33 +140,88 @@ export function MoneyValue({
   const colors = useColors();
   const styles = useStyles();
   const missing = value == null;
-  const text = missing ? fallback : formatMoney(value, { signed, showCurrency, decimals });
+  const parts = missing ? null : moneyParts(value, { signed, showCurrency, decimals });
+  const whole = parts ? joinMoney(parts) : fallback;
+  const base = SIZE_STYLE[size];
+
+  const key = `${size}|${whole}`;
+  const [measured, setMeasured] = useState<Measured>({ key, room: 0, number: 0, inline: 0 });
+  const m = measured.key === key ? measured : { key, room: 0, number: 0, inline: 0 };
+  const fit = parts && m.number > 0 && m.inline > 0 && m.room > 0
+    ? fitMoney(m.room, m.number, m.inline, shrinkFloor(base.fontSize as number, type.body.fontSize))
+    : FULL;
+  const update = (patch: Partial<Omit<Measured, 'key'>>) =>
+    setMeasured((prev) => {
+      const from = prev.key === key ? prev : { key, room: 0, number: 0, inline: 0 };
+      const next = { ...from, ...patch };
+      return next.room === prev.room && next.number === prev.number && next.inline === prev.inline && prev.key === key ? prev : next;
+    });
+  const width = (e: LayoutChangeEvent) => e.nativeEvent.layout.width;
+
+  const text = !parts
+    ? fallback
+    : fit.currencyBelow
+      ? `${fit.wrapNumber ? breakableNumber(parts.number) : parts.number}\n${parts.currency}`
+      : fit.wrapNumber
+        ? breakableNumber(parts.number)
+        : whole;
+  const scaled: TextStyle | null =
+    fit.scale === 1 ? null : { fontSize: (base.fontSize as number) * fit.scale, lineHeight: (base.lineHeight as number) * fit.scale };
 
   return (
-    <View style={[styles.row, style]} testID={testID}>
+    <View
+      style={[styles.row, style]}
+      testID={testID ?? 'money-value'}
+      onLayout={parts ? (e) => update({ room: nextRoom(m.room, width(e), fit, m.number, m.inline) }) : undefined}
+    >
       <Text
-        style={[
-          SIZE_STYLE[size],
-          { color: missing ? colors.text.tertiary : resolveColor(colors, tone, value) },
-        ]}
-        accessibilityLabel={accessibilityLabel}
-        numberOfLines={1}
-        /**
-         * Never shrink below legible. A long figure wins space from its
-         * neighbours instead of quietly becoming unreadable at the counter.
-         */
-        adjustsFontSizeToFit={false}
+        style={[base, scaled, { color: missing ? colors.text.tertiary : resolveColor(colors, tone, value) }]}
+        // Read as one figure however it is laid out.
+        accessibilityLabel={accessibilityLabel ?? (text === whole ? undefined : whole)}
       >
         {text}
       </Text>
+      {parts ? (
+        // The figure at full size on one line, never shown or read: its widths decide the fit above.
+        <View
+          style={styles.measure}
+          pointerEvents="none"
+          aria-hidden
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <View style={styles.measureLine}>
+            <Text style={base} onLayout={(e) => update({ number: width(e) })}>
+              {parts.number}
+            </Text>
+            <Text style={base} onLayout={(e) => update({ inline: width(e) })}>
+              {whole}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-const useStyles = makeStyles((colors) => ({
+const useStyles = makeStyles(() => ({
   row: {
     // Latin digits stay LTR even on an RTL screen; see the note above.
     flexDirection: 'row',
     alignItems: 'baseline',
+    // Never wider than the space it is given: a figure that does not fit is fitted, not pushed out of its card.
+    maxWidth: '100%',
   },
+  measure: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 0,
+    height: 0,
+    overflow: 'hidden',
+    opacity: 0,
+    // On the web, also out of the page's text and its accessibility tree.
+    ...(Platform.OS === 'web' ? ({ visibility: 'hidden' } as object) : null),
+  },
+  measureLine: { position: 'absolute', top: 0, left: 0, width: 100000, alignItems: 'flex-start' },
 }));

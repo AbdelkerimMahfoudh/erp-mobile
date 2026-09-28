@@ -8,6 +8,7 @@ import { useTranslation } from '../../lib/i18n';
 import { Button } from '../ui/Button';
 import { StatusChip } from '../ui/Chip';
 import { IconButton } from '../ui/IconButton';
+import { MoneyValue } from '../ui/MoneyValue';
 import { Identifier, Text } from '../ui/Text';
 import { itemCount, type StagedItem } from './types';
 import { makeStyles } from '../../lib/design/theme';
@@ -68,7 +69,7 @@ export function StagedItemRow({ item, onRemove, onAddSecondary, locked = false }
         </View>
 
         <View style={styles.end}>
-          <Text variant="bodyStrong">{formatMoney(item.unitCost * count)}</Text>
+          <MoneyValue value={item.unitCost * count} size="small" />
           {!locked ? (
             <IconButton icon={X} accessibilityLabel={t('action.remove')} size={36} onPress={() => onRemove(item.key)} />
           ) : null}

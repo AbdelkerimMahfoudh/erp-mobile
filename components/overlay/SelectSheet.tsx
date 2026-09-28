@@ -41,8 +41,8 @@ export interface SelectSheetProps<T> {
   descriptionExtractor?: (item: T) => string | undefined;
   /** Monospaced third line for identifiers. */
   identifierExtractor?: (item: T) => string | undefined;
-  /** Right-aligned value, e.g. a price or a count. */
-  valueExtractor?: (item: T) => string | undefined;
+  /** Right-aligned value, e.g. a count — or a `MoneyValue` for a price or a balance, which is never cut. */
+  valueExtractor?: (item: T) => string | React.ReactElement | undefined;
   /** Chip or badge rendered before the value. */
   accessoryExtractor?: (item: T) => React.ReactNode;
   leadingIcon?: IconComponent;

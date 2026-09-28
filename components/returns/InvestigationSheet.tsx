@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Plus, X } from 'lucide-react-native';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
+import { MoneyValue } from '../ui/MoneyValue';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import {
@@ -250,10 +252,10 @@ export function InvestigationSheet({
 function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
     <View style={styles.totalRow}>
-      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'}>
+      <Text variant={strong ? 'bodyStrong' : 'body'} tone={strong ? 'primary' : 'secondary'} style={styles.totalLabel}>
         {label}
       </Text>
-      <Text variant={strong ? 'bodyStrong' : 'body'}>{formatMoney(value)}</Text>
+      <MoneyValue value={value} size="small" />
     </View>
   );
 }
@@ -264,5 +266,7 @@ const styles = StyleSheet.create({
   adjustmentRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   adjustmentText: { flex: 1 },
   totals: { gap: space.xs },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  // The amount beside its words, or below them when it needs more than half the row (docs/61 §8).
+  totalRow: AMOUNT_ROW,
+  totalLabel: AMOUNT_LABEL,
 });

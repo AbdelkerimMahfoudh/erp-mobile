@@ -222,7 +222,7 @@ export default function GalleryScreen() {
       {/* ── Typography ───────────────────────────────────────────────────── */}
       <Section title="Typography">
         <Card style={styles.stack}>
-          <Text variant="display">{formatMoney(1284500)}</Text>
+          <MoneyValue value={1284500} size="display" />
           <Text variant="title">Title — the screen headline</Text>
           <Text variant="heading">Heading — a section</Text>
           <Text variant="body">Body — the default reading size for content.</Text>
@@ -394,14 +394,14 @@ export default function GalleryScreen() {
         <View style={styles.row}>
           <StatTile
             label="Revenue"
-            value={formatMoney(184500)}
+            value={<MoneyValue value={184500} size="large" />}
             tone="accent"
             trend={{ direction: 'up', label: '18% vs yesterday' }}
             caption="Strong morning"
           />
           <StatTile
             label="Profit"
-            value={formatMoney(42300)}
+            value={<MoneyValue value={42300} size="large" />}
             tone="success"
             trend={{ direction: 'down', label: '4% vs yesterday' }}
           />
@@ -421,7 +421,7 @@ export default function GalleryScreen() {
         </View>
         <StatTile
           label="Today"
-          value={formatMoney(1284500)}
+          value={<MoneyValue value={1284500} size="display" />}
           size="lg"
           tone="accent"
           caption="The one focal figure on a screen"
@@ -445,16 +445,15 @@ export default function GalleryScreen() {
             subtitle="Sold 12 minutes ago"
             identifier="490154203237518"
             accessory={<StatusChip domain="unit" value="sold" size="sm" />}
-            value={formatMoney(38000)}
+            value={<MoneyValue value={38000} size="small" />}
             onPress={() => {}}
           />
           <ListRow
             leading={Truck}
             title="Nouadhibou branch"
             subtitle={`Last received ${formatRelative(Date.now() - 1000 * 60 * 60 * 26)}`}
-            value={formatMoney(920000)}
+            value={<MoneyValue value={920000} size="small" tone="positive" />}
             valueCaption="12 units"
-            valueTone="success"
             onPress={() => {}}
           />
           <ListRow leading={Camera} title="No chevron, not tappable" subtitle="Read-only row" />
@@ -686,7 +685,7 @@ export default function GalleryScreen() {
         <ProductConfirmationCard
           result={SCAN_STATES[0].result}
           context="sell"
-          confirmLabel={`Add · ${formatMoney(Number(sellPrice) || 0)}`}
+          confirmLabel="Add to sale"
           onConfirm={() => toast.success('Added to sale')}
           onChooseProduct={() => setPickerOpen(true)}
         >
@@ -833,7 +832,7 @@ export default function GalleryScreen() {
         keyExtractor={(s) => s.id}
         labelExtractor={(s) => s.name}
         descriptionExtractor={(s) => s.city}
-        valueExtractor={(s) => (s.balance === 0 ? undefined : formatMoney(s.balance))}
+        valueExtractor={(s) => (s.balance === 0 ? undefined : <MoneyValue value={s.balance} size="small" />)}
         leadingIcon={Truck}
         selectedKeys={supplier ? [supplier.id] : []}
         searchPlaceholder="Search suppliers"
