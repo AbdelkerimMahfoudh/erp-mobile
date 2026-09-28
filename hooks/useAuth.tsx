@@ -21,6 +21,7 @@ import {
 import type { AccountChoice, AuthResponse, AuthUser, LoginResult } from '../types/api';
 import { isAccountChoice } from '../types/api';
 import { credentialNamespace } from '../lib/identifier';
+import { entryRoute } from '../lib/navigation/entry';
 
 /**
  * The second half of the credential key, now that there is no login to put
@@ -331,39 +332,8 @@ function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branch
   const closed = Boolean(user) && entitlement.data !== undefined && !entitlement.data.canRead;
 
   useEffect(() => {
-    if (bootstrapping) return;
-    const inAuth = segments[0] === '(auth)';
-    const onSelectBranch = segments[0] === 'select-branch';
-    const onStateScreen = segments[0] === 'subscription-blocked';
-
-    if (closed) {
-      if (!onStateScreen) router.replace('/subscription-blocked' as never);
-      return;
-    }
-    /**
-     * `app/index.tsx` is only a splash while auth bootstraps. Nothing renders
-     * past it, so a session restored at the root — reopening the app, or a
-     * cold web load — would sit on that spinner forever unless we move on.
-     */
-    const atRoot = segments[0] === undefined;
-
-    // The design-system gallery renders without a session so components can be
-    // reviewed without a login. It is a development route only.
-    if (segments[0] === 'dev') return;
-    /*
-     * Platform administration is a separate identity: it has its own sign-in
-     * and its own session, and never a shop's. The tenant redirects leave it
-     * alone in both directions — no shop session is needed to reach it, and
-     * holding one does not open it.
-     */
-    if (segments[0] === 'platform') return;
-
-    if (!user && !inAuth) {
-      router.replace('/(auth)/login');
-    } else if (user && !branchId && !onSelectBranch && !onStateScreen) {
-      router.replace('/select-branch');
-    } else if (user && branchId && (inAuth || onSelectBranch || atRoot)) {
-      router.replace('/(tabs)');
-    }
+    // The decision is pure and tested (`lib/navigation/entry.ts`): nobody is left on the splash or a redirect.
+    const target = entryRoute({ bootstrapping, signedIn: Boolean(user), branchChosen: Boolean(branchId), closed, segment: segments[0] });
+    if (target) router.replace(target as never);
   }, [user, bootstrapping, branchId, segments, router, closed]);
 }

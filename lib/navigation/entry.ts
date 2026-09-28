@@ -1,0 +1,43 @@
+/**
+ * Where the sign-in guard sends the person (`useProtectedRoute` in
+ * `hooks/useAuth.tsx`): sign-in → branch → the app, or the access refusal.
+ *
+ * Pure, so every way the splash or a redirect could strand somebody is tested
+ * (docs/61 §10): a session that expired, a restore that failed, access refused,
+ * a route that needs a branch — each lands on a screen with its own way on,
+ * never on a blank page. `null` means stay where you are.
+ */
+export interface EntryState {
+  /** The saved session is still being restored (the splash is showing). */
+  bootstrapping: boolean;
+  signedIn: boolean;
+  branchChosen: boolean;
+  /** The server says this shop may not use the app (`canRead` false). */
+  closed: boolean;
+  /** The first segment of the current route: `(auth)`, `(tabs)`, `select-branch`, `stores`, … or undefined at the root. */
+  segment: string | undefined;
+}
+
+export const LOGIN = '/(auth)/login';
+export const SELECT_BRANCH = '/select-branch';
+export const ACCESS_REFUSED = '/subscription-blocked';
+export const APP_HOME = '/(tabs)';
+
+export function entryRoute(s: EntryState): string | null {
+  if (s.bootstrapping) return null;
+  const inAuth = s.segment === '(auth)';
+  const onSelectBranch = s.segment === 'select-branch';
+  const onStateScreen = s.segment === 'subscription-blocked';
+
+  if (s.closed) return onStateScreen ? null : ACCESS_REFUSED;
+  // The design-system gallery renders without a session (development only).
+  if (s.segment === 'dev') return null;
+  // Platform administration is a separate identity with its own sign-in and session, in both directions.
+  if (s.segment === 'platform') return null;
+
+  if (!s.signedIn && !inAuth) return LOGIN;
+  if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen) return SELECT_BRANCH;
+  // The splash at the root, sign-in and the branch choice all move on once there is a session and a branch.
+  if (s.signedIn && s.branchChosen && (inAuth || onSelectBranch || s.segment === undefined)) return APP_HOME;
+  return null;
+}

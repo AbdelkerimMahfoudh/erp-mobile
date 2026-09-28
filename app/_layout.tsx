@@ -10,7 +10,7 @@ import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { OfflineBanner } from '../components/ui';
 import { headerBackFor } from '../components/navigation/HeaderBack';
-import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
+import { BACK_PARENTS, NESTED_NAVIGATORS, routeOfName } from '../lib/navigation/back';
 import { useI18n } from '../lib/i18n';
 import { ThemeProvider, useColors, useTheme } from '../lib/design/theme';
 
@@ -137,7 +137,8 @@ function AppShell() {
                 route's logical parent (lib/navigation/back.ts). A screen names
                 its own title; until it does, the header has none.
               */
-              headerShown: routeOfName(route.name) in BACK_PARENTS,
+              // A nested navigator (platform administration) draws its own headers.
+              headerShown: !NESTED_NAVIGATORS.includes(route.name) && routeOfName(route.name) in BACK_PARENTS,
               title: '',
               headerLeft: headerBackFor(routeOfName(route.name), route.params as Record<string, unknown> | undefined, navigation),
               /*

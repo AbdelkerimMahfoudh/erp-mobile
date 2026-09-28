@@ -17,7 +17,13 @@ export default function PlatformLayout() {
     <Stack
       screenOptions={({ route, navigation }) => ({
         headerShown: true,
-        headerLeft: headerBackFor(routeOfName(`platform/${route.name}`), route.params as Record<string, unknown> | undefined, navigation),
+        headerLeft: headerBackFor(
+          routeOfName(`platform/${route.name}`),
+          route.params as Record<string, unknown> | undefined,
+          navigation,
+          // The navigator's first screen: no native back button of its own.
+          navigation.getState().routes[0]?.key === route.key,
+        ),
       })}
     />
   );

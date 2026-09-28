@@ -82,8 +82,8 @@ it('tab pages keep the inset they genuinely need', () => {
    */
   assert.match(source('app/(tabs)/_layout.tsx'), /headerShown: false/, 'the tab navigator hides its header');
   // The root stack shows a header on child routes only (their back arrow); the `(tabs)` route is none of them.
-  assert.match(source('app/_layout.tsx'), /headerShown: routeOfName\(route\.name\) in BACK_PARENTS,/);
-  assert.ok(!/'\/':/.test(source('lib/navigation/back.ts').split('export const NO_BACK')[0]), 'the tabs are never a child route');
+  assert.match(source('app/_layout.tsx'), /headerShown: !NESTED_NAVIGATORS\.includes\(route\.name\) && routeOfName\(route\.name\) in BACK_PARENTS,/);
+  assert.ok(!/'\/':/.test(source('lib/navigation/back.ts').split('export const BACK_PARENTS')[1].split('\n};')[0]), 'the tabs are never a child route');
   // And no tab screen declares one.
   for (const route of routes('app/(tabs)')) {
     assert.ok(

@@ -3,16 +3,30 @@
  *
  *   node lib/navigation/back.test.ts
  *
- * A route file added under `app/` must be named in BACK_PARENTS (a child: the
- * header and its arrow, and where the arrow goes with no history) or NO_BACK (a
- * tab or an entry flow, with the reason). An unclassified route fails here.
+ * Every route file under `app/` is exactly one of (docs/61 §10): a parent tab
+ * (TAB_ROUTES); a child with the header, its arrow and where it goes with no
+ * history (BACK_PARENTS); an invisible redirect or the bootstrap splash
+ * (REDIRECTS, BOOTSTRAP_FILE); or, outside the signed-in app, an authentication
+ * root (AUTH_ROOTS). An unclassified or doubly classified route fails here.
  */
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BACK_PARENTS, NO_BACK, TABS, backTarget, routeOfFile, routeOfName } from './back.ts';
+import {
+  AUTH_ROOTS,
+  BACK_PARENTS,
+  BOOTSTRAP_FILE,
+  NESTED_NAVIGATORS,
+  NO_BACK,
+  REDIRECTS,
+  TABS,
+  TAB_ROUTES,
+  backTarget,
+  routeOfFile,
+  routeOfName,
+} from './back.ts';
 
 const APP = fileURLToPath(new URL('../../app/', import.meta.url));
 const read = (p: string) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
@@ -24,18 +38,59 @@ function files(dir: string): string[] {
     return statSync(full).isDirectory() ? files(full) : full.endsWith('.tsx') ? [full] : [];
   });
 }
-/** Every screen file, as `app/...`: layouts are navigators, not screens; the signed-out group keeps its own stack. */
-const screens = files(APP)
+/** Every route file, as `app/...` — layouts are navigators, not routes. */
+const routeFiles = files(APP)
   .map((f) => 'app/' + f.slice(APP.length).replace(/\\/g, '/'))
-  .filter((f) => !f.endsWith('/_layout.tsx') && !f.startsWith('app/(auth)/') && f !== 'app/index.tsx');
-const routes = [...new Set(screens.map(routeOfFile))];
+  .filter((f) => !f.endsWith('/_layout.tsx'));
+/** The screens of the app itself: not the signed-out group, not the splash. */
+const screens = routeFiles.filter((f) => !f.startsWith('app/(auth)/') && f !== BOOTSTRAP_FILE);
+const routes = [...new Set(routeFiles.filter((f) => f !== BOOTSTRAP_FILE).map(routeOfFile))];
 
-it('every route is classified: a child with a parent, or a tab or entry flow with a reason', () => {
-  for (const route of routes) {
-    assert.ok(route in BACK_PARENTS || route in NO_BACK, `${route} has neither a back parent nor a reason for none`);
-    assert.ok(!(route in BACK_PARENTS && route in NO_BACK), `${route} is in both lists`);
+type RouteClass = 'tab' | 'child' | 'redirect' | 'bootstrap' | 'auth';
+function classesOf(file: string): RouteClass[] {
+  if (file === BOOTSTRAP_FILE) return ['bootstrap'];
+  const route = routeOfFile(file);
+  const out: RouteClass[] = [];
+  if (route in TAB_ROUTES) out.push('tab');
+  if (route in BACK_PARENTS) out.push('child');
+  if (route in REDIRECTS) out.push('redirect');
+  if (route in AUTH_ROOTS) out.push('auth');
+  return out;
+}
+
+it('every route file is exactly one of: parent tab, child with the arrow, invisible redirect or bootstrap, authentication root', () => {
+  for (const file of routeFiles) {
+    const classes = classesOf(file);
+    assert.equal(classes.length, 1, `${file} is ${classes.length ? classes.join(' and ') : 'unclassified'}`);
   }
-  for (const reason of Object.values(NO_BACK)) assert.ok(reason.length > 10);
+  for (const reason of [...Object.values(TAB_ROUTES), ...Object.values(REDIRECTS), ...Object.values(AUTH_ROOTS)]) assert.ok(reason.length > 10);
+  // The routes without an arrow are exactly the tabs, the redirects and the authentication roots — nothing miscellaneous.
+  assert.deepEqual(Object.keys(NO_BACK).sort(), [...Object.keys(TAB_ROUTES), ...Object.keys(REDIRECTS), ...Object.keys(AUTH_ROOTS)].sort());
+  assert.equal(Object.keys(TAB_ROUTES).length, 5);
+});
+
+it('the four routes that had no arrow: /platform now has it; /stores is an invisible redirect; branch choice and the access refusal are authentication roots', () => {
+  assert.equal(BACK_PARENTS['/platform'], '/login', 'the platform overview goes back to the sign-in it is entered from');
+  assert.ok(!('/platform' in NO_BACK));
+  assert.ok('/stores' in REDIRECTS);
+  assert.ok('/select-branch' in AUTH_ROOTS && '/subscription-blocked' in AUTH_ROOTS);
+  // A redirect renders nothing but the redirect, to a route that exists; it needs no parameter and loads nothing.
+  const stores = code(read('app/stores/index.tsx'));
+  assert.match(stores, /return <Redirect href="\/\(tabs\)\/partners" \/>;/);
+  assert.ok(!/useQuery|useLocalSearchParams|<Text|<Button|<Screen/.test(stores), 'no page, no data, no parameter');
+  assert.ok(routeFiles.includes('app/(tabs)/partners.tsx'), 'the redirect resolves to a real tab');
+  // The splash is a spinner only: nothing to press, nothing to read.
+  const splash = code(read(BOOTSTRAP_FILE));
+  assert.match(splash, /<ActivityIndicator/);
+  assert.ok(!/<Text|<Button|Pressable|onPress/.test(splash));
+  // Each authentication root has its own way on, and Sign out.
+  const branch = code(read('app/select-branch.tsx'));
+  assert.match(branch, /title=\{t\('action\.signOut'\)\}[\s\S]*onPress=\{signOut\}/);
+  assert.match(branch, /<ErrorState error=\{query\.error\} onRetry=/);
+  assert.match(branch, /onPress=\{\(\) => setBranch\(branch\)\}/);
+  const blocked = code(read('app/subscription-blocked.tsx'));
+  assert.match(blocked, /title=\{t\('sub\.recheck'\)\}/);
+  assert.match(blocked, /title=\{t\('action\.signOut'\)\}/);
 });
 
 it('every listed route exists — the map cannot rot', () => {
@@ -80,11 +135,15 @@ it('file and navigator names become the same pattern', () => {
 
 it('the root stack gives every child route its header and the shared arrow, and keeps the swipe', () => {
   const layout = code(read('app/_layout.tsx'));
-  assert.match(layout, /headerShown: routeOfName\(route\.name\) in BACK_PARENTS,/);
+  assert.match(layout, /headerShown: !NESTED_NAVIGATORS\.includes\(route\.name\) && routeOfName\(route\.name\) in BACK_PARENTS,/);
+  assert.deepEqual(NESTED_NAVIGATORS, ['platform']);
   assert.match(layout, /headerLeft: headerBackFor\(routeOfName\(route\.name\), route\.params as Record<string, unknown> \| undefined, navigation\),/);
   assert.match(layout, /gestureEnabled: true,/);
   const platform = code(read('app/platform/_layout.tsx'));
-  assert.match(platform, /headerLeft: headerBackFor\(routeOfName\(`platform\/\$\{route\.name\}`\)/);
+  assert.match(
+    platform,
+    /headerLeft: headerBackFor\(\s*routeOfName\(`platform\/\$\{route\.name\}`\),\s*route\.params as Record<string, unknown> \| undefined,\s*navigation,\s*navigation\.getState\(\)\.routes\[0\]\?\.key === route\.key,\s*\)/,
+  );
 });
 
 /**
@@ -136,7 +195,7 @@ it('the arrow: the same step as the swipe with history, the parent without; left
   assert.match(back, /if \(navigation\.canGoBack\(\)\) navigation\.goBack\(\);\s*else router\.replace\(backTarget\(route, params\) as Href\);/);
   assert.match(back, /<IconButton icon=\{isRTL\(\) \? ArrowRight : ArrowLeft\} accessibilityLabel=\{t\('action\.back'\)\}/);
   // The native arrow stays wherever the phone draws one; ours only fills the gap, and a tab or entry flow gets none.
-  assert.match(back, /route in NO_BACK \|\| \(Platform\.OS !== 'web' && canGoBack\) \? null : <HeaderBack/);
+  assert.match(back, /route in NO_BACK \|\| \(Platform\.OS !== 'web' && canGoBack && !nestedRoot\) \? null : <HeaderBack/);
   const button = code(read('components/ui/IconButton.tsx'));
   assert.match(button, /size = touch\.min,/);
   assert.match(read('lib/design/tokens.ts'), /min: 48/);

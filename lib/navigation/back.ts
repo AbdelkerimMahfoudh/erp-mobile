@@ -7,11 +7,19 @@
  * its logical parent here: a tab, or the screen it is normally opened from. A
  * parent may carry the route's own parameters (`/sales/pay/[id]` → that sale).
  *
- * Signed-out screens (the `(auth)` group) keep their own stack and are not
- * covered. The five tabs and a few entry flows have no arrow at all; each is listed in
- * `NO_BACK` with the reason. A structural test (`back.test.ts`) refuses a route
- * that is in neither list, so a new screen cannot ship without an arrow or a
- * decision. Pure — no imports — so the test can load it under node.
+ * Every route file is exactly one of (docs/61 §10):
+ * - a **parent tab** — the five on the tab bar (`TAB_ROUTES`);
+ * - a **child screen** with the shared back arrow (`BACK_PARENTS`);
+ * - an **invisible redirect or bootstrap** — renders no page of its own and
+ *   moves on at once (`REDIRECTS`, `BOOTSTRAP_FILE`);
+ * - outside the signed-in app, an **authentication root** — signing in,
+ *   choosing the branch, or the server's refusal of access — with its own way
+ *   on (sign in, choose, check again, sign out), never counted as a child of
+ *   the app (`AUTH_ROOTS`).
+ * Modals and sheets are components with Close or Cancel, not routes. A
+ * structural test (`back.test.ts`) refuses a route in none or two of these, so
+ * a new screen cannot ship without an arrow or a decision. Pure — no imports —
+ * so the test can load it under node.
  */
 
 /** The five parent tabs. */
@@ -89,26 +97,52 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/notifications': TABS.more,
   '/hub/[id]': TABS.more,
   '/dev/gallery': TABS.more,
-  // Platform administration: its own identity and its own overview.
+  // Platform administration: its own identity. Its overview is entered from the sign-in screen, and goes back there;
+  // the platform session stays until Sign out.
+  '/platform': '/login',
   '/platform/[id]': '/platform',
   '/platform/new': '/platform',
   '/platform/audit': '/platform',
   '/platform/sign-in': '/login',
 };
 
-/** Routes with no back arrow, each with the reason. */
-export const NO_BACK: Readonly<Record<string, string>> = {
+/** The five parent tabs, each with its reason. */
+export const TAB_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Home — a parent tab.',
   '/partners': 'Partners — a parent tab.',
   '/money-hub': 'Money — a parent tab.',
   '/inventory': 'Stock — a parent tab.',
   '/more': 'More — a parent tab.',
-  '/select-branch':
-    'Choosing the branch — an entry flow reached by replacement after sign-in and from More; the choice replaces the whole app, so there is no earlier screen of this branch to return to. Sign out is offered.',
-  '/subscription-blocked': 'Shown instead of the app when the server refuses access; nothing behind it to return to.',
-  '/stores': 'A legacy link that immediately replaces itself with the Partners tab.',
-  '/platform': 'The platform overview — the platform identity’s own home.',
 };
+
+/** Routes that render no page of their own and move on at once. */
+export const REDIRECTS: Readonly<Record<string, string>> = {
+  '/stores': 'Renders only a redirect to the Partners tab (a legacy link). No parameters, no data; the tab bar is there when it lands.',
+};
+
+/** The splash while the session is restored: a spinner, then the sign-in guard moves on (`lib/navigation/entry.ts`). */
+export const BOOTSTRAP_FILE = 'app/index.tsx';
+
+/**
+ * Before the signed-in app: each has its own way on and Sign out where a
+ * session exists, and the sign-in guard sends anybody who leaves back here
+ * until it is done — so an arrow would lead nowhere.
+ */
+export const AUTH_ROOTS: Readonly<Record<string, string>> = {
+  '/login': 'Signing in — the start.',
+  '/register': 'Creating an account, from sign-in, with its own way back.',
+  '/verify': 'The code check after signing in or creating an account.',
+  '/select-branch':
+    'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
+  '/subscription-blocked':
+    'The server refuses this shop access: shown instead of the app, and the guard returns here from anywhere in it. Check again, or Sign out.',
+};
+
+/** Routes that never draw the arrow: the tabs, the redirects and the authentication roots. */
+export const NO_BACK: Readonly<Record<string, string>> = { ...TAB_ROUTES, ...REDIRECTS, ...AUTH_ROOTS };
+
+/** Navigators nested in the root stack: they draw their own headers, so the root draws none for them. */
+export const NESTED_NAVIGATORS: readonly string[] = ['platform'];
 
 /** A file under `app/` as the route pattern the router uses: groups and `index` dropped. */
 export function routeOfFile(file: string): string {

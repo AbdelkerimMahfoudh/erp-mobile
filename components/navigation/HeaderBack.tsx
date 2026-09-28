@@ -60,11 +60,21 @@ export function useLeave(route: string, params?: Readonly<Record<string, unknown
  * and with it the platform's own swipe-back — never replaced. Without history
  * the native header has no arrow, so ours appears. The web header drops its own
  * back button whenever a left element is configured, so there ours is always shown.
- * A tab or an entry flow (`NO_BACK`) never gets one.
+ * A tab, a redirect or an authentication root (`NO_BACK`) never gets one.
+ *
+ * The first screen of a nested navigator (platform administration) has no
+ * native back button of its own even when the stack behind it has history, so
+ * it always gets ours: with history it steps out of the navigator, the same
+ * pop as the swipe; without, it goes to the parent.
  */
-export function headerBackFor(route: string, params: Readonly<Record<string, unknown>> | undefined, navigation: BackNavigation) {
+export function headerBackFor(
+  route: string,
+  params: Readonly<Record<string, unknown>> | undefined,
+  navigation: BackNavigation,
+  nestedRoot = false,
+) {
   function HeaderLeft({ canGoBack }: { canGoBack?: boolean }) {
-    return route in NO_BACK || (Platform.OS !== 'web' && canGoBack) ? null : <HeaderBack route={route} params={params} navigation={navigation} />;
+    return route in NO_BACK || (Platform.OS !== 'web' && canGoBack && !nestedRoot) ? null : <HeaderBack route={route} params={params} navigation={navigation} />;
   }
   return HeaderLeft;
 }

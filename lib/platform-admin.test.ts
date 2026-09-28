@@ -69,8 +69,9 @@ describe('the platform screens', () => {
   it('are reached only from the sign-in screen, and the tenant redirects leave them alone', () => {
     const login = strip(read('app/(auth)/login.tsx'));
     assert.match(login, /router\.push\('\/platform\/sign-in' as never\)/);
-    const auth = strip(read('hooks/useAuth.tsx'));
-    assert.match(auth, /if \(segments\[0\] === 'platform'\) return;/);
+    // The guard's decision lives in lib/navigation/entry.ts (docs/61 §10).
+    const entry = strip(read('lib/navigation/entry.ts'));
+    assert.match(entry, /if \(s\.segment === 'platform'\) return null;/);
     for (const f of ['app/(tabs)/more.tsx', 'app/(tabs)/_layout.tsx', 'app/(tabs)/index.tsx']) {
       assert.doesNotMatch(strip(read(f)), /'\/platform|push\('\/platform/, `${f} must not lead to the platform`);
     }
@@ -114,7 +115,10 @@ describe('what a shop is told', () => {
     const auth = strip(read('hooks/useAuth.tsx'));
     assert.match(auth, /useEntitlement\(Boolean\(user\) && !bootstrapping\)/);
     assert.match(auth, /!entitlement\.data\.canRead/);
-    assert.match(auth, /router\.replace\('\/subscription-blocked' as never\)/);
+    const entry = strip(read('lib/navigation/entry.ts'));
+    assert.match(entry, /if \(s\.closed\) return onStateScreen \? null : ACCESS_REFUSED;/);
+    assert.match(entry, /export const ACCESS_REFUSED = '\/subscription-blocked';/);
+    assert.match(auth, /if \(target\) router\.replace\(target as never\);/);
     assert.doesNotMatch(auth, /Date\.now\(\)|getTime\(\)/);
   });
 
