@@ -105,93 +105,88 @@ it('an account implies its method: a bank is a transfer, a wallet is mobile', ()
 // ── the Money overview never decides a figure ───────────────────────────────
 
 const overview = code(read('../app/(tabs)/money-hub.tsx'));
+/** Money's top card (docs/63). */
+const card = code(read('../components/money/ExpectedMoneyCard.tsx'));
 
 it('the overview reads the server overview, and adds nothing up itself', () => {
   assert.match(overview, /useMoneyOverview\(range\.from, range\.to/);
-  assert.ok(!/\.reduce\(/.test(overview), 'no figure is summed on the phone');
+  assert.ok(!/\.reduce\(/.test(overview + card), 'no figure is summed on the phone');
   // "Items sold" is every item, less cancelled ones (docs/53 R6) — it used to show phones only.
-  for (const f of ['cardData.moneyToday.total.net', 'cardData.moneyToday.channels', 'data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.unitsSold']) {
+  for (const f of ['data.period.salesValue', 'data.period.collected', 'data.period.outstanding', 'data.period.unitsSold']) {
     assert.ok(overview.includes(f), `${f} comes from the server`);
   }
-  // A drawer estimate is never added to account movement: the card shows one basis, the server's total of its rows.
-  assert.ok(!/[dD]ata\.cashNow/.test(overview), 'the drawer estimate is not on the card');
+  // The top card is the server's positions, never the drawer estimate beside them.
+  assert.ok(!/[dD]ata\.cashNow/.test(overview + card), 'the drawer estimate is not on the card');
   // The card is always today's, on its own query: another period never blanks it, and Today shares its cache.
   assert.match(overview, /const todayRange = usePeriodRange\('today'\);\s*const card = useMoneyOverview\(todayRange\.from, todayRange\.to, \{ enabled: canViewFigures \}\);/);
+  assert.match(overview, /const held = cardData\?\.trackedMoney;/);
 });
-it('Sales value, Collected, Still owed and Money recorded today are four different labels', () => {
-  for (const k of ['moneyOverview.salesValue', 'moneyOverview.collected', 'moneyOverview.outstanding', 'moneyTab.today.title']) {
+it('Sales value, Collected, Still owed and Expected money in store today are four different labels', () => {
+  for (const k of ['moneyOverview.salesValue', 'moneyOverview.collected', 'moneyOverview.outstanding']) {
     assert.match(overview, new RegExp(`t\\('${k.replace(/\./g, '\\.')}'\\)`));
   }
+  assert.match(card, /t\('moneyTab\.expected\.title'\)/);
 });
 it('the overview previews a few sales and links to all of them', () => {
   assert.match(overview, /SALES_PREVIEW = 3/);
   assert.match(overview, /\.slice\(0, SALES_PREVIEW\)/);
   assert.match(overview, /t\('moneyOverview\.viewAllSales'\)/);
 });
-it('each method is recorded movement, never called a balance — and the card says which day (docs/55 D42, 2026-09-27)', () => {
-  assert.match(overview, /t\('moneyTab\.today\.hint', \{ date: formatDate\(cardData\.today\) \}\)/);
+it('the day’s expenses say which day (docs/55 D42); the card of today’s movement left the top (docs/63)', () => {
   assert.match(overview, /t\('moneyOverview\.dailyExpenses\.hint', \{ date: formatDate\(data\.today\) \}\)/);
-  const en = read('./i18n/en.ts');
-  assert.match(en, /'moneyTab\.today\.hint': 'Money in less money out, recorded in this app today \(\{date\}\) for each method\. Not a drawer count, not an account balance\.'/);
+  assert.ok(!/moneyToday|moneyTab\.today\./.test(overview), 'no card of today’s movement at the top');
 });
-it('the top card is the money held as the server tracks it: its total, or no figure at all while a method is unknown (2026-09-27)', () => {
-  const heldAt = overview.indexOf("t('moneyTab.held.title')");
-  const todayAt = overview.indexOf("t('moneyTab.today.title')");
-  assert.ok(heldAt > 0 && todayAt > heldAt, 'Money held comes first, Money recorded today after it');
-  const held = overview.slice(heldAt, todayAt);
-  assert.match(overview, /const held = cardData\?\.trackedMoney;/);
-  // The figure is the server's total, never a sum made here; without one the line names the unknown methods instead.
-  assert.match(held, /\) : held\.total !== null \? \(\s*<MoneyValue value=\{held\.total\} size="display" signed=\{held\.total < 0\} decimals=\{heldDecimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong">\s*\{t\('moneyTab\.held\.incomplete', \{/);
-  assert.match(held, /names: held\.methods\s*\.filter\(\(m\) => !m\.known\)\s*\.map\(\(m\) => \(m\.channel === 'cash' \? t\('moneyTab\.cash'\) : m\.label\)\)/);
-  assert.equal(held.match(/<MoneyValue/g)?.length, 1, 'the total is the card’s only figure outside the method rows');
-  assert.ok(!/\.reduce\(|position \+|\+ m\.position/.test(overview), 'no position is added up on the phone');
-  assert.match(held, /t\('moneyTab\.held\.hint'\)/);
-  assert.match(held, /held\.methods\.map\(\(m\) => \(\s*<HeldLine\s+key=\{m\.key\}\s+method=\{m\}\s+branchCount=\{held\.branchCount\}\s+decimals=\{heldDecimals\}/);
-  // Cents on any figure, the starting amounts included, put every figure of the card at two decimals.
-  assert.match(overview, /const heldDecimals = held && \[held\.total, \.\.\.held\.methods\.flatMap\(\(m\) => \[m\.position, m\.anchor\?\.amount \?\? null\]\)\]\.some\(/);
+it('one card at the top: the server’s total, or no figure at all while a method is unknown (docs/63)', () => {
+  assert.match(overview, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
+  // The figure is the server's — its total, or for anybody but the Owner the drawer's own — never a sum made here.
+  assert.match(card, /const figure = held\.accountsVisible \? held\.total : \(cash\?\.position \?\? null\);/);
+  assert.match(card, /\{figure !== null \? \(\s*<MoneyValue value=\{figure\} size="display" signed=\{figure < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong">\{t\('moneyTab\.expected\.unknown', \{ names: unknown\.map\(name\)\.join\(' · '\) \}\)\}<\/Text>/);
+  assert.match(card, /const unknown = held\.methods\.filter\(\(m\) => !m\.known\);/);
+  assert.equal(card.match(/size="display"/g)?.length, 1, 'one focal figure');
+  assert.ok(!/position \+|\+ m\.position/.test(card), 'no position is added up on the phone');
+  // Cents on any figure put every figure of the card at two decimals, so the lines visibly add up.
+  assert.match(card, /const decimals = \[figure, \.\.\.held\.methods\.map\(\(m\) => m\.position\)\]\.some\(/);
+  // Short lines, no explanations of where each amount starts from.
+  assert.ok(!/anchor\.businessDate|anchor\.byName|moneyTab\.held\.(cash|account)\./.test(card), 'no anchor explanations');
 });
-it('money held for someone other than the Owner: the drawer, a line saying the accounts are the Owner’s, and no total (TM-3)', () => {
-  const heldAt = overview.indexOf("t('moneyTab.held.title')");
-  const held = overview.slice(heldAt, overview.indexOf("t('moneyTab.today.title')"));
-  // Asked first, so no figure is ever shown for the drawer alone, and the unknown-methods line never stands in for it.
-  assert.match(held, /<View style=\{styles\.total\}>\s*\{!held\.accountsVisible \? \(\s*<Text variant="bodyStrong">\{t\('moneyTab\.held\.ownerOnly'\)\}<\/Text>\s*\) : held\.total !== null \? \(/);
-  // The rows are the server's list: the drawer alone when the accounts are not shown.
-  assert.match(held, /held\.methods\.map\(\(m\) => \(/);
+it('for somebody other than the Owner: the drawer’s own figure, a line saying the accounts are the Owner’s, and the drawer alone (TM-3)', () => {
+  assert.match(card, /\{!held\.accountsVisible \? \(\s*<Text variant="caption" tone="tertiary">\s*\{t\('moneyTab\.held\.ownerOnly'\)\}/);
+  // The lines are the server's list: the drawer alone when the accounts are not shown.
+  assert.match(card, /held\.methods\.map\(\(m\) => \(/);
   const lib = code(read('./money-overview.ts'));
   assert.match(lib, /branchCount: number;\s*accountsVisible: boolean;/);
   assert.match(code(read('./contract.ts')), /typeof r\?\.trackedMoney\?\.accountsVisible === 'boolean' \? \[\] : \['trackedMoney\.accountsVisible'\]/);
   const words = { en: 'Account amounts are shown to the Owner.', fr: 'Les montants des comptes sont visibles par le propriétaire.', ar: 'مبالغ الحسابات يراها المالك.' };
   for (const [locale, line] of Object.entries(words)) assert.ok(read(`./i18n/${locale}.ts`).includes(`'moneyTab.held.ownerOnly': '${line}',`), locale);
 });
-it('each held method: a position or the word Unknown — never a 0 — and where it starts from, or which start is missing', () => {
-  const line = overview.slice(overview.indexOf('function HeldLine'), overview.indexOf('function MethodLine'));
-  assert.match(line, /const position = m\.known \? m\.position : null;/);
-  assert.match(line, /\{position !== null \? \(\s*<MoneyValue value=\{position\} size="small" signed=\{position < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong" tone="secondary">\s*\{t\('moneyTab\.held\.unknown'\)\}/);
-  assert.match(line, /const name = cash \? t\('moneyTab\.cash'\) : m\.scope === 'company' && branchCount > 1 \? `\$\{m\.label\} \$\{t\('moneyTab\.held\.wholeBusiness'\)\}` : m\.label;/);
-  assert.match(line, /!anchor\s*\?\s*t\(cash \? 'moneyTab\.held\.cash\.unknown' : 'moneyTab\.held\.account\.unknown'\)/);
-  assert.match(line, /cash\s*\?\s*t\('moneyTab\.held\.cash\.known', \{ date \}\)/);
-  assert.match(line, /const amount = anchor \? isolateLtr\(formatMoney\(anchor\.amount, \{ decimals \}\)\) : '';/);
-  assert.match(line, /anchor\.byName\s*\?\s*t\('moneyTab\.held\.account\.knownBy', \{ amount, date, name: anchor\.byName \}\)\s*:\s*t\('moneyTab\.held\.account\.known', \{ amount, date \}\)/);
+it('each line: a position or the word Unknown — never a 0 — and an account says when it is the whole business’s', () => {
+  assert.match(card, /\{m\.position !== null \? \(\s*<MoneyValue value=\{m\.position\} size="small" signed=\{m\.position < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong" tone="secondary">\s*\{t\('moneyTab\.held\.unknown'\)\}/);
+  assert.match(card, /m\.channel === 'cash' \? t\('moneyTab\.cash'\) : m\.scope === 'company' && held\.branchCount > 1 \? `\$\{m\.label\} \$\{t\('moneyTab\.held\.wholeBusiness'\)\}` : m\.label;/);
+  // Label and amount on one line while the amount needs at most half of it (docs/61 §8).
+  assert.match(card, /<View key=\{m\.key\} style=\{\[AMOUNT_ROW, styles\.line\]\}>\s*<View style=\{AMOUNT_LABEL\}>/);
 });
-it('Set amount is offered on each account row to whoever holds money.anchor.record, and to nobody else', () => {
+it('a shop opened with carried amounts says so until the Owner reviews them — and only the Owner may (docs/63)', () => {
+  assert.match(card, /const awaiting = cash\?\.anchor\?\.awaitingOwnerReview === true;/);
+  assert.match(card, /\{awaiting \? \([\s\S]*?t\('moneyTab\.expected\.awaiting'\)[\s\S]*?\{canReview \? \([\s\S]*?t\('moneyTab\.expected\.review'\)[\s\S]*?onPress=\{onReview\}/);
   assert.match(overview, /const canAnchor = usePermission\('money\.anchor\.record'\);/);
-  assert.match(overview, /onSetAmount=\{\s*canAnchor && m\.channel === 'account'\s*\?\s*\(\) => \{\s*setAnchorFor\(m\);\s*setAnchorOpen\(true\);\s*\}\s*:\s*undefined\s*\}/);
-  const line = overview.slice(overview.indexOf('function HeldLine'), overview.indexOf('function MethodLine'));
-  assert.match(line, /\{onSetAmount \? \(\s*<View style=\{styles\.action\}>\s*<Button\s+title=\{t\('moneyTab\.held\.setAmount'\)\}[\s\S]*?variant="tertiary"\s+size="sm"\s+onPress=\{onSetAmount\}/);
-  assert.match(overview, /\{canAnchor \? <SetStartingAmountSheet open=\{anchorOpen\} account=\{anchorFor\} onClose=\{\(\) => setAnchorOpen\(false\)\} \/> : null\}/);
-  assert.match(read('./permissions.ts'), /'money\.anchor\.record',/);
+  assert.match(overview, /<OpeningMoneySheet\s+intent="review"\s+open=\{reviewing\}[\s\S]*?mayDecide\s+methods=\{openingMethodsOf\(held\.methods\)\}[\s\S]*?onConfirm=\{confirmReview\}/);
+  assert.match(overview, /review\.mutate\(\s*\{ clientUuid: money\.clientUuid, decision: money\.decision, \.\.\.\(money\.cashAmount !== undefined \? \{ cashAmount: money\.cashAmount \} : \{\}\) \},/);
+  // Refused, the sheet keeps what was entered and says why.
+  assert.match(overview, /onError: \(e\) => setReviewError\(toFriendlyError\(e\)\.body \|\| t\('opening\.review\.failed'\)\),/);
+  const hooks = code(read('./closing.ts'));
+  assert.match(hooks, /api\.post<OpenClosing>\('\/closings\/opening\/review', input\)/);
 });
-it('Money recorded today stays a card of its own, right below, with its rows and nothing held in it', () => {
-  const todayAt = overview.indexOf("t('moneyTab.today.title')");
-  const today = overview.slice(todayAt, overview.indexOf('</Card>', todayAt));
-  const between = overview.slice(overview.indexOf("t('moneyTab.held.title')"), todayAt);
-  assert.equal(between.match(/<\/Card>/g)?.length, 1, 'the held card closes before today’s opens');
-  assert.match(between, /<\/Card>\s*<Card style=\{styles\.cash\}>/);
-  assert.match(today, /cardData\.moneyToday\.total\.net/);
-  assert.match(today, /t\('moneyTab\.today\.hint', \{ date: formatDate\(cardData\.today\) \}\)/);
-  assert.match(today, /cardData\.moneyToday\.channels\.map\(\(m\) => \(\s*<MethodLine/);
-  assert.ok(!/held|trackedMoney/.test(today), 'no position among today’s movement');
-  assert.ok(!/moneyToday/.test(between), 'no movement among the positions');
+it('no Set amount on the card: a company account is set by its own, company-wide action, the Owner’s alone (docs/63)', () => {
+  assert.ok(!/setAmount|SetStartingAmountSheet|onSetAmount/.test(overview + card), 'no per-account action at the top');
+  assert.match(overview, /const companyAccounts = held\?\.accountsVisible \? held\.methods\.filter\(\(m\) => m\.channel === 'account'\) : \[\];/);
+  assert.match(overview, /\{canAnchor && companyAccounts\.length > 0 \? \(\s*<RowGroup>\s*<ListRow flat leading=\{Landmark\} title=\{t\('moneyTab\.company\.title'\)\} subtitle=\{t\('moneyTab\.company\.subtitle'\)\} onPress=\{\(\) => setCompanyOpen\(true\)\} \/>/);
+  assert.match(overview, /\{canAnchor \? <CompanyAccountsSheet open=\{companyOpen\} onClose=\{\(\) => setCompanyOpen\(false\)\} accounts=\{companyAccounts\} \/> : null\}/);
+  const sheet = code(read('../components/money/CompanyAccountsSheet.tsx'));
+  assert.match(sheet, /t\('moneyTab\.company\.body'\)/);
+  assert.match(sheet, /<SetStartingAmountSheet open=\{setting\} account=\{chosen\} onClose=\{\(\) => setSetting\(false\)\} \/>/);
+  // The amount sheet says, before anything is saved, that the amount is the one every shop sees.
+  assert.match(code(read('../components/money/SetStartingAmountSheet.tsx')), /t\('moneyTab\.anchor\.company'\)/);
+  assert.match(read('./permissions.ts'), /'money\.anchor\.record',/);
 });
 it('the starting-amount sheet posts the account, the amount and a key bound to them, then says so and refreshes Money', () => {
   const lib = code(read('./money-overview.ts'));
@@ -228,22 +223,24 @@ it('the starting-amount sheet posts the account, the amount and a key bound to t
   assert.match(anchorSheet, /title=\{t\('moneyTab\.anchor\.save'\)\}[\s\S]*?disabled=\{record\.isPending \|\| !online \|\| !parsed\.ok\}/);
   assert.match(anchorSheet, /label=\{t\('moneyTab\.anchor\.note'\)\} value=\{note\} onChangeText=\{setNote\} maxLength=\{255\}/);
 });
-it('the money-held words are in all three languages', () => {
-  const keys = [
-    'title', 'hint', 'incomplete', 'ownerOnly', 'unknown', 'wholeBusiness', 'cash.known', 'cash.unknown', 'account.known', 'account.knownBy', 'account.unknown', 'setAmount',
-  ].map((k) => `moneyTab.held.${k}`).concat(['title', 'body', 'amount', 'note', 'save', 'saved', 'failed', 'maybeSaved', 'forbidden'].map((k) => `moneyTab.anchor.${k}`));
+it('Money’s words are in all three languages, and the old top cards’ are gone (docs/63)', () => {
+  const keys = ['ownerOnly', 'unknown', 'wholeBusiness', 'setAmount']
+    .map((k) => `moneyTab.held.${k}`)
+    .concat(['title', 'unknown', 'awaiting', 'review'].map((k) => `moneyTab.expected.${k}`))
+    .concat(['title', 'subtitle', 'body'].map((k) => `moneyTab.company.${k}`))
+    .concat(['title', 'body', 'amount', 'note', 'save', 'saved', 'failed', 'maybeSaved', 'forbidden', 'company'].map((k) => `moneyTab.anchor.${k}`));
+  const gone = ['moneyTab.held.title', 'moneyTab.held.hint', 'moneyTab.held.incomplete', 'moneyTab.held.cash.known', 'moneyTab.today.title', 'moneyTab.today.hint'];
   for (const locale of ['en', 'fr', 'ar']) {
     const cat = read(`./i18n/${locale}.ts`);
     for (const k of keys) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
+    for (const k of gone) assert.ok(!cat.includes(`'${k}':`), `${locale} still has ${k}`);
   }
   const en = read('./i18n/en.ts');
-  assert.match(en, /'moneyTab\.held\.title': 'Money held'/);
-  assert.match(en, /'moneyTab\.held\.hint': 'Starting amounts plus everything recorded in this app since\. Not a bank or wallet balance\.'/);
-  assert.match(en, /'moneyTab\.held\.incomplete': 'Not every method is tracked yet: \{names\}\.'/);
+  assert.match(en, /'moneyTab\.expected\.title': 'Expected money in store today'/);
+  assert.match(en, /'moneyTab\.expected\.awaiting': 'Opened with the carried amounts — awaiting the Owner’s review'/);
   assert.match(en, /'moneyTab\.held\.unknown': 'Unknown'/);
-  assert.match(en, /'moneyTab\.held\.account\.knownBy': 'From \{amount\} on \{date\} by \{name\}, plus what was recorded since\.'/);
+  assert.match(en, /'moneyTab\.company\.body': 'These accounts belong to the company: the amount you set is the one every shop sees\.'/);
   assert.match(en, /'moneyTab\.anchor\.body': 'Open the \{account\} app and enter the amount it shows now\. From now on, this app adds what is recorded here\.'/);
-  assert.match(en, /'moneyTab\.anchor\.maybeSaved': 'The answer did not arrive\. The amount may have been saved — check Money held before trying again\.'/);
 });
 it('Outstanding payments and the other actions come from the registry', () => {
   assert.match(overview, /visibleChildren\(hub, granted\)/);

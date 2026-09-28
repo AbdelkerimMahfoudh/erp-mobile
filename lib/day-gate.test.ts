@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { closedDayOf, dayGate, isStoreClosedRefusal } from './day-gate.ts';
+import { closedDayOf, closedReasonOf, dayGate, isStoreClosedRefusal } from './day-gate.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -17,18 +17,30 @@ const it = (name: string, fn: () => void) => {
   console.log(`  ok - ${name}`);
 };
 type Standing = 'open' | 'counting' | 'counted' | 'closed' | 'reopened' | 'needs_review' | 'inactive';
-const day = (standing: Standing = 'closed') => ({ standing, businessDate: '2026-09-27' });
+type Door = 'never_opened' | 'open' | 'closed';
+const day = (standing: Standing = 'closed', door: Door = 'open') => ({ standing, businessDate: '2026-09-27', door });
 
 it('the current business day closed: locked, and the Owner or a named delegate may open the store', () => {
-  assert.deepEqual(dayGate(day(), true), { locked: true, mayOpen: true, businessDate: '2026-09-27' });
+  assert.deepEqual(dayGate(day(), true), { locked: true, reason: 'closed', mayOpen: true, businessDate: '2026-09-27' });
 });
 
 it('somebody without the closing authority sees the lock and is told who can open it', () => {
-  assert.deepEqual(dayGate(day(), false), { locked: true, mayOpen: false, businessDate: '2026-09-27' });
+  assert.deepEqual(dayGate(day(), false), { locked: true, reason: 'closed', mayOpen: false, businessDate: '2026-09-27' });
 });
 
-it('open, counting, counted and reopened days never lock the counter; nor does a day never opened', () => {
+it('an opened day — open, counting, counted or reopened — never locks the counter', () => {
   for (const standing of ['open', 'counting', 'counted', 'reopened'] as const) assert.deepEqual(dayGate(day(standing), true), { locked: false });
+});
+
+it('a day nobody opened waits for its opening — offered to whoever counts, not only to the closing authority (docs/63)', () => {
+  assert.deepEqual(dayGate(day('open', 'never_opened'), false, true), { locked: true, reason: 'not_opened', mayOpen: true, businessDate: '2026-09-27' });
+  assert.deepEqual(dayGate(day('open', 'never_opened'), false, false), { locked: true, reason: 'not_opened', mayOpen: false, businessDate: '2026-09-27' });
+  // A closed day is the reopen, whatever its door says.
+  assert.deepEqual(dayGate(day('closed', 'never_opened'), true, true), { locked: true, reason: 'closed', mayOpen: true, businessDate: '2026-09-27' });
+});
+
+it('an older server sends no door: its counter never waited for an opening, and the phone does not either', () => {
+  assert.deepEqual(dayGate({ standing: 'open', businessDate: '2026-09-27' }, true, true), { locked: false });
 });
 
 it('no view — not loaded, failed, or not for this person — never locks anybody out: the server’s rule stands', () => {
@@ -46,7 +58,7 @@ it('Home and the guard ask the light business-day view, only for those it is for
   const gate = readFileSync(new URL('../components/day/DayGate.tsx', import.meta.url), 'utf8');
   for (const src of [home, gate]) {
     assert.match(src, /useBusinessDay\(\{ enabled: [^}]*canCount[^}]*\}\)/);
-    assert.match(src, /dayGate\(canCount \? [a-zA-Z]+\.data : undefined, canPerform\)/);
+    assert.match(src, /dayGate\(canCount \? [a-zA-Z]+\.data : undefined, canPerform, canCount\)/);
   }
   // The full day view (for the choice sheet) is read only once the counter is locked, inside Open store now.
   const open = readFileSync(new URL('../components/day/OpenStoreNow.tsx', import.meta.url), 'utf8');
@@ -72,11 +84,11 @@ const screen = (p: string) => code(readFileSync(new URL(p, import.meta.url), 'ut
 it('a lock found on the first read stands in for the screen; one that comes later covers it, and the screen stays mounted beneath', () => {
   const gate = screen('../components/day/DayGate.tsx');
   assert.match(gate, /const \[shown, setShown\] = useState\(false\);\s*if \(!shown && !reading && !gate\.locked\) setShown\(true\);\s*const covered = shown && gate\.locked;/);
-  assert.match(gate, /if \(!shown && gate\.locked\) return <DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>;/);
+  assert.match(gate, /if \(!shown && gate\.locked\) return <DayClosedScreen businessDate=\{gate\.businessDate\} reason=\{gate\.reason\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>;/);
   // One tree, covered or not, so the lock coming up never remounts the screen: nothing typed is lost.
   assert.match(
     gate,
-    /return \(\s*<View style=\{styles\.fill\}>\s*<View\s+style=\{styles\.fill\}\s+pointerEvents=\{covered \? 'none' : 'auto'\}\s+aria-hidden=\{covered\}\s+accessibilityElementsHidden=\{covered\}\s+importantForAccessibility=\{covered \? 'no-hide-descendants' : 'auto'\}\s*>\s*\{children\}\s*<\/View>\s*\{gate\.locked \? \(\s*<View style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>\s*<DayClosedScreen businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>/,
+    /return \(\s*<View style=\{styles\.fill\}>\s*<View\s+style=\{styles\.fill\}\s+pointerEvents=\{covered \? 'none' : 'auto'\}\s+aria-hidden=\{covered\}\s+accessibilityElementsHidden=\{covered\}\s+importantForAccessibility=\{covered \? 'no-hide-descendants' : 'auto'\}\s*>\s*\{children\}\s*<\/View>\s*\{gate\.locked \? \(\s*<View style=\{\[StyleSheet\.absoluteFill, styles\.cover\]\}>\s*<DayClosedScreen businessDate=\{gate\.businessDate\} reason=\{gate\.reason\} mayOpen=\{gate\.mayOpen\} backRoute=\{backRoute\} \/>/,
   );
   assert.equal(gate.match(/\{children\}/g)?.length, 1, 'the screen is rendered in one place only');
   assert.match(gate, /cover: \{ backgroundColor: colors\.surface\.canvas \}/);
@@ -125,9 +137,11 @@ it('a later payment refused on a closed day keeps the form and offers to open th
   const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
   const pay = code(read('../app/sales/pay/[id].tsx'));
   assert.match(pay, /const closedDay = closedDayOf\(record\.error\);/);
-  assert.match(pay, /const mayOpen = usePermission\('closing\.perform'\);/);
-  assert.match(pay, /<InlineNotice tone="danger" title=\{t\('gate\.closed\.title'\)\}>\s*\{t\('recordPayment\.storeClosed'\)\}/);
-  assert.match(pay, /<OpenStoreNow\s+businessDate=\{closedDay\}\s+mayOpen=\{mayOpen\}\s+closedText=\{t\('recordPayment\.storeClosed\.open', \{ date: formatDate\(closedDay\) \}\)\}\s+onOpened=\{\(\) => record\.reset\(\)\}/);
+  // Closed: reopened by the closing authority. Not opened yet (docs/63): opened by whoever counts.
+  assert.match(pay, /const notOpened = closedReasonOf\(record\.error\) === 'not_opened';/);
+  assert.match(pay, /const mayOpen = notOpened \? canCount : canPerform;/);
+  assert.match(pay, /<InlineNotice tone="danger" title=\{t\(notOpened \? 'gate\.notOpened\.title' : 'gate\.closed\.title'\)\}>\s*\{t\(notOpened \? 'recordPayment\.notOpened' : 'recordPayment\.storeClosed'\)\}/);
+  assert.match(pay, /<OpenStoreNow\s+businessDate=\{closedDay\}\s+reason=\{notOpened \? 'not_opened' : 'closed'\}\s+mayOpen=\{mayOpen\}\s+closedText=\{t\(notOpened \? 'recordPayment\.notOpened\.open' : 'recordPayment\.storeClosed\.open', \{ date: formatDate\(closedDay\) \}\)\}\s+onOpened=\{\(\) => record\.reset\(\)\}/);
   // Nothing clears the typed payment on a refusal: the fields are only set by the person.
   assert.ok(!/setAmount\(''\)|setNote\(''\)|setReference\(''\)/.test(pay), 'the form is never cleared by a refusal');
   const hook = code(read('./money-overview.ts'));
@@ -135,12 +149,25 @@ it('a later payment refused on a closed day keeps the form and offers to open th
   assert.match(hook, /onSuccess: \(\) => \{\s*key\.current = uuidv4\(\);/);
   assert.match(hook, /onError: \(e\) => \{\s*if \(isStoreClosedRefusal\(e\)\) \{\s*void qc\.invalidateQueries\(\{ queryKey: qk\.businessDay\(branchId\) \}\);/);
   const open = code(read('../components/day/OpenStoreNow.tsx'));
-  assert.match(open, /setSheet\(false\);\s*onOpened\?\.\(\);/);
-  assert.match(open, /\{mayOpen \? \(closedText \?\? t\('home\.store\.closed', \{ date \}\)\) : t\('home\.store\.noPermission', \{ date \}\)\}/);
+  // Once open — through the shared flow — the refused work may be sent again.
+  assert.match(open, /useOpeningFlow\(\{ intent: notOpened \? 'open' : 'reopen', day, onOpened \}\)/);
+  const flow = code(read('../components/day/useOpeningFlow.tsx'));
+  assert.match(flow, /setStage\('idle'\);[\s\S]*?onOpened\?\.\(\);/);
+  assert.match(open, /\{mayOpen\s*\? \(closedText \?\? t\(notOpened \? 'home\.store\.notOpened' : 'home\.store\.closed', \{ date \}\)\)\s*: t\(notOpened \? 'home\.store\.notOpened\.noPermission' : 'home\.store\.noPermission', \{ date \}\)\}/);
   for (const locale of ['en', 'fr', 'ar']) {
     const src = read(`./i18n/${locale}.ts`);
-    for (const key of ['recordPayment.storeClosed', 'recordPayment.storeClosed.open']) assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
+    for (const key of ['recordPayment.storeClosed', 'recordPayment.storeClosed.open', 'recordPayment.notOpened', 'recordPayment.notOpened.open', 'gate.notOpened.title', 'home.store.notOpened', 'home.store.notOpened.noPermission']) {
+      assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
+    }
   }
+});
+
+it('a refusal says why: the server’s closedReason, and an older server’s is always the closed day (docs/63)', () => {
+  const withBody = (closedReason?: string) => Object.assign(refusal(409, 'store_closed'), { body: { businessDate: '2026-09-27', ...(closedReason ? { closedReason } : {}) } });
+  assert.equal(closedReasonOf(withBody('not_opened')), 'not_opened');
+  assert.equal(closedReasonOf(withBody('closed')), 'closed');
+  assert.equal(closedReasonOf(withBody()), 'closed');
+  assert.equal(closedReasonOf(refusal(409, 'idempotency_key_reused')), null);
 });
 
 console.log(`day-gate: ${passed} passed`);

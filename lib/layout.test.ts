@@ -80,8 +80,8 @@ it('Home: Receive then Sell side by side, no several-items link, and Open store 
   assert.match(home, /router\.push\('\/quick-receive' as Href\)/);
   assert.ok(!home.includes("t('home.shortcut.fullSale')") && !/router\.push\('\/\(tabs\)\/sell'\)/.test(home), 'several items live inside Sell');
   assert.equal((row.match(/disabled=\{!shortcutsReady \|\| gate\.locked\}/g) ?? []).length, 2, 'both wait while the day is closed');
-  assert.match(home, /const gate = dayGate\(canCount \? businessDay\.data : undefined, canPerform\);/);
-  assert.match(home, /\{gate\.locked \? <OpenStoreNow businessDate=\{gate\.businessDate\} mayOpen=\{gate\.mayOpen\} \/> : null\}/);
+  assert.match(home, /const gate = dayGate\(canCount \? businessDay\.data : undefined, canPerform, canCount\);/);
+  assert.match(home, /\{gate\.locked \? <OpenStoreNow businessDate=\{gate\.businessDate\} reason=\{gate\.reason\} mayOpen=\{gate\.mayOpen\} \/> : null\}/);
   // Read again on focus, on pull-to-refresh and when the app returns, so a stale lock clears itself.
   assert.match(home, /useFocusEffect\(readDay\);/);
   assert.match(home, /AppState\.addEventListener\('change', \(next\) => \{\s*if \(next === 'active'\) readDay\(\);/);
@@ -225,14 +225,15 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   ]);
   assert.deepEqual(t, { moneyIn: 1500.1, moneyOut: 200.05, net: 1300.05 });
   const src = code(read('../app/(tabs)/money-hub.tsx'));
-  // Today's card: every method beneath the server's total, on one basis, said for what it is (2026-09-27).
-  assert.match(src, /t\('moneyTab\.today\.title'\)/);
-  assert.match(src, /<MoneyValue value=\{cardData\.moneyToday\.total\.net\} size="large" signed=\{cardData\.moneyToday\.total\.net < 0\} decimals=\{cardDecimals\} \/>/);
-  assert.match(src, /cardData\.moneyToday\.channels\.map\(\(m\) => \(\s*<MethodLine[^>]*decimals=\{cardDecimals\} \/>/);
-  // One focal figure: the money held is the display figure, today's movement sits below it at a smaller size.
-  assert.equal(src.match(/size="display"/g)?.length, 1);
-  assert.match(src, /<MoneyValue value=\{held\.total\} size="display"/);
-  assert.ok(!/<Disclosure\b/.test(src), 'the methods are not behind a disclosure');
+  // One card at the top (docs/63): the money expected in the store today — today's movement is no longer a card there.
+  assert.match(src, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
+  assert.ok(!/moneyToday|MethodLine|HeldLine/.test(src), 'no second card, no per-method explanations at the top');
+  // One focal figure: the server's total — or the drawer's own, for anybody but the Owner — in display size, once.
+  const card = code(read('../components/money/ExpectedMoneyCard.tsx'));
+  assert.equal(card.match(/size="display"/g)?.length, 1);
+  assert.match(card, /const figure = held\.accountsVisible \? held\.total : \(cash\?\.position \?\? null\);/);
+  assert.match(card, /<MoneyValue value=\{figure\} size="display"/);
+  assert.ok(!/<Disclosure\b/.test(src + card), 'the methods are not behind a disclosure');
   // Today on every arrival at the tab; a choice made there stays through screens opened from it and refetches.
   // The tab stays mounted behind another tab, so leaving is read from the tab bar's own state (lib/tab-arrival.test.ts).
   assert.match(src, /useTodayOnArrival\(\(\) => setKey\('today'\)\)/);

@@ -243,8 +243,10 @@ it('Close the business day, Correct a transaction, Unsettled differences and Clo
   assert.match(screen, /title=\{t\('dailyReport\.correct'\)\}[\s\S]*?pathname: '\/closing\/sources'/);
   assert.match(screen, /title=\{t\('closing\.differences\.link'\)\} onPress=\{\(\) => router\.push\('\/discrepancies' as never\)\}/);
   assert.match(screen, /report\.isToday && closed && canClose && day\?\.canReopen/);
-  assert.match(screen, /<DayChoiceSheet\s+intent="reopen"/);
-  assert.match(screen, /<DayChoiceSheet\s+key=\{openSheetNonce\}\s+intent="open"/);
+  // Opening and reopening go through the shared flow, with the money the shop opens with (docs/63).
+  assert.match(screen, /\{opening\.element\}\s*\{reopening\.element\}/);
+  assert.match(screen, /onPress=\{opening\.start\}/);
+  assert.match(screen, /onPress=\{reopening\.start\}/);
   const closeHook = code(read('lib/closing-report.ts'));
   assert.match(closeHook, /mutationFn: \(body: CloseDayBody\) => api\.post<CloseDayResult>\('\/closings', body\)/);
 });

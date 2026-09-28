@@ -3,6 +3,7 @@ import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
 import type { DayStanding, HomePeriod } from './home-day';
+import type { OpeningStatus } from './opening-money';
 import { periodRange, type DayRange, type PeriodKey } from './period';
 import { checkHome, retryUnlessIncompatible } from './contract';
 
@@ -129,6 +130,13 @@ export interface BusinessDayView {
   canStartEarly: boolean;
   startedEarly: boolean;
   standing: DayStanding;
+  /**
+   * Whether the boutique is open for the current day (docs/63): a day nobody opened waits for its opening, as a
+   * closed one does. Absent on an older server, whose counter never waited for an opening.
+   */
+  door?: 'never_opened' | 'open' | 'closed';
+  /** Where today's opening stands: the Owner's decision, or carried amounts awaiting the Owner's review. */
+  opening?: OpeningStatus;
   previousDay: { businessDate: string; standing: DayStanding; needsReview: boolean };
 }
 

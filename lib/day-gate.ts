@@ -17,11 +17,32 @@
 
 import type { DayStanding } from './home-day';
 
-export type DayGate = { locked: false } | { locked: true; mayOpen: boolean; businessDate: string };
+/**
+ * Why the counter waits: the day was closed — reopened by the Owner or a named
+ * delegate (`closing.perform`) — or nobody has opened it yet, since the opening
+ * carries the money the day starts with (docs/63) — opened by whoever counts
+ * (`closing.count`).
+ */
+export type GateReason = 'closed' | 'not_opened';
 
-export function dayGate(day: { standing: DayStanding; businessDate: string } | null | undefined, canPerform: boolean): DayGate {
-  if (!day || day.standing !== 'closed') return { locked: false };
-  return { locked: true, mayOpen: canPerform, businessDate: day.businessDate };
+export type DayGate = { locked: false } | { locked: true; reason: GateReason; mayOpen: boolean; businessDate: string };
+
+export function dayGate(
+  day: { standing: DayStanding; businessDate: string; door?: 'never_opened' | 'open' | 'closed' } | null | undefined,
+  canPerform: boolean,
+  canCount = canPerform,
+): DayGate {
+  if (!day) return { locked: false };
+  if (day.standing === 'closed') return { locked: true, reason: 'closed', mayOpen: canPerform, businessDate: day.businessDate };
+  // An older server sends no door: its counter never waited for an opening, and neither does the phone.
+  if (day.door === 'never_opened') return { locked: true, reason: 'not_opened', mayOpen: canCount, businessDate: day.businessDate };
+  return { locked: false };
+}
+
+/** Why a `store_closed` refusal came: the server's `closedReason` (docs/63); an older server's is always the closed day. */
+export function closedReasonOf(error: unknown): GateReason | null {
+  if (!isStoreClosedRefusal(error)) return null;
+  return (error as { body?: { closedReason?: unknown } }).body?.closedReason === 'not_opened' ? 'not_opened' : 'closed';
 }
 
 /**

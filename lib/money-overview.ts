@@ -49,12 +49,19 @@ export interface TrackedMethod {
   position: number | null;
   unknownReason: 'no_counted_close' | 'no_anchor' | null;
   anchor: {
-    /** Cash starts from a counted close; an account from the amount the Owner read off its app. */
-    source: 'counted_close' | 'declared';
+    /**
+     * Cash starts from a counted close, or from the amount a shop opened with (docs/63); an account from the amount
+     * the Owner read off its app.
+     */
+    source: 'counted_close' | 'declared' | 'opening';
     amount: number;
     at: string | null;
     businessDate: string;
     byName: string | null;
+    /** An opening's decision: kept or set by the Owner, or carried by somebody else who opened. */
+    decision?: 'keep' | 'set' | 'carried';
+    /** A carried amount the Owner has not reviewed: shown as awaiting the Owner, never as checked. */
+    awaitingOwnerReview?: boolean;
   } | null;
   sinceAnchorNet: number | null;
 }

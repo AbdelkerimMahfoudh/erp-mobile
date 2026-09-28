@@ -4,6 +4,7 @@ import { useBranch } from './branch';
 import { qk } from './query-keys';
 import { invalidateMoney } from './money-invalidation';
 import type { DayStanding, ReopenMode } from './home-day';
+import type { OpeningMoneyInput, OpeningStep } from './opening-money';
 
 /**
  * The progressive daily closing (Milestone E).
@@ -115,6 +116,26 @@ export interface OpenClosing {
   localNow: string;
   localNowDate: string;
   previousDay: { businessDate: string; standing: DayStanding; needsReview: boolean } | null;
+  /** The day's own amount set when the shop opened, as the drawer's figure uses it (docs/63). */
+  cashSet?: CashSet | null;
+  /** What the opening step shows (docs/63) — the current day only; absent on an older server. */
+  openingMoney?: OpeningStep | null;
+}
+
+/**
+ * An amount set for the drawer on the day (docs/63): from `at` the drawer holds it plus what the day recorded after.
+ * `adjustment` is what that adds to the day's equation; `tracked` what the app expected just before.
+ */
+export interface CashSet {
+  kind: 'opening' | 'owner_review';
+  decision: 'keep' | 'set' | 'carried';
+  awaitingOwnerReview: boolean;
+  amount: number;
+  at: string;
+  localTime: string;
+  byName: string | null;
+  tracked: number;
+  adjustment: number;
 }
 
 export function useOpenClosing(date?: string, options: { enabled?: boolean } = {}) {
@@ -176,7 +197,9 @@ export function useReopenDay(date?: string) {
   const qc = useQueryClient();
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
-    mutationFn: (mode: ReopenMode) => api.post<OpenClosing>('/closings/reopen', { mode, ...(date ? { date } : {}) }),
+    // With the money the shop reopens with (docs/63): the Owner's decision, or only the attempt's key for anybody else.
+    mutationFn: ({ mode, openingMoney }: { mode: ReopenMode; openingMoney?: OpeningMoneyInput }) =>
+      api.post<OpenClosing>('/closings/reopen', { mode, ...(date ? { date } : {}), ...(openingMoney ? { openingMoney } : {}) }),
     // Returned, so the reopen finishes only once the day has been read again: the counter opens on the server's
     // answer, and Open store now cannot be pressed twice in between (docs/59 D76).
     onSuccess: () => {
@@ -206,11 +229,43 @@ export function useOpenDay(date?: string) {
   const qc = useQueryClient();
   const branchId = useBranch((s) => s.branchId);
   return useMutation({
-    mutationFn: (mode?: ReopenMode) => api.post<OpenClosing>('/closings/open', { ...(date ? { date } : {}), ...(mode ? { mode } : {}) }),
+    mutationFn: ({ mode, openingMoney }: { mode?: ReopenMode; openingMoney?: OpeningMoneyInput } = {}) =>
+      api.post<OpenClosing>('/closings/open', { ...(date ? { date } : {}), ...(mode ? { mode } : {}), ...(openingMoney ? { openingMoney } : {}) }),
+    // Returned, so the opening finishes only once the day has been read again: the counter opens on the server's
+    // answer, and the button cannot be pressed twice in between.
     onSuccess: (fresh) => {
       qc.setQueryData(qk.openClosing(branchId, date ?? 'today'), fresh);
+      invalidateMoney(qc);
+      return Promise.all([
+        qc.invalidateQueries({ queryKey: qk.businessDay(branchId) }),
+        qc.invalidateQueries({ queryKey: ['home', branchId] }),
+      ]);
+    },
+    // Refused — opened elsewhere meanwhile, or 06:00 passed: read it again, so the screen shows the day as it is.
+    onError: () => {
+      void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
       void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
-      void qc.invalidateQueries({ queryKey: ['home', branchId] });
+    },
+  });
+}
+
+/**
+ * The Owner's review of an opening somebody else made with the tracked amounts (docs/63): keep them, or set the
+ * drawer to what is in it now — true from the review's own instant.
+ */
+export function useReviewOpening() {
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
+  return useMutation({
+    mutationFn: (input: Required<Pick<OpeningMoneyInput, 'clientUuid' | 'decision'>> & Pick<OpeningMoneyInput, 'cashAmount'>) =>
+      api.post<OpenClosing>('/closings/opening/review', input),
+    onSuccess: (fresh) => {
+      qc.setQueryData(qk.openClosing(branchId, 'today'), fresh);
+      invalidateMoney(qc);
+      return Promise.all([
+        qc.invalidateQueries({ queryKey: qk.businessDay(branchId) }),
+        qc.invalidateQueries({ queryKey: ['home', branchId] }),
+      ]);
     },
   });
 }

@@ -40,10 +40,12 @@ export interface DayChoiceSheetProps {
   /** What the server offered. */
   choices: readonly ReopenMode[];
   busy?: boolean;
+  /** The confirmation's words when another step follows — the money the shop opens with (docs/63) — so it never says "open" before anything opens. */
+  confirmLabel?: string;
   onConfirm: (mode: ReopenMode) => void;
 }
 
-export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, calendarDate, now, choices, busy, onConfirm }: DayChoiceSheetProps) {
+export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, calendarDate, now, choices, busy, confirmLabel, onConfirm }: DayChoiceSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const options = reopenOptions(choices);
@@ -60,7 +62,7 @@ export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, 
       subtitle={t(k('question'), dates)}
       footer={
         <View style={styles.footer}>
-          <Button title={t(k('confirm'))} fullWidth loading={busy} disabled={busy} onPress={() => onConfirm(mode)} />
+          <Button title={confirmLabel ?? t(k('confirm'))} fullWidth loading={busy} disabled={busy} onPress={() => onConfirm(mode)} />
           <Text variant="caption" tone="tertiary" align="center">
             {t(k('note'))}
           </Text>
@@ -82,7 +84,8 @@ export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, 
   );
 }
 
-function Choice({ selected, title, body, onPress }: { selected: boolean; title: string; body: string; onPress: () => void }) {
+/** One radio choice: a title, what it means, and the dot — shared with the opening amounts (docs/63). */
+export function Choice({ selected, title, body, onPress }: { selected: boolean; title: string; body: string; onPress: () => void }) {
   const styles = useStyles();
   const colors = useColors();
   const { pressed, pressHandlers } = usePressed();

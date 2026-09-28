@@ -22,7 +22,7 @@ import {
 import { ReceivedVia, type MoneySource } from '../../../components/money/ReceivedVia';
 import { toErrorMessage } from '../../../lib/errors';
 import { OpenStoreNow } from '../../../components/day/OpenStoreNow';
-import { closedDayOf } from '../../../lib/day-gate';
+import { closedDayOf, closedReasonOf } from '../../../lib/day-gate';
 import { usePermission } from '../../../lib/permissions';
 import { dialog } from '../../../lib/dialog';
 import { radius, space } from '../../../lib/design/tokens';
@@ -89,7 +89,11 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
     clears so the same payment can be sent again, on purpose, under the same key.
   */
   const closedDay = closedDayOf(record.error);
-  const mayOpen = usePermission('closing.perform');
+  // Closed and reopened by the closing authority, or not opened yet and opened by whoever counts (docs/63).
+  const notOpened = closedReasonOf(record.error) === 'not_opened';
+  const canPerform = usePermission('closing.perform');
+  const canCount = usePermission('closing.count');
+  const mayOpen = notOpened ? canCount : canPerform;
 
   const now = new Date();
   const [amount, setAmount] = useState('');
@@ -238,13 +242,14 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
       ) : null}
       {closedDay ? (
         <>
-          <InlineNotice tone="danger" title={t('gate.closed.title')}>
-            {t('recordPayment.storeClosed')}
+          <InlineNotice tone="danger" title={t(notOpened ? 'gate.notOpened.title' : 'gate.closed.title')}>
+            {t(notOpened ? 'recordPayment.notOpened' : 'recordPayment.storeClosed')}
           </InlineNotice>
           <OpenStoreNow
             businessDate={closedDay}
+            reason={notOpened ? 'not_opened' : 'closed'}
             mayOpen={mayOpen}
-            closedText={t('recordPayment.storeClosed.open', { date: formatDate(closedDay) })}
+            closedText={t(notOpened ? 'recordPayment.notOpened.open' : 'recordPayment.storeClosed.open', { date: formatDate(closedDay) })}
             onOpened={() => record.reset()}
           />
         </>

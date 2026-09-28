@@ -27,26 +27,32 @@ const sheet = code(read('components/closing/DayChoiceSheet.tsx'));
 const home = code(read('app/(tabs)/index.tsx'));
 const header = code(read('components/home/HomeHeader.tsx'));
 const hooks = code(read('lib/closing.ts'));
+/** Opening and reopening, with the money the shop opens with — one flow for every place that opens (docs/63). */
+const flow = code(read('components/day/useOpeningFlow.tsx'));
 
 it('Open the boutique asks first: the choice sheet for the Owner, the notice for anybody else, from the server’s dates', () => {
-  assert.match(closing, /openingPrompt\(day\.openChoices, day\.localNowDate, day\.businessDate\)/);
-  assert.match(closing, /prompt === 'choice'[\s\S]*?setOpenSheet\(true\)/);
-  assert.match(closing, /prompt === 'notice'[\s\S]*?dialog\.confirm\(\{[\s\S]*?t\('openChoice\.notice\.title'/);
+  assert.match(flow, /if \(choices\.includes\('start_new'\)\) \{\s*setStage\('day'\);/);
+  assert.match(flow, /intent === 'open' && openingPrompt\(day\.openChoices, day\.localNowDate, day\.businessDate\) === 'notice'/);
+  assert.match(flow, /dialog\.confirm\(\{[\s\S]*?t\('openChoice\.notice\.title'/);
   // The notice names the business day, the calendar date, the time and the day only the Owner may start.
-  assert.match(closing, /t\('openChoice\.notice\.body', \{[\s\S]*?time: isolateLtr\(day\.localNow\)[\s\S]*?calendarDate: formatDate\(day\.localNowDate\)[\s\S]*?date: formatDate\(day\.businessDate\)[\s\S]*?next: formatDate\(day\.nextDate\)/);
-  assert.ok(!closing.includes('new Date()'), 'the closing screen never consults the phone’s clock for the choice');
+  assert.match(flow, /t\('openChoice\.notice\.body', \{[\s\S]*?time: isolateLtr\(day\.localNow\)[\s\S]*?calendarDate: formatDate\(day\.localNowDate\)[\s\S]*?date: formatDate\(day\.businessDate\)[\s\S]*?next: formatDate\(day\.nextDate\)/);
+  assert.ok(!flow.includes('new Date()') && !closing.includes('new Date()'), 'the opening never consults the phone’s clock for the choice');
+  // The Daily closing opens and reopens through that one flow.
+  assert.match(closing, /const opening = useOpeningFlow\(\{ intent: 'open', day, date, onOpened: onRefresh \}\);/);
+  assert.match(closing, /const reopening = useOpeningFlow\(\{ intent: 'reopen', day, date, onOpened: onRefresh \}\);/);
 });
 
-it('the opening is recorded only after the choice, with the mode chosen; a plain opening sends no mode at all', () => {
-  assert.match(closing, /onConfirm=\{\(mode\) => void recordOpening\(mode\)\}/);
-  assert.match(closing, /if \(!ok\) return;\s*\}\s*await recordOpening\(\);/);
-  assert.match(hooks, /mutationFn: \(mode\?: ReopenMode\) => api\.post<OpenClosing>\('\/closings\/open', \{ \.\.\.\(date \? \{ date \} : \{\}\), \.\.\.\(mode \? \{ mode \} : \{\}\) \}\)/);
+it('the opening is recorded only after the choice and the amounts, with the mode chosen; a plain opening sends no mode at all', () => {
+  assert.match(flow, /onConfirm=\{\(chosen\) => void amounts\(chosen\)\}/);
+  assert.match(flow, /onConfirm=\{\(money\) => void send\(mode, money\)\}/);
+  assert.match(flow, /await openDay\.mutateAsync\(\{ \.\.\.\(chosen \? \{ mode: chosen \} : \{\}\), \.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\) \}\)/);
+  assert.match(hooks, /api\.post<OpenClosing>\('\/closings\/open', \{ \.\.\.\(date \? \{ date \} : \{\}\), \.\.\.\(mode \? \{ mode \} : \{\}\), \.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\) \}\)/);
 });
 
 it('one sheet serves the opening and the reopen, the safe default selected, remounted each time it is asked for', () => {
-  assert.match(closing, /<DayChoiceSheet\s+intent="reopen"/);
-  assert.match(closing, /<DayChoiceSheet\s+key=\{openSheetNonce\}\s+intent="open"/);
-  assert.match(closing, /choices=\{day\.openChoices \?\? \['continue'\]\}/);
+  assert.match(flow, /<DayChoiceSheet\s+key=\{`day-\$\{nonce\}`\}\s+intent=\{intent\}/);
+  assert.match(flow, /const choices = day \? \(intent === 'open' \? \(day\.openChoices \?\? \['continue'\]\) : day\.reopenChoices\) : \[\];/);
+  assert.match(flow, /setNonce\(\(n\) => n \+ 1\);/);
   assert.match(sheet, /useState<ReopenMode>\(options\[0\]\.mode\)/);
   assert.match(sheet, /const prefix = intent === 'open' \? 'openChoice' : 'reopen';/);
   assert.match(sheet, /accessibilityRole="radiogroup"/);

@@ -95,6 +95,10 @@ export function SetStartingAmountSheet({
         <Text variant="body" tone="secondary">
           {t('moneyTab.anchor.body', { account: name })}
         </Text>
+        {/* A company account: the one amount every shop sees (docs/63) — said before anything is saved. */}
+        <Text variant="bodyStrong" tone="secondary">
+          {t('moneyTab.anchor.company')}
+        </Text>
         <MoneyField
           label={t('moneyTab.anchor.amount')}
           value={amount}

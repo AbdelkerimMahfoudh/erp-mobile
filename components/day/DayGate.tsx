@@ -10,7 +10,7 @@ import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { useBusinessDay } from '../../lib/home';
-import { dayGate } from '../../lib/day-gate';
+import { dayGate, type GateReason } from '../../lib/day-gate';
 
 /**
  * The guard on Sell and Receive themselves (2026-09-27, `docs/59` D76), so
@@ -32,7 +32,7 @@ export function DayGate({ children, backRoute }: { children: React.ReactNode; ba
   const canCount = usePermission('closing.count');
   const canPerform = usePermission('closing.perform');
   const businessDay = useBusinessDay({ enabled: canCount, fresh: true });
-  const gate = dayGate(canCount ? businessDay.data : undefined, canPerform);
+  const gate = dayGate(canCount ? businessDay.data : undefined, canPerform, canCount);
   const reading = canCount && businessDay.isPending && businessDay.fetchStatus !== 'idle';
   // Once the screen has been on show, a lock that comes later covers it rather than taking it away.
   const [shown, setShown] = useState(false);
@@ -52,7 +52,7 @@ export function DayGate({ children, backRoute }: { children: React.ReactNode; ba
       </Screen>
     );
   }
-  if (!shown && gate.locked) return <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} backRoute={backRoute} />;
+  if (!shown && gate.locked) return <DayClosedScreen businessDate={gate.businessDate} reason={gate.reason} mayOpen={gate.mayOpen} backRoute={backRoute} />;
   return (
     <View style={styles.fill}>
       {/* Covered, the screen is out of reach of touch and of screen readers until the store is open again. */}
@@ -67,14 +67,14 @@ export function DayGate({ children, backRoute }: { children: React.ReactNode; ba
       </View>
       {gate.locked ? (
         <View style={[StyleSheet.absoluteFill, styles.cover]}>
-          <DayClosedScreen businessDate={gate.businessDate} mayOpen={gate.mayOpen} backRoute={backRoute} />
+          <DayClosedScreen businessDate={gate.businessDate} reason={gate.reason} mayOpen={gate.mayOpen} backRoute={backRoute} />
         </View>
       ) : null}
     </View>
   );
 }
 
-function DayClosedScreen({ businessDate, mayOpen, backRoute }: { businessDate: string; mayOpen: boolean; backRoute?: string }) {
+function DayClosedScreen({ businessDate, reason, mayOpen, backRoute }: { businessDate: string; reason: GateReason; mayOpen: boolean; backRoute?: string }) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -86,9 +86,9 @@ function DayClosedScreen({ businessDate, mayOpen, backRoute }: { businessDate: s
       <View style={styles.centre}>
         <Lock size={32} color={colors.text.tertiary} />
         <Text variant="title" align="center">
-          {t('gate.closed.title')}
+          {t(reason === 'not_opened' ? 'gate.notOpened.title' : 'gate.closed.title')}
         </Text>
-        <OpenStoreNow businessDate={businessDate} mayOpen={mayOpen} />
+        <OpenStoreNow businessDate={businessDate} reason={reason} mayOpen={mayOpen} />
       </View>
     </Screen>
   );

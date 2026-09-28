@@ -105,11 +105,11 @@ it('Analytics says what "not moving" counts, and a product row keeps its width f
 
 it('Money: the today-only figures name the business day, in every language; the tab label has its room (docs/55)', () => {
   const money = code(read('../app/(tabs)/money-hub.tsx'));
-  assert.match(money, /t\('moneyTab\.today\.hint', \{ date: formatDate\(cardData\.today\) \}\)/);
+  // The card of today's movement left the top of Money (docs/63); the day's expenses still name their day.
   assert.match(money, /t\('moneyOverview\.dailyExpenses\.hint', \{ date: formatDate\(data\.today\) \}\)/);
   for (const lang of ['en', 'fr', 'ar']) {
     const file = read(`./i18n/${lang}.ts`);
-    for (const k of ['moneyTab.today.hint', 'moneyOverview.dailyExpenses.hint']) {
+    for (const k of ['moneyOverview.dailyExpenses.hint']) {
       const line = file.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
       assert.ok(line.includes('({date})'), `${lang} ${k}`);
     }

@@ -3,7 +3,7 @@ import { AppState, PixelRatio, View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
-import { ChevronRight, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, ClipboardCheck, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
   buttonChrome,
@@ -90,7 +90,7 @@ export default function HomeScreen() {
     elsewhere, or 06:00 passing, is not missed. Nobody the view is not for is judged on a cached answer.
   */
   const businessDay = useBusinessDay({ enabled: permissionsReady && canCount });
-  const gate = dayGate(canCount ? businessDay.data : undefined, canPerform);
+  const gate = dayGate(canCount ? businessDay.data : undefined, canPerform, canCount);
   /*
     Receive and Sell side by side while both labels fit their half of the row, one above the other when
     either would not — on a narrow phone ("Réceptionner" needs 90 of the 71 points a half leaves at 320,
@@ -214,7 +214,7 @@ export default function HomeScreen() {
             />
           </View>
           {/* Selling several items stays inside Sell; while the day is closed, the store is opened first, here. */}
-          {gate.locked ? <OpenStoreNow businessDate={gate.businessDate} mayOpen={gate.mayOpen} /> : null}
+          {gate.locked ? <OpenStoreNow businessDate={gate.businessDate} reason={gate.reason} mayOpen={gate.mayOpen} /> : null}
         </View>
       ) : null}
 
@@ -391,21 +391,27 @@ export default function HomeScreen() {
             )}
           </Card>
 
-          {/* ── The business day: one entry that opens the Daily closing, and closes nothing here ── */}
+          {/*
+            ── The business day: where the Daily closing is reached — it left the Money list (docs/63). One clear
+            action opens it and closes nothing here; anybody who may count reaches it, as before. ──
+          */}
           {data.closing ? (
             <Card style={styles.entryCard}>
               <ListRow
                 flat
+                leading={ClipboardCheck}
                 title={t('home.closing.title')}
                 subtitle={
                   data.closing.businessDate === data.businessDay.localDate
                     ? t('home.closing.today', { standing: t(standingKey(data.closing.standing) as never) })
                     : t('home.closing.day', { date: formatDate(data.closing.businessDate), standing: t(standingKey(data.closing.standing) as never) })
                 }
-                onPress={() => router.push('/closing' as Href)}
                 style={styles.entryRow}
               />
               {data.closing.previousDay.needsReview ? <Chip tone="warning" label={t('home.closing.previous')} size="sm" dot style={styles.previousChip} /> : null}
+              <View style={styles.entryAction}>
+                <Button title={t('home.closing.review')} icon={ChevronRight} iconPosition="end" variant="secondary" wrap fullWidth onPress={() => router.push('/closing' as Href)} />
+              </View>
             </Card>
           ) : null}
 
@@ -550,5 +556,6 @@ const useStyles = makeStyles((colors) => ({
   entryCard: { gap: space.xs, paddingVertical: space.xs },
   entryRow: { paddingHorizontal: 0 },
   previousChip: { alignSelf: 'flex-start', marginBottom: space.xs },
+  entryAction: { paddingBottom: space.sm },
   flex: { flex: 1, minWidth: 0 },
 }));

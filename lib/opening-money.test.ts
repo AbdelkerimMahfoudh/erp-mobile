@@ -1,0 +1,131 @@
+/**
+ * The money a shop opens with (docs/63): the Owner's explicit choice, a set amount
+ * typed or chosen as 0 — never an empty field taken for 0 — an unknown amount kept
+ * unknown, and the same request again sent under the same key.
+ *
+ *   node lib/opening-money.test.ts
+ */
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { attemptKey, openingDraft, openingMethodsOf, openingRequest, openingTotal, prefilledCash, type OpeningMethod } from './opening-money.ts';
+
+let passed = 0;
+const it = (name: string, fn: () => void) => {
+  fn();
+  passed++;
+  console.log(`  ok - ${name}`);
+};
+const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
+const code = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const method = (over: Partial<OpeningMethod> & Pick<OpeningMethod, 'key' | 'channel'>): OpeningMethod => ({
+  accountId: over.channel === 'account' ? over.key : null,
+  label: over.key,
+  scope: over.channel === 'cash' ? 'branch' : 'company',
+  known: over.previous !== null,
+  previous: 0,
+  ...over,
+});
+const cash = (previous: number | null) => method({ key: 'cash', channel: 'cash', previous, known: previous !== null });
+const account = (key: string, previous: number | null) => method({ key, channel: 'account', previous, known: previous !== null });
+
+it('nothing is chosen for the Owner: no choice, nothing to send', () => {
+  assert.deepEqual(openingDraft(null, '3400'), { ok: false, reason: 'choose' });
+  assert.equal(openingRequest(openingDraft(null, ''), 'k', true), undefined);
+});
+
+it('keep sends the decision alone — the server keeps the drawer as it tracks it', () => {
+  assert.deepEqual(openingDraft('keep', ''), { ok: true, decision: 'keep' });
+  assert.deepEqual(openingRequest(openingDraft('keep', 'ignored'), 'k1', true), { clientUuid: 'k1', decision: 'keep' });
+});
+
+it('set needs an amount: empty is not 0; 0 is valid when typed; a bad amount is refused', () => {
+  assert.deepEqual(openingDraft('set', ''), { ok: false, reason: 'amount_required' });
+  assert.deepEqual(openingDraft('set', '   '), { ok: false, reason: 'amount_required' });
+  assert.deepEqual(openingDraft('set', '0'), { ok: true, decision: 'set', cashAmount: 0 });
+  assert.deepEqual(openingDraft('set', '3,400'), { ok: true, decision: 'set', cashAmount: 3400 });
+  assert.deepEqual(openingDraft('set', '٣٤٠٠'), { ok: true, decision: 'set', cashAmount: 3400 }, 'the Arabic keyboard’s digits');
+  for (const bad of ['-5', 'abc', '1.234']) assert.deepEqual(openingDraft('set', bad), { ok: false, reason: 'amount_invalid' }, bad);
+  assert.deepEqual(openingRequest(openingDraft('set', '0'), 'k2', true), { clientUuid: 'k2', decision: 'set', cashAmount: 0 });
+});
+
+it('anybody but the Owner sends only the key: the server carries the amounts and marks the day for review', () => {
+  assert.deepEqual(openingRequest(openingDraft(null, ''), 'k3', false), { clientUuid: 'k3' });
+  assert.deepEqual(openingRequest(openingDraft('set', '100'), 'k3', false), { clientUuid: 'k3' }, 'never a decision, whatever the state');
+});
+
+it('the set field starts from the drawer’s known amount — an unknown drawer starts empty, never at 0', () => {
+  assert.equal(prefilledCash([cash(3400), account('bankily', 3600)]), '3400');
+  assert.equal(prefilledCash([cash(null), account('bankily', 3600)]), '');
+  assert.equal(prefilledCash([account('bankily', 3600)]), '');
+});
+
+it('the total: 3,400 in cash and 3,600 in the accounts is 7,000; setting the cash changes only the cash', () => {
+  const methods = [cash(3400), account('bankily', 2600), account('masrvi', 1000)];
+  assert.equal(openingTotal(methods, openingDraft('keep', '')), 7000);
+  assert.equal(openingTotal(methods, openingDraft(null, '')), 7000, 'before choosing, the amounts as they carry');
+  assert.equal(openingTotal(methods, openingDraft('set', '0')), 3600, 'an emptied drawer; the accounts carry forward');
+  assert.equal(openingTotal(methods, openingDraft('set', '500.25')), 4100.25);
+});
+
+it('an unknown amount keeps the total unknown — until the Owner sets the cash, when only the accounts can hold it back', () => {
+  assert.equal(openingTotal([cash(null), account('bankily', 3600)], openingDraft('keep', '')), null);
+  assert.equal(openingTotal([cash(null), account('bankily', 3600)], openingDraft('set', '3400')), 7000);
+  assert.equal(openingTotal([cash(3400), account('bankily', null)], openingDraft('set', '0')), null, 'a shop’s opening never sets a company account');
+});
+
+it('the same request again keeps its key; a changed request gets a new one', () => {
+  let n = 0;
+  const next = () => `key-${++n}`;
+  const first = attemptKey(null, 'A', next);
+  assert.deepEqual(first, { key: 'key-1', payload: 'A' });
+  assert.equal(attemptKey(first, 'A', next), first, 'a retry or a second tap');
+  assert.deepEqual(attemptKey(first, 'B', next), { key: 'key-2', payload: 'B' });
+});
+
+it('Money’s methods become the step’s, the position as the previous amount — unknown stays null', () => {
+  const methods = openingMethodsOf([
+    { key: 'cash', channel: 'cash', accountId: null, label: 'Cash', scope: 'branch', known: false, position: null },
+    { key: 'a1', channel: 'account', accountId: 'a1', label: 'Bankily', scope: 'company', known: true, position: 3600 },
+  ]);
+  assert.deepEqual(methods.map((m) => [m.key, m.previous, m.known]), [['cash', null, false], ['a1', 3600, true]]);
+});
+
+it('the sheet: no choice until the Owner makes one, Set to 0 as its own action, the error kept in place', () => {
+  const sheet = code(read('../components/day/OpeningMoneySheet.tsx'));
+  assert.match(sheet, /const \[choice, setChoice\] = useState<OpeningChoice \| null>\(null\);/);
+  assert.match(sheet, /if \(next === 'set' && choice !== 'set'\) setCash\(prefilledCash\(methods\)\);/);
+  assert.match(sheet, /onPress=\{\(\) => setCash\('0'\)\}/);
+  assert.match(sheet, /disabled=\{busy \|\| \(mayDecide && !draft\.ok\)\}/);
+  assert.match(sheet, /\{error \? <InlineNotice tone="danger">\{error\}<\/InlineNotice> : null\}/);
+  // Anybody but the Owner sees only the drawer they open with — the accounts are the Owner's (TM-3).
+  assert.match(sheet, /const shown = mayDecide \? methods : methods\.filter\(\(m\) => m\.channel === 'cash'\);/);
+  assert.match(sheet, /attempt\.current = attemptKey\(attempt\.current, payload, uuidv4\);/);
+});
+
+it('the flow: a refusal keeps the sheet open with its values; an older server gets the opening it knows', () => {
+  const flow = code(read('../components/day/useOpeningFlow.tsx'));
+  assert.match(flow, /catch \(e\) \{\s*const message = [^;]+;\s*setError\(message\);/);
+  assert.ok(!/catch \(e\) \{[^}]*setStage\('idle'\)/.test(flow), 'a refusal does not close the sheet');
+  assert.match(flow, /if \(day\?\.openingMoney\) \{\s*setStage\('money'\);\s*return;\s*\}/);
+  assert.match(flow, /\.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\)/);
+  // The day chosen before 06:00 is a step, not the opening: its button says Next while the amounts follow, and a day
+  // started early is opened for the first time.
+  assert.match(flow, /confirmLabel=\{step \? t\('action\.next'\) : undefined\}/);
+  assert.match(flow, /intent=\{mode === 'start_new' \? 'open' : intent\}/);
+  assert.match(code(read('../components/closing/DayChoiceSheet.tsx')), /<Button title=\{confirmLabel \?\? t\(k\('confirm'\)\)\}/);
+});
+
+it('the words: the final action says what it does, and Keep, Set, Unknown in every language', () => {
+  const keys = ['opening.keep.title', 'opening.set.title', 'opening.setZero', 'opening.unknown', 'opening.confirm', 'opening.confirm.carried', 'opening.confirm.review', 'opening.total', 'opening.accounts.note'];
+  for (const locale of ['en', 'fr', 'ar']) {
+    const cat = read(`./i18n/${locale}.ts`);
+    for (const k of keys) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
+  }
+  const en = read('./i18n/en.ts');
+  assert.match(en, /'opening\.confirm': 'Confirm amounts and open the boutique'/);
+  assert.match(en, /'opening\.keep\.title': 'Keep the previous amounts'/);
+  assert.match(en, /'opening\.set\.title': 'Set today’s opening amounts'/);
+});
+
+console.log(`opening-money: ${passed} passed`);

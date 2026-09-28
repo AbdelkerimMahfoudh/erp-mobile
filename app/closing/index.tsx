@@ -6,8 +6,8 @@ import { Stack, useRouter } from 'expo-router';
 import { CalendarDays, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
 import { Button, Card, Chip, Divider, ErrorState, Expandable, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
-import { DayChoiceSheet } from '../../components/closing/DayChoiceSheet';
 import { CloseDaySheet } from '../../components/closing/CloseDaySheet';
+import { useOpeningFlow } from '../../components/day/useOpeningFlow';
 import { HistoryPanel } from '../../components/closing/HistoryPanel';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
@@ -16,13 +16,11 @@ import { radius, space } from '../../lib/design/tokens';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
-import { toFriendlyError } from '../../lib/errors';
 import { formatDate, formatMoney, formatTime } from '../../lib/format';
-import { dayChoices, dayWordKey, historyKey, openingKey, openingPrompt, standingKey, standingTone, type ReopenMode } from '../../lib/home-day';
+import { dayChoices, dayWordKey, historyKey, openingKey, standingKey, standingTone } from '../../lib/home-day';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
-import { toast } from '../../lib/toast';
-import { useOpenClosing, useOpenDay, useReopenDay, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
+import { useOpenClosing, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
 import { useDailyReport, type DailyReport } from '../../lib/closing-report';
 import { channelLabel, reportFreshness, warningKey, type Freshness } from '../../lib/closing-report-view';
 
@@ -152,12 +150,12 @@ function Report({
   const canCount = usePermission('closing.count');
   const canClose = usePermission('closing.perform');
   const canCorrect = usePermission('financial.correction.request');
-  const reopen = useReopenDay(date);
-  const openDay = useOpenDay(date);
-  const [reopenSheet, setReopenSheet] = useState(false);
-  const [openSheet, setOpenSheet] = useState(false);
-  /** Remounts the opening sheet each time it is asked for, so the safe default is selected again. */
-  const [openSheetNonce, setOpenSheetNonce] = useState(0);
+  /*
+    Opening and reopening, each with the money the shop opens with (docs/63): the shared flow — the day before 06:00,
+    then the amounts — so this screen and Home's Open store now can never ask differently.
+  */
+  const opening = useOpeningFlow({ intent: 'open', day, date, onOpened: onRefresh });
+  const reopening = useOpeningFlow({ intent: 'reopen', day, date, onOpened: onRefresh });
   const [closing, setClosing] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -172,71 +170,6 @@ function Report({
         k === 'date' || k === 'anchorDate' ? formatDate(String(v)) : typeof v === 'number' && k !== 'count' && k !== 'days' ? money(v) : String(v),
       ]),
     );
-
-  const confirmReopen = async (mode: ReopenMode) => {
-    try {
-      await reopen.mutateAsync(mode);
-      setReopenSheet(false);
-      toast.success(mode === 'start_new' ? t('reopen.started', { date: day?.nextDate ? formatDate(day.nextDate) : dateWord }) : t('reopen.done', { date: dateWord }));
-      onRefresh();
-    } catch (e) {
-      toast.error(toFriendlyError(e).body || t('reopen.failed'));
-    }
-  };
-  const onReopen = async () => {
-    if (day?.reopenChoices.includes('start_new')) {
-      setReopenSheet(true);
-      return;
-    }
-    const ok = await dialog.confirm({
-      title: t('reopen.simple.title', { date: dateWord }),
-      message: t('reopen.simple.body'),
-      confirmLabel: t('reopen.confirm'),
-      cancelLabel: t('action.cancel'),
-    });
-    if (ok) await confirmReopen('continue');
-  };
-  const recordOpening = async (mode?: ReopenMode) => {
-    try {
-      const fresh = await openDay.mutateAsync(mode);
-      const time = isolateLtr(fresh.opening?.localTime ?? fresh.localNow);
-      toast.success(mode === 'start_new' ? t('openChoice.started', { date: formatDate(fresh.businessDate), time }) : t('closingHistory.open.done', { time }));
-      setOpenSheet(false);
-      onRefresh();
-    } catch (e) {
-      toast.error(toFriendlyError(e).body || t('closingHistory.open.failed'));
-    }
-  };
-  /*
-    Before 06:00 the store's calendar date has moved on but the business date has not (docs/56).
-    The Owner, offered the early start, chooses which day the opening is for BEFORE it is
-    recorded; anybody else is told which business day it is and that new sales count for it.
-    The prompt, the dates and the time are the server's — the phone's clock plays no part.
-  */
-  const onOpen = async () => {
-    if (!day) return;
-    const prompt = openingPrompt(day.openChoices, day.localNowDate, day.businessDate);
-    if (prompt === 'choice') {
-      setOpenSheetNonce((n) => n + 1);
-      setOpenSheet(true);
-      return;
-    }
-    if (prompt === 'notice') {
-      const ok = await dialog.confirm({
-        title: t('openChoice.notice.title', { date: formatDate(day.businessDate) }),
-        message: t('openChoice.notice.body', {
-          time: isolateLtr(day.localNow),
-          calendarDate: formatDate(day.localNowDate),
-          date: formatDate(day.businessDate),
-          next: formatDate(day.nextDate),
-        }),
-        confirmLabel: t('closingHistory.open'),
-        cancelLabel: t('action.cancel'),
-      });
-      if (!ok) return;
-    }
-    await recordOpening();
-  };
 
   const standing = report.standing;
   const closed = standing === 'closed';
@@ -394,13 +327,13 @@ function Report({
       {/* ── The actions of the day ── */}
       <View style={styles.actions}>
         {showOpen ? (
-          <Button title={t('closingHistory.open')} fullWidth loading={openDay.isPending} disabled={!online || openDay.isPending} onPress={() => void onOpen()} />
+          <Button title={t('closingHistory.open')} fullWidth wrap loading={opening.busy} disabled={!online || !day || opening.busy} onPress={opening.start} />
         ) : null}
         {report.isToday && canClose && report.close?.canClose ? (
           <Button title={t('dailyReport.closeDay')} fullWidth variant={showOpen ? 'secondary' : 'primary'} disabled={!online} onPress={() => setClosing(true)} />
         ) : null}
         {report.isToday && closed && canClose && day?.canReopen ? (
-          <Button title={t('closingHistory.reopen')} fullWidth variant="secondary" loading={reopen.isPending} disabled={!online || reopen.isPending} onPress={() => void onReopen()} />
+          <Button title={t('closingHistory.reopen')} fullWidth wrap variant="secondary" loading={reopening.busy} disabled={!online || !day || reopening.busy} onPress={reopening.start} />
         ) : null}
         {/* Rows, not buttons: each keeps its whole label at 320 pt and at large text. */}
         {(canClose || canCorrect) && standing !== 'inactive' ? (
@@ -440,35 +373,8 @@ function Report({
         </View>
       ) : null}
 
-      {day ? (
-        <>
-          <DayChoiceSheet
-            intent="reopen"
-            open={reopenSheet}
-            onClose={() => setReopenSheet(false)}
-            businessDate={day.businessDate}
-            nextDate={day.nextDate}
-            calendarDate={day.localNowDate}
-            now={day.localNow}
-            choices={day.reopenChoices}
-            busy={reopen.isPending}
-            onConfirm={(mode) => void confirmReopen(mode)}
-          />
-          <DayChoiceSheet
-            key={openSheetNonce}
-            intent="open"
-            open={openSheet}
-            onClose={() => setOpenSheet(false)}
-            businessDate={day.businessDate}
-            nextDate={day.nextDate}
-            calendarDate={day.localNowDate}
-            now={day.localNow}
-            choices={day.openChoices ?? ['continue']}
-            busy={openDay.isPending}
-            onConfirm={(mode) => void recordOpening(mode)}
-          />
-        </>
-      ) : null}
+      {opening.element}
+      {reopening.element}
       {report.close ? (
         <CloseDaySheet
           open={closing}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { ArrowLeftRight, Package, Plus, Receipt, Wallet } from 'lucide-react-native';
+import { Landmark, Package, Plus, Receipt } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -15,29 +15,33 @@ import {
   TabHeader,
   Text,
   Thumbnail,
-  THUMB_SIZE,
 } from '../../components/ui';
+import { OpeningMoneySheet } from '../../components/day/OpeningMoneySheet';
+import { CompanyAccountsSheet } from '../../components/money/CompanyAccountsSheet';
+import { ExpectedMoneyCard } from '../../components/money/ExpectedMoneyCard';
 import { DayRow } from '../../components/money/DayRow';
 import { ExpenseLine } from '../../components/money/ExpenseLine';
 import { LinkRow } from '../../components/money/LinkRow';
 import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
-import { SetStartingAmountSheet } from '../../components/money/SetStartingAmountSheet';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
-import { radius, space } from '../../lib/design/tokens';
-import { makeStyles, useColors } from '../../lib/design/theme';
-import { isIncompatible } from '../../lib/errors';
+import { space } from '../../lib/design/tokens';
+import { makeStyles } from '../../lib/design/theme';
+import { isIncompatible, toFriendlyError } from '../../lib/errors';
 import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
-import { useMoneyOverview, useSalesByDay, type MethodMoney, type SalesDay, type TrackedMethod } from '../../lib/money-overview';
+import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-overview';
+import { useReviewOpening } from '../../lib/closing';
+import { openingMethodsOf, type OpeningMoneyInput } from '../../lib/opening-money';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
 import { usePeriod, type PeriodKey } from '../../lib/period';
 import { useBusinessDay, usePeriodRange } from '../../lib/home';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
 import { useSales } from '../../lib/sales';
+import { toast } from '../../lib/toast';
 import { useTodayOnArrival } from '../../lib/use-tab-arrival';
 
 /** How many sales the overview previews before "View all sales". */
@@ -51,24 +55,25 @@ const DAYS_PREVIEW = 3;
  * Four questions, answered in the order a shopkeeper asks them, each with its
  * own words so none is mistaken for another:
  *
- * 1. **Money held, then today by method** — two cards, never merged. The first
- *    is what the app tracks as held in the drawer and in each configured
- *    account: a starting amount plus everything recorded since, carried across
- *    midnight. A method the records cannot establish says Unknown and why, and
- *    then there is no total at all — never a made-up 0, never a total over a
- *    gap, never an account's balance, which the app does not see. The accounts
- *    are the company's, so only the Owner sees them: anyone else gets the
- *    drawer, a line saying so, and no total. The second is today's money in
- *    less money out per method, with the server's total of exactly those rows:
- *    movement, not a position (2026-09-27).
+ * 1. **Expected money in store today** (docs/63) — one card: the server's total
+ *    in large type, and one short line per method — the shop's cash, then each
+ *    configured account — as the app tracks it: an amount known at one moment
+ *    plus everything recorded since, carried across midnight. A method the
+ *    records cannot establish says Unknown, and then there is no total at all —
+ *    never a made-up 0, never an account's balance, which the app does not see.
+ *    The accounts are the company's, so only the Owner sees them; anyone else
+ *    gets the drawer. A shop opened with carried amounts says so until the Owner
+ *    reviews them, here. Setting a company account is its own, company-wide row
+ *    below, never part of a shop's opening.
  * 2. **This period** — phones sold, the full sales value, what was actually
  *    collected, and what is still owed. "Sales value" is never called money
  *    received, and a later collection never raises the sales figures.
  * 3. **Short previews** — today's sales, or a week or month a day at a time,
  *    and today's expenses, each with a way to see everything. A month of sales
  *    is never mounted here, and the phone never adds days up itself.
- * 4. **Where to go** — Results, Expenses, Daily closing, Loans and Outstanding
- *    payments, from the navigation registry so the tab cannot drift from it.
+ * 4. **Where to go** — Results, Expenses, Loans and Outstanding payments, from
+ *    the navigation registry so the tab cannot drift from it (the Daily closing
+ *    is reached from Home, docs/63), and, for the Owner, the company accounts.
  *
  * Every figure is the server's. The phone chooses words, never amounts. The
  * figures need `report.view`; somebody who only counts the drawer or reports
@@ -77,7 +82,6 @@ const DAYS_PREVIEW = 3;
  */
 export default function MoneyTabScreen() {
   const styles = useStyles();
-  const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
   const { branchName } = useBranch();
@@ -102,16 +106,30 @@ export default function MoneyTabScreen() {
   const todayRange = usePeriodRange('today');
   const card = useMoneyOverview(todayRange.from, todayRange.to, { enabled: canViewFigures });
   const cardData = card.data;
-  // Whole units, unless a figure carries cents: then every figure on the card shows them, so the rows visibly add up.
-  const cardDecimals = cardData && [cardData.moneyToday.total.net, ...cardData.moneyToday.channels.map((c) => c.net)].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
   const held = cardData?.trackedMoney;
-  // The same rule for the held card, its starting amounts included: an amount with cents is never shown rounded.
-  const heldDecimals = held && [held.total, ...held.methods.flatMap((m) => [m.position, m.anchor?.amount ?? null])].some((v) => v !== null && Math.round(v * 100) % 100 !== 0) ? 2 : 0;
-  // Only the Owner sets what an account holds; everyone else sees the card without the action.
+  // Only the Owner records money positions: the review of a carried opening, and the company's accounts.
   const canAnchor = usePermission('money.anchor.record');
-  // The account being set is kept after closing, so the sheet's title stays while it slides away.
-  const [anchorFor, setAnchorFor] = useState<TrackedMethod | null>(null);
-  const [anchorOpen, setAnchorOpen] = useState(false);
+  const review = useReviewOpening();
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [companyOpen, setCompanyOpen] = useState(false);
+  const companyAccounts = held?.accountsVisible ? held.methods.filter((m) => m.channel === 'account') : [];
+  const confirmReview = (money: OpeningMoneyInput | undefined) => {
+    if (!money?.decision) return;
+    setReviewError(null);
+    review.mutate(
+      { clientUuid: money.clientUuid, decision: money.decision, ...(money.cashAmount !== undefined ? { cashAmount: money.cashAmount } : {}) },
+      {
+        onSuccess: () => {
+          setReviewing(false);
+          toast.success(t('opening.review.done'));
+          void card.refetch();
+        },
+        // Nothing was saved: the sheet keeps the amounts and says why.
+        onError: (e) => setReviewError(toFriendlyError(e).body || t('opening.review.failed')),
+      },
+    );
+  };
   const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
   const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });
 
@@ -155,80 +173,8 @@ export default function MoneyTabScreen() {
               {isIncompatible(card.error) ? t('contract.incompatible.body') : t('moneyTab.unavailable.body')}
             </InlineNotice>
           ) : (
-            <>
-              {/* 1a. Money held: what each method holds as tracked, and their total only when every one is known. */}
-              <Card variant="accent" style={styles.cash}>
-                <View style={styles.head}>
-                  <View style={styles.cashIcon}>
-                    <Wallet color={colors.text.accent} size={22} />
-                  </View>
-                  <Text variant="body" tone="secondary" style={styles.grow}>
-                    {t('moneyTab.held.title')}
-                  </Text>
-                </View>
-                {/* The server's total, or no figure at all: with a method unknown, or the accounts not shown, a total would be a made-up number. */}
-                <View style={styles.total}>
-                  {!held.accountsVisible ? (
-                    <Text variant="bodyStrong">{t('moneyTab.held.ownerOnly')}</Text>
-                  ) : held.total !== null ? (
-                    <MoneyValue value={held.total} size="display" signed={held.total < 0} decimals={heldDecimals} />
-                  ) : (
-                    <Text variant="bodyStrong">
-                      {t('moneyTab.held.incomplete', {
-                        names: held.methods
-                          .filter((m) => !m.known)
-                          .map((m) => (m.channel === 'cash' ? t('moneyTab.cash') : m.label))
-                          .join(' · '),
-                      })}
-                    </Text>
-                  )}
-                  <Text variant="caption" tone="tertiary">
-                    {t('moneyTab.held.hint')}
-                  </Text>
-                </View>
-                <View style={styles.methods}>
-                  {held.methods.map((m) => (
-                    <HeldLine
-                      key={m.key}
-                      method={m}
-                      branchCount={held.branchCount}
-                      decimals={heldDecimals}
-                      onSetAmount={
-                        canAnchor && m.channel === 'account'
-                          ? () => {
-                              setAnchorFor(m);
-                              setAnchorOpen(true);
-                            }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </View>
-              </Card>
-
-              {/* 1b. Today: the money recorded in and out for each method, and their total — movement, kept apart from what is held. */}
-              <Card style={styles.cash}>
-                <View style={styles.head}>
-                  <Thumbnail icon={ArrowLeftRight} />
-                  <Text variant="body" tone="secondary" style={styles.grow}>
-                    {t('moneyTab.today.title')}
-                  </Text>
-                </View>
-                {/* The total on a line of its own: the card's whole width, so large text does not cut it short. */}
-                <View style={styles.total}>
-                  <MoneyValue value={cardData.moneyToday.total.net} size="large" signed={cardData.moneyToday.total.net < 0} decimals={cardDecimals} />
-                  <Text variant="caption" tone="tertiary">
-                    {t('moneyTab.today.hint', { date: formatDate(cardData.today) })}
-                  </Text>
-                </View>
-                {/* Every configured method beneath the total — the drawer first — and the total is the server's sum of these rows. */}
-                <View style={styles.methods}>
-                  {cardData.moneyToday.channels.map((m) => (
-                    <MethodLine key={m.accountId ?? (m.isUnattributed ? 'unattributed' : 'cash')} method={m} decimals={cardDecimals} />
-                  ))}
-                </View>
-              </Card>
-            </>
+            // 1. Expected money in store today: one card, the server's figures, short lines (docs/63).
+            <ExpectedMoneyCard held={held} canReview={canAnchor} onReview={() => setReviewing(true)} />
           )}
 
           <PeriodSelector />
@@ -411,7 +357,28 @@ export default function MoneyTabScreen() {
         </RowGroup>
       ) : null}
 
-      {canAnchor ? <SetStartingAmountSheet open={anchorOpen} account={anchorFor} onClose={() => setAnchorOpen(false)} /> : null}
+      {/* The company's accounts: a separate, company-wide action, the Owner's alone (docs/63). */}
+      {canAnchor && companyAccounts.length > 0 ? (
+        <RowGroup>
+          <ListRow flat leading={Landmark} title={t('moneyTab.company.title')} subtitle={t('moneyTab.company.subtitle')} onPress={() => setCompanyOpen(true)} />
+        </RowGroup>
+      ) : null}
+
+      {canAnchor ? <CompanyAccountsSheet open={companyOpen} onClose={() => setCompanyOpen(false)} accounts={companyAccounts} /> : null}
+      {canAnchor && held && cardData ? (
+        <OpeningMoneySheet
+          intent="review"
+          open={reviewing}
+          onClose={() => setReviewing(false)}
+          businessDate={cardData.today}
+          mayDecide
+          methods={openingMethodsOf(held.methods)}
+          branchCount={held.branchCount}
+          busy={review.isPending}
+          error={reviewError}
+          onConfirm={confirmReview}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -474,94 +441,7 @@ function DaysPreview({
   );
 }
 
-/**
- * One method's money held: its name, what the app tracks it holds — or Unknown, never a 0 — and what that starts
- * from, or which starting amount is missing. An account is the company's: with several stores it says so.
- */
-function HeldLine({
-  method: m,
-  branchCount,
-  decimals,
-  onSetAmount,
-}: {
-  method: TrackedMethod;
-  branchCount: number;
-  decimals: number;
-  onSetAmount?: () => void;
-}) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  const cash = m.channel === 'cash';
-  const name = cash ? t('moneyTab.cash') : m.scope === 'company' && branchCount > 1 ? `${m.label} ${t('moneyTab.held.wholeBusiness')}` : m.label;
-  const position = m.known ? m.position : null;
-  const anchor = m.known ? m.anchor : null;
-  const date = anchor ? formatDate(anchor.businessDate) : '';
-  const amount = anchor ? isolateLtr(formatMoney(anchor.amount, { decimals })) : '';
-  const caption = !anchor
-    ? t(cash ? 'moneyTab.held.cash.unknown' : 'moneyTab.held.account.unknown')
-    : cash
-      ? t('moneyTab.held.cash.known', { date })
-      : anchor.byName
-        ? t('moneyTab.held.account.knownBy', { amount, date, name: anchor.byName })
-        : t('moneyTab.held.account.known', { amount, date });
-  return (
-    <View style={styles.held}>
-      <View style={styles.grow}>
-        <Text variant="bodyStrong">{name}</Text>
-        <Text variant="caption" tone="tertiary">
-          {caption}
-        </Text>
-        {onSetAmount ? (
-          <View style={styles.action}>
-            <Button
-              title={t('moneyTab.held.setAmount')}
-              accessibilityLabel={`${t('moneyTab.held.setAmount')}, ${m.label}`}
-              variant="tertiary"
-              size="sm"
-              onPress={onSetAmount}
-            />
-          </View>
-        ) : null}
-      </View>
-      {position !== null ? (
-        <MoneyValue value={position} size="small" signed={position < 0} decimals={decimals} />
-      ) : (
-        <Text variant="bodyStrong" tone="secondary">
-          {t('moneyTab.held.unknown')}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-/** One method's money today: its name, what was recorded in and out, and the net — beneath the card's total. */
-function MethodLine({ method: m, decimals }: { method: MethodMoney; decimals: number }) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  const name = m.channel === 'cash' ? t('moneyTab.cash') : m.isUnattributed ? t('moneyOverview.account.unattributed') : m.label;
-  return (
-    <View style={styles.method}>
-      <View style={styles.grow}>
-        <Text variant="bodyStrong">{name}</Text>
-        <Text variant="caption" tone="tertiary">
-          {t('moneyOverview.account.inOut', { in: isolateLtr(formatMoney(m.moneyIn, { decimals })), out: isolateLtr(formatMoney(m.moneyOut, { decimals })) })}
-        </Text>
-      </View>
-      <MoneyValue value={m.net} size="small" signed={m.net !== 0} tone="auto" decimals={decimals} />
-    </View>
-  );
-}
-
-const useStyles = makeStyles((colors) => ({
-  cash: { gap: space.md },
-  cashIcon: {
-    width: THUMB_SIZE.md,
-    height: THUMB_SIZE.md,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface.card,
-  },
+const useStyles = makeStyles(() => ({
   head: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   grow: { flex: 1, minWidth: 0 },
   figures: { gap: space.sm },
@@ -571,11 +451,4 @@ const useStyles = makeStyles((colors) => ({
   block: { gap: space.md },
   list: { gap: space.xs },
   line: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  total: { gap: 2 },
-  methods: { gap: space.xs },
-  method: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 44 },
-  /** The figure level with the name, however long the caption under it runs. */
-  held: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md, minHeight: 44, paddingVertical: space.xs },
-  /** A row, so the button sits on the reading side in either direction instead of stretching. */
-  action: { flexDirection: 'row' },
 }));
