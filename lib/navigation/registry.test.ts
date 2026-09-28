@@ -236,10 +236,10 @@ it('an Owner sees the five business hubs — Money is a tab now, not a card', ()
     'performance',
     'business',
   ]);
-  // Moved, not removed: the Owner reaches all five of its children — Results,
-  // Expenses, Daily closing, Loans, and Outstanding payments (0074).
+  // Moved, not removed: the Owner reaches all four of its children — Results,
+  // Expenses, Loans, and Outstanding payments (0074). The Daily closing is on Home (docs/63).
   assert.equal(hubById('money')?.placement, 'tab');
-  assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'closing', 'loans', 'outstanding']);
+  assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'loans', 'outstanding']);
 });
 
 it('an Owner sees every destination', () => {
@@ -267,7 +267,7 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
 
 it('an Employee sees no money report, no imports and no loans', () => {
   const money = visibleChildren(hubById('money')!, EMPLOYEE).map((c) => c.id);
-  assert.deepEqual(money, ['expenses', 'closing'], 'no report.view, no loan.view');
+  assert.deepEqual(money, ['expenses'], 'no report.view, no loan.view — and the Daily closing is on Home (docs/63)');
 
   const stock = visibleChildren(hubById('stock')!, EMPLOYEE).map((c) => c.id);
   assert.deepEqual(stock, ['catalog', 'transfers'], 'no import.run');
@@ -521,20 +521,22 @@ it('More still shows exactly the five remaining business hubs', () => {
   assert.deepEqual(onMore, ['sales', 'stock', 'network', 'performance', 'business']);
 });
 
-it('the whole hub moved — its four children unchanged, plus Outstanding payments (0074)', () => {
+it('the whole hub moved — Results, Expenses, Loans and Outstanding payments; the Daily closing is on Home (docs/63)', () => {
   const money = hubById('money');
   assert.deepEqual(
     money.children.map((c) => c.route),
-    ['/money', '/expenses', '/closing', '/loans', '/outstanding'],
-    'the complete Money section moves, not just its landing card',
+    ['/money', '/expenses', '/loans', '/outstanding'],
+    'the Money section, its Daily closing row taken to Home',
   );
   // The permissions are the ones the hub always enforced. Widening any of them
   // here would hand a role a financial screen it was never given.
   assert.deepEqual(
     money.children.map((c) => c.perm),
     // Outstanding needs report.view, like every branch-wide figure.
-    ['report.view', 'expense.submit', 'closing.count', 'loan.view', 'report.view'],
+    ['report.view', 'expense.submit', 'loan.view', 'report.view'],
   );
+  // Still a route, reached from Home by everybody who counts, and never unclassified.
+  assert.match(EXCLUDED_ROUTES['/closing'] ?? '', /Home/);
 });
 
 /*
@@ -578,11 +580,11 @@ it('the tab is hidden, not emptied, when no child is permitted', () => {
 
 it('and is not restricted to the Owner', () => {
   /*
-    A store manager who counts the drawer needs the tab that holds the daily
-    closing. Hard-coding a role here would take it from exactly the person the
-    closing workflow exists for.
+    Shown to whoever may use one of its children — never hard-coded to a role.
+    Somebody who only counts the drawer reaches the Daily closing from Home now
+    (docs/63): the tab would hold nothing for them, so it is not shown.
   */
-  assert.equal(tabHubIsVisible(new Set(['closing.count'])), true, 'closing alone should show Money');
+  assert.equal(tabHubIsVisible(new Set(['closing.count'])), false, 'counting alone: the Daily closing is on Home');
   assert.equal(tabHubIsVisible(new Set(['expense.submit'])), true, 'expenses alone should show Money');
   assert.equal(tabHubIsVisible(new Set(['loan.view'])), true, 'loans alone should show Money');
   assert.equal(tabHubIsVisible(new Set(['report.view'])), true, 'cash & accounts alone should show Money');
@@ -590,16 +592,16 @@ it('and is not restricted to the Owner', () => {
 
 it('shows only the children a role actually holds', () => {
   const money = hubById('money');
-  // An employee who may report an expense and count the drawer sees two rows,
-  // not four, and never the cash-and-accounts screen.
+  // An employee who may report an expense and count the drawer sees one row —
+  // the Daily closing is on Home — and never the cash-and-accounts screen.
   const employee = new Set(['expense.submit', 'closing.count']);
   assert.deepEqual(
     visibleChildren(money, employee).map((c) => c.route),
-    ['/expenses', '/closing'],
+    ['/expenses'],
   );
-  // An Owner with everything sees all five; Outstanding comes with report.view.
+  // An Owner with everything sees all four; Outstanding comes with report.view.
   const owner = new Set(['report.view', 'expense.submit', 'closing.count', 'loan.view']);
-  assert.equal(visibleChildren(money, owner).length, 5);
+  assert.equal(visibleChildren(money, owner).length, 4);
 });
 
 it('the tab screen is a primary screen, with no header and no back label', () => {

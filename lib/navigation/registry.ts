@@ -162,9 +162,6 @@ export const HUBS: readonly Hub[] = [
       // `expense.submit`, not `expense.manage`: the person who spent the money
       // reports it, and the list scopes them to their own.
       { id: 'expenses', route: '/expenses', titleKey: 'nav.expenses', icon: 'Receipt', perm: 'expense.submit' },
-      // `closing.count`, not `closing.perform` — the Employee holding the
-      // drawer must reach this screen; signing the day off is gated inside it.
-      { id: 'closing', route: '/closing', titleKey: 'nav.closing', icon: 'ClipboardCheck', perm: 'closing.count' },
       { id: 'loans', route: '/loans', titleKey: 'nav.loans', icon: 'HandCoins', perm: 'loan.view' },
       // Balances customers and partner stores still owe (0074). `report.view`,
       // like the figures: the whole branch's receivables are an Owner and
@@ -290,6 +287,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Bottom tab — Home.',
   '/sell': 'The full sale — no longer a tab, still a route. Reached from Quick Sell (Home’s Sell, docs/59 D75); kept so links and the saved cart keep working.',
   '/stores': 'Legacy link — redirects to the Partners tab.',
+  '/closing': 'The Daily closing — reached from Home’s Daily closing card (Review closing), no longer a row of Money (docs/63). Everybody who counts (`closing.count`) reaches it there.',
   '/partners/[id]': 'One store this shop deals with, opened from Partners.',
   '/inventory': 'Bottom tab — Inventory.',
   '/more': 'Bottom tab — this screen itself.',

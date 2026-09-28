@@ -51,9 +51,10 @@ export default function TabsLayout() {
   const connections = useConnections({ enabled: status === 'ready' && canViewPartners && Boolean(branchId) });
   const partnerBadge = incomingNeedingAction(connections.data?.rows, canManagePartners);
   /*
-    Money is shown when the user can reach at least one of its four
-    children, not when they are the Owner. A store manager who counts the
-    drawer needs the tab that holds the daily closing.
+    Money is shown when the user can reach at least one of its children —
+    Results, Expenses, Loans, Outstanding — not when they are the Owner. The
+    Daily closing is reached from Home (docs/63), so somebody who only counts
+    the drawer finds it there.
   */
   const canSeeMoney = tabHubIsVisible(granted);
   const insets = useSafeAreaInsets();

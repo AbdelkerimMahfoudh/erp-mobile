@@ -39,7 +39,8 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/expenses': TABS.money,
   '/expenses/[id]': '/expenses',
   '/expenses/new': '/expenses',
-  '/closing': TABS.money,
+  // Reached from Home's Daily closing card since it left the Money list (docs/63).
+  '/closing': TABS.home,
   '/closing/sources': '/closing',
   '/discrepancies': '/closing',
   '/discrepancies/[id]': '/discrepancies',
