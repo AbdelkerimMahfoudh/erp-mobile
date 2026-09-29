@@ -130,13 +130,18 @@ export function useOpeningFlow({
   };
 
   const step = day?.openingMoney ?? null;
+  /**
+   * A sheet reports its close once its exit animation ends — after the flow may already have moved on (the day chosen,
+   * the amounts sheet opening). Only a sheet still current returns the flow to idle, or the next step would close too.
+   */
+  const closed = (which: 'day' | 'money') => () => setStage((s) => (s === which ? 'idle' : s));
   const element = day ? (
     <>
       <DayChoiceSheet
         key={`day-${nonce}`}
         intent={intent}
         open={stage === 'day'}
-        onClose={() => setStage('idle')}
+        onClose={closed('day')}
         businessDate={day.businessDate}
         nextDate={day.nextDate}
         calendarDate={day.localNowDate}
@@ -152,7 +157,7 @@ export function useOpeningFlow({
           // A day started early is opened for the first time, whichever button led here.
           intent={mode === 'start_new' ? 'open' : intent}
           open={stage === 'money'}
-          onClose={() => setStage('idle')}
+          onClose={closed('money')}
           businessDate={mode === 'start_new' ? day.nextDate : day.businessDate}
           mayDecide={step.mayDecide}
           methods={step.methods}

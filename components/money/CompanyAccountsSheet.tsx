@@ -28,7 +28,10 @@ export function CompanyAccountsSheet({ open, onClose, accounts }: { open: boolea
 
   return (
     <>
-      <BottomSheet open={open && !setting} onClose={onClose} title={t('moneyTab.company.title')} titleLines={2}>
+      {/* Its close is reported after the exit animation: while an account's amount is being set, the list only steps aside. */}
+      <BottomSheet open={open && !setting} onClose={() => {
+          if (!setting) onClose();
+        }} title={t('moneyTab.company.title')} titleLines={2}>
         <ScrollView contentContainerStyle={styles.body}>
           <Text variant="body" tone="secondary">
             {t('moneyTab.company.body')}
@@ -39,6 +42,8 @@ export function CompanyAccountsSheet({ open, onClose, accounts }: { open: boolea
                 key={m.key}
                 flat
                 title={m.label}
+                // The account's whole name — the one being chosen — however long, in any language.
+                titleLines={0}
                 value={
                   m.position !== null ? (
                     <MoneyValue value={m.position} size="small" signed={m.position < 0} />

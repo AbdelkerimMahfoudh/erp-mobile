@@ -25,6 +25,13 @@ import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 
 export interface ListRowProps {
   title: string;
+  /**
+   * How many lines the title may take before it is cut; 0 lets it wrap freely.
+   * Two by default. A row whose title is the name being chosen — a company account
+   * in the Owner's company-wide sheet — lets it wrap rather than cut it off (docs/63,
+   * Arabic at 320 pt with large text).
+   */
+  titleLines?: number;
   /** Quiet supporting line: category, branch, supplier, timestamp. */
   subtitle?: string;
   /**
@@ -72,6 +79,7 @@ export interface ListRowProps {
 
 export function ListRow({
   title,
+  titleLines = 2,
   subtitle,
   subtitleLines = 2,
   identifier,
@@ -114,7 +122,7 @@ export function ListRow({
 
       <View style={styles.main}>
         <View style={styles.body}>
-          <Text variant="bodyStrong" numberOfLines={2}>
+          <Text variant="bodyStrong" numberOfLines={titleLines}>
             {title}
           </Text>
           {subtitle ? (

@@ -183,6 +183,11 @@ it('no Set amount on the card: a company account is set by its own, company-wide
   assert.match(overview, /\{canAnchor \? <CompanyAccountsSheet open=\{companyOpen\} onClose=\{\(\) => setCompanyOpen\(false\)\} accounts=\{companyAccounts\} \/> : null\}/);
   const sheet = code(read('../components/money/CompanyAccountsSheet.tsx'));
   assert.match(sheet, /t\('moneyTab\.company\.body'\)/);
+  // Choosing an account steps the list aside, it does not close it: its late close is ignored while the amount is set.
+  assert.match(sheet, /<BottomSheet open=\{open && !setting\} onClose=\{\(\) => \{\s*if \(!setting\) onClose\(\);\s*\}\}/);
+  // The account's name is the thing chosen: it wraps whole, never cut to two lines (Arabic at 320 pt, 1.3×).
+  assert.match(sheet, /title=\{m\.label\}\s*titleLines=\{0\}/);
+  assert.match(code(read('../components/ui/ListRow.tsx')), /<Text variant="bodyStrong" numberOfLines=\{titleLines\}>/);
   assert.match(sheet, /<SetStartingAmountSheet open=\{setting\} account=\{chosen\} onClose=\{\(\) => setSetting\(false\)\} \/>/);
   // The amount sheet says, before anything is saved, that the amount is the one every shop sees.
   assert.match(code(read('../components/money/SetStartingAmountSheet.tsx')), /t\('moneyTab\.anchor\.company'\)/);

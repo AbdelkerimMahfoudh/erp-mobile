@@ -113,6 +113,11 @@ it('the flow: a refusal keeps the sheet open with its values; an older server ge
   // started early is opened for the first time.
   assert.match(flow, /confirmLabel=\{step \? t\('action\.next'\) : undefined\}/);
   assert.match(flow, /intent=\{mode === 'start_new' \? 'open' : intent\}/);
+  // A sheet's close arrives after its exit animation: the day sheet's must not close the amounts that followed it.
+  assert.match(flow, /const closed = \(which: 'day' \| 'money'\) => \(\) => setStage\(\(s\) => \(s === which \? 'idle' : s\)\);/);
+  assert.match(flow, /open=\{stage === 'day'\}\s*onClose=\{closed\('day'\)\}/);
+  assert.match(flow, /open=\{stage === 'money'\}\s*onClose=\{closed\('money'\)\}/);
+  assert.ok(!/setStage\('idle'\)\}/.test(flow), 'no sheet resets the flow unconditionally');
   assert.match(code(read('../components/closing/DayChoiceSheet.tsx')), /<Button title=\{confirmLabel \?\? t\(k\('confirm'\)\)\}/);
 });
 
