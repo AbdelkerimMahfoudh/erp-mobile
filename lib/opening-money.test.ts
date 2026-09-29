@@ -107,7 +107,7 @@ it('the flow: a refusal keeps the sheet open with its values; an older server ge
   const flow = code(read('../components/day/useOpeningFlow.tsx'));
   assert.match(flow, /catch \(e\) \{\s*const message = [^;]+;\s*setError\(message\);/);
   assert.ok(!/catch \(e\) \{[^}]*setStage\('idle'\)/.test(flow), 'a refusal does not close the sheet');
-  assert.match(flow, /if \(day\?\.openingMoney\) \{\s*setStage\('money'\);\s*return;\s*\}/);
+  assert.match(flow, /if \(day\?\.openingMoney\) \{\s*setStage\(afterDaySheet \? 'toMoney' : 'money'\);\s*return;\s*\}/);
   assert.match(flow, /\.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\)/);
   // The day chosen before 06:00 is a step, not the opening: its button says Next while the amounts follow, and a day
   // started early is opened for the first time.
@@ -119,6 +119,38 @@ it('the flow: a refusal keeps the sheet open with its values; an older server ge
   assert.match(flow, /open=\{stage === 'money'\}\s*onClose=\{closed\('money'\)\}/);
   assert.ok(!/setStage\('idle'\)\}/.test(flow), 'no sheet resets the flow unconditionally');
   assert.match(code(read('../components/closing/DayChoiceSheet.tsx')), /<Button title=\{confirmLabel \?\? t\(k\('confirm'\)\)\}/);
+});
+
+it('one modal at a time: the amounts only once the day sheet’s modal is gone (the iPhone, 01:09 on 29 Sep)', () => {
+  const flow = code(read('../components/day/useOpeningFlow.tsx'));
+  // The day chosen, the flow waits (toMoney) while its sheet leaves; the sheet's own dismissal moves it on.
+  assert.match(flow, /const daySheetGone = \(\) => setStage\(\(s\) => \(s === 'toMoney' \? 'money' : s\)\);/);
+  assert.match(flow, /onClose=\{closed\('day'\)\}\s*onDismissed=\{daySheetGone\}/);
+  assert.match(flow, /onConfirm=\{\(chosen\) => void amounts\(chosen, true\)\}/);
+  // No dialog behind a sheet: the older server's reopen dialog only when no day sheet came first.
+  assert.match(flow, /if \(intent === 'reopen' && !afterDaySheet\) \{/);
+  // The sheet waits for UIKit: the same Modal, hidden, until its dismissal is reported — then onDismissed.
+  const sheet = code(read('../components/overlay/BottomSheet.tsx'));
+  assert.match(sheet, /setMounted\(false\);\s*onClose\(\);\s*if \(Platform\.OS === 'ios'\) setDismissing\(true\);\s*else onDismissed\?\.\(\);/);
+  assert.match(sheet, /return dismissing \? <Modal visible=\{false\} transparent statusBarTranslucent animationType="none" onDismiss=\{dismissed\} \/> : null;/);
+  // Never stuck: a modal never presented reports no dismissal, so a short wait stands in for it.
+  assert.match(sheet, /const fallback = setTimeout\(dismissed, DISMISS_REPORT_TIMEOUT_MS\);/);
+  // Asked to open while still leaving, it opens once gone.
+  assert.match(sheet, /if \(open\) \{\s*if \(dismissing\) return;/);
+  assert.match(sheet, /const dismissed = useCallback\(\(\) => \{\s*setDismissing\(false\);\s*onDismissed\?\.\(\);\s*\}, \[onDismissed\]\);/);
+});
+
+it('a failure keeps the chosen day, the amounts and the key; only a success starts afresh', () => {
+  const flow = code(read('../components/day/useOpeningFlow.tsx'));
+  assert.match(flow, /setError\(message\);\s*setFailed\(true\);/);
+  assert.match(flow, /setStage\('idle'\);\s*setFailed\(false\);/);
+  assert.match(flow, /if \(!failed\) setNonce\(\(n\) => n \+ 1\);/);
+  // The sheets are keyed by that nonce: not remounted after a failure, their choice, amount and key stay.
+  assert.match(flow, /<OpeningMoneySheet\s+key=\{`money-\$\{nonce\}`\}/);
+  const sheet = code(read('../components/day/OpeningMoneySheet.tsx'));
+  assert.match(sheet, /const attempt = useRef<\{ key: string; payload: string \} \| null>\(null\);/);
+  // Before 06:00 a staff member reads which day runs in the sheet itself.
+  assert.match(sheet, /\{notice \? <InlineNotice tone="info">\{notice\}<\/InlineNotice> : null\}/);
 });
 
 it('the words: the final action says what it does, and Keep, Set, Unknown in every language', () => {

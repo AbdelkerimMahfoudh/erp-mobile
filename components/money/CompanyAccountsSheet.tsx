@@ -18,20 +18,34 @@ import type { TrackedMethod } from '../../lib/money-overview';
  * The accounts as the app tracks them; choosing one asks for the amount its own
  * app shows now (`SetStartingAmountSheet`, 0082). After saving, the list comes
  * back, so another can be set.
+ *
+ * One sheet at a time, each shown only once the one before it is gone: iOS does
+ * not present a modal while another is still being dismissed (`BottomSheet`'s
+ * `onDismissed`, the user's phone report of 2026-09-29).
  */
+type Step = 'list' | 'toAmount' | 'amount' | 'toList';
+
 export function CompanyAccountsSheet({ open, onClose, accounts }: { open: boolean; onClose: () => void; accounts: readonly TrackedMethod[] }) {
   const styles = useStyles();
   const { t } = useTranslation();
   // The account being set is kept after closing, so the amount sheet's title stays while it slides away.
   const [chosen, setChosen] = useState<TrackedMethod | null>(null);
-  const [setting, setSetting] = useState(false);
+  const [step, setStep] = useState<Step>('list');
+  /** Moves on only from the step that is ending — a late report from an earlier sheet changes nothing. */
+  const from = (at: Step, to: Step) => () => setStep((s) => (s === at ? to : s));
 
   return (
     <>
-      {/* Its close is reported after the exit animation: while an account's amount is being set, the list only steps aside. */}
-      <BottomSheet open={open && !setting} onClose={() => {
-          if (!setting) onClose();
-        }} title={t('moneyTab.company.title')} titleLines={2}>
+      <BottomSheet
+        open={open && step === 'list'}
+        // Closed by the person: the whole action ends. Stepping aside for an account's amount is not a close.
+        onClose={() => {
+          if (step === 'list') onClose();
+        }}
+        onDismissed={from('toAmount', 'amount')}
+        title={t('moneyTab.company.title')}
+        titleLines={2}
+      >
         <ScrollView contentContainerStyle={styles.body}>
           <Text variant="body" tone="secondary">
             {t('moneyTab.company.body')}
@@ -56,14 +70,14 @@ export function CompanyAccountsSheet({ open, onClose, accounts }: { open: boolea
                 subtitle={t('moneyTab.held.setAmount')}
                 onPress={() => {
                   setChosen(m);
-                  setSetting(true);
+                  setStep('toAmount');
                 }}
               />
             ))}
           </RowGroup>
         </ScrollView>
       </BottomSheet>
-      <SetStartingAmountSheet open={setting} account={chosen} onClose={() => setSetting(false)} />
+      <SetStartingAmountSheet open={step === 'amount'} account={chosen} onClose={from('amount', 'toList')} onDismissed={from('toList', 'list')} />
     </>
   );
 }

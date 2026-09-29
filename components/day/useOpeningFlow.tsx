@@ -17,12 +17,23 @@ import { toast } from '../../lib/toast';
  * Daily closing's *Open the boutique* and *Reopen*, and the covers of Sell,
  * Receive and a refused later payment.
  *
- * Before 06:00 the day comes first — the Owner's choice sheet, or a staff
- * member's notice naming the day that runs (docs/56). Then the amounts: the
- * Owner keeps them or sets the cash; anybody else opens with them as tracked.
- * One request records the opening and its money. A refusal leaves the store
- * closed and the sheet open with what was entered. Only on the server's answer
- * do Sell and Receive open, so the button cannot be pressed twice in between.
+ * Before 06:00 the day comes first — the Owner's choice sheet, or, for a staff
+ * member, a notice naming the day that runs, shown in the amounts sheet
+ * (docs/56). Then the amounts: the Owner keeps them or sets the cash; anybody
+ * else opens with them as tracked. One request records the opening and its
+ * money. Only on the server's answer do Sell and Receive open, so the button
+ * cannot be pressed twice in between.
+ *
+ * **One modal at a time.** The amounts sheet is shown only once the day
+ * sheet's modal is gone (`onDismissed`): iOS does not present a modal while
+ * another is still being dismissed, and the amounts never appeared (the
+ * user's phone, 01:09 on 29 Sep).
+ *
+ * **A failure keeps everything.** Refused or unanswered, the sheet stays with
+ * what was entered and says why; closed and opened again after a failure, the
+ * chosen day, the amounts and the request's key are still there, so the same
+ * request is answered once. Only a success, or a fresh start after none
+ * failed, begins again from nothing.
  *
  * An older server offers no amounts step (`openingMoney` absent) and is never
  * sent one it would refuse: its opening goes as it always did.
@@ -43,11 +54,14 @@ export function useOpeningFlow({
   const { t } = useTranslation();
   const openDay = useOpenDay(date);
   const reopen = useReopenDay(date);
-  const [stage, setStage] = useState<'idle' | 'day' | 'money'>('idle');
+  /** `toMoney`: the day is chosen and its sheet is on its way out; the amounts follow once it is gone. */
+  const [stage, setStage] = useState<'idle' | 'day' | 'toMoney' | 'money'>('idle');
   /** The day chosen before 06:00, or null when no choice was offered — then no mode is sent. */
   const [mode, setMode] = useState<ReopenMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** Remounts both sheets on each start, so nothing chosen last time is still selected. */
+  /** The last attempt was refused or unanswered: what was chosen and typed is kept for the next. */
+  const [failed, setFailed] = useState(false);
+  /** Remounts both sheets on a fresh start, so nothing chosen last time is still selected. */
   const [nonce, setNonce] = useState(0);
   const busy = openDay.isPending || reopen.isPending;
   const choices = day ? (intent === 'open' ? (day.openChoices ?? ['continue']) : day.reopenChoices) : [];
@@ -61,6 +75,7 @@ export function useOpeningFlow({
           ? await openDay.mutateAsync({ ...(chosen ? { mode: chosen } : {}), ...(openingMoney ? { openingMoney } : {}) })
           : await reopen.mutateAsync({ mode: chosen ?? 'continue', ...(openingMoney ? { openingMoney } : {}) });
       setStage('idle');
+      setFailed(false);
       if (chosen === 'start_new') {
         toast.success(
           intent === 'open'
@@ -79,19 +94,24 @@ export function useOpeningFlow({
       // Nothing was opened: the sheet keeps what was entered and says why; without a sheet, a toast does.
       const message = toFriendlyError(e).body || t(intent === 'open' ? 'closingHistory.open.failed' : 'reopen.failed');
       setError(message);
+      setFailed(true);
       if (!day.openingMoney) toast.error(message);
     }
   };
 
-  /** After the day is settled: the amounts, or — on an older server — the opening as it always went. */
-  const amounts = async (chosen: ReopenMode | null) => {
+  /**
+   * After the day is settled: the amounts — once the day sheet is gone, when there was one — or, on an older server,
+   * the opening as it always went.
+   */
+  const amounts = async (chosen: ReopenMode | null, afterDaySheet: boolean) => {
     setMode(chosen);
     if (day?.openingMoney) {
-      setStage('money');
+      setStage(afterDaySheet ? 'toMoney' : 'money');
       return;
     }
     setStage('idle');
-    if (intent === 'reopen' && chosen !== 'start_new') {
+    // The day sheet's own confirmation was the confirmation; a dialog after it would be a second modal behind the first.
+    if (intent === 'reopen' && !afterDaySheet) {
       const ok = await dialog.confirm({
         title: t('reopen.simple.title', { date: formatDate(day?.businessDate ?? '') }),
         message: t('reopen.simple.body'),
@@ -103,30 +123,36 @@ export function useOpeningFlow({
     await send(chosen, undefined);
   };
 
-  const start = async () => {
-    if (!day) return;
-    setError(null);
-    setNonce((n) => n + 1);
-    if (choices.includes('start_new')) {
-      setStage('day');
-      return;
-    }
-    // Before 06:00 somebody who may not start today early is told which day runs, and that new sales count for it.
-    if (intent === 'open' && openingPrompt(day.openChoices, day.localNowDate, day.businessDate) === 'notice') {
-      const ok = await dialog.confirm({
-        title: t('openChoice.notice.title', { date: formatDate(day.businessDate) }),
-        message: t('openChoice.notice.body', {
+  /** Before 06:00 somebody who may not start today early is told which day runs, and that new sales count for it. */
+  const notice =
+    day && intent === 'open' && openingPrompt(day.openChoices, day.localNowDate, day.businessDate) === 'notice'
+      ? t('openChoice.notice.body', {
           time: isolateLtr(day.localNow),
           calendarDate: formatDate(day.localNowDate),
           date: formatDate(day.businessDate),
           next: formatDate(day.nextDate),
-        }),
+        })
+      : null;
+
+  const start = async () => {
+    if (!day) return;
+    setError(null);
+    if (!failed) setNonce((n) => n + 1);
+    if (choices.includes('start_new')) {
+      setStage('day');
+      return;
+    }
+    // With the amounts step the notice is in its sheet; an older server asks in a dialog, and no sheet follows it.
+    if (notice && !day.openingMoney) {
+      const ok = await dialog.confirm({
+        title: t('openChoice.notice.title', { date: formatDate(day.businessDate) }),
+        message: notice,
         confirmLabel: t('closingHistory.open'),
         cancelLabel: t('action.cancel'),
       });
       if (!ok) return;
     }
-    await amounts(null);
+    await amounts(null, false);
   };
 
   const step = day?.openingMoney ?? null;
@@ -135,6 +161,8 @@ export function useOpeningFlow({
    * the amounts sheet opening). Only a sheet still current returns the flow to idle, or the next step would close too.
    */
   const closed = (which: 'day' | 'money') => () => setStage((s) => (s === which ? 'idle' : s));
+  /** The day sheet's modal is gone: now, and only now, the amounts. */
+  const daySheetGone = () => setStage((s) => (s === 'toMoney' ? 'money' : s));
   const element = day ? (
     <>
       <DayChoiceSheet
@@ -142,6 +170,7 @@ export function useOpeningFlow({
         intent={intent}
         open={stage === 'day'}
         onClose={closed('day')}
+        onDismissed={daySheetGone}
         businessDate={day.businessDate}
         nextDate={day.nextDate}
         calendarDate={day.localNowDate}
@@ -149,7 +178,7 @@ export function useOpeningFlow({
         choices={choices}
         busy={busy}
         confirmLabel={step ? t('action.next') : undefined}
-        onConfirm={(chosen) => void amounts(chosen)}
+        onConfirm={(chosen) => void amounts(chosen, true)}
       />
       {step ? (
         <OpeningMoneySheet
@@ -159,6 +188,7 @@ export function useOpeningFlow({
           open={stage === 'money'}
           onClose={closed('money')}
           businessDate={mode === 'start_new' ? day.nextDate : day.businessDate}
+          notice={notice}
           mayDecide={step.mayDecide}
           methods={step.methods}
           branchCount={step.branchCount}

@@ -183,12 +183,15 @@ it('no Set amount on the card: a company account is set by its own, company-wide
   assert.match(overview, /\{canAnchor \? <CompanyAccountsSheet open=\{companyOpen\} onClose=\{\(\) => setCompanyOpen\(false\)\} accounts=\{companyAccounts\} \/> : null\}/);
   const sheet = code(read('../components/money/CompanyAccountsSheet.tsx'));
   assert.match(sheet, /t\('moneyTab\.company\.body'\)/);
-  // Choosing an account steps the list aside, it does not close it: its late close is ignored while the amount is set.
-  assert.match(sheet, /<BottomSheet open=\{open && !setting\} onClose=\{\(\) => \{\s*if \(!setting\) onClose\(\);\s*\}\}/);
+  // One sheet at a time, each after the one before is gone (iOS, the phone's report of 29 Sep): the list steps aside for
+  // the amount and comes back after it; its own late close ends the action only when the list itself was closed.
+  assert.match(sheet, /const from = \(at: Step, to: Step\) => \(\) => setStep\(\(s\) => \(s === at \? to : s\)\);/);
+  assert.match(sheet, /open=\{open && step === 'list'\}[\s\S]*?onClose=\{\(\) => \{\s*if \(step === 'list'\) onClose\(\);\s*\}\}\s*onDismissed=\{from\('toAmount', 'amount'\)\}/);
+  assert.match(sheet, /setChosen\(m\);\s*setStep\('toAmount'\);/);
+  assert.match(sheet, /<SetStartingAmountSheet open=\{step === 'amount'\} account=\{chosen\} onClose=\{from\('amount', 'toList'\)\} onDismissed=\{from\('toList', 'list'\)\} \/>/);
   // The account's name is the thing chosen: it wraps whole, never cut to two lines (Arabic at 320 pt, 1.3×).
   assert.match(sheet, /title=\{m\.label\}\s*titleLines=\{0\}/);
   assert.match(code(read('../components/ui/ListRow.tsx')), /<Text variant="bodyStrong" numberOfLines=\{titleLines\}>/);
-  assert.match(sheet, /<SetStartingAmountSheet open=\{setting\} account=\{chosen\} onClose=\{\(\) => setSetting\(false\)\} \/>/);
   // The amount sheet says, before anything is saved, that the amount is the one every shop sees.
   assert.match(code(read('../components/money/SetStartingAmountSheet.tsx')), /t\('moneyTab\.anchor\.company'\)/);
   assert.match(read('./permissions.ts'), /'money\.anchor\.record',/);
@@ -207,7 +210,7 @@ it('the starting-amount sheet posts the account, the amount and a key bound to t
   const anchorSheet = code(read('../components/money/SetStartingAmountSheet.tsx'));
   assert.match(anchorSheet, /const record = useRecordMoneyAnchor\(\);\s*const \{ reset: newAttempt \} = record;/);
   assert.match(anchorSheet, /useEffect\(\(\) => \{\s*if \(open\) newAttempt\(\);\s*\}, \[open, newAttempt\]\);/);
-  assert.match(anchorSheet, /<BottomSheet\s+open=\{open\}\s+onClose=\{close\}\s+title=\{t\('moneyTab\.anchor\.title', \{ account: name \}\)\}/);
+  assert.match(anchorSheet, /<BottomSheet\s+open=\{open\}\s+onClose=\{close\}\s+onDismissed=\{onDismissed\}\s+title=\{t\('moneyTab\.anchor\.title', \{ account: name \}\)\}/);
   // Whatever closed it, the next opening starts empty, with a new key: a figure typed for one account is never saved for another.
   assert.match(anchorSheet, /const close = \(\) => \{\s*setAmount\(''\);\s*setNote\(''\);\s*newAttempt\(\);\s*onClose\(\);/);
   // Save is pinned above the keyboard, and the fields scroll beneath it.

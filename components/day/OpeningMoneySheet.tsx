@@ -42,6 +42,8 @@ export interface OpeningMoneySheetProps {
   onClose: () => void;
   /** The business day being opened, YYYY-MM-DD. */
   businessDate: string;
+  /** Before 06:00, for somebody who may not start the next day early: which day runs, said here rather than in a dialog before it. */
+  notice?: string | null;
   /** The Owner decides; anybody else opens with the amounts as tracked. */
   mayDecide: boolean;
   methods: readonly OpeningMethod[];
@@ -52,7 +54,7 @@ export interface OpeningMoneySheetProps {
   onConfirm: (money: OpeningMoneyInput | undefined) => void;
 }
 
-export function OpeningMoneySheet({ intent, open, onClose, businessDate, mayDecide, methods, branchCount, busy, error, onConfirm }: OpeningMoneySheetProps) {
+export function OpeningMoneySheet({ intent, open, onClose, businessDate, notice, mayDecide, methods, branchCount, busy, error, onConfirm }: OpeningMoneySheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const [choice, setChoice] = useState<OpeningChoice | null>(null);
@@ -97,6 +99,7 @@ export function OpeningMoneySheet({ intent, open, onClose, businessDate, mayDeci
       }
     >
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+        {notice ? <InlineNotice tone="info">{notice}</InlineNotice> : null}
         {/* What each method holds now, as the app tracks it. */}
         <View style={styles.list}>
           <Text variant="labelStrong" tone="secondary">

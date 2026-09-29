@@ -33,7 +33,9 @@ const flow = code(read('components/day/useOpeningFlow.tsx'));
 it('Open the boutique asks first: the choice sheet for the Owner, the notice for anybody else, from the server’s dates', () => {
   assert.match(flow, /if \(choices\.includes\('start_new'\)\) \{\s*setStage\('day'\);/);
   assert.match(flow, /intent === 'open' && openingPrompt\(day\.openChoices, day\.localNowDate, day\.businessDate\) === 'notice'/);
-  assert.match(flow, /dialog\.confirm\(\{[\s\S]*?t\('openChoice\.notice\.title'/);
+  // The notice is in the amounts sheet (one modal, docs/63); only an older server, with no sheet after, asks in a dialog.
+  assert.match(flow, /notice=\{notice\}/);
+  assert.match(flow, /if \(notice && !day\.openingMoney\) \{\s*const ok = await dialog\.confirm\(\{[\s\S]*?t\('openChoice\.notice\.title'/);
   // The notice names the business day, the calendar date, the time and the day only the Owner may start.
   assert.match(flow, /t\('openChoice\.notice\.body', \{[\s\S]*?time: isolateLtr\(day\.localNow\)[\s\S]*?calendarDate: formatDate\(day\.localNowDate\)[\s\S]*?date: formatDate\(day\.businessDate\)[\s\S]*?next: formatDate\(day\.nextDate\)/);
   assert.ok(!flow.includes('new Date()') && !closing.includes('new Date()'), 'the opening never consults the phone’s clock for the choice');
@@ -43,16 +45,17 @@ it('Open the boutique asks first: the choice sheet for the Owner, the notice for
 });
 
 it('the opening is recorded only after the choice and the amounts, with the mode chosen; a plain opening sends no mode at all', () => {
-  assert.match(flow, /onConfirm=\{\(chosen\) => void amounts\(chosen\)\}/);
+  assert.match(flow, /onConfirm=\{\(chosen\) => void amounts\(chosen, true\)\}/);
   assert.match(flow, /onConfirm=\{\(money\) => void send\(mode, money\)\}/);
   assert.match(flow, /await openDay\.mutateAsync\(\{ \.\.\.\(chosen \? \{ mode: chosen \} : \{\}\), \.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\) \}\)/);
   assert.match(hooks, /api\.post<OpenClosing>\('\/closings\/open', \{ \.\.\.\(date \? \{ date \} : \{\}\), \.\.\.\(mode \? \{ mode \} : \{\}\), \.\.\.\(openingMoney \? \{ openingMoney \} : \{\}\) \}\)/);
 });
 
-it('one sheet serves the opening and the reopen, the safe default selected, remounted each time it is asked for', () => {
+it('one sheet serves the opening and the reopen, the safe default selected, remounted each fresh time it is asked for', () => {
   assert.match(flow, /<DayChoiceSheet\s+key=\{`day-\$\{nonce\}`\}\s+intent=\{intent\}/);
   assert.match(flow, /const choices = day \? \(intent === 'open' \? \(day\.openChoices \?\? \['continue'\]\) : day\.reopenChoices\) : \[\];/);
-  assert.match(flow, /setNonce\(\(n\) => n \+ 1\);/);
+  // Fresh unless the last attempt failed: then the chosen day and the amounts are still there (the user's brief, 29 Sep).
+  assert.match(flow, /if \(!failed\) setNonce\(\(n\) => n \+ 1\);/);
   assert.match(sheet, /useState<ReopenMode>\(options\[0\]\.mode\)/);
   assert.match(sheet, /const prefix = intent === 'open' \? 'openChoice' : 'reopen';/);
   assert.match(sheet, /accessibilityRole="radiogroup"/);

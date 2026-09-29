@@ -42,10 +42,12 @@ export interface DayChoiceSheetProps {
   busy?: boolean;
   /** The confirmation's words when another step follows — the money the shop opens with (docs/63) — so it never says "open" before anything opens. */
   confirmLabel?: string;
+  /** Its modal is gone: the step after it is shown only then (`BottomSheet`). */
+  onDismissed?: () => void;
   onConfirm: (mode: ReopenMode) => void;
 }
 
-export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, calendarDate, now, choices, busy, confirmLabel, onConfirm }: DayChoiceSheetProps) {
+export function DayChoiceSheet({ intent, open, onClose, onDismissed, businessDate, nextDate, calendarDate, now, choices, busy, confirmLabel, onConfirm }: DayChoiceSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
   const options = reopenOptions(choices);
@@ -58,6 +60,7 @@ export function DayChoiceSheet({ intent, open, onClose, businessDate, nextDate, 
     <BottomSheet
       open={open}
       onClose={onClose}
+      onDismissed={onDismissed}
       title={t(k('title'), { time: isolateLtr(now) })}
       subtitle={t(k('question'), dates)}
       footer={

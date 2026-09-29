@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -47,12 +48,21 @@ import { SheetDialogLayer } from './DialogHost';
 const DISMISS_DISTANCE = 110;
 /** Fling speed that dismisses regardless of distance travelled. */
 const DISMISS_VELOCITY = 800;
+/** How long to wait for iOS to report a dismissal before treating the modal as gone (one never presented reports none). */
+const DISMISS_REPORT_TIMEOUT_MS = 800;
 
 let nextSheetId = 0;
 
 export interface BottomSheetProps {
   open: boolean;
+  /** The sheet has slid away (its exit animation ended). Its native modal may still be on its way out. */
   onClose: () => void;
+  /**
+   * The sheet's native modal is gone — on iOS, once UIKit reports the dismissal. A sheet opened because this one
+   * closed must wait for this: iOS does not present a modal while another is still being dismissed, and the next sheet
+   * would never appear (the opening's amounts after its day choice, docs/63).
+   */
+  onDismissed?: () => void;
   title?: string;
   /** Lines the title may take before it is cut; 1 unless a sheet's title must survive large text. */
   titleLines?: number;
@@ -72,6 +82,7 @@ export interface BottomSheetProps {
 export function BottomSheet({
   open,
   onClose,
+  onDismissed,
   title,
   titleLines = 1,
   subtitle,
@@ -109,10 +120,28 @@ export function BottomSheet({
     return () => removeSheet(sheetId);
   }, [mounted, sheetId, pushSheet, removeSheet]);
 
+  /*
+   * On iOS the Modal stays rendered, hidden, until UIKit has dismissed it: only then is the sheet gone and
+   * `onDismissed` called. Elsewhere a hidden modal is gone at once.
+   */
+  const [dismissing, setDismissing] = useState(false);
+  const dismissed = useCallback(() => {
+    setDismissing(false);
+    onDismissed?.();
+  }, [onDismissed]);
+  // Whichever comes first, the report or the wait: once no longer dismissing, the other is cleared or has nothing to call.
+  useEffect(() => {
+    if (!dismissing) return;
+    const fallback = setTimeout(dismissed, DISMISS_REPORT_TIMEOUT_MS);
+    return () => clearTimeout(fallback);
+  }, [dismissing, dismissed]);
+
   const finishClose = useCallback(() => {
     setMounted(false);
     onClose();
-  }, [onClose]);
+    if (Platform.OS === 'ios') setDismissing(true);
+    else onDismissed?.();
+  }, [onClose, onDismissed]);
 
   /**
    * Reduce Motion keeps the sheet still.
@@ -142,6 +171,8 @@ export function BottomSheet({
 
   useEffect(() => {
     if (open) {
+      // Asked to open while its own modal is still being dismissed: open once it is gone, or iOS would not show it.
+      if (dismissing) return;
       setMounted(true);
       translateY.value = offscreen;
       backdrop.value = withTiming(1, { duration: plan.duration });
@@ -153,9 +184,10 @@ export function BottomSheet({
       animateOut();
     }
     // `mounted` is intentionally excluded: reacting to it would re-run the
-    // entry animation when the exit animation clears it.
+    // entry animation when the exit animation clears it. `dismissing` is
+    // included so an opening that waited for the dismissal happens after it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, dismissing]);
 
   const pan = Gesture.Pan()
     .onChange((event) => {
@@ -177,7 +209,10 @@ export function BottomSheet({
   }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
 
-  if (!mounted) return null;
+  if (!mounted) {
+    // iOS: the same Modal, hidden, until UIKit reports it dismissed — then the next sheet may be presented.
+    return dismissing ? <Modal visible={false} transparent statusBarTranslucent animationType="none" onDismiss={dismissed} /> : null;
+  }
 
   const maxHeight = screenHeight * maxHeightRatio;
 

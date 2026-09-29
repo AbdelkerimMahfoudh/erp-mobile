@@ -24,11 +24,14 @@ export function SetStartingAmountSheet({
   open,
   account,
   onClose,
+  onDismissed,
 }: {
   open: boolean;
   /** Kept by the caller after closing, so the title does not blank while the sheet slides away. */
   account: Pick<TrackedMethod, 'accountId' | 'label'> | null;
   onClose: () => void;
+  /** Its modal is gone: a sheet shown after this one waits for it (`BottomSheet`). */
+  onDismissed?: () => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -78,6 +81,7 @@ export function SetStartingAmountSheet({
     <BottomSheet
       open={open}
       onClose={close}
+      onDismissed={onDismissed}
       title={t('moneyTab.anchor.title', { account: name })}
       titleLines={2}
       // Pinned, so Save stays above the keyboard while the fields scroll beneath it.
