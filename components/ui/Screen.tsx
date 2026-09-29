@@ -197,19 +197,20 @@ export function Screen({
       hand: the large middle of the screen, the part somebody actually taps, was
       the part with no handler.
 
-      `flex: 1` on the Pressable matters as much as the handler. A Pressable
-      sizes to its children, so with a short cart or an empty state it would
-      cover a strip at the top and leave the blank space below it — the most
-      obvious place to tap — outside itself.
+      The dismissal is a layer BEHIND the content, filling the body, never a
+      Pressable AROUND it. Around it, it was an ancestor of every list these
+      pages hold: it took every touch that started inside the list, and on
+      iOS a scroll view does not scroll while an ancestor holds the touch — the
+      swipe was spent as a tap on blank space (the iPhone traces of 29 Sep on
+      the sale detail: `screen-blank(ABOVE-list)`, `Keyboard.dismiss` on
+      release, the list never moved). Behind the content it receives only the
+      touches nothing else covers — genuine blank space, down to the bottom of a
+      short page — and a list closes the keyboard itself on a tap or a drag.
     */
-    <Pressable
-      accessible={false}
-      onPress={dismissBlank}
-      className={className}
-      style={[styles.body, { padding: gutter, gap: gap ? space[gap] : undefined }]}
-    >
+    <View className={className} style={[styles.body, { padding: gutter, gap: gap ? space[gap] : undefined }]}>
+      <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
       {children}
-    </Pressable>
+    </View>
   );
 
   return (
@@ -230,27 +231,25 @@ export function Screen({
           the header, which means the area immediately around the input was the
           one place tapping did nothing.
 
-          `Pressable` and not a full-screen overlay: a real control inside wins
-          the touch because the deepest responder handles it, so buttons, the
-          camera icon and the input itself all behave normally and only genuine
-          blank space dismisses. `accessible={false}` keeps a gesture surface
-          out of the screen reader's order.
+          A layer behind each strip's content, as in the body: controls on top
+          behave normally — buttons, the camera icon, the input itself — and only
+          genuine blank space reaches the layer. Never around the content: a row
+          of chips that scrolls sideways would stop scrolling under it on iOS.
+          `accessible={false}` keeps a gesture surface out of the screen reader's
+          order.
         */}
         {header ? (
-          <Pressable accessible={false} onPress={dismissBlank} style={styles.header}>
+          <View style={styles.header}>
+            <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
             {header}
-          </Pressable>
+          </View>
         ) : null}
         {body}
         {footer ? (
-          <Pressable
-            accessible={false}
-            onPress={dismissBlank}
-            style={styles.footer}
-            onLayout={measureFooter}
-          >
+          <View style={styles.footer} onLayout={measureFooter}>
+            <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
             {footer}
-          </Pressable>
+          </View>
         ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>

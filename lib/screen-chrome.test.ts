@@ -187,7 +187,23 @@ it('blank space dismisses in the header and footer as well as the body', () => {
    */
   const dismissals = code.match(/onPress=\{dismissBlank\}/g) ?? [];
   assert.equal(dismissals.length, 4, 'scrolling body, non-scrolling body, header, footer');
-  assert.match(code, /<Pressable accessible=\{false\} onPress=\{dismissBlank\} style=\{styles\.header\}>/);
+  assert.match(code, /<View style=\{styles\.header\}>\s*<Pressable accessible=\{false\} onPress=\{dismissBlank\} style=\{StyleSheet\.absoluteFill\} \/>\s*\{header\}/);
+  assert.match(code, /<View style=\{styles\.footer\} onLayout=\{measureFooter\}>\s*<Pressable accessible=\{false\} onPress=\{dismissBlank\} style=\{StyleSheet\.absoluteFill\} \/>\s*\{footer\}/);
+});
+
+it('outside the scroll view, blank space is a layer behind the content — never a press around a list (the iPhone, 29 Sep)', () => {
+  /*
+   * Around the content, the press is an ancestor of every list inside it: it takes every touch that starts in the list,
+   * and on iOS a scroll view does not scroll while an ancestor holds the touch. The sale detail's lost swipes were
+   * exactly that (`screen-blank(ABOVE-list)`, `Keyboard.dismiss` on release, the list unmoved). Inside the scroll view
+   * the press stays around the content: there the scroll view is its ancestor, and scrolled every traced swipe.
+   */
+  const code = withoutComments(source(SCREEN));
+  const nonScroll = code.slice(code.indexOf('  ) : ('), code.indexOf('return ('));
+  assert.match(nonScroll, /<View className=\{className\} style=\{\[styles\.body, \{ padding: gutter, gap: gap \? space\[gap\] : undefined \}\]\}>\s*<Pressable accessible=\{false\} onPress=\{dismissBlank\} style=\{StyleSheet\.absoluteFill\} \/>\s*\{children\}\s*<\/View>/);
+  // Every surface outside the scroll view closes on itself: none wraps content.
+  assert.equal((code.match(/style=\{StyleSheet\.absoluteFill\} \/>/g) ?? []).length, 3);
+  assert.ok(!/<Pressable[^>]*style=\{styles\.(body|header|footer)\}/.test(code), 'no Pressable wraps a region');
 });
 
 it('nothing blocks scrolling, buttons or the camera control', () => {
