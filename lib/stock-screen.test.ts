@@ -177,6 +177,44 @@ it('never calls a refused delivery received', () => {
   }
 });
 
+/* ── every product, in stock or not ──────────────────────────────────────── */
+
+it('leads to every product, in stock or not, from one row above the shelf', () => {
+  assert.match(SCREEN, /<AllProductsRow onPress=\{\(\) => router\.push\('\/catalog' as Href\)\} \/>\s*<ShelfList/);
+  const row = SCREEN.slice(SCREEN.indexOf('function AllProductsRow'), SCREEN.indexOf('function ShelfList'));
+  assert.match(row, /title=\{t\('stock\.allProducts'\)\}/);
+  assert.match(row, /subtitle=\{t\('stock\.allProducts\.hint'\)\}/);
+});
+
+it('offers that row to every role, as More did — browsing products was never gated', () => {
+  const row = SCREEN.slice(SCREEN.indexOf('function AllProductsRow'), SCREEN.indexOf('function ShelfList'));
+  assert.ok(!/usePermission|canReceive|canManage|canView/.test(row), 'the row must not be gated');
+  assert.ok(!/can[A-Z]\w* \? \(\s*<AllProductsRow|can[A-Z]\w* && <AllProductsRow/.test(SCREEN), 'nor its use');
+});
+
+it('offers the product list, with the words typed, when a search finds nothing in stock', () => {
+  assert.match(SCREEN, /label: t\('stock\.searchAllProducts'\)/);
+  assert.match(SCREEN, /router\.push\(`\/catalog\?q=\$\{encodeURIComponent\(debounced\)\}` as Href\)/);
+  // Only for a search: an empty status filter is a question about units, not about a product.
+  assert.match(SCREEN, /action=\{\s*searching\s*\?/);
+});
+
+it('names a focused accessory too — it has stock lines, not units', () => {
+  // "View in Stock" from a product lands here focused; an accessory's name must not be blank.
+  assert.match(SCREEN, /const focusProduct = units\[0\]\?\.product \?\? stock\[0\]\?\.product \?\? null;/);
+});
+
+it('the product list takes those words, and keeps create and edit behind catalog.manage', () => {
+  const list = withoutComments(source('app/catalog/index.tsx'));
+  assert.match(list, /useLocalSearchParams<\{ q\?: string \}>\(\)/);
+  assert.match(list, /useState\(typeof carried === 'string' \? carried : ''\)/);
+  assert.match(list, /\{canManage \? \(\s*<Pressable\s+onPress=\{\(\) => router\.push\('\/catalog\/new' as never\)\}/);
+  assert.match(withoutComments(source('app/catalog/[id].tsx')), /\{canManage \? \(\s*<Section>/);
+  for (const f of ['app/catalog/index.tsx', 'app/catalog/[id].tsx', 'app/catalog/new.tsx', 'app/catalog/edit.tsx', 'app/catalog/categories.tsx']) {
+    assert.match(source(f), /usePermission\('catalog\.manage'\)/, `${f} gates itself`);
+  }
+});
+
 /* ── states ─────────────────────────────────────────────────────────────── */
 
 it('never draws unknown stock as an empty shelf', () => {

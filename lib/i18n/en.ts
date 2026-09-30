@@ -366,7 +366,7 @@ export const en = {
   'more.group.security': 'Security',
   'more.group.appearance': 'Language and appearance',
   'more.group.account': 'Account',
-  'nav.catalog': 'Catalog',
+  'nav.catalog': 'All products',
   'nav.team': 'Team',
   'nav.analytics': 'Analytics',
   'nav.settings': 'Business settings',
@@ -1874,7 +1874,7 @@ export const en = {
   'settings.storeId.copyFailed': 'Could not copy. You can read the ID from the screen instead.',
 
   // ── Catalog (G1) ───────────────────────────────────────────────────────────
-  'catalog.title': 'Catalog',
+  'catalog.title': 'All products',
   'catalog.search': 'Search name, brand, barcode…',
   'catalog.count': '{count} products',
   'catalog.count.one': '1 product',
@@ -1922,7 +1922,7 @@ export const en = {
   'catalog.detail.cost': 'Cost',
   'catalog.detail.hidden': 'Hidden',
   'catalog.detail.priceReadOnly': 'Prices are changed where stock is received and sold, not here.',
-  'catalog.detail.viewInventory': 'View in Inventory',
+  'catalog.detail.viewInventory': 'View in Stock',
   'catalog.detail.archivedNote':
     'Archived. It is hidden when adding new stock, and existing stock can still be sold.',
   'catalog.detail.added': 'Added',
@@ -2157,6 +2157,9 @@ export const en = {
   'stock.receive': 'Receive stock',
   'stock.showingProduct': 'Showing {product}',
   'stock.clearProduct': 'Show all stock',
+  'stock.allProducts': 'All products',
+  'stock.allProducts.hint': 'In stock or not',
+  'stock.searchAllProducts': 'Search all products',
   'stock.offline': 'You are offline. This is the stock as it was last loaded.',
   'stock.empty.category.title': 'Nothing in this category',
   'stock.empty.category.body': 'Try All, or receive a delivery.',

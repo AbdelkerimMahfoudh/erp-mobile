@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Plus, Tag } from 'lucide-react-native';
@@ -30,7 +30,12 @@ import type { ProductListRow, ProductPage, TrackingType } from '../../types/api'
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
- * Catalog (G1).
+ * All products — the catalogue (G1), reached from the Stock tab.
+ *
+ * Every product the shop has defined, in stock or not: the shelf on Stock lists
+ * only what can be sold today, so this is where a sold-out or never-received
+ * product is found. Stock opens it from its All products row, or with `?q=` when
+ * a search there found nothing in stock.
  *
  * Everything is resolved server-side — search, filters and cursor pagination —
  * because the catalog outgrows any fixed page long before a shop notices. The
@@ -54,7 +59,9 @@ export default function CatalogScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const canManage = usePermission('catalog.manage');
-  const [q, setQ] = useState('');
+  // The words a Stock search found nothing in stock for, carried over.
+  const { q: carried } = useLocalSearchParams<{ q?: string }>();
+  const [q, setQ] = useState(typeof carried === 'string' ? carried : '');
   const [tracking, setTracking] = useState<TrackingType | 'all'>('all');
   const [active, setActive] = useState<ActiveFilter>('active');
 

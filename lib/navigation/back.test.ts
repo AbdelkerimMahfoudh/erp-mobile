@@ -124,6 +124,15 @@ it('with no history the arrow goes to the parent, with the route’s own paramet
   assert.equal(backTarget('/nowhere'), '/');
 });
 
+it('All products belongs to Stock: its arrow, and every one of its screens, ends on the Stock tab — never on More', () => {
+  assert.equal(backTarget('/catalog'), TABS.stock);
+  assert.equal(backTarget('/catalog/[id]', { id: 'P-1' }), '/catalog');
+  for (const route of ['/catalog/[id]', '/catalog/new', '/catalog/edit', '/catalog/categories']) {
+    assert.equal(BACK_PARENTS[BACK_PARENTS[route]], TABS.stock, route + ' must lead back to Stock');
+  }
+  assert.ok(!Object.entries(BACK_PARENTS).some(([route, parent]) => route.startsWith('/catalog') && parent === TABS.more));
+});
+
 it('file and navigator names become the same pattern', () => {
   assert.equal(routeOfFile('app/sales/pay/[id].tsx'), '/sales/pay/[id]');
   assert.equal(routeOfFile('app/closing/index.tsx'), '/closing');

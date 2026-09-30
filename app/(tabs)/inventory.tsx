@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Cable, PackagePlus, PackageSearch, X } from 'lucide-react-native';
+import { ArrowLeftRight, Cable, PackagePlus, PackageSearch, Tag, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -59,6 +59,15 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * are lifecycle statuses of units and keep their server meaning on the unit
  * list. The two never share a row of chips, because they are different kinds of
  * question.
+ *
+ * ## Every product, in stock or not
+ *
+ * The shelf is what can be sold today, so a phone whose last unit sold, or a
+ * product never received here, is not on it. Stock is still the one place to
+ * find those: the All products row above the shelf, and a search that finds
+ * nothing in stock, open the product list (`/catalog`) — found, opened and, for
+ * whoever holds `catalog.manage`, added or edited there. It replaced the
+ * Catalog row on More (REACHED_FROM_TABS).
  *
  * ## What it never shows
  *
@@ -216,9 +225,10 @@ export default function InventoryScreen() {
   const units = rows.filter((r): r is Extract<InventoryRow, { kind: 'unit' }> => r.kind === 'unit');
   const stock = rows.filter((r): r is Extract<InventoryRow, { kind: 'stock' }> => r.kind === 'stock');
 
+  // A focused accessory has stock lines, not units, so its name comes from whichever is there.
+  const focusProduct = units[0]?.product ?? stock[0]?.product ?? null;
   const focusLabel =
-    focus?.label ??
-    (units[0]?.product ? [productTitle(units[0].product), variantSummary(units[0].product)].filter(Boolean).join(' · ') : '');
+    focus?.label ?? (focusProduct ? [productTitle(focusProduct), variantSummary(focusProduct)].filter(Boolean).join(' · ') : '');
 
   const clearFocus = () => {
     setFocus(null);
@@ -421,14 +431,17 @@ export default function InventoryScreen() {
         >
           {staleNotice}
           {mode === 'summary' ? (
-            <ShelfList
-              loading={summary.isLoading}
-              rows={shelf}
-              everything={allRows.length}
-              canReceive={canReceive}
-              onReceive={() => router.push('/receive' as Href)}
-              onOpen={openVariant}
-            />
+            <>
+              <AllProductsRow onPress={() => router.push('/catalog' as Href)} />
+              <ShelfList
+                loading={summary.isLoading}
+                rows={shelf}
+                everything={allRows.length}
+                canReceive={canReceive}
+                onReceive={() => router.push('/receive' as Href)}
+                onOpen={openVariant}
+              />
+            </>
           ) : inventory.isLoading ? (
             <SkeletonList count={6} />
           ) : rows.length === 0 ? (
@@ -448,6 +461,20 @@ export default function InventoryScreen() {
                     ? 'inventory.empty.filtered.body'
                     : 'inventory.empty.body',
               )}
+              /*
+               * Nothing in stock matches — the product may still exist, sold out
+               * or never received here. The product list answers that, with the
+               * same words already typed.
+               */
+              action={
+                searching
+                  ? {
+                      label: t('stock.searchAllProducts'),
+                      icon: Tag,
+                      onPress: () => router.push(`/catalog?q=${encodeURIComponent(debounced)}` as Href),
+                    }
+                  : undefined
+              }
             />
           ) : (
             <>
@@ -530,6 +557,25 @@ export default function InventoryScreen() {
         </ScrollView>
       )}
     </Screen>
+  );
+}
+
+/**
+ * The way to every product the shop has defined — the ones on the shelf, and
+ * the ones that are not (sold out, or never received at this branch).
+ *
+ * One quiet row, for every role: browsing products is ungated, as it always
+ * was on More, and the product list gates its own create and edit controls on
+ * `catalog.manage`. Nothing here waits for data, so it is there while the
+ * shelf loads and when the shelf is empty.
+ */
+function AllProductsRow({ onPress }: { onPress: () => void }) {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  return (
+    <RowGroup style={styles.allProducts}>
+      <ListRow flat leading={Tag} title={t('stock.allProducts')} subtitle={t('stock.allProducts.hint')} onPress={onPress} />
+    </RowGroup>
   );
 }
 
@@ -690,6 +736,9 @@ const useStyles = makeStyles(() => ({
     flex: 1,
   },
   notice: {
+    marginBottom: space.md,
+  },
+  allProducts: {
     marginBottom: space.md,
   },
   hint: {

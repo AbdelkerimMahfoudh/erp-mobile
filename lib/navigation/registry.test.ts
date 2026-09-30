@@ -679,6 +679,7 @@ it('what More leaves out is reachable from a tab, and says which', () => {
   }
   const stock = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'inventory.tsx'), 'utf8');
   assert.match(stock, /router\.push\('\/transfers' as Href\)/, 'Stock must lead to transfers');
+  assert.match(stock, /router\.push\('\/catalog' as Href\)/, 'Stock must lead to all products');
   const partners = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'partners.tsx'), 'utf8');
   assert.match(partners, /router\.push\('\/consignments' as Href\)/, 'Partners must lead to consignments');
 });
@@ -700,8 +701,30 @@ it('groups show only permitted destinations and never render empty', () => {
   }
   const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
   assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
-  const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
-  assert.deepEqual(manager, ['catalog'], 'a Manager holds neither user.manage, import.run nor settings.manage');
+  // All products was a Manager's only Manage row; it is on Stock now, so the group is absent rather than empty.
+  const manager = visibleGroups(MANAGER).map((e) => e.group.id);
+  assert.ok(!manager.includes('manage'), 'a Manager holds neither user.manage, import.run nor settings.manage');
+  const owner = visibleGroups(OWNER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
+  assert.deepEqual(owner, ['team', 'imports', 'settings']);
+});
+
+it('All products is not on More: the Stock tab leads to it, for every role, by the route it always had', () => {
+  // Off More for everybody — no role finds it there twice.
+  for (const granted of [OWNER, MANAGER, EMPLOYEE, new Set<string>()]) {
+    const shown = visibleGroups(granted).flatMap((e) => e.destinations.map((d) => d.id));
+    assert.ok(!shown.includes('catalog'), 'More must not list all products');
+  }
+  assert.match(REACHED_FROM_TABS.catalog, /^Stock tab/);
+  // Still a registry destination: same route, still ungated, still in the stock hub for /hub/stock.
+  const catalog = hubById('stock')!.children.find((c) => c.id === 'catalog')!;
+  assert.equal(catalog.route, '/catalog');
+  assert.equal(catalog.perm, undefined);
+  assert.equal(catalog.anyOf, undefined);
+  // Every screen of it is still a route file, so old links and deep links open exactly what they did.
+  const routes = appRoutes();
+  for (const route of ['/catalog', '/catalog/[id]', '/catalog/new', '/catalog/edit', '/catalog/categories']) {
+    assert.ok(routes.includes(route), route + ' must still be a route');
+  }
 });
 
 it('every More group name exists in all three catalogues', () => {

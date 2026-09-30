@@ -361,7 +361,7 @@ export const ar: Catalogue = {
   'more.group.security': 'الأمان',
   'more.group.appearance': 'اللغة والمظهر',
   'more.group.account': 'الحساب',
-  'nav.catalog': 'الكتالوج',
+  'nav.catalog': 'كل المنتجات',
   'nav.team': 'الفريق',
   'nav.analytics': 'التحليلات',
   'nav.settings': 'إعدادات المتجر',
@@ -1840,7 +1840,7 @@ export const ar: Catalogue = {
   'settings.storeId.copyFailed': 'تعذّر النسخ. يمكنك قراءة المعرّف من الشاشة.',
 
   // ── الكتالوج ───────────────────────────────────────────────────────────────
-  'catalog.title': 'الكتالوج',
+  'catalog.title': 'كل المنتجات',
   'catalog.search': 'ابحث بالاسم أو العلامة أو الباركود…',
   'catalog.count': '{count} منتجات',
   'catalog.count.one': 'منتج واحد',
@@ -2111,6 +2111,9 @@ export const ar: Catalogue = {
   'stock.receive': 'استلام مخزون',
   'stock.showingProduct': 'المعروض: {product}',
   'stock.clearProduct': 'عرض كل المخزون',
+  'stock.allProducts': 'كل المنتجات',
+  'stock.allProducts.hint': 'متوفرة أو غير متوفرة',
+  'stock.searchAllProducts': 'ابحث في كل المنتجات',
   'stock.offline': 'أنت غير متصل. هذا هو المخزون كما حُمِّل آخر مرة.',
   'stock.empty.category.title': 'لا شيء في هذه الفئة',
   'stock.empty.category.body': 'جرّب «الكل»، أو استلم شحنة.',
