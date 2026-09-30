@@ -28,8 +28,12 @@ export function entryRoute(s: EntryState): string | null {
   const inAuth = s.segment === '(auth)';
   const onSelectBranch = s.segment === 'select-branch';
   const onStateScreen = s.segment === 'subscription-blocked';
+  // The person's own account (docs/64): verifying a number and deleting the
+  // account are rights the shop's subscription cannot withhold, so the refusal
+  // screen may lead there and the guard leaves them there.
+  const onAccount = s.segment === 'account';
 
-  if (s.closed) return onStateScreen ? null : ACCESS_REFUSED;
+  if (s.closed) return onStateScreen || onAccount ? null : ACCESS_REFUSED;
   // The design-system gallery renders without a session (development only).
   if (s.segment === 'dev') return null;
   // Platform administration is a separate identity with its own sign-in and session, in both directions.

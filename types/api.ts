@@ -1485,3 +1485,61 @@ export interface SaleSelection {
   /** How many can be sold here now — for a counted `product` selection only. */
   quantityAvailable?: number;
 }
+
+// ── The signed-in person's own account (docs/64) ─────────────────────────────
+
+export type AccountDeletionKind = 'personal_login' | 'company_closure';
+export type AccountDeletionStatus =
+  | 'awaiting_code'
+  | 'confirmed'
+  | 'processing'
+  | 'completed'
+  | 'cancelled'
+  | 'failed';
+
+/** One account-deletion request, as the server tells it. Never carries a code. */
+export interface DeletionRequestView {
+  id: string;
+  kind: AccountDeletionKind;
+  status: AccountDeletionStatus;
+  destinationMasked: string;
+  language: string;
+  createdAt: string;
+  codeSentAt: string | null;
+  codeExpiresAt: string | null;
+  attemptsRemaining: number | null;
+  resendAvailableAt: string | null;
+  /** True only when the channel accepted the message. */
+  delivered: boolean;
+  deliveryProblem: string | null;
+  confirmedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  failure: string | null;
+  retained: unknown;
+}
+
+export interface AccountView {
+  id: string;
+  name: string;
+  login: string;
+  personalId: string;
+  phone: string | null;
+  phoneVerifiedAt: string | null;
+  email: string | null;
+  emailVerifiedAt: string | null;
+  /** Whether a deletion code can be sent at all. */
+  whatsappVerified: boolean;
+  /** What "delete my account" would delete for this person. */
+  deletionKind: AccountDeletionKind;
+  deletion: DeletionRequestView | null;
+}
+
+export interface PhoneVerificationStart {
+  challengeId: string;
+  destinationMasked: string;
+  expiresAt: string;
+  attemptsRemaining: number;
+  resendAvailableAt: string | null;
+  delivered: boolean;
+}

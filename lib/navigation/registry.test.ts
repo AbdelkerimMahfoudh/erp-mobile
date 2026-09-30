@@ -331,7 +331,7 @@ it('the account hub is separate from the business hubs, and holds personal prefe
   // Appearance & language joined it in CP3: how the app looks and what it
   // speaks are personal preferences, not business configuration, so they sit
   // beside the devices you would change them on rather than in store Settings.
-  assert.deepEqual(account.children.map((c) => c.id), ['appearance', 'devices', 'sync']);
+  assert.deepEqual(account.children.map((c) => c.id), ['account', 'appearance', 'devices', 'sync']);
   assert.equal(
     visibleHubs(new Set<string>(), 'business').find((e) => e.hub.id === 'account'),
     undefined,

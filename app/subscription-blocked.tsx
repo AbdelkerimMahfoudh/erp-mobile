@@ -80,6 +80,12 @@ export default function SubscriptionBlocked() {
           <Button title={t('sub.recheck')} onPress={() => void onRecheck()} loading={checking} />
           {/* Another person's shop may be the one this phone should be signed in to. */}
           <Button title={t('action.signOut')} variant="tertiary" onPress={() => void signOut()} />
+          {/*
+            The way out is here too (docs/64, App Review 5.1.1(v)): a person
+            whose shop was refused, suspended or never activated can still
+            delete their account, and the guard lets them reach that screen.
+          */}
+          <Button title={t('account.delete.link')} variant="tertiary" onPress={() => router.push('/account/delete' as never)} />
         </View>
       </View>
     </Screen>

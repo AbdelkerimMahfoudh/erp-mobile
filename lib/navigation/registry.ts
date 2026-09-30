@@ -55,7 +55,8 @@ export type IconName =
   | 'Smartphone'
   | 'Palette'
   | 'RefreshCw'
-  | 'Clock';
+  | 'Clock'
+  | 'CircleUserRound';
 
 export type HubId =
   | 'sales'
@@ -216,6 +217,10 @@ export const HUBS: readonly Hub[] = [
     icon: 'ShieldCheck',
     placement: 'account',
     children: [
+      // The person's own account (docs/64): who they are, the WhatsApp number
+      // their security codes go to, and the way to delete the account. First,
+      // and ungated: every login has one, whatever the shop's subscription says.
+      { id: 'account', route: '/account', titleKey: 'nav.account', icon: 'CircleUserRound' },
       // How the app LOOKS and what it SPEAKS — personal preferences, not
       // business configuration, which is why they are here and not in the
       // store-wide Settings screen.
@@ -249,7 +254,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
   { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'catalog', 'settings'] },
-  { id: 'account', titleKey: 'more.group.account', destinationIds: ['appearance', 'subscription', 'devices', 'sync'] },
+  { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'subscription', 'devices', 'sync'] },
 ];
 
 /**

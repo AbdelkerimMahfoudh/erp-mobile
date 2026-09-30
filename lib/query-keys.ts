@@ -1,6 +1,8 @@
 /** Centralized React Query keys so invalidation stays consistent. */
 export const qk = {
   me: ['me'] as const,
+  /** The signed-in person's own account page (docs/64). */
+  account: ['account'] as const,
   branches: ['branches'] as const,
   permissions: (branchId: string | null) => ['permissions', branchId] as const,
   products: (q?: string) => ['products', q ?? ''] as const,

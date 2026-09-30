@@ -116,7 +116,7 @@ describe('what a shop is told', () => {
     assert.match(auth, /useEntitlement\(Boolean\(user\) && !bootstrapping\)/);
     assert.match(auth, /!entitlement\.data\.canRead/);
     const entry = strip(read('lib/navigation/entry.ts'));
-    assert.match(entry, /if \(s\.closed\) return onStateScreen \? null : ACCESS_REFUSED;/);
+    assert.match(entry, /if \(s\.closed\) return onStateScreen \|\| onAccount \? null : ACCESS_REFUSED;/);
     assert.match(entry, /export const ACCESS_REFUSED = '\/subscription-blocked';/);
     assert.match(auth, /if \(target\) router\.replace\(target as never\);/);
     assert.doesNotMatch(auth, /Date\.now\(\)|getTime\(\)/);
