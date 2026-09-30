@@ -397,7 +397,7 @@ export const fr: Catalogue = {
   'more.group.security': 'Sécurité',
   'more.group.appearance': 'Langue et apparence',
   'more.group.account': 'Compte',
-  'nav.catalog': 'Catalogue',
+  'nav.catalog': 'Tous les produits',
   'nav.team': 'Équipe',
   'nav.analytics': 'Analyses',
   'nav.settings': 'Paramètres de l’entreprise',
@@ -2002,7 +2002,7 @@ export const fr: Catalogue = {
     'Copie impossible. Vous pouvez lire l’identifiant à l’écran.',
 
   // ── Catalog (G1) ───────────────────────────────────────────────────────────
-  'catalog.title': 'Catalogue',
+  'catalog.title': 'Tous les produits',
   'catalog.search': 'Rechercher nom, marque, code-barres…',
   'catalog.count': '{count} produits',
   'catalog.count.one': '1 produit',
@@ -2314,6 +2314,9 @@ export const fr: Catalogue = {
   'stock.receive': 'Réceptionner du stock',
   'stock.showingProduct': 'Affichage : {product}',
   'stock.clearProduct': 'Voir tout le stock',
+  'stock.allProducts': 'Tous les produits',
+  'stock.allProducts.hint': 'En stock ou non',
+  'stock.searchAllProducts': 'Rechercher dans tous les produits',
   'stock.offline': 'Vous êtes hors ligne. Voici le stock tel qu’il a été chargé en dernier.',
   'stock.empty.category.title': 'Rien dans cette catégorie',
   'stock.empty.category.body': 'Essayez « Tout », ou réceptionnez une livraison.',

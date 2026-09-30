@@ -133,8 +133,9 @@ export const HUBS: readonly Hub[] = [
     icon: 'Package',
     placement: 'business',
     children: [
-      // Catalog stays ungated: Sell and Receive both depend on finding a
-      // product, and the create/edit controls inside gate themselves.
+      // All products (the catalogue) stays ungated: Sell and Receive both depend
+      // on finding a product, and the create/edit controls inside gate
+      // themselves. More no longer lists it — Stock leads to it (REACHED_FROM_TABS).
       { id: 'catalog', route: '/catalog', titleKey: 'nav.catalog', icon: 'Tag' },
       { id: 'transfers', route: '/transfers', titleKey: 'nav.transfers', icon: 'ArrowLeftRight', perm: 'transfer.view' },
       // Opening stock, brought in once. Owner-only (`0073`); no supplier column.
@@ -248,7 +249,7 @@ export interface MoreGroup {
 export const MORE_GROUPS: readonly MoreGroup[] = [
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'catalog', 'settings'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'settings'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['appearance', 'subscription', 'devices', 'sync'] },
 ];
 
@@ -262,6 +263,7 @@ export const REACHED_FROM_TABS: Readonly<Record<string, string>> = {
   transfers: 'Stock tab — the transfers button in its header.',
   stores: 'Partners tab — it is this list.',
   consignments: 'Partners tab — the Consignments row under the stores.',
+  catalog: 'Stock tab — the All products row above its shelf, and its search when nothing in stock matches: every product, in stock or not.',
 };
 
 /** The More groups this user may be offered, each with its permitted destinations; empty groups omitted. */
