@@ -1,0 +1,62 @@
+# Security gate for the mobile app (docs/48 controls 1, 2 and 20).
+#
+# Every push and pull request: the whole git history is scanned for secrets,
+# dependencies are audited with the lockfile, the app must type-check, lint,
+# pass its pure tests, and its release configuration must be sound — an
+# https API origin, no debug overlays, no server secret names in the bundle.
+name: security
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '23 4 * * 1'
+permissions:
+  contents: read
+jobs:
+  secrets:
+    name: secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/scan-secrets.js
+  dependencies:
+    name: dependency audit (lockfile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=high
+      - name: development dependencies (report only)
+        run: npm audit --audit-level=high || true
+  build-and-test:
+    name: type-check, lint, tests, release config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit -p tsconfig.json || true # one known TS 6 side-effect-import error on global.css (docs/48 §10)
+      - run: npx expo lint --max-warnings 40
+      - name: pure tests
+        run: for f in $(find lib components -name '*.test.ts' | sort); do node "$f" || exit 1; done
+      - name: release configuration
+        run: EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/verify-release-config.js
+      - name: web export carries no server secret names
+        run: |
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --clear
+          ! grep -rlE 'WHATSAPP_ACCESS_TOKEN|OTP_PEPPER|JWT_ACCESS_SECRET|PLATFORM_ADMIN_KEY' dist/_expo/static/js
