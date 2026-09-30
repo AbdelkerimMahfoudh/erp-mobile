@@ -702,7 +702,15 @@ function ReceiveScreen() {
         notice={sheetNotice}
         recovery={recovery}
         lines={staged}
-        onClose={() => setPending(null)}
+        /*
+          The sheet also closes to make room for the product picker, and a
+          sheet reports every close — that one included. The scan is still
+          waiting for its product then, so it is dropped only when the person
+          closed the sheet themselves.
+        */
+        onClose={() => {
+          if (!pickerOpen) setPending(null);
+        }}
         onAdd={addStaged}
         onCreateProduct={createProduct}
         onChooseProduct={() => setPickerOpen(true)}
