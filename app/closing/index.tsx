@@ -9,6 +9,7 @@ import { SelectSheet } from '../../components/overlay/SelectSheet';
 import { CloseDaySheet } from '../../components/closing/CloseDaySheet';
 import { useOpeningFlow } from '../../components/day/useOpeningFlow';
 import { HistoryPanel } from '../../components/closing/HistoryPanel';
+import { ReportPdfPanel } from '../../components/reports/ReportPdfPanel';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
@@ -150,6 +151,8 @@ function Report({
   const canCount = usePermission('closing.count');
   const canClose = usePermission('closing.perform');
   const canCorrect = usePermission('financial.correction.request');
+  /** The daily report document needs the reports permission as well as this screen's own (docs/66). */
+  const canPrint = usePermission('report.view') && canCount;
   /*
     Opening and reopening, each with the money the shop opens with (docs/63): the shared flow — the day before 06:00,
     then the amounts — so this screen and Home's Open store now can never ask differently.
@@ -353,6 +356,14 @@ function Report({
           </Text>
         ) : null}
       </View>
+
+      {/*
+        The figures above as a PDF (docs/66): this business date, named explicitly so a PDF made after 06:00 still
+        prints the day on screen. A new date is a new panel — a PDF of another day is never offered here.
+      */}
+      {canPrint ? (
+        <ReportPdfPanel key={report.date} request={{ kind: 'daily', date: report.date }} subtitle={t('reportPdf.generate.daily', { date: dateWord })} />
+      ) : null}
 
 
       {/* ── What happened, in order: one rectangle that slides open ── */}

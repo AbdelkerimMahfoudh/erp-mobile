@@ -69,6 +69,12 @@ export function formatDayRange(from: string, to: string): string {
   }
 }
 
+/** A `YYYY-MM` month as a title: "September 2026", "Septembre 2026", "سبتمبر 2026". */
+export function formatMonth(month: string): string {
+  const text = formatDateFns(calendarDate(`${month}-01`), 'MMMM yyyy', { locale: dateLocale() });
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function formatDateTime(value: string | number | Date): string {
   return formatDateFns(toDate(value), 'd MMM yyyy · HH:mm', { locale: dateLocale() });
 }

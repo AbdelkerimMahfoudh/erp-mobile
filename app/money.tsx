@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { AlertTriangle } from 'lucide-react-native';
 import { ExportAction } from '../components/reports/ExportAction';
+import { ReportPdfPanel } from '../components/reports/ReportPdfPanel';
 import { PeriodSelector } from '../components/money/PeriodSelector';
 import {
   Card,
@@ -21,7 +22,7 @@ import { isolateLtr } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../lib/design/amount-row';
 import { makeStyles } from '../lib/design/theme';
-import { formatMoney } from '../lib/format';
+import { formatDayRange, formatMoney } from '../lib/format';
 import { useConnectivity } from '../lib/connectivity';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
@@ -158,6 +159,18 @@ export default function ResultsScreen() {
                 amount: isolateLtr(formatMoney(s.discrepancies.total)),
               })}
             </InlineNotice>
+          ) : null}
+
+          {/*
+            The month on screen as a PDF (docs/66) — this month to date, named explicitly so the PDF prints the
+            month shown even across midnight. Only for "This month": a day's PDF is the Daily closing's.
+          */}
+          {key === 'month' ? (
+            <ReportPdfPanel
+              key={range.from}
+              request={{ kind: 'monthly', month: range.from.slice(0, 7) }}
+              subtitle={t('reportPdf.generate.monthly', { range: formatDayRange(range.from, range.to) })}
+            />
           ) : null}
         </>
       )}
