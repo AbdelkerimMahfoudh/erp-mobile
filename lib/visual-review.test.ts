@@ -187,6 +187,13 @@ it('at 320 points with large text a status wraps inside its chip and the row mak
   }
   assert.match(code('app/sales/index.tsx'), /rowAmount: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',/);
   assert.match(code('app/consignments/[id].tsx'), /moneyState\.\$\{s\.money\}`\)\} size="sm" dot style=\{styles\.value\} \/>/, 'the money state shrinks beside its label');
+  // The platform administration: the overview's tools wrap; a business's name keeps half the card; an action wraps.
+  const overview = code('app/platform/index.tsx');
+  assert.match(overview, /tools: \{ flexDirection: 'row', flexWrap: 'wrap',/);
+  assert.match(overview, /rowHead: \{ \.\.\.AMOUNT_ROW, columnGap: space\.sm \},\s*rowName: AMOUNT_LABEL,/);
+  const business = code('app/platform/[id].tsx');
+  assert.match(business, /headRow: \{ \.\.\.AMOUNT_ROW, columnGap: space\.sm \},\s*name: AMOUNT_LABEL,/);
+  assert.match(business, /size="sm"\s*wrap\s*style=\{styles\.action\}/);
 });
 
 it('an open shop that lands on the refusal screen is sent into the app, not told its subscription ended', () => {

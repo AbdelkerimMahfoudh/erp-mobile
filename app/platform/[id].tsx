@@ -15,6 +15,7 @@ import {
   TextField,
 } from '../../components/ui';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
@@ -110,7 +111,7 @@ export default function PlatformBusinessScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Card style={styles.identity}>
             <View style={styles.headRow}>
-              <Text variant="title" style={styles.flex}>
+              <Text variant="title" style={styles.name}>
                 {business.name}
               </Text>
               <Chip tone={platformStateTone(state)} label={t(`platform.state.${state}` as never)} dot />
@@ -175,6 +176,8 @@ export default function PlatformBusinessScreen() {
                   title={t(`platform.action.${a}` as never)}
                   variant={a === action ? 'primary' : isHighImpact(a) ? 'danger' : 'secondary'}
                   size="sm"
+                  wrap
+                  style={styles.action}
                   onPress={() => setAction(action === a ? null : a)}
                 />
               ))}
@@ -417,14 +420,16 @@ function ActionForm({
 }
 
 const useStyles = makeStyles(() => ({
-  flex: { flex: 1 },
   content: { gap: space.base, paddingBottom: space['3xl'] },
   identity: { gap: space.sm },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  // The name keeps half the card; a state that needs more moves below it (the amount-row rule).
+  headRow: { ...AMOUNT_ROW, columnGap: space.sm },
+  name: AMOUNT_LABEL,
   line: { gap: 2 },
   list: { gap: space.sm },
   person: { gap: 2, paddingVertical: space.xs },
   chips: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'flex-end' },
+  action: { maxWidth: '100%' },
   event: { gap: 2, paddingVertical: space.xs },
 }));

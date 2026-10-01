@@ -3,6 +3,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Stack, useRouter } from 'expo-router';
 import { Button, Chip, EmptyState, ErrorState, ListSeparator, Screen, SearchInput, SkeletonList, Text } from '../../components/ui';
 import { radius, space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles } from '../../lib/design/theme';
 import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -122,7 +123,7 @@ function BusinessRow({ row, first, last, onPress }: { row: PlatformBusinessRow; 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={[styles.row, first ? styles.rowFirst : null, last ? styles.rowLast : null]}>
       <View style={styles.rowHead}>
-        <Text variant="bodyStrong" numberOfLines={1} style={styles.flex}>
+        <Text variant="bodyStrong" numberOfLines={1} style={styles.rowName}>
           {row.name}
         </Text>
         <Chip tone={platformStateTone(row.state)} label={t(`platform.state.${row.state}` as never)} size="sm" dot />
@@ -154,7 +155,8 @@ const useStyles = makeStyles((colors) => ({
     borderColor: colors.border.subtle,
   },
   filters: { gap: space.sm },
-  tools: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  // The count and the two actions wrap rather than push *Create a business* off a narrow screen.
+  tools: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.sm },
   row: {
     backgroundColor: colors.surface.card,
     borderColor: colors.border.subtle,
@@ -166,6 +168,8 @@ const useStyles = makeStyles((colors) => ({
   },
   rowFirst: { borderTopWidth: StyleSheet.hairlineWidth, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
   rowLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },
-  rowHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  // The name keeps half the row — never cut to one letter beside a long state; the state moves below instead.
+  rowHead: { ...AMOUNT_ROW, columnGap: space.sm },
+  rowName: AMOUNT_LABEL,
   pager: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.md, paddingTop: space.base },
 }));
