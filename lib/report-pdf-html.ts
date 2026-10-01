@@ -126,6 +126,7 @@ export const REPORT_PDF_KEYS = [
   'dailyReport.snapshot.reason',
   'closing.channel.cash',
   'closing.channel.unattributed',
+  'closingHistory.inactive.note',
   'results.hidden.title',
 ] as const;
 
@@ -238,6 +239,13 @@ function writer(ctx: ReportPdfContext) {
   return { word, fill, figure, count, money, less, result, row, chip, section, note, lines, tile, channel, warnings };
 }
 
+/** The shop's name as the title, and the branch under it — once, when the two are the same name. */
+function identity(doc: ReportDocument): string {
+  const { company, branch } = doc.identity;
+  const title = company || branch;
+  return `<h1>${esc(title)}</h1>${branch && branch !== title ? `<div class="branch">${esc(branch)}</div>` : ''}`;
+}
+
 function page(ctx: ReportPdfContext, title: string, body: string): string {
   const dir = ctx.rtl ? 'rtl' : 'ltr';
   return `<!DOCTYPE html>
@@ -285,13 +293,13 @@ function page(ctx: ReportPdfContext, title: string, body: string): string {
   .tile-value { font-size: 14.5pt; font-weight: 700; margin-top: .6mm; }
   .tile-caption { color: ${INK.muted}; font-size: 8.8pt; margin-top: .4mm; }
 
-  section.block { margin-top: 6.5mm; break-inside: avoid; page-break-inside: avoid; }
+  section.block { margin-top: 5.5mm; break-inside: avoid; page-break-inside: avoid; }
   h2 { font-size: 11.5pt; margin: 0 0 2mm; padding-inline-start: 2.6mm; border-inline-start: 2.4pt solid ${INK.accent};
        break-after: avoid; page-break-after: avoid; }
   table { width: 100%; border-collapse: collapse; }
   thead { display: table-header-group; }
   tr { break-inside: avoid; page-break-inside: avoid; }
-  th, td { padding: 1.6mm 0; border-bottom: .5pt solid ${INK.rule}; vertical-align: top; }
+  th, td { padding: 1.4mm 0; border-bottom: .5pt solid ${INK.rule}; vertical-align: top; }
   th { text-align: start; font-weight: 400; }
   td.num, th.num { text-align: end; padding-inline-start: 4mm; white-space: nowrap; }
   thead th { color: ${INK.muted}; font-size: 8.8pt; font-weight: 600; border-bottom: .8pt solid ${INK.rule}; }
@@ -305,8 +313,9 @@ function page(ctx: ReportPdfContext, title: string, body: string): string {
   ul.warnings li { display: flex; gap: 2.6mm; align-items: baseline; padding: 1.4mm 0; border-bottom: .5pt solid ${INK.rule}; }
   ul.warnings li .chip { margin-top: 0; flex: none; }
 
-  footer { margin-top: 9mm; padding-top: 3mm; border-top: .5pt solid ${INK.rule}; color: ${INK.muted}; font-size: 8.6pt;
-           break-inside: avoid; page-break-inside: avoid; }
+  /* Never a page of its own: it follows the last section onto whichever page that ends on. */
+  footer { margin-top: 6mm; padding-top: 2.4mm; border-top: .5pt solid ${INK.rule}; color: ${INK.muted}; font-size: 8.6pt;
+           break-inside: avoid; page-break-inside: avoid; break-before: avoid; page-break-before: avoid; }
 </style>
 </head>
 <body>
@@ -329,7 +338,9 @@ export function buildDailyReportHtml(doc: DailyReportDocument, ctx: ReportPdfCon
       ? doc.basis.closedBy
         ? w.fill('dailyReport.snapshot', { time: esc(ctx.formatDateTime(doc.basis.closedAt)), name: esc(doc.basis.closedBy) })
         : w.fill('dailyReport.snapshot.noName', { time: esc(ctx.formatDateTime(doc.basis.closedAt)) })
-      : w.word(doc.isToday ? 'reportPdf.basis.liveToday' : 'reportPdf.basis.livePast');
+      : doc.standing === 'inactive'
+        ? w.word('closingHistory.inactive.note')
+        : w.word(doc.isToday ? 'reportPdf.basis.liveToday' : 'reportPdf.basis.livePast');
   const basisExtra = [
     doc.basis.acknowledgedUnverified ? w.word('reportPdf.basis.acknowledged') : '',
     doc.basis.reason ? w.fill('dailyReport.snapshot.reason', { reason: esc(doc.basis.reason) }) : '',
@@ -338,8 +349,7 @@ export function buildDailyReportHtml(doc: DailyReportDocument, ctx: ReportPdfCon
 <header class="head">
   <div class="who">
     <div class="eyebrow">${w.word('reportPdf.daily.title')}</div>
-    <h1>${esc(doc.identity.company || doc.identity.branch)}</h1>
-    ${doc.identity.company ? `<div class="branch">${esc(doc.identity.branch)}</div>` : ''}
+    ${identity(doc)}
   </div>
   <div class="when">
     <div class="period">${esc(ctx.formatDate(doc.date))}</div>
@@ -485,8 +495,7 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
 <header class="head">
   <div class="who">
     <div class="eyebrow">${w.word('reportPdf.monthly.title')}</div>
-    <h1>${esc(doc.identity.company || doc.identity.branch)}</h1>
-    ${doc.identity.company ? `<div class="branch">${esc(doc.identity.branch)}</div>` : ''}
+    ${identity(doc)}
   </div>
   <div class="when">
     <div class="period">${esc(ctx.formatMonth(doc.month))}</div>
@@ -518,7 +527,7 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
         : '',
       s.returns.count > 0 ? w.row(w.fill('dailyReport.sales.returns', { count: w.count(s.returns.count) }), w.less(s.returns.value)) : '',
       w.row(w.word('dailyReport.sales.net'), w.money(s.net.value), 'total'),
-    ]) + w.note(counts),
+    ]),
   );
 
   const result =

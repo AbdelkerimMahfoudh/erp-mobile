@@ -309,6 +309,13 @@ it('a closed day: as closed, when and by whom, the reason given and the acknowle
   assert.ok(!text.includes('The day is still open'));
 });
 
+it('a day with no activity says there is nothing to close — never that it was not closed', () => {
+  const text = textOf(buildReportHtml(daily({ isToday: false, standing: 'inactive' }), ctx('en')));
+  assert.ok(text.includes('Nothing was sold, paid, counted or opened on this day. There is nothing to close.'));
+  assert.ok(!text.includes('This day was not closed'));
+  assert.ok(text.includes('No activity recorded'));
+});
+
 it('a past day nobody closed says so', () => {
   const text = textOf(buildReportHtml(daily({ isToday: false, standing: 'needs_review' }), ctx('en')));
   assert.ok(text.includes('This day was not closed'));
@@ -520,6 +527,18 @@ it('A4 on white; a heading never ends a page alone; sections and table rows are 
   // One accent, the app's indigo, and no images or gradients.
   assert.ok(html.includes('#5146D9'));
   assert.ok(!/gradient|<img|url\(/i.test(html));
+});
+
+it('the shop and its branch: the branch under the title, and said once when it carries the shop’s own name', () => {
+  const two = buildReportHtml(daily(), ctx('en'));
+  assert.match(two, /<h1>Tech Plus<\/h1><div class="branch">Main Store<\/div>/);
+  const same = buildReportHtml(daily({ identity: { company: 'Boutique 1', branch: 'Boutique 1', timezone: 'UTC' } }), ctx('en'));
+  assert.match(same, /<h1>Boutique 1<\/h1>(?!<div class="branch">)/);
+  assert.equal((textOf(same).match(/Boutique 1/g) ?? []).length, 1);
+});
+
+it('the footer never takes a page of its own: it follows the last section', () => {
+  assert.match(buildReportHtml(daily(), ctx('fr')), /footer \{[^}]*break-before: avoid; page-break-before: avoid; \}/);
 });
 
 it('file names: RetailERP, the store, the kind and period, the language — plain ASCII', () => {
