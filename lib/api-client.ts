@@ -1,6 +1,6 @@
 import { API_V1_URL, TOKEN_KEYS } from '../constants/config';
 import { getItem, setItem, deleteItem } from './storage';
-import { getActiveBranchId } from './branch';
+import { branchRestored, getActiveBranchId } from './branch';
 import { useConnectivity } from './connectivity';
 import { REQUEST_TIMEOUT_MS, RequestTimeout } from './offline/classify.ts';
 
@@ -73,6 +73,8 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 async function send(method: Method, path: string, body: Body, token: string | null): Promise<Response> {
+  // Never before the branch this device already knows has been read (lib/branch.ts, branchRestored).
+  await branchRestored();
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
