@@ -43,8 +43,10 @@ export function Chip({ label, tone = 'neutral', size = 'md', icon: Icon, dot = f
       style={[
         styles.chip,
         {
-          height: s.height,
+          minHeight: s.height,
           paddingHorizontal: s.paddingX,
+          // Half the one-line height: a pill on one line, a rounded box on two.
+          borderRadius: s.height / 2,
           backgroundColor: intent.bg,
           borderColor: intent.border,
         },
@@ -53,7 +55,8 @@ export function Chip({ label, tone = 'neutral', size = 'md', icon: Icon, dot = f
     >
       {dot ? <View style={[styles.dot, { backgroundColor: intent.fg }]} /> : null}
       {Icon ? <Icon color={intent.fg} size={s.icon} /> : null}
-      <Text variant="captionStrong" style={{ color: intent.fg }} numberOfLines={1}>
+      {/* A status is words: on a narrow screen with large text it wraps, never cut (docs/61 §8). */}
+      <Text variant="captionStrong" style={[styles.label, { color: intent.fg }]}>
         {label}
       </Text>
     </View>
@@ -147,13 +150,17 @@ const useStyles = makeStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
+    // Never wider than the line it sits on.
+    maxWidth: '100%',
     gap: space.xs,
-    borderRadius: radius.full,
+    paddingVertical: 2,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  label: { flexShrink: 1 },
   dot: {
     width: 6,
     height: 6,
+    flexShrink: 0,
     borderRadius: radius.full,
   },
   filter: {

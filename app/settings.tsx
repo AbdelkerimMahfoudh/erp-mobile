@@ -726,5 +726,5 @@ const styles = StyleSheet.create({
   lockList: { gap: space.sm, marginTop: space.md },
   sheet: { gap: space.base },
   storeIdValue: { fontSize: typeScale.title.fontSize, lineHeight: typeScale.title.lineHeight, letterSpacing: 2 },
-  storeIdRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  storeIdRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
 });

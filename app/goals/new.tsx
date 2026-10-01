@@ -40,7 +40,10 @@ export default function NewGoalScreen() {
   const branchId = useBranch((s) => s.branchId);
   const create = useCreateGoal();
   const canManage = usePermission('goal.manage');
-  const team = useAssignableTeam({ enabled: canManage });
+  // Naming a person needs the team list, which only user.manage may read: without it,
+  // "One person" would open on no names and could never be saved (visual review, 2026-10-01).
+  const canNamePerson = usePermission('user.manage');
+  const team = useAssignableTeam({ enabled: canManage && canNamePerson });
 
   const month = thisMonth();
   const [scope, setScope] = useState<GoalScope>('branch');
@@ -52,7 +55,7 @@ export default function NewGoalScreen() {
 
   /** The target being drafted survives an app kill (J.1). */
   const draft = useDraft('goal.form', { scope, metric, personId, amount, note }, (v) => {
-    setScope(v.scope ?? 'branch');
+    setScope(v.scope === 'user' && !canNamePerson ? 'branch' : (v.scope ?? 'branch'));
     setMetric(v.metric ?? 'gross_profit');
     setPersonId(v.personId ?? null);
     setAmount(v.amount ?? '');
@@ -85,7 +88,7 @@ export default function NewGoalScreen() {
           <SegmentedControl
             options={[
               { value: 'branch', label: t('goals.scope.branch') },
-              { value: 'user', label: t('goals.scope.user') },
+              ...(canNamePerson ? [{ value: 'user', label: t('goals.scope.user') }] : []),
               { value: 'company', label: t('goals.scope.company') },
             ]}
             value={scope}

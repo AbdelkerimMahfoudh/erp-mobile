@@ -184,7 +184,7 @@ function RowLine({ row }: { row: ImportRow }) {
 const styles = StyleSheet.create({
   list: { gap: space.base, paddingBottom: space['3xl'] },
   block: { gap: space.sm },
-  counts: { flexDirection: 'row', justifyContent: 'space-between' },
+  counts: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: space.base, rowGap: space.sm },
   count: { gap: 2 },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm, paddingVertical: space.xs },
   rowText: { flex: 1, gap: 2 },

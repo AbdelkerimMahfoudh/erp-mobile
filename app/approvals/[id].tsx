@@ -17,6 +17,7 @@ import {
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { makeStyles } from '../../lib/design/theme';
 import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
@@ -396,8 +397,9 @@ function Line({
 
 const useStyles = makeStyles(() => ({
   card: { gap: space.xs, marginBottom: space.sm },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  headerTitle: { flexShrink: 1 },
+  // The product keeps half the card; a status that needs more moves below it.
+  headerRow: { ...AMOUNT_ROW, columnGap: space.sm },
+  headerTitle: AMOUNT_LABEL,
   meta: { gap: space.xs, paddingTop: space.xs },
   line: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   lineLabel: { flexShrink: 1 },

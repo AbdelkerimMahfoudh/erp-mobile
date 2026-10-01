@@ -390,7 +390,7 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
 const styles = StyleSheet.create({
   list: { gap: space.base, paddingBottom: space['3xl'] },
   card: { gap: space.sm },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',

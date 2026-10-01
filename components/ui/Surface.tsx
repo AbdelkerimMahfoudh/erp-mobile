@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
 import { elevation, radius, space } from '../../lib/design/tokens';
+import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { Text } from './Text';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -124,14 +125,11 @@ export function Spacer({ size = 'base' }: { size?: keyof typeof space }) {
 }
 
 const useStyles = makeStyles((colors) => ({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: space.md,
-  },
+  // The amount-row rule: the title keeps at least half the row, and an action
+  // that needs more moves below it instead of squeezing the title or running off.
+  header: AMOUNT_ROW,
   headerText: {
-    flex: 1,
+    ...AMOUNT_LABEL,
     gap: 2,
   },
   divider: {

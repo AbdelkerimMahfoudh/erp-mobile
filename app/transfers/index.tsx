@@ -217,7 +217,7 @@ function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
             icon={outgoing ? ArrowUpRight : ArrowDownLeft}
           />
         </View>
-        <Text variant="caption" tone="tertiary">
+        <Text variant="caption" tone="tertiary" style={styles.rowTime}>
           {formatSmartDateTime(row.requestedAt)}
         </Text>
       </View>
@@ -251,8 +251,10 @@ const useStyles = makeStyles((colors) => ({
   tabs: { gap: space.xs, paddingVertical: space.xs },
   list: { padding: space.base, paddingBottom: space['3xl'] },
   gap: { height: space.sm },
-  rowHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowChips: { flexDirection: 'row', gap: space.xs, flexShrink: 1 },
+  rowHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm },
+  // On a narrow phone with large text the chips wrap among themselves, never under the time.
+  rowChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, flexShrink: 1 },
+  rowTime: { flexShrink: 0 },
   rowTitle: { marginTop: space.sm },
   rowFoot: {
     marginTop: space.sm,

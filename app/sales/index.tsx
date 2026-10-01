@@ -253,6 +253,7 @@ const useStyles = makeStyles((colors) => ({
   rowHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rowAmount: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: space.xs,
     marginTop: space.xs,

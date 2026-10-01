@@ -256,7 +256,8 @@ export function Button({
       style={[
         styles.base,
         {
-          height: s.height,
+          // A label allowed to wrap grows the button with it instead of spilling out of it.
+          ...(wrap ? { minHeight: s.height, paddingVertical: space.xs } : { height: s.height }),
           paddingHorizontal: s.paddingX,
           backgroundColor: isPressed ? v.pressedBackground : v.background,
           borderRadius: radius.md,

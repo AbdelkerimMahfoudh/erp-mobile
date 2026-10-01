@@ -265,7 +265,7 @@ function Standing({ consignment: c }: { consignment: ConsignmentDetail }) {
       </View>
       <View style={styles.row}>
         <Text tone="secondary">{t('consignment.money')}</Text>
-        <Chip tone={MONEY_TONE[s.money]} label={t(`consignment.moneyState.${s.money}`)} size="sm" dot />
+        <Chip tone={MONEY_TONE[s.money]} label={t(`consignment.moneyState.${s.money}`)} size="sm" dot style={styles.value} />
       </View>
     </>
   );
@@ -436,7 +436,7 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
 const styles = StyleSheet.create({
   list: { gap: space.base, paddingBottom: space['3xl'] },
   card: { gap: space.sm },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm, paddingVertical: space.xs },
   entryText: { flex: 1, gap: 2 },
   value: { flexShrink: 1 },

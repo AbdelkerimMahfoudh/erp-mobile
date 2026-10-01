@@ -144,8 +144,49 @@ it('a page opened by a link without the right says so — never an empty "all no
     assert.match(src, /<ErrorState error=\{new ApiError\(t\('state\.error\.permission\.body'\), 403\)\} \/>/, file);
   }
   // Nobody is asked for the team list who could not use it.
-  assert.match(code('app/goals/new.tsx'), /useAssignableTeam\(\{ enabled: canManage \}\)/);
+  assert.match(code('app/goals/new.tsx'), /useAssignableTeam\(\{ enabled: canManage && canNamePerson \}\)/);
   assert.match(code('app/discrepancies/[id].tsx'), /useAssignableTeam\(\{ enabled: canDecide \}\)/);
+});
+
+it('"One person" is offered only to a role that can list the people — never an option with no names to pick', () => {
+  // A Manager holds goal.manage but not user.manage: GET /users refused, and the form could never be saved.
+  const goal = code('app/goals/new.tsx');
+  assert.match(goal, /const canNamePerson = usePermission\('user\.manage'\);/);
+  assert.match(goal, /\.\.\.\(canNamePerson \? \[\{ value: 'user', label: t\('goals\.scope\.user'\) \}\] : \[\]\)/);
+  assert.match(goal, /setScope\(v\.scope === 'user' && !canNamePerson \? 'branch' :/, 'a saved draft cannot reopen on the hidden choice');
+});
+
+it('at 320 points with large text a status wraps inside its chip and the row makes room — nothing runs off the screen', () => {
+  const chip = code('components/ui/Chip.tsx');
+  const plain = chip.slice(chip.indexOf('export function Chip('), chip.indexOf('export function StatusChip('));
+  assert.match(plain, /minHeight: s\.height,/, 'a chip grows with a second line');
+  assert.doesNotMatch(plain, /numberOfLines/, 'a status is never cut to "…"');
+  assert.match(chip, /chip: \{[^}]*maxWidth: '100%',/, 'never wider than its line');
+  assert.match(chip, /label: \{ flexShrink: 1 \}/);
+  // A button whose label may wrap grows with it rather than spilling out of its own box.
+  assert.match(code('components/ui/Button.tsx'), /\.\.\.\(wrap \? \{ minHeight: s\.height, paddingVertical: space\.xs \} : \{ height: s\.height \}\)/);
+  // A title beside a status or an action keeps half the row; the other moves below it (docs/61 §8's amount rule).
+  const surface = code('components/ui/Surface.tsx');
+  assert.match(surface, /header: AMOUNT_ROW,/);
+  assert.match(surface, /headerText: \{\s*\.\.\.AMOUNT_LABEL,/);
+  assert.match(code('components/analytics/AttentionList.tsx'), /size="sm"\s*wrap\s*style=\{styles\.viewAll\}/);
+  const approval = code('app/approvals/[id].tsx');
+  assert.match(approval, /headerRow: \{ \.\.\.AMOUNT_ROW, columnGap: space\.sm \},\s*headerTitle: AMOUNT_LABEL,/);
+  // Rows of chips wrap; a time beside them keeps its width.
+  const transfers = code('app/transfers/index.tsx');
+  assert.match(transfers, /rowChips: \{ flexDirection: 'row', flexWrap: 'wrap',/);
+  assert.match(transfers, /rowTime: \{ flexShrink: 0 \}/);
+  for (const [file, style] of [
+    ['app/transfers/[id].tsx', 'head'],
+    ['app/loans/[id].tsx', 'head'],
+    ['app/consignments/[id].tsx', 'head'],
+    ['app/settings.tsx', 'storeIdRow'],
+    ['app/imports/[id].tsx', 'counts'],
+  ]) {
+    assert.match(code(file), new RegExp(`  ${style}: \\{ flexDirection: 'row', flexWrap: 'wrap',`), `${file} ${style}`);
+  }
+  assert.match(code('app/sales/index.tsx'), /rowAmount: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',/);
+  assert.match(code('app/consignments/[id].tsx'), /moneyState\.\$\{s\.money\}`\)\} size="sm" dot style=\{styles\.value\} \/>/, 'the money state shrinks beside its label');
 });
 
 it('an open shop that lands on the refusal screen is sent into the app, not told its subscription ended', () => {

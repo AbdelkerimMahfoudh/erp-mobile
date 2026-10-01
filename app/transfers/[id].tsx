@@ -416,7 +416,7 @@ function Timeline({ transfer }: { transfer: TransferDetail }) {
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', gap: space.xs, alignItems: 'center' },
+  head: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, alignItems: 'center' },
   ref: { marginTop: space.sm },
   reason: { marginTop: space.base, gap: space.xs },
   gapTop: { marginTop: space.sm },

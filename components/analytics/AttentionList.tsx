@@ -59,6 +59,8 @@ export function AttentionList() {
             title={t('attention.viewAll', { count: String(preview.total) })}
             variant="tertiary"
             size="sm"
+            wrap
+            style={styles.viewAll}
             onPress={() => router.push('/alerts' as never)}
           />
         ) : undefined
@@ -94,4 +96,5 @@ export function AttentionList() {
 
 const useStyles = makeStyles(() => ({
   list: { gap: space.sm },
+  viewAll: { maxWidth: '100%' },
 }));
