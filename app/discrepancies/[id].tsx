@@ -52,7 +52,7 @@ export default function DiscrepancyScreen() {
 
   const query = useDiscrepancy(id);
   const resolve = useResolveDiscrepancy(id ?? '');
-  const team = useAssignableTeam();
+  const team = useAssignableTeam({ enabled: canDecide });
 
   const [resolution, setResolution] = useState<DiscrepancyResolution | null>(null);
   const [personId, setPersonId] = useState<string | null>(null);

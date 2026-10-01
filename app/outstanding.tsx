@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Stack, useRouter, type Href } from 'expo-router';
+import { AlertTriangle } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -18,6 +19,7 @@ import { space, touch } from '../lib/design/tokens';
 import { makeStyles } from '../lib/design/theme';
 import { formatDate, formatMoney } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
+import { usePermission } from '../lib/permissions';
 import { useOutstanding, type OutstandingDebtor, type OutstandingSale } from '../lib/money-overview';
 
 /**
@@ -34,7 +36,18 @@ import { useOutstanding, type OutstandingDebtor, type OutstandingSale } from '..
 export default function OutstandingScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
-  const query = useOutstanding();
+  const canView = usePermission('report.view');
+  const query = useOutstanding({ enabled: canView });
+
+  // Opened by a link without `report.view`: a refusal, as Results says it — not "did not load" with a retry that cannot work.
+  if (!canView) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('outstanding.title') }} />
+        <EmptyState icon={AlertTriangle} title={t('money.noPermission.title')} body={t('money.noPermission.body')} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll gap="lg" onRefresh={() => void query.refetch()} refreshing={query.isRefetching}>

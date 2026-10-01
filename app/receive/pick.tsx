@@ -3,11 +3,12 @@ import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { FileSpreadsheet, Upload } from 'lucide-react-native';
-import { Button, Card, InlineNotice, ListRow, RowGroup, Screen, Section, Text } from '../../components/ui';
+import { Button, Card, ErrorState, InlineNotice, ListRow, RowGroup, Screen, Section, Text } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
 import { useBranch } from '../../lib/branch';
 import { useFileBatch } from '../../lib/file-batch-store';
 import { parseFailureKey, useParseReceivingFile, type ParseResult, type PickedFile } from '../../lib/file-receiving';
@@ -173,6 +174,17 @@ const useStyles = makeStyles(() => ({
 
 /** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
 export default function PickReceivingFileScreenRoute() {
+  const { t } = useTranslation();
+  const canImport = usePermission('import.run');
+  // The Owner's alone (0073); reached by a link without it: refused here, before the day prompt or a file is read.
+  if (!canImport) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('receive.file.action') }} />
+        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
+      </Screen>
+    );
+  }
   return (
     <DayGate>
       <PickReceivingFileScreen />

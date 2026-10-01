@@ -5,6 +5,7 @@ import { useLeave } from '../../components/navigation/HeaderBack';
 import {
   Button,
   Card,
+  ErrorState,
   FilterChip,
   InlineNotice,
   MoneyField,
@@ -19,6 +20,7 @@ import { useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
 import { useDraft } from '../../lib/offline/use-draft';
 import { DraftNotice } from '../../components/DraftNotice';
 import { useAssignableTeam } from '../../lib/closing';
@@ -37,7 +39,8 @@ export default function NewGoalScreen() {
   const leave = useLeave('/goals/new');
   const branchId = useBranch((s) => s.branchId);
   const create = useCreateGoal();
-  const team = useAssignableTeam();
+  const canManage = usePermission('goal.manage');
+  const team = useAssignableTeam({ enabled: canManage });
 
   const month = thisMonth();
   const [scope, setScope] = useState<GoalScope>('branch');
@@ -59,6 +62,16 @@ export default function NewGoalScreen() {
   const isMoney = metric === 'gross_profit' || metric === 'revenue';
   const canSubmit =
     amount.trim() !== '' && Number(amount) > 0 && (scope !== 'user' || personId !== null);
+
+  // Reached by a link without the right to set targets: refused here, not after the form is filled (visual review, 2026-10-01).
+  if (!canManage) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('goals.set.title') }} />
+        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen gap="base">

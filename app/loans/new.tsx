@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Button,
   Card,
+  ErrorState,
   InlineNotice,
   MoneyField,
   Screen,
@@ -17,6 +18,7 @@ import { CounterpartyPicker } from '../../components/CounterpartyPicker';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
 import { useCreateLoan, type LoanDirection } from '../../lib/loans';
 import type { Counterparty } from '../../lib/consignment';
 import { uuidv4 } from '../../lib/utils';
@@ -40,6 +42,7 @@ export default function NewLoanScreen() {
   /** Opened from a partner's screen: that store is already chosen. */
   const { counterpartyId: initialCounterpartyId } = useLocalSearchParams<{ counterpartyId?: string }>();
   const create = useCreateLoan();
+  const canPropose = usePermission('loan.manage');
 
   const [party, setParty] = useState<Counterparty | null>(null);
   const [direction, setDirection] = useState<LoanDirection>('they_owe_us');
@@ -90,6 +93,16 @@ export default function NewLoanScreen() {
       },
     );
   };
+
+  // Reached by a link without the right to propose a debt: refused here, not at Propose it (visual review, 2026-10-01).
+  if (!canPropose) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('loans.new') }} />
+        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll={false}>

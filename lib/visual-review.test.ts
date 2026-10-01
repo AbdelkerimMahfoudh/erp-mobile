@@ -123,6 +123,25 @@ it('retired roles are worded, never shown as a key', () => {
   }
 });
 
+it('a page opened by a link without the right says so — never an empty "all normal", a doomed retry, or a form refused at the end', () => {
+  // Analytics drew "Nothing needs attention — stock, debts and the drawer all look normal" from refused reads.
+  const analytics = code('app/analytics.tsx');
+  assert.match(analytics, /const canView = usePermission\('report\.view'\);/);
+  assert.match(analytics, /enabled: canView,/);
+  assert.match(analytics, /if \(!canView\) \{[\s\S]*?t\('money\.noPermission\.title'\)/);
+  const outstanding = code('app/outstanding.tsx');
+  assert.match(outstanding, /useOutstanding\(\{ enabled: canView \}\)/);
+  assert.match(outstanding, /if \(!canView\) \{[\s\S]*?t\('money\.noPermission\.title'\)/);
+  for (const [file, permission] of [['app/loans/new.tsx', 'loan.manage'], ['app/goals/new.tsx', 'goal.manage'], ['app/receive/pick.tsx', 'import.run']]) {
+    const src = code(file);
+    assert.match(src, new RegExp(`usePermission\\('${permission.replace('.', '\\.')}'\\)`), file);
+    assert.match(src, /<ErrorState error=\{new ApiError\(t\('state\.error\.permission\.body'\), 403\)\} \/>/, file);
+  }
+  // Nobody is asked for the team list who could not use it.
+  assert.match(code('app/goals/new.tsx'), /useAssignableTeam\(\{ enabled: canManage \}\)/);
+  assert.match(code('app/discrepancies/[id].tsx'), /useAssignableTeam\(\{ enabled: canDecide \}\)/);
+});
+
 it('an open shop that lands on the refusal screen is sent into the app, not told its subscription ended', () => {
   assert.match(code('app/subscription-blocked.tsx'), /if \(entitlement\?\.canRead && entitlement\.canWrite\) return <Redirect href="\/" \/>;/);
 });

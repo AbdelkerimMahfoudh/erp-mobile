@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { ExportAction } from '../components/reports/ExportAction';
 import { AttentionList } from '../components/analytics/AttentionList';
-import { GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
+import { AlertTriangle, GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
 import {
   EmptyState,
   ListRow,
@@ -19,6 +19,7 @@ import { api } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
 import { useBranch } from '../lib/branch';
 import { useTranslation } from '../lib/i18n';
+import { usePermission } from '../lib/permissions';
 import { num } from '../lib/theme';
 import { space } from '../lib/design/tokens';
 import { makeStyles, useColors } from '../lib/design/theme';
@@ -93,13 +94,29 @@ export default function AnalyticsScreen() {
   const colors = useColors();
   const { t } = useTranslation();
   const { branchId } = useBranch();
+  const canView = usePermission('report.view');
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: qk.dashboard(branchId),
     queryFn: () => api.get<Dashboard>('/dashboard'),
+    enabled: canView,
   });
 
   /** One empty state, so every group says "nothing yet" the same way. */
   const empty = () => <EmptyState title={t('analytics.none')} size="inline" />;
+
+  /*
+   * Opened by a link without `report.view`: said, as Results says it. Before,
+   * the refused reads drew "Nothing needs attention — stock, debts and the
+   * drawer all look normal", which nobody had checked (visual review, 2026-10-01).
+   */
+  if (!canView) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <Stack.Screen options={{ headerShown: true, title: t('nav.analytics') }} />
+        <EmptyState icon={AlertTriangle} title={t('money.noPermission.title')} body={t('money.noPermission.body')} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen}>

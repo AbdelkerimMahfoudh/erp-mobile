@@ -365,10 +365,12 @@ export function useMyDebt() {
  * narrower one — the Owner picking a person should see the same people they
  * manage everywhere else, and a second source would drift from the first.
  */
-export function useAssignableTeam() {
+export function useAssignableTeam(opts: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: qk.users,
     queryFn: () => api.get<{ id: string; name: string }[]>('/users'),
+    // Only for someone who may name a person; anyone else would be refused the list.
+    enabled: opts.enabled ?? true,
   });
 }
 
