@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { Redirect, useRouter, Stack } from 'expo-router';
 import { Button, Screen, Text } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { space } from '../lib/design/tokens';
@@ -61,6 +61,10 @@ export default function SubscriptionBlocked() {
       setChecking(false);
     }
   };
+
+  // Open to this shop after all — a link opened later, or activation while away: the app,
+  // never a refusal that is not true ("Subscription ended" to an active shop).
+  if (entitlement?.canRead && entitlement.canWrite) return <Redirect href="/" />;
 
   return (
     <Screen>

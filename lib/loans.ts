@@ -45,6 +45,12 @@ export interface LoanSummary {
   remaining: number;
   createdAt: string;
   version: number;
+  /**
+   * This company's own offer is on the table: the server refuses accepting or
+   * countering it, so neither is offered. Absent from an older server: treated
+   * as not ours, which is what the screen did before.
+   */
+  ownOffer?: boolean;
 }
 
 export interface LoanLedgerEntry {

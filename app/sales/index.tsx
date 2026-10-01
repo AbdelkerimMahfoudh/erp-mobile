@@ -218,8 +218,12 @@ function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
           {/* '10 cables' is one row and ten things. Say both when they differ,
               and never call a carton one item. */}
           {row.lineCount === row.itemCount
-            ? t('sales.items', { count: row.itemCount })
-            : t('sales.itemsInLines', { count: row.itemCount, lines: row.lineCount })}
+            ? row.itemCount === 1
+              ? t('sales.items.one')
+              : t('sales.items', { count: row.itemCount })
+            : row.lineCount === 1
+              ? t('sales.itemsInOneLine', { count: row.itemCount })
+              : t('sales.itemsInLines', { count: row.itemCount, lines: row.lineCount })}
           {row.customer ? ` · ${row.customer}` : ''}
         </Text>
 

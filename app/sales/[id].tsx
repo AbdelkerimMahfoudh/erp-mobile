@@ -490,6 +490,7 @@ const styles = StyleSheet.create({
   lineMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
   amountRow: { ...AMOUNT_ROW, paddingVertical: space.xs, columnGap: space.sm },
   factLabel: AMOUNT_LABEL,
-  factValue: { flex: 1 },
+  // Its own width beside the label, or its own line below it (docs/61 §8) — never a quarter of the row.
+  factValue: { flexShrink: 1, minWidth: 0 },
   payment: { gap: 2 },
 });

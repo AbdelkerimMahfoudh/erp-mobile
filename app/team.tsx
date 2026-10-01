@@ -74,6 +74,13 @@ export default function TeamScreen() {
         return t('team.role.store_employee');
       case 'administrator':
         return t('team.role.administrator');
+      // Retired roles an older shop may still hold: worded too, never shown as a key.
+      case 'branch_manager':
+        return t('team.role.branch_manager');
+      case 'sales_employee':
+        return t('team.role.sales_employee');
+      case 'warehouse_employee':
+        return t('team.role.warehouse_employee');
       default:
         return role.replace(/_/g, ' ');
     }

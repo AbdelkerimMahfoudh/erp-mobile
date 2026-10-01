@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useLeave } from '../../components/navigation/HeaderBack';
 import { ScanLine } from 'lucide-react-native';
@@ -82,6 +82,17 @@ export default function NewReturnScreen() {
   // and is already server-side — no second lookup path to keep in step.
   const found = useSales({ search: identifier.trim() });
 
+  /**
+   * The two buttons sit over the bottom of the form, so the form reserves their
+   * measured height: a fixed padding left the custody warning under them
+   * (visual review, 2026-10-01).
+   */
+  const [actionsHeight, setActionsHeight] = useState(0);
+  const measureActions = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setActionsHeight((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+  };
+
   if (!canRequest) {
     return (
       <Screen>
@@ -141,7 +152,7 @@ export default function NewReturnScreen() {
     <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('returns.new.title') }} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: space['5xl'] + actionsHeight }]} keyboardShouldPersistTaps="handled">
         <DraftNotice draft={draft} onDiscard={() => { setIdentifier(''); setReason(''); setConditionNotes(''); }} />
         {/* Entry by phone, when the customer arrives without a receipt. */}
         {!params.saleItemId ? (
@@ -241,7 +252,7 @@ export default function NewReturnScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.actions}>
+      <View style={styles.actions} onLayout={measureActions}>
         <Button
           title={t('returns.new.submit')}
           disabled={!ready}
@@ -272,7 +283,7 @@ export default function NewReturnScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space.base, paddingBottom: space['5xl'], gap: space.base },
+  content: { padding: space.base, gap: space.base },
   group: { gap: space.sm },
   spaced: { marginTop: space.sm },
   actions: {

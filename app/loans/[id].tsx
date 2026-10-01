@@ -230,6 +230,10 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
     m.mutate({ id: loan.id, body }, { onError: fail });
 
   const negotiating = ['proposed', 'counter_proposed', 'disputed'].includes(loan.status);
+  // Our own offer: theirs to answer. Agreeing or countering it is refused by the server, so neither is offered.
+  const mayAnswer = !loan.ownOffer;
+  // A disputed debt is answered with an amount, never disputed a second time — the server refuses that too.
+  const mayDispute = loan.status !== 'disputed';
   const remaining = loan.breakdown.remaining;
 
   /** A report the creditor has not answered yet. */
@@ -245,42 +249,56 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
       <Card style={styles.card}>
         {negotiating && canManage ? (
           <>
-            <MoneyField label={t('loans.counterAmount')} value={amount} onChangeText={setAmount} />
-            <View style={styles.actions}>
-              <Button
-                title={t('loans.accept')}
-                onPress={() => go(decide, { action: 'accept' as const, expectedVersion: loan.version })}
-              />
-              <Button
-                title={t('loans.counter')}
-                variant="ghost"
-                disabled={!amount.trim()}
-                onPress={() =>
-                  go(decide, {
-                    action: 'counter' as const,
-                    amount: Number(amount),
-                    expectedVersion: loan.version,
-                  })
-                }
-              />
-            </View>
-            <TextField label={t('loans.disputeReason')} value={reason} onChangeText={setReason} />
-            <Button
-              title={t('loans.dispute')}
-              variant="ghost"
-              disabled={reason.trim().length < 3}
-              onPress={() =>
-                go(decide, {
-                  action: 'dispute' as const,
-                  reason: reason.trim(),
-                  expectedVersion: loan.version,
-                })
-              }
-            />
-            <Text variant="caption" tone="secondary">
-              {/* Says plainly that agreeing is what fixes the number. */}
-              {t('loans.accept.hint')}
-            </Text>
+            {mayAnswer ? (
+              <>
+                <MoneyField label={t('loans.counterAmount')} value={amount} onChangeText={setAmount} />
+                <View style={styles.actions}>
+                  <Button
+                    title={t('loans.accept')}
+                    onPress={() => go(decide, { action: 'accept' as const, expectedVersion: loan.version })}
+                  />
+                  <Button
+                    title={t('loans.counter')}
+                    variant="ghost"
+                    disabled={!amount.trim()}
+                    onPress={() =>
+                      go(decide, {
+                        action: 'counter' as const,
+                        amount: Number(amount),
+                        expectedVersion: loan.version,
+                      })
+                    }
+                  />
+                </View>
+              </>
+            ) : (
+              <Text variant="caption" tone="secondary">
+                {t('loans.ownOffer', { name: loan.otherParty })}
+              </Text>
+            )}
+            {mayDispute ? (
+              <>
+                <TextField label={t('loans.disputeReason')} value={reason} onChangeText={setReason} />
+                <Button
+                  title={t('loans.dispute')}
+                  variant="ghost"
+                  disabled={reason.trim().length < 3}
+                  onPress={() =>
+                    go(decide, {
+                      action: 'dispute' as const,
+                      reason: reason.trim(),
+                      expectedVersion: loan.version,
+                    })
+                  }
+                />
+              </>
+            ) : null}
+            {mayAnswer ? (
+              <Text variant="caption" tone="secondary">
+                {/* Says plainly that agreeing is what fixes the number. */}
+                {t('loans.accept.hint')}
+              </Text>
+            ) : null}
           </>
         ) : null}
 

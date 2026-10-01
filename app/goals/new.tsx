@@ -17,6 +17,7 @@ import {
 import { ApiError } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
+import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { useDraft } from '../../lib/offline/use-draft';
 import { DraftNotice } from '../../components/DraftNotice';
@@ -132,7 +133,7 @@ export default function NewGoalScreen() {
             />
           )}
           <Text variant="caption" tone="secondary">
-            {t('goals.set.period', { from: month.periodStart, to: month.periodEnd })}
+            {t('goals.set.period', { from: formatDate(month.periodStart), to: formatDate(month.periodEnd) })}
           </Text>
           <TextField
             label={t('goals.set.note')}

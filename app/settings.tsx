@@ -103,6 +103,13 @@ export default function SettingsScreen() {
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [customHours, setCustomHours] = useState('');
+  /**
+   * "Custom" chosen, the hours not typed yet. Without it, choosing Custom with
+   * an empty field read as 0 hours — the "No returns" preset — so the control
+   * jumped to No returns, the field never opened, and Save would have stored a
+   * no-returns policy nobody chose (visual review, 2026-10-01).
+   */
+  const [customMode, setCustomMode] = useState(false);
   const [hoursError, setHoursError] = useState<string | undefined>();
   const [editing, setEditing] = useState<OwnerReceivingAccount | 'new' | null>(null);
 
@@ -113,19 +120,20 @@ export default function SettingsScreen() {
 
   const owner = settings.data?.canManage ? settings.data : null;
 
-  // Load the server's values into the draft once, and again after every save or
-  // conflict reload — never while the Owner is mid-edit.
-  useEffect(() => {
-    if (!owner) return;
-    setDraft((current) => current ?? draftOf(owner));
-  }, [owner]);
+  /** The server's values into the form: the draft, and the custom field when the window is not a preset. */
+  const load = useCallback((s: OwnerSettings) => {
+    const preset = RETURN_PRESETS.includes(s.returnWindowHours as never);
+    setDraft(draftOf(s));
+    setCustomHours(preset ? '' : String(s.returnWindowHours));
+    setCustomMode(!preset);
+    setHoursError(undefined);
+  }, []);
 
+  // Load the server's values once, and again after every save or conflict
+  // reload — never while the Owner is mid-edit.
   useEffect(() => {
-    if (!owner || draft) return;
-    setCustomHours(
-      RETURN_PRESETS.includes(owner.returnWindowHours as never) ? '' : String(owner.returnWindowHours),
-    );
-  }, [owner, draft]);
+    if (owner && !draft) load(owner);
+  }, [owner, draft, load]);
 
   const dirty = useMemo(() => {
     if (!owner || !draft) return false;
@@ -168,7 +176,7 @@ export default function SettingsScreen() {
     },
     onSuccess: (fresh) => {
       queryClient.setQueryData(qk.settings, fresh);
-      setDraft(draftOf(fresh));
+      load(fresh);
       toast.success(t('settings.saved'));
     },
     onError: async (error) => {
@@ -176,7 +184,7 @@ export default function SettingsScreen() {
       // values is the only honest response — retrying would overwrite them.
       if (error instanceof ApiError && error.status === 409) {
         const { data } = await settings.refetch();
-        if (data?.canManage) setDraft(draftOf(data));
+        if (data?.canManage) load(data);
         await dialog.alert({
           title: t('settings.conflict.title'),
           message: t('settings.conflict.body'),
@@ -190,13 +198,14 @@ export default function SettingsScreen() {
   const onReturnPreset = useCallback((value: string) => {
     setHoursError(undefined);
     if (value === 'custom') {
-      const parsed = Number(customHours);
-      setDraft((d) => (d ? { ...d, returnWindowHours: Number.isFinite(parsed) ? parsed : 0 } : d));
+      // The field opens and nothing else changes: the window moves only once valid hours are typed.
+      setCustomMode(true);
       return;
     }
+    setCustomMode(false);
     setCustomHours('');
     setDraft((d) => (d ? { ...d, returnWindowHours: Number(value) } : d));
-  }, [customHours]);
+  }, []);
 
   const onCustomHours = useCallback((text: string) => {
     setCustomHours(text);
@@ -240,9 +249,9 @@ export default function SettingsScreen() {
     );
   }
 
-  const returnSegment = RETURN_PRESETS.includes(draft?.returnWindowHours as never) && !customHours
-    ? String(draft?.returnWindowHours)
-    : 'custom';
+  const returnSegment = customMode || !RETURN_PRESETS.includes(draft?.returnWindowHours as never)
+    ? 'custom'
+    : String(draft?.returnWindowHours);
 
   return (
     <Screen

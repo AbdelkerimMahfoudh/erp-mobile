@@ -10,16 +10,18 @@ import {
   ErrorState,
   FilterChip,
   InlineNotice,
+  ListRow,
   MoneyValue,
   Screen,
   Section,
-  SegmentedControl,
   SkeletonList,
   Text,
   TextField,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
+import { channelLabel } from '../../lib/closing-report-view';
 import { space } from '../../lib/design/tokens';
+import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import {
@@ -87,7 +89,10 @@ export default function DiscrepancyScreen() {
         <Card>
           <View style={styles.row}>
             <Text variant="body" tone="secondary">
-              {d.channel ? d.channel.label : t('closing.channel.cash')}
+              {/* The server stores CASH and UNATTRIBUTED as keys for the app to word, never as copy. */}
+              {d.channel
+                ? channelLabel(d.channel, { cash: t('closing.channel.cash'), unattributed: t('closing.channel.unattributed') })
+                : t('closing.channel.cash')}
             </Text>
             <Chip
               tone={d.kind === 'shortage' ? 'danger' : 'warning'}
@@ -118,7 +123,7 @@ export default function DiscrepancyScreen() {
             <MoneyValue value={d.amount} tone="auto" signed />
           </View>
           <Text variant="caption" tone="secondary" style={styles.hint}>
-            {t('discrepancy.on', { date: d.date })}
+            {t('discrepancy.on', { date: formatDate(d.date) })}
           </Text>
         </Card>
       </Section>
@@ -148,17 +153,26 @@ export default function DiscrepancyScreen() {
               Nothing preselected. A default here would be the system quietly
               proposing an answer to a question about somebody's honesty.
             */}
-            <SegmentedControl
-              options={allowedResolutions(d.kind).map((r) => ({
-                value: r,
-                label: t(`discrepancy.resolution.${r}`),
-              }))}
-              value={resolution ?? ''}
-              onChange={(v) => {
-                setResolution(v as DiscrepancyResolution);
-                if (!needsResponsiblePerson(v as DiscrepancyResolution)) setPersonId(null);
-              }}
-            />
+            {/*
+              One row per decision, the way Settings offers the lock times: four
+              decisions in a segmented control left "A record was wrong" cut to
+              "A record was …" in every language (visual review, 2026-10-01).
+            */}
+            <View style={styles.choices}>
+              {allowedResolutions(d.kind).map((r) => (
+                <ListRow
+                  flat
+                  key={r}
+                  title={t(`discrepancy.resolution.${r}`)}
+                  selected={resolution === r}
+                  chevron={false}
+                  onPress={() => {
+                    setResolution(r);
+                    if (!needsResponsiblePerson(r)) setPersonId(null);
+                  }}
+                />
+              ))}
+            </View>
 
             {d.kind === 'surplus' ? (
               <Text variant="caption" tone="secondary">
@@ -245,6 +259,7 @@ export default function DiscrepancyScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.xs },
   form: { gap: space.base },
+  choices: { gap: space.sm },
   people: { gap: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   divider: { marginVertical: space.xs },

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Button,
@@ -238,6 +238,24 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
 
   const decided = detail.status === 'approved_refund_due' || detail.status === 'rejected';
   const approved = detail.status === 'approved_refund_due';
+
+  /** Which group of actions is pinned at the bottom — at most one, by lifecycle. */
+  const showReview = !decided;
+  const showReport = awaitingReport && canReportRefund;
+  const showConfirm = pending && canConfirmRefund;
+  const showReceipt = confirmed && canShareRefundReceipt();
+  const showsActions = showReview || showReport || showConfirm || showReceipt;
+
+  /**
+   * The actions sit over the bottom of the page, so the page reserves their
+   * measured height. A fixed padding left the end of the history under four
+   * buttons, out of reach (visual review, 2026-10-01).
+   */
+  const [actionsHeight, setActionsHeight] = useState(0);
+  const measureActions = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setActionsHeight((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+  };
   /** The two Owner-only cases, exactly as the server decides them. */
   const isException = detail.policy.requiresException || detail.responsibility === 'customer_damage';
 
@@ -301,7 +319,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
 
   return (
     <>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: space['5xl'] + (showsActions ? actionsHeight : 0) }]}>
         <Card>
           <View style={styles.headRow}>
             <StatusChip domain="return" value={detail.status} />
@@ -467,9 +485,9 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
       </ScrollView>
 
       {/* Actions are gated by permission AND by lifecycle: a reachable route
-          never implies an available action. */}
-      {!decided ? (
-        <View style={styles.actions}>
+          never implies an available action. At most one of these groups shows. */}
+      {showReview ? (
+        <View style={styles.actions} onLayout={measureActions}>
           {canRequest && detail.custody === 'customer_holds' ? (
             <Button title={t('returns.custody.action')} variant="secondary" onPress={() => setCustodyOpen(true)} />
           ) : null}
@@ -500,8 +518,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         never sees correct or confirm, and nobody sees report before the
         return is approved or after somebody already reported one.
       */}
-      {awaitingReport && canReportRefund ? (
-        <View style={styles.actions}>
+      {showReport ? (
+        <View style={styles.actions} onLayout={measureActions}>
           <Button
             title={t('refund.report.action')}
             onPress={() => setPayoutSheet('report')}
@@ -510,8 +528,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         </View>
       ) : null}
 
-      {pending && canConfirmRefund ? (
-        <View style={styles.actions}>
+      {showConfirm ? (
+        <View style={styles.actions} onLayout={measureActions}>
           <Button
             title={t('refund.correct.action')}
             variant="secondary"
@@ -528,8 +546,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
 
       {/* Sharing needs a native share sheet; on web the button stays hidden
           rather than offering something that cannot work. */}
-      {confirmed && canShareRefundReceipt() ? (
-        <View style={styles.actions}>
+      {showReceipt ? (
+        <View style={styles.actions} onLayout={measureActions}>
           <Button
             title={t('refund.receipt.action')}
             variant="secondary"
@@ -603,7 +621,7 @@ function Amount({
 
 const styles = StyleSheet.create({
   padded: { padding: space.base },
-  content: { padding: space.base, paddingBottom: space['5xl'], gap: space.base },
+  content: { padding: space.base, gap: space.base },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   notice: { marginTop: space.sm, gap: space.xs },
   /** Padding for a bespoke row inside a RowGroup, which supplies none. */

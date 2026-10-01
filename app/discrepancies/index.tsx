@@ -12,7 +12,9 @@ import {
   Screen,
   SkeletonList,
 } from '../../components/ui';
+import { channelLabel } from '../../lib/closing-report-view';
 import { space } from '../../lib/design/tokens';
+import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { useDiscrepancies, type Discrepancy } from '../../lib/closing';
 
@@ -60,8 +62,12 @@ function Row({ row, onPress }: { row: Discrepancy; onPress: () => void }) {
     <ListRow
       flat
       leading={Scale}
-      title={row.channel ? row.channel.label : t('closing.channel.cash')}
-      subtitle={`${row.date} · ${t(`discrepancy.kind.${row.kind}`)}`}
+      title={
+        row.channel
+          ? channelLabel(row.channel, { cash: t('closing.channel.cash'), unattributed: t('closing.channel.unattributed') })
+          : t('closing.channel.cash')
+      }
+      subtitle={`${formatDate(row.date)} · ${t(`discrepancy.kind.${row.kind}`)}`}
       // Signed, so the direction reads at a glance — a shortage and a surplus
       // are different problems, not one problem with a different number.
       value={<MoneyValue value={row.amount} tone="auto" signed size="small" />}

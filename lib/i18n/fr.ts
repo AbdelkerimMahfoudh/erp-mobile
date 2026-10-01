@@ -221,7 +221,9 @@ export const fr: Catalogue = {
   'goals.hint.met': 'Objectif atteint — {percent} % de la cible.',
   'goals.hint.missed': 'La période s’est terminée à {percent} %.',
   'goals.hint.notStarted': 'Démarre bientôt, sur {days} jours.',
+  'goals.hint.notStarted.one': 'Démarre bientôt, sur une journée.',
   'goals.hint.running': '{needed} par jour sur les {days} jours restants.',
+  'goals.hint.running.one': '{needed} à faire le dernier jour.',
   'goals.archived.reason': 'Clos : {reason}',
 
   // ── Goals (Milestone F) ───────────────────────────────────────────────────
@@ -959,6 +961,7 @@ export const fr: Catalogue = {
   'loans.dispute': 'Ne pas être d’accord',
   'loans.accept.hint':
     'Une fois d’accord, le montant est figé et ne peut plus être modifié.',
+  'loans.ownOffer': 'Votre proposition est entre les mains de {name}. Ils l’acceptent, proposent un autre montant ou la contestent.',
   'loans.payAmount': 'Combien vous avez payé',
   'loans.payReference': 'Une note à ce sujet (facultatif)',
   'loans.reportPayment': 'Déclarer avoir payé',
@@ -1398,7 +1401,9 @@ export const fr: Catalogue = {
   'sales.search': 'Facture, IMEI, produit ou client',
   'sales.invoice': 'Facture {no}',
   'sales.items': '{count} articles',
+  'sales.items.one': '1 article',
   'sales.itemsInLines': '{count} articles sur {lines} lignes',
+  'sales.itemsInOneLine': '{count} articles sur 1 ligne',
   'sales.reversed': 'Annulée',
   'sales.endOfResults': 'C’est tout l’historique',
   'sales.forbidden': 'L’historique des ventes ne vous est pas accessible',
@@ -1869,6 +1874,9 @@ export const fr: Catalogue = {
   'team.role.store_manager': 'Responsable',
   'team.role.store_employee': 'Employé',
   'team.role.administrator': 'Administrateur',
+  'team.role.branch_manager': 'Responsable de succursale',
+  'team.role.sales_employee': 'Vendeur',
+  'team.role.warehouse_employee': 'Magasinier',
   'team.branchRole': '{role} · {branch}',
   'team.noBranches': 'Aucun site pour l’instant',
   'team.contact.none': 'Pas encore de téléphone',
@@ -2128,7 +2136,7 @@ export const fr: Catalogue = {
   'catalog.form.tracking.derived.imei':
     'Enregistré un par un, chacun avec son propre IMEI',
   'catalog.form.tracking.derived.quantity': 'Reçu par quantité — aucun IMEI nécessaire',
-  'catalog.form.tracking.derived.from': 'Parce qu’il est classé dans {{category}}',
+  'catalog.form.tracking.derived.from': 'Parce qu’il est classé dans {category}',
   'catalog.form.tracking.derived.noCategory':
     'Choisissez une catégorie pour définir le mode de réception',
   'catalog.form.tracking.choose': 'Comment sont-ils comptés ? Changez si la suggestion est fausse.',
@@ -3409,8 +3417,10 @@ export const fr: Catalogue = {
   'outstanding.unavailable': "Les paiements en attente n’ont pas pu être chargés.",
   'salesPeriod.title': "Ventes de téléphones",
   'salesPeriod.phones': "{count} téléphones vendus",
+  'salesPeriod.phones.one': "1 téléphone vendu",
   'salesPeriod.byDay': "Ventes par jour",
   'salesPeriod.dayLine': "{count} téléphones",
+  'salesPeriod.dayLine.one': "1 téléphone",
   'salesPeriod.tapDay': "Ouvrez un jour pour voir ses ventes.",
   'salesPeriod.none': "Aucune vente sur cette période.",
   'salesPeriod.more': "Afficher plus de ventes",

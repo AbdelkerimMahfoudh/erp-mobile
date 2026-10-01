@@ -15,6 +15,7 @@ import {
   Text,
 } from '../../components/ui';
 import { radius, space } from '../../lib/design/tokens';
+import { formatDayRange, formatMoney, formatNumber } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { toneOf, useGoals, type Goal } from '../../lib/goals';
@@ -92,6 +93,9 @@ function GoalCard({ goal }: { goal: Goal }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const p = goal.progress;
+  // As the figures above it are: money when the server says so, a count otherwise — never a bare 10675.
+  const perDay = p.neededPerRemainingDay ?? 0;
+  const needed = goal.isMoney ? formatMoney(perDay) : formatNumber(perDay, Number.isInteger(perDay) ? 0 : 1);
 
   const who =
     goal.scope === 'user'
@@ -108,7 +112,7 @@ function GoalCard({ goal }: { goal: Goal }) {
             {t(`goals.rule.${goal.metric}`)}
           </Text>
           <Text variant="caption" tone="secondary">
-            {who} · {goal.periodStart} → {goal.periodEnd}
+            {who} · {formatDayRange(goal.periodStart, goal.periodEnd)}
           </Text>
         </View>
         {/* The state in a word, always — colour never carries it alone. */}
@@ -151,11 +155,12 @@ function GoalCard({ goal }: { goal: Goal }) {
           : p.state === 'missed'
             ? t('goals.hint.missed', { percent: String(Math.round(p.percent)) })
             : p.state === 'not_started'
-              ? t('goals.hint.notStarted', { days: String(p.daysTotal) })
-              : t('goals.hint.running', {
-                  needed: String(p.neededPerRemainingDay ?? 0),
-                  days: String(p.daysRemaining),
-                })}
+              ? p.daysTotal === 1
+                ? t('goals.hint.notStarted.one')
+                : t('goals.hint.notStarted', { days: String(p.daysTotal) })
+              : p.daysRemaining === 1
+                ? t('goals.hint.running.one', { needed })
+                : t('goals.hint.running', { needed, days: String(p.daysRemaining) })}
       </Text>
 
       {goal.status === 'archived' && goal.archivedReason ? (

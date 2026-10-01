@@ -311,10 +311,30 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
   // Accept and counter only for the side whose answer is awaited; the server refuses the other.
   const mayAnswer = isKnownConsignmentStatus(c.status) && canAnswerOffer(c.status, c.side);
 
+  const showNegotiate = negotiating && canReview;
+  const showSend = c.status === 'accepted_awaiting_custody' && isSource && canSend;
+  const showReceive = c.status === 'custody_awaiting_confirmation' && !isSource && canReceive;
+  const showSold = c.status === 'in_custody' && canSell && (isSource ? !c.otherParty : true);
+  const showStartReturn = c.status === 'in_custody' && !isSource && canReturn;
+  const showShipReturn = c.status === 'return_initiated' && !isSource && canReturn;
+  const showAcceptReturn = ['return_initiated', 'return_in_transit'].includes(c.status) && isSource && canReturn;
+  const showReportPayment = owed > 0 && !isSource && canReport;
+  const showConfirmHint = owed > 0 && isSource && canConfirm;
+  const showForgive = owed > 0 && isSource && canForgive;
+
+  // Nothing this side can do now — the other store's move, or a finished deal:
+  // the standing above already says whose move it is, so no empty card here.
+  if (
+    !(showNegotiate || showSend || showReceive || showSold || showStartReturn || showShipReturn ||
+      showAcceptReturn || showReportPayment || showConfirmHint || showForgive)
+  ) {
+    return null;
+  }
+
   return (
     <Section title={t('consignment.next')}>
       <Card style={styles.card}>
-        {negotiating && canReview ? (
+        {showNegotiate ? (
           <>
             {mayAnswer ? (
               <>
@@ -340,11 +360,11 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
           </>
         ) : null}
 
-        {c.status === 'accepted_awaiting_custody' && isSource && canSend ? (
+        {showSend ? (
           <Button title={t('consignment.send')} onPress={() => go(custody, { action: 'send' as const })} />
         ) : null}
 
-        {c.status === 'custody_awaiting_confirmation' && !isSource && canReceive ? (
+        {showReceive ? (
           <>
             <Button title={t('consignment.confirmReceipt')} onPress={() => go(custody, { action: 'confirm' as const })} />
             <Text variant="caption" tone="secondary">
@@ -353,17 +373,17 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
           </>
         ) : null}
 
-        {c.status === 'in_custody' && canSell && (isSource ? !c.otherParty : true) ? (
+        {showSold ? (
           <Button title={t('consignment.reportSold')} onPress={() => go(sold, {})} />
         ) : null}
 
-        {c.status === 'in_custody' && !isSource && canReturn ? (
+        {showStartReturn ? (
           <Button title={t('consignment.startReturn')} variant="ghost" onPress={() => go(ret, { action: 'initiate' as const })} />
         ) : null}
-        {c.status === 'return_initiated' && !isSource && canReturn ? (
+        {showShipReturn ? (
           <Button title={t('consignment.shipReturn')} onPress={() => go(ret, { action: 'ship' as const })} />
         ) : null}
-        {['return_initiated', 'return_in_transit'].includes(c.status) && isSource && canReturn ? (
+        {showAcceptReturn ? (
           <>
             {/* The owner says what condition it came back in; damaged never
                 goes straight back on the shelf. */}
@@ -372,7 +392,7 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
           </>
         ) : null}
 
-        {owed > 0 && !isSource && canReport ? (
+        {showReportPayment ? (
           <>
             <MoneyField label={t('consignment.payAmount')} value={amount} onChangeText={setAmount} />
             <Button
@@ -386,13 +406,13 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
           </>
         ) : null}
 
-        {owed > 0 && isSource && canConfirm ? (
+        {showConfirmHint ? (
           <Text variant="caption" tone="secondary">
             {t('consignment.confirmPayment.hint')}
           </Text>
         ) : null}
 
-        {owed > 0 && isSource && canForgive ? (
+        {showForgive ? (
           <>
             <Divider style={styles.divider} />
             <MoneyField label={t('consignment.forgiveAmount')} value={amount} onChangeText={setAmount} />

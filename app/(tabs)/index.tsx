@@ -169,6 +169,10 @@ export default function HomeScreen() {
   /* A percentage only when the server compared against a window that sold something; otherwise not a word. */
   const comparison = figures?.comparison?.salesValue;
   const change = comparison?.available ? changeText(comparison.changePercent) : null;
+  const compareDays =
+    figures && data
+      ? daySpan(comparison ? figures.comparison!.period.from : data.range.from, comparison ? figures.comparison!.period.to : data.range.to)
+      : 0;
 
   return (
     <Screen scroll onRefresh={onRefresh} refreshing={home.isRefetching} gap="lg">
@@ -279,9 +283,10 @@ export default function HomeScreen() {
                   </Text>
                   {change && comparison?.available ? (
                     <Text variant="captionStrong" style={{ color: changeColour(changeTone(comparison.changePercent), colors) }}>
-                      {period === 'today'
+                      {/* Every period ends today, so a one-day comparison is yesterday — never "the 1 days before" (the 1st of a month). */}
+                      {period === 'today' || compareDays === 1
                         ? t('home.compare.yesterday', { change: isolateLtr(change) })
-                        : t('home.compare.previous', { change: isolateLtr(change), days: String(daySpan(comparison ? figures.comparison!.period.from : data.range.from, comparison ? figures.comparison!.period.to : data.range.to)) })}
+                        : t('home.compare.previous', { change: isolateLtr(change), days: String(compareDays) })}
                     </Text>
                   ) : null}
                 </View>

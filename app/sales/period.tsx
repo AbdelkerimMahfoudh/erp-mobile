@@ -55,7 +55,9 @@ export default function SalesForPeriodScreen() {
             </Text>
             <MoneyValue value={overview.data.period.salesValue} size="display" />
             <Text variant="caption" tone="secondary">
-              {t('salesPeriod.phones', { count: String(overview.data.period.phonesSold) })}
+              {overview.data.period.phonesSold === 1
+                ? t('salesPeriod.phones.one')
+                : t('salesPeriod.phones', { count: String(overview.data.period.phonesSold) })}
             </Text>
             {/* The period's cancellations and returns, on their own days, and what the sales come to after them (docs/53). */}
             {overview.data.period.adjusted > 0 ? (
@@ -166,7 +168,7 @@ function DayGroup({ day, initiallyOpen }: { day: SalesDay; initiallyOpen: boolea
     <Card style={styles.day}>
       <DayRow
         title={formatDate(day.day)}
-        caption={t('salesPeriod.dayLine', { count: String(day.phones) })}
+        caption={day.phones === 1 ? t('salesPeriod.dayLine.one') : t('salesPeriod.dayLine', { count: String(day.phones) })}
         value={day.value}
         open={open}
         divider={open}
