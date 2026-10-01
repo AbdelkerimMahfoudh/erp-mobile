@@ -290,7 +290,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
           </View>
           {warnings.map((w) => (
             <InlineNotice key={w.code} tone={w.severity === 'error' ? 'danger' : 'warning'}>
-              {t(warningKey(w.code) as never, params(w.params))}
+              {t(warningKey(w.code, w.params) as never, params(w.params))}
             </InlineNotice>
           ))}
           {/* Each channel as the close will record it: its count, or the attestation — words beside the colour, never "matched". */}

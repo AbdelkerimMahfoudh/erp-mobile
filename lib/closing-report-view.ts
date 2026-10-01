@@ -78,9 +78,25 @@ const KNOWN_WARNINGS: readonly string[] = [
   'figures_disagree',
 ];
 
-/** The catalogue key of a warning; an unknown one falls back to a generic line rather than a raw code. */
-export function warningKey(code: string): string {
-  return KNOWN_WARNINGS.includes(code) ? `dailyReport.warning.${code}` : 'dailyReport.warning.other';
+/** The warnings that carry a number, and which parameter it is: worded for one too, never "1 differences". */
+const COUNTED_WARNINGS: Readonly<Record<string, string>> = {
+  channels_not_verified: 'count',
+  channels_stale: 'count',
+  pending_refund_reports: 'count',
+  pending_expense_reports: 'count',
+  cost_missing: 'count',
+  opening_not_verified: 'days',
+  open_discrepancies: 'count',
+};
+
+/**
+ * The catalogue key of a warning; an unknown one falls back to a generic line rather than a raw code.
+ * With the warning's parameters, a count of one picks the sentence written for one (`….one`).
+ */
+export function warningKey(code: string, params?: Readonly<Record<string, unknown>> | null): string {
+  if (!KNOWN_WARNINGS.includes(code)) return 'dailyReport.warning.other';
+  const counted = COUNTED_WARNINGS[code];
+  return counted && Number(params?.[counted]) === 1 ? `dailyReport.warning.${code}.one` : `dailyReport.warning.${code}`;
 }
 
 /**

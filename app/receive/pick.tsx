@@ -32,6 +32,7 @@ function PickReceivingFileScreen() {
   const start = useFileBatch((s) => s.start);
   /** Stock is received into a branch, and the server resolves permissions per branch. */
   const branchId = useBranch((s) => s.branchId);
+  const canImport = usePermission('import.run');
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [result, setResult] = useState<ParseResult | null>(null);
   /** The message to show, and what to do again if the person taps Try again. */
@@ -99,6 +100,16 @@ function PickReceivingFileScreen() {
     setPicked(file);
     read(file);
   };
+
+  // The Owner's alone (0073); reached by a link without it: refused here, before any file is read (visual review, 2026-10-01).
+  if (!canImport) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: true, title: t('receive.file.action') }} />
+        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen scroll>
@@ -174,17 +185,6 @@ const useStyles = makeStyles(() => ({
 
 /** Behind the business-day guard: while the current day is closed, the store is opened first (2026-09-27). */
 export default function PickReceivingFileScreenRoute() {
-  const { t } = useTranslation();
-  const canImport = usePermission('import.run');
-  // The Owner's alone (0073); reached by a link without it: refused here, before the day prompt or a file is read.
-  if (!canImport) {
-    return (
-      <Screen>
-        <Stack.Screen options={{ headerShown: true, title: t('receive.file.action') }} />
-        <ErrorState error={new ApiError(t('state.error.permission.body'), 403)} />
-      </Screen>
-    );
-  }
   return (
     <DayGate>
       <PickReceivingFileScreen />

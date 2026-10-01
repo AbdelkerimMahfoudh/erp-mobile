@@ -84,6 +84,17 @@ it('every warning has a catalogue key, and an unknown one falls back rather than
   assert.equal(warningKey('something_new'), 'dailyReport.warning.other');
 });
 
+it('a warning that counts says one as one — never "1 differences" (visual review, 2026-10-01)', () => {
+  assert.equal(warningKey('open_discrepancies', { count: 1 }), 'dailyReport.warning.open_discrepancies.one');
+  assert.equal(warningKey('open_discrepancies', { count: 2 }), 'dailyReport.warning.open_discrepancies');
+  assert.equal(warningKey('pending_refund_reports', { count: 1, amount: 30500 }), 'dailyReport.warning.pending_refund_reports.one');
+  assert.equal(warningKey('opening_not_verified', { anchorDate: '2026-09-20', days: 1 }), 'dailyReport.warning.opening_not_verified.one');
+  assert.equal(warningKey('opening_not_verified', { anchorDate: '2026-09-20', days: 3 }), 'dailyReport.warning.opening_not_verified');
+  // A warning without a number never takes the singular, whatever its parameters say.
+  assert.equal(warningKey('figures_disagree', { count: 1 }), 'dailyReport.warning.figures_disagree');
+  assert.equal(warningKey('unknown_code', { count: 1 }), 'dailyReport.warning.other');
+});
+
 it('refusals are words, never codes', () => {
   assert.equal(refusalKey(null), null);
   assert.equal(refusalKey('already_corrected'), 'correctTx.refusal.already_corrected');

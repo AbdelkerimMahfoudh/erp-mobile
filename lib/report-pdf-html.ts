@@ -213,7 +213,7 @@ function writer(ctx: ReportPdfContext) {
       else if (typeof v === 'number') params[k] = count(v);
       else params[k] = esc(String(v));
     }
-    return fill(warningKey(w.code), params);
+    return fill(warningKey(w.code, w.params), params);
   };
   const warnings = (list: DocumentWarning[], monthly: boolean) => {
     if (list.length === 0) return '';

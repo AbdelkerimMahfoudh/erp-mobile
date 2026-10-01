@@ -449,7 +449,7 @@ function Warnings({ report, params }: { report: DailyReport; params: (p?: Record
         <View key={w.code} style={styles.warning}>
           <View style={[styles.bullet, w.severity === 'info' ? null : styles.bulletWarn]} />
           <Text variant="caption" tone={w.severity === 'info' ? 'secondary' : 'primary'} style={styles.flex}>
-            {t(warningKey(w.code) as never, params(w.params))}
+            {t(warningKey(w.code, w.params) as never, params(w.params))}
           </Text>
         </View>
       ))}

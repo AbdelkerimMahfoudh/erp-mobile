@@ -270,7 +270,8 @@ it('daily: refunds paid, reported only and still owed are three lines — the re
 
 it('daily: the warnings in the Daily closing’s own sentences, with a word beside each colour', () => {
   const text = textOf(buildReportHtml(daily(), ctx('en')));
-  assert.ok(text.includes(`Check 1 refunds reported but not confirmed (${m(2_000)}). They are not counted as paid.`));
+  // One refund is one refund (visual review, 2026-10-01): never "1 refunds … They are".
+  assert.ok(text.includes(`Check 1 refund reported but not confirmed (${m(2_000)}). It is not counted as paid.`));
   assert.ok(text.includes('Note The previous day (30 Sep 2026) was not closed.'));
 });
 

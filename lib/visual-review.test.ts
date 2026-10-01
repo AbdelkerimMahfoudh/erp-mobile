@@ -54,6 +54,12 @@ it('one is never "1 items", "1 lines", "1 phones" or "the 1 days before"', () =>
   assert.match(code('app/(tabs)/index.tsx'), /period === 'today' \|\| compareDays === 1\s*\?\s*t\('home\.compare\.yesterday'/);
 });
 
+it('every warning worded for one exists in every language, with the same placeholders', () => {
+  const singles = Object.keys(en).filter((k) => /^dailyReport\.warning\.\w+\.one$/.test(k));
+  assert.equal(singles.length, 7);
+  for (const key of singles) for (const [lang, catalogue] of Object.entries(catalogues)) assert.ok(catalogue[key], `${lang} lacks ${key}`);
+});
+
 it('a target says its daily figure as money or a count, and its dates in words', () => {
   const goals = code('app/goals/index.tsx');
   assert.match(goals, /goal\.isMoney \? formatMoney\(perDay\) : formatNumber\(perDay/);
