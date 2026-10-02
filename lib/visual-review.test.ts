@@ -90,6 +90,9 @@ it('pinned buttons reserve their measured height, so the end of the page can be 
 
 it('a sale fact keeps its own width beside the label, never a quarter of the row (docs/61 §8)', () => {
   const sale = code('app/sales/[id].tsx');
+  // The status sits under the invoice, in the name's column: "Payée intégralement" squeezed the name to a word a line.
+  const head = sale.slice(sale.indexOf('<View style={styles.phoneHead}>'), sale.indexOf('{sale.lines.map('));
+  assert.match(head, /<View style=\{styles\.grow\}>[\s\S]*<StatusChip domain="sale" value=\{sale\.payStatus\} style=\{styles\.status\} \/>[\s\S]*<\/View>\s*<\/View>/);
   assert.match(sale, /factValue: \{ flexShrink: 1, minWidth: 0 \}/);
   assert.doesNotMatch(sale, /factValue: \{ flex: 1/);
 });

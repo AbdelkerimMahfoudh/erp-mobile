@@ -141,10 +141,15 @@ function Body({ sale }: { sale: SaleDetail }) {
             <Text variant="caption" tone="secondary">
               {t('sales.invoice', { no: sale.invoiceNo })}
             </Text>
+            {/* Every state is said, "Paid in full" included: the status comes from
+                the money received, and a paid sale is an answer worth showing. Under
+                the invoice, so a long state never squeezes the name to a word a line. */}
+            {cancelled ? (
+              <Chip label={t('saleDetail.cancelled.chip')} tone="neutral" dot style={styles.status} />
+            ) : (
+              <StatusChip domain="sale" value={sale.payStatus} style={styles.status} />
+            )}
           </View>
-          {/* Every state is said, "Paid in full" included: the status comes from
-              the money received, and a paid sale is an answer worth showing. */}
-          {cancelled ? <Chip label={t('saleDetail.cancelled.chip')} tone="neutral" dot /> : <StatusChip domain="sale" value={sale.payStatus} />}
         </View>
         {sale.lines.map((line) => (
           <Line key={line.id} line={line} alone={sale.lines.length === 1} returnsOpen={!sale.cancellation} />
@@ -475,6 +480,7 @@ const styles = StyleSheet.create({
   phone: { gap: space.md },
   phoneHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   grow: { flex: 1, minWidth: 0 },
+  status: { marginTop: space.xs },
   notice: { marginTop: space.xs },
   policyHead: {
     flexDirection: 'row',

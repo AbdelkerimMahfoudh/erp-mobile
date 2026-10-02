@@ -439,7 +439,7 @@ it('Record payment appears only while something is owed, for whoever may sell', 
   assert.match(detail, /usePermission\('sale\.create'\) && sale\.balanceDue > 0 && !sale\.isReversed/);
 });
 it('status is shown in words and colour for every state, Paid in full included', () => {
-  assert.match(detail, /<StatusChip domain="sale" value=\{sale\.payStatus\} \/>/);
+  assert.match(detail, /<StatusChip domain="sale" value=\{sale\.payStatus\} style=\{styles\.status\} \/>/);
 });
 
 // ── presentation rules ──────────────────────────────────────────────────────
