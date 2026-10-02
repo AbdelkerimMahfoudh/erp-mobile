@@ -61,9 +61,9 @@ export function AlertRow({
     <View style={styles.row} accessibilityRole="summary">
       <View style={styles.meta}>
         {/* Type and weight in a word as well as a colour. */}
-        <Chip tone={row.severity === 'caution' ? 'warning' : 'info'} label={kindLabel} size="sm" dot />
+        <Chip tone={row.severity === 'caution' ? 'warning' : 'info'} label={kindLabel} size="sm" dot style={styles.kind} />
         {row.at ? (
-          <Text variant="caption" tone="tertiary">
+          <Text variant="caption" tone="tertiary" style={styles.time}>
             {formatSmartDateTime(row.at)}
           </Text>
         ) : null}
@@ -125,5 +125,8 @@ export function useAcknowledge() {
 const useStyles = makeStyles(() => ({
   row: { paddingHorizontal: space.md, paddingVertical: space.sm, gap: space.xs },
   meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  // The kind wraps inside its chip rather than running under the time.
+  kind: { flexShrink: 1 },
+  time: { flexShrink: 0 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end' },
 }));

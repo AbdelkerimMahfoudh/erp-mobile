@@ -211,7 +211,7 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
           {/* Unread is words plus tone, never a bare coloured dot. */}
           {!row.isRead ? <Chip label={t('notifications.unread')} tone="info" size="sm" /> : null}
         </View>
-        <Text variant="caption" tone="tertiary">
+        <Text variant="caption" tone="tertiary" style={styles.time}>
           {formatSmartDateTime(row.createdAt)}
         </Text>
       </View>
@@ -244,8 +244,10 @@ const useStyles = makeStyles((colors) => ({
   rowUnread: {
     backgroundColor: colors.semantic.primarySoft,
   },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chips: { flexDirection: 'row', gap: space.xs, flexShrink: 1 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm },
+  // On a narrow phone with large text the chips wrap among themselves, never under the time (as Transfers).
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, flexShrink: 1 },
+  time: { flexShrink: 0 },
   title: { marginTop: space.sm },
   body: { marginTop: space.xs },
 }));

@@ -179,6 +179,16 @@ it('at 320 points with large text a status wraps inside its chip and the row mak
   const transfers = code('app/transfers/index.tsx');
   assert.match(transfers, /rowChips: \{ flexDirection: 'row', flexWrap: 'wrap',/);
   assert.match(transfers, /rowTime: \{ flexShrink: 0 \}/);
+  // The same wherever a time sits beside chips: a weekday ("jeudi 23:36") must not run under them.
+  const notifications = code('app/notifications.tsx');
+  assert.match(notifications, /chips: \{ flexDirection: 'row', flexWrap: 'wrap',/);
+  assert.match(notifications, /tone="tertiary" style=\{styles\.time\}>\s*\{formatSmartDateTime\(row\.createdAt\)\}/);
+  const returnsList = code('app/returns/index.tsx');
+  assert.match(returnsList, /<StatusChip domain="return" value=\{row\.status\} size="sm" style=\{styles\.headChip\} \/>/);
+  assert.match(returnsList, /tone="tertiary" style=\{styles\.time\}>\s*\{formatSmartDateTime\(row\.requestedAt\)\}/);
+  const alert = code('components/analytics/AlertRow.tsx');
+  assert.match(alert, /size="sm" dot style=\{styles\.kind\} \/>/);
+  for (const src of [notifications, returnsList, alert]) assert.match(src, /time: \{ flexShrink: 0 \}/);
   for (const [file, style] of [
     ['app/transfers/[id].tsx', 'head'],
     ['app/loans/[id].tsx', 'head'],

@@ -179,8 +179,8 @@ function Row({ row, onPress }: { row: ReturnListRow; onPress: () => void }) {
       <Card>
         <View style={styles.rowHead}>
           {/* Colour AND words, from the shared registry. */}
-          <StatusChip domain="return" value={row.status} size="sm" />
-          <Text variant="caption" tone="tertiary">
+          <StatusChip domain="return" value={row.status} size="sm" style={styles.headChip} />
+          <Text variant="caption" tone="tertiary" style={styles.time}>
             {formatSmartDateTime(row.requestedAt)}
           </Text>
         </View>
@@ -221,7 +221,10 @@ const useStyles = makeStyles((colors) => ({
   tabs: { gap: space.xs, paddingVertical: space.xs },
   list: { padding: space.base, paddingBottom: space['4xl'] },
   gap: { height: space.sm },
-  rowHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm },
+  // A long status wraps inside its chip rather than running under the time.
+  headChip: { flexShrink: 1 },
+  time: { flexShrink: 0 },
   rowTitle: { marginTop: space.sm },
   rowChips: { flexDirection: 'row', gap: space.xs, marginTop: space.sm, flexWrap: 'wrap' },
   rowFoot: { marginTop: space.sm, gap: space.xs },
