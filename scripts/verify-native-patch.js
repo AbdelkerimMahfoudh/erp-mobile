@@ -20,8 +20,13 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const PKG = 'expo-camera';
-/** The version this patch was cut against. Bump only after re-cutting it. */
-const PATCHED_VERSION = '57.0.4';
+/**
+ * The version this patch was cut against. Bump only after re-cutting it.
+ * 57.0.5 (re-cut 2026-10-03): byte-identical hunks — upstream changed no
+ * source file between 57.0.4 and 57.0.5 (only version numbers and prebuilt
+ * binaries; its changelog: "no user-facing changes").
+ */
+const PATCHED_VERSION = '57.0.5';
 
 const red = (s) => `[31m${s}[0m`;
 const problems = [];
