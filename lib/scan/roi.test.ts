@@ -422,7 +422,15 @@ it('the marker is read from the payload, not inferred', () => {
 
 // ── the native patch ──────────────────────────────────────────────────────
 
-const PATCH = 'patches/expo-camera+57.0.4.patch';
+// The patch the install verifies: its version is named once, in the verifier,
+// so re-cutting it for a new expo-camera cannot leave this test behind.
+const PATCHED_VERSION = /const PATCHED_VERSION = '([^']+)'/.exec(source('scripts/verify-native-patch.js'))?.[1];
+const PATCH = `patches/expo-camera+${PATCHED_VERSION}.patch`;
+
+it('the verified patch is the one in patches/', () => {
+  assert.ok(PATCHED_VERSION, 'scripts/verify-native-patch.js names PATCHED_VERSION');
+  assert.ok(source(PATCH).length > 0, `${PATCH} exists`);
+});
 
 it('the patch uses CameraX transforms, not a scaling formula', () => {
   /*
@@ -509,8 +517,11 @@ it('10 · the patch is verified after install, and cannot fail silently', () => 
   assert.ok(!pkg.dependencies?.['expo-dev-client'], 'no dev-client was added');
 
   const verifier = source('scripts/verify-native-patch.js');
-  // Checks the RESULT in node_modules, not merely that the step ran.
-  assert.match(verifier, /const PATCHED_VERSION = '57\.0\.4'/);
+  // Checks the RESULT in node_modules, not merely that the step ran — against
+  // the version the lockfile installs. A verifier left on 57.0.4 while the
+  // lockfile moved to 57.0.5 stopped every clean install (2026-10-03).
+  const locked = JSON.parse(source('package-lock.json')).packages['node_modules/expo-camera'].version as string;
+  assert.equal(PATCHED_VERSION, locked, 'the patch is cut for the expo-camera the lockfile installs');
   assert.match(verifier, /process\.exit\(1\)/);
   for (const anchor of [
     'CoordinateTransform(transformFactory.getOutputTransform(imageProxy), target)',
