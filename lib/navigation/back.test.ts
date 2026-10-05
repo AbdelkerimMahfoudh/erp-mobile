@@ -18,7 +18,6 @@ import {
   AUTH_ROOTS,
   BACK_PARENTS,
   BOOTSTRAP_FILE,
-  NESTED_NAVIGATORS,
   NO_BACK,
   REDIRECTS,
   TABS,
@@ -69,9 +68,7 @@ it('every route file is exactly one of: parent tab, child with the arrow, invisi
   assert.equal(Object.keys(TAB_ROUTES).length, 5);
 });
 
-it('the four routes that had no arrow: /platform now has it; /stores is an invisible redirect; branch choice and the access refusal are authentication roots', () => {
-  assert.equal(BACK_PARENTS['/platform'], '/login', 'the platform overview goes back to the sign-in it is entered from');
-  assert.ok(!('/platform' in NO_BACK));
+it('the routes without an arrow: /stores is an invisible redirect; branch choice and the access refusal are authentication roots', () => {
   assert.ok('/stores' in REDIRECTS);
   assert.ok('/select-branch' in AUTH_ROOTS && '/subscription-blocked' in AUTH_ROOTS);
   // A redirect renders nothing but the redirect, to a route that exists; it needs no parameter and loads nothing.
@@ -102,10 +99,10 @@ it('every listed route exists — the map cannot rot', () => {
 it('every parent is a real screen or tab, and following parents always ends at a tab', () => {
   const tabs = new Set<string>(Object.values(TABS));
   for (const [route, parent] of Object.entries(BACK_PARENTS)) {
-    assert.ok(routes.includes(parent) || tabs.has(parent) || parent === '/login', `${route} → ${parent} is not a screen`);
+    assert.ok(routes.includes(parent) || tabs.has(parent), `${route} → ${parent} is not a screen`);
     let at = parent;
-    for (let hops = 0; hops < 6 && !tabs.has(at) && at !== '/platform' && at !== '/login'; hops += 1) at = BACK_PARENTS[at];
-    assert.ok(tabs.has(at) || at === '/platform' || at === '/login', `${route} never reaches a tab (stopped at ${at})`);
+    for (let hops = 0; hops < 6 && !tabs.has(at); hops += 1) at = BACK_PARENTS[at];
+    assert.ok(tabs.has(at), `${route} never reaches a tab (stopped at ${at})`);
   }
   assert.deepEqual(Object.values(TABS), ['/', '/partners', '/money-hub', '/inventory', '/more']);
 });
@@ -135,15 +132,9 @@ it('file and navigator names become the same pattern', () => {
 
 it('the root stack gives every child route its header and the shared arrow, and keeps the swipe', () => {
   const layout = code(read('app/_layout.tsx'));
-  assert.match(layout, /headerShown: !NESTED_NAVIGATORS\.includes\(route\.name\) && routeOfName\(route\.name\) in BACK_PARENTS,/);
-  assert.deepEqual(NESTED_NAVIGATORS, ['platform']);
+  assert.match(layout, /headerShown: routeOfName\(route\.name\) in BACK_PARENTS,/);
   assert.match(layout, /headerLeft: headerBackFor\(routeOfName\(route\.name\), route\.params as Record<string, unknown> \| undefined, navigation\),/);
   assert.match(layout, /gestureEnabled: true,/);
-  const platform = code(read('app/platform/_layout.tsx'));
-  assert.match(
-    platform,
-    /headerLeft: headerBackFor\(\s*routeOfName\(`platform\/\$\{route\.name\}`\),\s*route\.params as Record<string, unknown> \| undefined,\s*navigation,\s*navigation\.getState\(\)\.routes\[0\]\?\.key === route\.key,\s*\)/,
-  );
 });
 
 /**
@@ -195,7 +186,7 @@ it('the arrow: the same step as the swipe with history, the parent without; left
   assert.match(back, /if \(navigation\.canGoBack\(\)\) navigation\.goBack\(\);\s*else router\.replace\(backTarget\(route, params\) as Href\);/);
   assert.match(back, /<IconButton icon=\{isRTL\(\) \? ArrowRight : ArrowLeft\} accessibilityLabel=\{t\('action\.back'\)\}/);
   // The native arrow stays wherever the phone draws one; ours only fills the gap, and a tab or entry flow gets none.
-  assert.match(back, /route in NO_BACK \|\| \(Platform\.OS !== 'web' && canGoBack && !nestedRoot\) \? null : <HeaderBack/);
+  assert.match(back, /route in NO_BACK \|\| \(Platform\.OS !== 'web' && canGoBack\) \? null : <HeaderBack/);
   const button = code(read('components/ui/IconButton.tsx'));
   assert.match(button, /size = touch\.min,/);
   assert.match(read('lib/design/tokens.ts'), /min: 48/);

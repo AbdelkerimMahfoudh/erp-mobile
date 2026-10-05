@@ -49,10 +49,13 @@ describe('the website’s entry points are gone from the app', () => {
     }
   });
 
-  it('registration ends on the state screen, with nothing opened in a browser', () => {
-    const verify = strip(read('app/(auth)/verify.tsx'));
-    assert.match(verify, /router\.replace\('\/subscription-blocked' as never\)/);
-    assert.doesNotMatch(verify, /portal|Linking/);
+  it('self-registration and the platform console are not in the customer app (2026-10-05)', () => {
+    for (const f of ['app/(auth)/register.tsx', 'app/(auth)/verify.tsx', 'lib/registration.ts', 'lib/registration-session.ts', 'app/platform', 'lib/platform-admin.ts', 'lib/platform-state.ts']) {
+      assert.equal(existsSync(new URL(f, ROOT)), false, `${f} must not exist`);
+    }
+    const login = strip(read('app/(auth)/login.tsx'));
+    assert.doesNotMatch(login, /\(auth\)\/register|createAccount|\/platform|auth\.action\.platform/i, 'sign-in offers no account creation and no console');
+    assert.match(login, /auth\.accounts\.managed/, 'sign-in says accounts are set up by the organisation');
   });
 });
 
@@ -82,9 +85,10 @@ describe('the words', () => {
       for (const line of subscriptionLines) {
         assert.doesNotMatch(line, /website|site officiel|الموقع الرسمي|WhatsApp/i, `${lang}: ${line.trim()}`);
       }
-      for (const removed of ["'sub.manage'", "'register.portal.open'", "'register.portal.failed'", "'auth.signup.unconfigured'", "'auth.signup.unavailable'"]) {
+      for (const removed of ["'sub.manage'", "'auth.signup.unconfigured'", "'auth.signup.unavailable'", "'auth.action.createAccount'", "'auth.action.platform'"]) {
         assert.equal(dict.includes(removed), false, `${lang} still has ${removed}`);
       }
+      assert.doesNotMatch(dict, /^\s*'(register|platform)\./m, `${lang} still carries registration or console copy`);
       for (const needed of ["'sub.rejected.title'", "'sub.rejected.body'", "'sub.contact'"]) {
         assert.equal(dict.includes(needed), true, `${lang} lacks ${needed}`);
       }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
 import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
@@ -38,7 +37,6 @@ export default function Login() {
   const colors = useColors();
   const styles = useStyles();
   const { t } = useTranslation();
-  const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -51,12 +49,6 @@ export default function Login() {
     own, so an abandoned attempt simply stops working.
   */
   const [choice, setChoice] = useState<AccountChoice | null>(null);
-  /*
-    Opening a browser is slow enough that an impatient second tap is the
-    normal case, and two taps would open two browser sessions on top of each
-    other. The guard is state rather than a debounce timer so it survives
-    however long the handoff takes.
-  */
 
   const onSubmit = async () => {
     if (loading) return;
@@ -102,17 +94,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Creating an account is a screen in this app now, not a website.
-   *
-   * It used to open a browser. Setting a shop up means scanning stock, scanning
-   * happens here, and sending somebody to a browser to type the longest form in
-   * the product was never the shorter path.
-   */
-  const onCreateAccount = () => {
-    router.push('/(auth)/register' as never);
   };
 
   const inlineError =
@@ -230,15 +211,15 @@ export default function Login() {
               />
 
               {/*
-                A clear SECONDARY action. Somebody whose shop has no account
-                yet currently has nowhere to go from this screen at all, and
-                the answer to "how do I get one" should not be a phone call.
+                No account creation here (docs/21, 2026-10-05). A business's
+                access is set up and administered by its organisation, outside
+                the app; a verification code cannot be sent today, and a form
+                that could not finish would be a worse answer than one honest
+                sentence. No price, no link, no call to action.
               */}
-              <Button
-                title={t('auth.action.createAccount')}
-                variant="secondary"
-                onPress={onCreateAccount}
-              />
+              <Text variant="caption" tone="secondary" align="center">
+                {t('auth.accounts.managed')}
+              </Text>
 
               {/*
                 Last on the screen, and the first thing somebody needs.
@@ -250,18 +231,6 @@ export default function Login() {
                 being unable to start the task.
               */}
               <AuthLanguageSwitch />
-
-              {/*
-                Platform administration: a separate identity with its own
-                sign-in, for the platform's own people. Discreet, at the very
-                end, and never part of a shop's navigation.
-              */}
-              <Button
-                title={t('auth.action.platform')}
-                variant="tertiary"
-                size="sm"
-                onPress={() => router.push('/platform/sign-in' as never)}
-              />
             </View>
           )}
         </View>

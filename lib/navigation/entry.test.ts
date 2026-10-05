@@ -54,9 +54,9 @@ it('no branch yet: the branch choice, from the redirect or anywhere in the app',
   }
 });
 
-it('platform administration and the gallery are left to their own sign-in', () => {
-  assert.equal(entryRoute(state({ segment: 'platform', signedIn: false, branchChosen: false })), null);
+it('the design gallery (development only) is left alone; the platform console is no longer a route of this app', () => {
   assert.equal(entryRoute(state({ segment: 'dev', signedIn: false, branchChosen: false })), null);
+  assert.equal(entryRoute(state({ segment: 'platform', signedIn: false, branchChosen: false })), LOGIN, 'an old link to the console lands on sign-in');
 });
 
 it('every combination settles within two steps, never back where it started, never in a loop', () => {

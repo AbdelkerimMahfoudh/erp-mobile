@@ -36,8 +36,6 @@ export function entryRoute(s: EntryState): string | null {
   if (s.closed) return onStateScreen || onAccount ? null : ACCESS_REFUSED;
   // The design-system gallery renders without a session (development only).
   if (s.segment === 'dev') return null;
-  // Platform administration is a separate identity with its own sign-in and session, in both directions.
-  if (s.segment === 'platform') return null;
 
   if (!s.signedIn && !inAuth) return LOGIN;
   if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen) return SELECT_BRANCH;

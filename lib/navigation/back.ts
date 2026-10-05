@@ -101,13 +101,6 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/notifications': TABS.more,
   '/hub/[id]': TABS.more,
   '/dev/gallery': TABS.more,
-  // Platform administration: its own identity. Its overview is entered from the sign-in screen, and goes back there;
-  // the platform session stays until Sign out.
-  '/platform': '/login',
-  '/platform/[id]': '/platform',
-  '/platform/new': '/platform',
-  '/platform/audit': '/platform',
-  '/platform/sign-in': '/login',
 };
 
 /** The five parent tabs, each with its reason. */
@@ -133,9 +126,7 @@ export const BOOTSTRAP_FILE = 'app/index.tsx';
  * until it is done — so an arrow would lead nowhere.
  */
 export const AUTH_ROOTS: Readonly<Record<string, string>> = {
-  '/login': 'Signing in — the start.',
-  '/register': 'Creating an account, from sign-in, with its own way back.',
-  '/verify': 'The code check after signing in or creating an account.',
+  '/login': 'Signing in — the start. The app offers no account creation: accounts are set up by the organisation.',
   '/select-branch':
     'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
   '/subscription-blocked':
@@ -144,9 +135,6 @@ export const AUTH_ROOTS: Readonly<Record<string, string>> = {
 
 /** Routes that never draw the arrow: the tabs, the redirects and the authentication roots. */
 export const NO_BACK: Readonly<Record<string, string>> = { ...TAB_ROUTES, ...REDIRECTS, ...AUTH_ROOTS };
-
-/** Navigators nested in the root stack: they draw their own headers, so the root draws none for them. */
-export const NESTED_NAVIGATORS: readonly string[] = ['platform'];
 
 /** A file under `app/` as the route pattern the router uses: groups and `index` dropped. */
 export function routeOfFile(file: string): string {

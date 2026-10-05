@@ -237,86 +237,20 @@ it('every visible string is translated', () => {
 });
 
 
+// ── No account creation in the app (docs/21, 2026-10-05) ────────────────────
 
-// ── Create account (Phase 2) ────────────────────────────────────────────────
-
-it('the login screen offers a way to create an account', () => {
+it('the sign-in screen offers no account creation — accounts are set up by the organisation', () => {
   /*
-    Somebody whose shop has no account had nowhere to go from this screen at
-    all, and the answer to "how do I get one" should not be a phone call.
+    Self-registration cannot finish today (no verification code can be sent),
+    and a business's access is acquired and administered outside the app. So the
+    screen says who sets accounts up and offers nothing else: no form, no
+    browser, no link, no console entry.
   */
   const code = withoutComments(source(LOGIN));
-  assert.match(code, /auth\.action\.createAccount/);
-});
-
-it('and that way is a SCREEN in this app, never a browser', () => {
-  /*
-    Account creation moved into the app. Setting a shop up means scanning
-    stock, scanning happens here, and sending somebody to a browser to type the
-    longest form in the product — on the surface with the worst keyboard —
-    before doing the real work somewhere else was never the shorter path.
-  */
-  const code = withoutComments(source(LOGIN));
-  assert.match(code, /router\.push\('\/\(auth\)\/register'/);
-  assert.ok(!code.includes('openSignup'), 'the login screen must not open a browser to register');
-  assert.ok(!/Linking\./.test(code), 'and must not reach for Linking either');
-});
-
-it('registration asks for nothing the server generates', () => {
-  const code = withoutComments(source('app/(auth)/register.tsx'));
-  for (const banned of ['storeId', 'StoreId', 'nationalId', 'personalId', 'companyId', 'branchId', 'roleId']) {
-    assert.ok(!code.includes(banned), `registration must never ask for ${banned}`);
-  }
-});
-
-it('one idempotency key per attempt, reused across retries', () => {
-  /*
-    A dropped response on a bad connection is the ordinary case in a Nouakchott
-    shop. Without a stable key the anxious second tap creates a second business
-    with the same name and no way to tell which one is yours.
-  */
-  const code = withoutComments(source('app/(auth)/register.tsx'));
-  assert.match(code, /const idempotencyKey = useRef\(uuidv4\(\)\)/);
-  assert.match(code, /idempotencyKey\.current/);
-});
-
-it('and against the impatient second tap, synchronously', () => {
-  // A ref, not state: two taps can both land before React re-renders.
-  const code = withoutComments(source('app/(auth)/register.tsx'));
-  assert.match(code, /const inFlight = useRef\(false\)/);
-  assert.match(code, /if \(inFlight\.current\) return;/);
-});
-
-it('the password is cleared and never replayed for a session', () => {
-  const reg = withoutComments(source('app/(auth)/register.tsx'));
-  assert.match(reg, /password: '', passwordConfirm: ''/);
-
-  const verify = withoutComments(source('app/(auth)/verify.tsx'));
-  assert.ok(!verify.includes('password'), 'verification must not touch the password at all');
-});
-
-it('the continuation lives only in secure storage', () => {
-  const store = withoutComments(source('lib/registration-session.ts'));
-  // `lib/storage.ts` is the SecureStore wrapper; AsyncStorage is not.
-  assert.match(store, /from '\.\/storage'/);
-  assert.ok(!store.includes('AsyncStorage'), 'a credential does not belong in AsyncStorage');
-  // And it is removed rather than left lying about.
-  assert.match(store, /export async function forgetContinuation/);
-});
-
-it('verification installs the session, then goes to the state screen, and opens nothing else', () => {
-  /*
-    The website is no longer included from the app (2026-09-22): nothing here
-    mints a handoff or opens a browser — see `website-deferred.test.ts`. What
-    stays true is the order that protected the account when it did: the
-    session is installed first, and no path afterwards may delete it.
-  */
-  const verify = withoutComments(source('app/(auth)/verify.tsx'));
-  const adopted = verify.indexOf('await adoptSession(');
-  const next = verify.indexOf("router.replace('/subscription-blocked'");
-  assert.ok(adopted > -1 && next > adopted, 'the session must be installed BEFORE moving on');
-  assert.ok(!/clearSession|signOut/.test(verify), 'no failure path may delete a valid session');
-  assert.ok(!/portal|Linking/.test(verify), 'nothing opens a browser');
+  assert.match(code, /auth\.accounts\.managed/);
+  // `Platform.OS` is React Native's; the console's route and keys are what must be absent.
+  assert.ok(!/\(auth\)\/register|createAccount|signup|\/platform|auth\.action\.platform/i.test(code), 'no registration, sign-up or console entry');
+  assert.ok(!/Linking\./.test(code), 'and nothing opens a browser');
 });
 
 it('no website address is configured or hardcoded in the app', () => {
@@ -386,8 +320,6 @@ it('no build wears a staging label on a user-facing screen', () => {
   for (const f of [
     'app/_layout.tsx',
     'app/(auth)/login.tsx',
-    'app/(auth)/register.tsx',
-    'app/(auth)/verify.tsx',
     'app/subscription-blocked.tsx',
     'lib/i18n/en.ts',
     'lib/i18n/ar.ts',
