@@ -18,6 +18,8 @@ import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
 import { dialog } from '../../lib/dialog';
 import type { ProductDetail, ProductPage } from '../../types/api';
+import { useFileBatch } from '../../lib/file-batch-store';
+import type { CatalogueProduct } from '../../lib/file-receiving';
 
 /**
  * Create a product (G1) — the shared form, nothing duplicated.
@@ -34,7 +36,14 @@ export default function NewProductScreen() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { branchId } = useBranch();
-  const { barcode: scannedBarcode } = useLocalSearchParams<{ barcode?: string }>();
+  const {
+    barcode: scannedBarcode,
+    link,
+    brand: fileBrand,
+    model: fileModel,
+    variant: fileVariant,
+    tracking: fileTracking,
+  } = useLocalSearchParams<{ barcode?: string; link?: string; brand?: string; model?: string; variant?: string; tracking?: string }>();
   const intakeScope = {
     companyId: user?.companyId ?? '',
     userId: user?.id ?? '',
@@ -57,10 +66,39 @@ export default function NewProductScreen() {
   const canSetPrice = usePermission('price.edit');
 
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
-  const [existingId, setExistingId] = useState<string | null>(null);
+  const [existing, setExisting] = useState<CatalogueProduct | null>(null);
+  const existingId = existing?.id ?? null;
 
-  /** Find the product a 409 was actually about, so we can offer to open it. */
-  const resolveExisting = async (values: ProductFormValues): Promise<string | null> => {
+  /**
+   * Opened from a file review for a product the catalogue did not know
+   * (docs/21, 2026-10-05): `link` names the group of rows waiting on it. Saving
+   * links the product to those rows through the batch store and returns to the
+   * review; cancelling returns to the same review with nothing changed. The
+   * rows, their identifiers, costs and decisions all stay where they were.
+   */
+  const linkingGroup = typeof link === 'string' && link ? link : null;
+
+  const asCatalogue = (p: { id: string; brand: string; model: string; variant: string | null; trackingType: string }): CatalogueProduct => ({
+    id: p.id,
+    brand: p.brand,
+    model: p.model,
+    variant: p.variant ?? null,
+    trackingType: p.trackingType as CatalogueProduct['trackingType'],
+  });
+
+  const finishForFile = (product: CatalogueProduct, created: boolean) => {
+    const linked = useFileBatch.getState().linkGroupProduct(linkingGroup!, product);
+    toast.success(
+      created
+        ? t('fileReceive.create.linked', { count: String(linked), product: `${product.brand} ${product.model}` })
+        : t('fileReceive.create.linkedExisting', { count: String(linked), product: `${product.brand} ${product.model}` }),
+    );
+    if (router.canGoBack()) router.back();
+    else router.replace('/receive/file' as never);
+  };
+
+  /** Find the product a 409 was actually about, so we can offer to open — or use — it. */
+  const resolveExisting = async (values: ProductFormValues): Promise<CatalogueProduct | null> => {
     const term = values.barcode.trim() || [values.brand, values.model, values.variant].filter(Boolean).join(' ');
     try {
       const page = await api.get<ProductPage>(`/products?active=all&q=${encodeURIComponent(term)}`);
@@ -71,7 +109,8 @@ export default function NewProductScreen() {
             r.model.toLowerCase() === values.model.trim().toLowerCase() &&
             (r.variant ?? '').toLowerCase() === values.variant.trim().toLowerCase()),
       );
-      return exact?.id ?? page.rows[0]?.id ?? null;
+      const hit = exact ?? page.rows[0];
+      return hit ? asCatalogue(hit) : null;
     } catch {
       return null;
     }
@@ -84,6 +123,11 @@ export default function NewProductScreen() {
       // The new product must appear in every selector immediately.
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       void queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      // Created for a file review: link it to the rows that were waiting, and go back.
+      if (linkingGroup) {
+        finishForFile(asCatalogue(product), true);
+        return;
+      }
       toast.success(t('catalog.form.created'));
       /*
        * If a scan is waiting, this product was created *for* it — go back to
@@ -113,12 +157,12 @@ export default function NewProductScreen() {
         );
         // A 409 after a dropped connection usually means the FIRST attempt
         // landed. Say so, and offer the product instead of a blind retry.
-        const id = await resolveExisting(values);
-        if (id) {
-          setExistingId(id);
+        const found = await resolveExisting(values);
+        if (found) {
+          setExisting(found);
           await dialog.alert({
             title: t('catalog.conflict.maybeCreated.title'),
-            message: t('catalog.conflict.maybeCreated.body'),
+            message: linkingGroup ? t('catalog.conflict.useExisting.body') : t('catalog.conflict.maybeCreated.body'),
           });
         }
         return;
@@ -154,19 +198,30 @@ export default function NewProductScreen() {
         initial={{
           ...emptyProductForm,
           barcode: scannedBarcode ?? '',
-          trackingType: suggested ?? emptyProductForm.trackingType,
+          // From a file review: only what the file said, every field still editable.
+          brand: linkingGroup ? (fileBrand ?? '') : '',
+          model: linkingGroup ? (fileModel ?? '') : '',
+          variant: linkingGroup ? (fileVariant ?? '') : '',
+          trackingType: linkingGroup
+            ? fileTracking === 'serial'
+              ? 'serial'
+              : 'imei'
+            : (suggested ?? emptyProductForm.trackingType),
         }}
         suggestedFromScan={suggested}
         submitting={create.isPending}
         errors={errors}
         onSubmit={(values) => {
           setErrors({});
-          setExistingId(null);
+          setExisting(null);
           create.mutate(values);
         }}
         onKnownBarcode={(productId) => router.push(`/catalog/${productId}` as never)}
         footerExtra={
-          existingId ? (
+          existing && linkingGroup ? (
+            // The product already exists: no duplicate — the file rows use it.
+            <Button title={t('catalog.conflict.useExisting')} variant="secondary" onPress={() => finishForFile(existing, false)} />
+          ) : existingId ? (
             <Button
               title={t('catalog.conflict.openExisting')}
               variant="secondary"

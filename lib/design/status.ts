@@ -89,6 +89,8 @@ export const userStatus = {
   active: { tone: 'success', labelKey: 'status.user.active' },
   inactive: { tone: 'neutral', labelKey: 'status.user.inactive' },
   pending_contact: { tone: 'warning', labelKey: 'status.user.pending_contact' },
+  // Created from Team, not yet activated by the server (docs/21, 2026-10-05).
+  pending: { tone: 'info', labelKey: 'status.user.pending' },
 } as const satisfies Record<string, StatusMeta>;
 
 /**

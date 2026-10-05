@@ -132,8 +132,11 @@ it('Arabic turns the layout right-to-left, and English and French turn it back',
   // Direction follows the language both ways, rather than being latched on.
   assert.match(i18n, /const wantsRtl = isRtlLanguage\(lang\)/);
   assert.match(i18n, /I18nManager\.forceRTL\(wantsRtl\)/);
-  // And the screen says so, because React Native applies it at startup.
-  assert.match(withoutComments(source(SWITCH)), /restartRequired/);
+  // And the screen says what is TRUE about the layout — a restart that will apply it, Expo Go that
+  // cannot, or a build that did not flip — never clearing while the layout is wrong (docs/21 D142).
+  const sw = withoutComments(source(SWITCH));
+  assert.match(sw, /direction !== 'ok'/);
+  assert.match(sw, /DIRECTION_NOTICE_KEYS\[direction\]/);
 });
 
 it('the preference survives navigation and a restart', () => {

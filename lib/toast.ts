@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { haptics } from './haptics';
+import { t } from './i18n';
+import { safeToastMessage } from './toast-message';
 import { uuidv4 } from './utils';
 
 /**
@@ -76,8 +78,19 @@ const HAPTIC: Record<ToastTone, () => void> = {
   info: haptics.tap,
 };
 
-function show(tone: ToastTone, message: string, options: ToastOptions = {}): string {
+function show(tone: ToastTone, rawMessage: string, options: ToastOptions = {}): string {
   const id = uuidv4();
+  /*
+   * Never a blank box (docs/21, 2026-10-05). An error that arrived without words
+   * is still shown — in the app's own words — and a wordless confirmation is
+   * dropped. In development the caller is named, so the source can be fixed.
+   */
+  const safe = safeToastMessage(tone, rawMessage, t('state.error.body'));
+  if (safe.wasBlank && __DEV__) {
+    console.warn(`[toast] ${tone} toast called without a message`, new Error().stack?.split('\n').slice(2, 5).join('\n'));
+  }
+  if (safe.message === null) return id;
+  const message = safe.message;
   const duration =
     options.duration ?? (options.action ? DURATION_WITH_ACTION : DEFAULT_DURATION[tone]);
 

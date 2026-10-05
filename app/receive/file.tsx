@@ -38,6 +38,8 @@ import { dialog } from '../../lib/dialog';
 import { toErrorMessage } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
 import { isRTL, useTranslation } from '../../lib/i18n';
+import { usePermission } from '../../lib/permissions';
+import { prefillFromGroup } from '../../lib/file-receiving-rules';
 import { qk } from '../../lib/query-keys';
 import { invalidateMoney } from '../../lib/money-invalidation';
 import { toast } from '../../lib/toast';
@@ -138,6 +140,8 @@ const Separator = () => <ListSeparator inset={false} />;
 function FileReviewScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
+  // Whether this person may add a product the file names and the catalogue lacks (docs/21 D144).
+  const canCreateProduct = usePermission('catalog.manage');
   const router = useRouter();
   const leave = useLeave('/receive/file');
   const qc = useQueryClient();
@@ -432,6 +436,27 @@ function FileReviewScreen() {
   };
 
   /** A group's whole product question, answered once. */
+  /**
+   * The product the file names is not in the catalogue (docs/21, 2026-10-05).
+   *
+   * The product form opens filled in from the file — brand, model, exact variant,
+   * the tracking mode the identifiers imply — and nothing here changes. When it
+   * is saved, `catalog/new` links the new product to this group's waiting rows
+   * through the batch store and comes back; cancelling it comes back to exactly
+   * this review. No unit exists until the delivery is confirmed, as ever.
+   */
+  const createForGroup = (group: EntryGroup) => {
+    const keys = summaries.get(group.key)?.matchableKeys ?? [];
+    if (keys.length === 0) return;
+    const prefill = prefillFromGroup(group);
+    setMatching(null);
+    setError(null);
+    router.push({
+      pathname: '/catalog/new',
+      params: { link: group.key, brand: prefill.brand, model: prefill.model, variant: prefill.variant, tracking: prefill.trackingType },
+    } as never);
+  };
+
   const matchGroup = (group: EntryGroup, product: CatalogueProduct) => {
     const keys = summaries.get(group.key)?.matchableKeys ?? [];
     const changed = correctMany(keys, { productId: product.id });
@@ -688,6 +713,8 @@ function FileReviewScreen() {
         count={matching ? (summaries.get(matching.key)?.matchableKeys.length ?? 0) : 0}
         onClose={() => setMatching(null)}
         onChoose={(product) => matching && matchGroup(matching, product)}
+        canCreate={canCreateProduct}
+        onCreate={() => matching && createForGroup(matching)}
       />
     </Screen>
   );
@@ -906,12 +933,17 @@ function MatchSheet({
   count,
   onClose,
   onChoose,
+  canCreate,
+  onCreate,
 }: {
   group: EntryGroup | null;
   candidates: CatalogueProduct[];
   count: number;
   onClose: () => void;
   onChoose: (product: CatalogueProduct) => void;
+  /** Whether this person may create a product (`catalog.manage`). */
+  canCreate: boolean;
+  onCreate: () => void;
 }) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -940,6 +972,30 @@ function MatchSheet({
           <Text variant="caption" tone="secondary">
             {t('fileReceive.noCandidates')}
           </Text>
+        )}
+        {/*
+          The product is not in the catalogue. Somebody who may add products does
+          it from here, filled in from the file, and comes straight back; somebody
+          who may not is told whom to ask — and that the review is kept.
+        */}
+        {canCreate ? (
+          <View style={styles.createBlock}>
+            <Button
+              title={t('fileReceive.create.product')}
+              variant={candidates.length > 0 ? 'secondary' : 'primary'}
+              fullWidth
+              onPress={onCreate}
+            />
+            <Text variant="caption" tone="tertiary">
+              {t('fileReceive.create.hint')}
+            </Text>
+          </View>
+        ) : (
+          <InlineNotice tone="info" title={t('fileReceive.create.noPermission.title')} style={styles.createBlock}>
+            <Text variant="caption" tone="secondary">
+              {t('fileReceive.create.noPermission.body')}
+            </Text>
+          </InlineNotice>
         )}
       </View>
     </BottomSheet>
@@ -1097,6 +1153,7 @@ const useStyles = makeStyles((colors) => ({
   tail: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base },
   footer: { gap: space.sm },
   sheet: { gap: space.md, padding: space.base },
+  createBlock: { gap: space.sm, marginTop: space.sm },
   sheetActions: { gap: space.sm },
 }));
 

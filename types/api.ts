@@ -453,7 +453,26 @@ export interface OwnerSettings {
 export type Settings = OwnerSettings | StaffSettings;
 
 // ── Team (F1 Stage 1) ────────────────────────────────────────────────────────
-export type UserStatus = 'active' | 'inactive' | 'pending_contact';
+/** `pending`: created from Team and not yet activated by the server (docs/21, 2026-10-05). */
+export type UserStatus = 'active' | 'inactive' | 'pending_contact' | 'pending';
+
+/** What still stands between a pending account and its first sign-in. The server decides; the app only shows it. */
+export interface TeamPending {
+  email: 'verified' | 'awaiting' | 'not_selected';
+  phone: 'verified' | 'awaiting' | 'not_selected';
+  /** One per store: `included` (a free seat), `held` (a seat held for this person) or `awaiting_payment` (the platform has not approved it yet). */
+  seats: { branchId: string; branchName: string; state: 'included' | 'held' | 'awaiting_payment' }[];
+}
+
+/** `POST /users`: an account that waits to be activated. Never carries a code the app could show. */
+export interface StaffInvitationResult {
+  created: boolean;
+  user: { id: string; name: string; email: string | null; phone: string | null; status: 'pending'; stores: { id: string; name: string; role: string }[] };
+  /** `sent`: a code went out; `unavailable`: nothing can deliver right now, the account stays pending. */
+  verification: { email: 'sent' | 'unavailable' | null; phone: 'sent' | 'unavailable' | null };
+  seats: { storeId: string; store: string; state: 'included' | 'held' | 'awaiting_payment' }[];
+  activation: { activated: boolean; pending: string[] };
+}
 
 export interface TeamUserBranch {
   branchId: string;
@@ -491,6 +510,12 @@ export interface TeamUser {
   emailVerifiedAt: string | null;
   isActive: boolean;
   status: UserStatus;
+  /** Set when an Owner created this account from Team; null for accounts that predate the flow. */
+  invitedAt?: string | null;
+  /** When the server activated the account; null while it waits. */
+  activatedAt?: string | null;
+  /** Present only while `status` is `pending`. */
+  pending?: TeamPending | null;
   lastLoginAt: string | null;
   branches: TeamUserBranch[];
   /**

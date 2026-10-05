@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { BatchState, Correction, ParseResult } from './file-receiving';
+import type { BatchState, CatalogueProduct, Correction, ParseResult } from './file-receiving';
+import { linkableKeys, withLinkedProduct } from './file-receiving-rules';
 
 /**
  * The batch being reviewed, held outside the screen.
@@ -27,6 +28,12 @@ interface FileBatchStore {
   excludeMany: (keys: readonly string[], excluded: boolean) => void;
   /** Accept a row — reviewed and waved through its advisory flag. */
   setAcknowledged: (key: string, acknowledged: boolean) => void;
+  /**
+   * A product created (or found) for a whole group that the catalogue did not
+   * know: linked to every row of the group that was waiting on it, and added to
+   * their candidates. Returns how many rows it answered for.
+   */
+  linkGroupProduct: (groupKey: string, product: CatalogueProduct) => number;
   clear: () => void;
 }
 
@@ -78,5 +85,13 @@ export const useFileBatch = create<FileBatchStore>((set, get) => ({
       if (acknowledged) next.push(key);
       return { batch: { ...s.batch, acknowledged: next } };
     }),
+  linkGroupProduct: (groupKey, product) => {
+    const batch = get().batch;
+    if (!batch) return 0;
+    const keys = linkableKeys(batch, groupKey);
+    if (keys.length === 0) return 0;
+    set({ batch: withLinkedProduct(batch, keys, product) });
+    return keys.length;
+  },
   clear: () => set({ batch: null }),
 }));

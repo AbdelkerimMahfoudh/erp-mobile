@@ -138,8 +138,8 @@ export const HUBS: readonly Hub[] = [
       // product, and the create/edit controls inside gate themselves.
       { id: 'catalog', route: '/catalog', titleKey: 'nav.catalog', icon: 'Tag' },
       { id: 'transfers', route: '/transfers', titleKey: 'nav.transfers', icon: 'ArrowLeftRight', perm: 'transfer.view' },
-      // Opening stock, brought in once. Owner-only (`0073`); no supplier column.
-      { id: 'imports', route: '/imports', titleKey: 'nav.imports', icon: 'FileSpreadsheet', perm: 'import.run' },
+      // Opening stock from a file is a Stock ACTION, not a menu row: it lives in
+      // the Stock tab header (2026-10-05) and is excluded below with its reason.
     ],
   },
   {
@@ -253,7 +253,7 @@ export interface MoreGroup {
 export const MORE_GROUPS: readonly MoreGroup[] = [
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'catalog', 'settings'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 
@@ -295,6 +295,9 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/closing': 'The Daily closing — reached from Home’s Daily closing card (Review closing), no longer a row of Money (docs/63). Everybody who counts (`closing.count`) reaches it there.',
   '/partners/[id]': 'One store this shop deals with, opened from Partners.',
   '/inventory': 'Bottom tab — Inventory.',
+  '/imports':
+    'Import stock — opening stock from a spreadsheet. A Stock action opened from the Stock tab header (2026-10-05), Owner-only (`0073`, `import.run`); no longer a More row or a hub child, so the one place to start it is the one place stock is looked at.',
+  '/imports/[id]': 'One stock file being checked before anything is added, opened from Import stock.',
   '/more': 'Bottom tab — this screen itself.',
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
   '/login': 'Authentication, reached when signed out. Accounts are set up by the organisation; the app offers no self-registration (docs/21, 2026-10-05).',

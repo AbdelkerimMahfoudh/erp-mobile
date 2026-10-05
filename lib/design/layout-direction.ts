@@ -1,4 +1,5 @@
 import { I18nManager, Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 
 /**
  * Which way the UI is laid out, on every platform the app ships to.
@@ -35,4 +36,15 @@ export const DIRECTION_NEEDS_RESTART = Platform.OS !== 'web';
 
 export function layoutIsRTL(): boolean {
   return Platform.OS === 'web' ? webRtl : I18nManager.isRTL;
+}
+
+/**
+ * Running inside Expo Go rather than our own build.
+ *
+ * Expo Go's native shell is Expo's, not ours: a direction change requested by a
+ * project does not survive into the next launch the way it does in the
+ * installed app, so the restart notice must not promise that it will.
+ */
+export function isExpoGo(): boolean {
+  return Platform.OS !== 'web' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 }

@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Cable, PackagePlus, PackageSearch, X } from 'lucide-react-native';
+import { ArrowLeftRight, Cable, FileSpreadsheet, PackagePlus, PackageSearch, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -88,6 +88,9 @@ export default function InventoryScreen() {
   const canReceive = usePermission('purchase.manage') && access.canWrite;
   const canViewReports = usePermission('report.view');
   const canViewTransfers = usePermission('transfer.view');
+  // Opening stock from a spreadsheet: Owner-only (`0073`), and a Stock action rather
+  // than a menu row since 2026-10-05 — it starts where stock is looked at.
+  const canImport = usePermission('import.run') && access.canWrite;
 
   // Arriving from a product's detail screen: that exact product's units.
   const { productId: productIdParam, category: categoryParam, status: statusParam, sort: sortParam } = useLocalSearchParams<{
@@ -262,14 +265,24 @@ export default function InventoryScreen() {
         context={branchName}
         title={t('inventory.title')}
         actions={
-          canViewTransfers ? (
-            <IconButton
-              icon={ArrowLeftRight}
-              variant="plain"
-              accessibilityLabel={t('nav.transfers')}
-              onPress={() => router.push('/transfers' as Href)}
-            />
-          ) : null
+          <>
+            {canImport ? (
+              <IconButton
+                icon={FileSpreadsheet}
+                variant="plain"
+                accessibilityLabel={t('nav.imports')}
+                onPress={() => router.push('/imports' as Href)}
+              />
+            ) : null}
+            {canViewTransfers ? (
+              <IconButton
+                icon={ArrowLeftRight}
+                variant="plain"
+                accessibilityLabel={t('nav.transfers')}
+                onPress={() => router.push('/transfers' as Href)}
+              />
+            ) : null}
+          </>
         }
       />
       {value.data ? (

@@ -278,9 +278,14 @@ it('an Employee sees no money report, no imports and no loans', () => {
   assert.deepEqual(performance, ['goals'], 'no report.view, so no analytics');
 });
 
-it('import is offered to the Owner alone (0073)', () => {
+it('Import stock is a Stock-tab action, not a hub child or a More row (2026-10-05)', () => {
   assert.deepEqual(visibleChildren(hubById('stock')!, MANAGER).map((c) => c.id), ['catalog', 'transfers']);
-  assert.ok(visibleChildren(hubById('stock')!, OWNER).some((c) => c.id === 'imports'));
+  assert.ok(!visibleChildren(hubById('stock')!, OWNER).some((c) => c.id === 'imports'));
+  assert.ok(!allDestinations().some((d) => d.id === 'imports' || d.route === '/imports'));
+  assert.ok(excluded('/imports') && excluded('/imports/[id]'), 'the route keeps a written reason');
+  const stock = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'inventory.tsx'), 'utf8');
+  assert.match(stock, /router\.push\('\/imports' as Href\)/, 'the Stock tab must lead to Import stock');
+  assert.match(stock, /usePermission\('import\.run'\)/, 'and only for who may run it');
 });
 
 it('Suppliers is not a destination and has no screen (removed from the MVP)', () => {
@@ -688,10 +693,11 @@ it('what More leaves out is reachable from a tab, and says which', () => {
 
 it('More lists Goals and Analytics, and nothing deferred', () => {
   const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
-  for (const id of ['analytics', 'goals', 'sales', 'returns', 'approvals', 'team', 'imports', 'settings']) {
+  for (const id of ['analytics', 'goals', 'sales', 'returns', 'approvals', 'team', 'settings']) {
     assert.ok(grouped.includes(id), id + ' must be on More');
   }
   assert.ok(!grouped.includes('suppliers'));
+  assert.ok(!grouped.includes('imports'), 'Import stock left More for the Stock tab (2026-10-05)');
 });
 
 it('groups show only permitted destinations and never render empty', () => {

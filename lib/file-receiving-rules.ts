@@ -499,3 +499,62 @@ export function previewBulkCost(batch: BatchState, keys: readonly string[], valu
   }
   return { affected: keys.length, differing, unchanged };
 }
+
+// ── a product that is not in the catalogue yet ──────────────────────────────
+
+/**
+ * What the product form is filled in with for a group the catalogue does not
+ * know (docs/21, 2026-10-05).
+ *
+ * Only what the file actually said: the brand and model as written, and the
+ * exact variant the group was formed on (storage and colour). Nothing is
+ * guessed — a category or a barcode is the person's to add — and every field
+ * stays editable. The tracking mode follows the identifier the rows carry: an
+ * IMEI makes a phone, a serial alone makes a serial-tracked device.
+ */
+export interface GroupPrefill {
+  brand: string;
+  model: string;
+  variant: string;
+  trackingType: 'imei' | 'serial';
+}
+
+export function prefillFromGroup(group: EntryGroup): GroupPrefill {
+  const first = group.entries[0]?.extracted;
+  const hasImei = group.entries.some((e) => Boolean(e.extracted.imei1));
+  return {
+    brand: (first?.brand ?? '').trim(),
+    model: (first?.model ?? '').trim(),
+    variant: (group.variant ?? '').trim(),
+    trackingType: hasImei ? 'imei' : 'serial',
+  };
+}
+
+/**
+ * The batch after a product was created (or found) for these rows.
+ *
+ * The product becomes each row's chosen product AND a candidate on each row, so
+ * the item sheet can name it and the review treats it like any other match.
+ * Nothing else moves: other rows, exclusions, acknowledgements and the file's
+ * own words are untouched, and no unit exists until the delivery is confirmed.
+ */
+export function withLinkedProduct(batch: BatchState, keys: readonly string[], product: CatalogueProduct): BatchState {
+  if (keys.length === 0) return batch;
+  const corrections = { ...batch.corrections };
+  const matches = { ...batch.parsed.matches };
+  for (const key of keys) {
+    corrections[key] = { ...corrections[key], productId: product.id };
+    const current = matches[key] ?? { productId: null, candidates: [], exact: false };
+    matches[key] = {
+      ...current,
+      candidates: current.candidates.some((c) => c.id === product.id) ? current.candidates : [...current.candidates, product],
+    };
+  }
+  return { ...batch, corrections, parsed: { ...batch.parsed, matches } };
+}
+
+/** The rows one product would answer for in this group — the same rule the Match sheet uses. */
+export function linkableKeys(batch: BatchState, groupKey: string): string[] {
+  const group = groupEntries(batch).find((g) => g.key === groupKey);
+  return group ? groupSummary(batch, group).matchableKeys : [];
+}

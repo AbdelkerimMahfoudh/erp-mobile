@@ -83,7 +83,8 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/catalog/new': '/catalog',
   '/catalog/edit': '/catalog',
   '/catalog/categories': '/catalog',
-  '/imports': TABS.more,
+  // Import stock starts from the Stock tab (2026-10-05), so that is where back goes.
+  '/imports': TABS.stock,
   '/imports/[id]': '/imports',
   '/analytics': TABS.more,
   '/alerts': '/analytics',

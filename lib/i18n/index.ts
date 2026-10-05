@@ -1,8 +1,9 @@
 import { I18nManager } from 'react-native';
 import { getLocales } from 'expo-localization';
 import { create } from 'zustand';
-import { getItem, setItem } from '../storage';
-import { applyWebDirection, DIRECTION_NEEDS_RESTART, layoutIsRTL } from '../design/layout-direction';
+import { deleteItem, getItem, setItem } from '../storage';
+import { applyWebDirection, DIRECTION_NEEDS_RESTART, isExpoGo, layoutIsRTL } from '../design/layout-direction';
+import { directionVerdict, type DirectionVerdict } from '../design/direction-restart';
 import { en } from './en';
 import { ar } from './ar';
 import { fr } from './fr';
@@ -13,6 +14,12 @@ export type Language = 'en' | 'ar' | 'fr';
 const CATALOGUES: Record<Language, Catalogue> = { en, ar, fr };
 const RTL_LANGUAGES: ReadonlySet<Language> = new Set<Language>(['ar']);
 const LANGUAGE_STORAGE_KEY = 'erp.language';
+/**
+ * The language a direction flip was last requested for. Read at the next launch:
+ * if that launch still shows the old direction, the flip did not take, and the
+ * notice must say so rather than ask for another restart forever.
+ */
+const DIRECTION_REQUEST_KEY = 'erp.language.directionRequestedFor';
 
 /**
  * Each language named in its own words.
@@ -92,8 +99,10 @@ interface I18nState {
   language: Language;
   /** True once the persisted choice has been read; screens wait on this. */
   ready: boolean;
-  /** Set when the chosen language needs a relaunch to flip layout direction. */
+  /** True exactly when `direction` is `restart` — kept for the screens that only ask that. */
   restartRequired: boolean;
+  /** What is true about layout direction right now; see `lib/design/direction-restart.ts`. */
+  direction: DirectionVerdict;
   hydrate: () => Promise<void>;
   setLanguage: (lang: Language) => Promise<void>;
 }
@@ -104,52 +113,66 @@ function applyLanguage(lang: Language): void {
   applyWebDirection(isRtlLanguage(lang), lang);
 }
 
+/**
+ * Make the native layout direction follow the language, and say what is true.
+ *
+ * On native the direction is read by the OS at startup, so a change can only be
+ * asked for here and applied by the next launch. Whether that launch happened,
+ * and whether it took, is what decides the notice:
+ *
+ *  - direction already matches → nothing to say (and the earlier request is forgotten);
+ *  - mismatch, first time → ask the native side, remember for which language, say "restart";
+ *  - mismatch at a LATER launch for the same language → the restart happened and
+ *    nothing flipped: in Expo Go that is expected; in our own build it means the
+ *    native RTL option is missing — either way the words are honest and the
+ *    warning stays while the layout is wrong.
+ *
+ * `afterSwitch` is true when called from the language control, false from
+ * hydration: only a hydration can be "a later launch".
+ */
+async function settleDirection(lang: Language, afterSwitch: boolean): Promise<DirectionVerdict> {
+  if (!DIRECTION_NEEDS_RESTART) return 'ok';
+
+  // Permit RTL at all; without this, forceRTL is ignored on some builds.
+  I18nManager.allowRTL(true);
+  const wantsRtl = isRtlLanguage(lang);
+  const actualRtl = I18nManager.isRTL;
+  const requestedFor = await getItem(DIRECTION_REQUEST_KEY);
+
+  if (wantsRtl === actualRtl) {
+    if (requestedFor) await deleteItem(DIRECTION_REQUEST_KEY);
+    return 'ok';
+  }
+
+  I18nManager.forceRTL(wantsRtl);
+  const relaunchedSinceRequest = !afterSwitch && requestedFor === lang;
+  if (requestedFor !== lang) await setItem(DIRECTION_REQUEST_KEY, lang);
+
+  return directionVerdict({ needsRestart: true, wantsRtl, actualRtl, isExpoGo: isExpoGo(), relaunchedSinceRequest });
+}
+
 export const useI18n = create<I18nState>((set, get) => ({
   language: 'en',
   ready: false,
   restartRequired: false,
+  direction: 'ok',
 
   hydrate: async () => {
     const stored = await getItem(LANGUAGE_STORAGE_KEY);
     const lang = isSupported(stored) ? stored : deviceLanguage();
     applyLanguage(lang);
-
-    // Web has already applied the direction to the document; nothing to relaunch.
-    if (!DIRECTION_NEEDS_RESTART) {
-      set({ language: lang, ready: true, restartRequired: false });
-      return;
-    }
-
-    // Permit RTL at all; without this, forceRTL is ignored on some builds.
-    I18nManager.allowRTL(true);
-    const wantsRtl = isRtlLanguage(lang);
-    if (I18nManager.isRTL !== wantsRtl) {
-      I18nManager.forceRTL(wantsRtl);
-      // Direction is applied natively at startup, so the running session keeps
-      // its current direction. The next launch is correct.
-      set({ language: lang, ready: true, restartRequired: true });
-      return;
-    }
-    set({ language: lang, ready: true, restartRequired: false });
+    const direction = await settleDirection(lang, false);
+    set({ language: lang, ready: true, direction, restartRequired: direction === 'restart' });
   },
 
   setLanguage: async (lang) => {
     if (get().language === lang) return;
     applyLanguage(lang);
+    // The choice outlives sign-out, termination and relaunch: it is written here
+    // and read by `hydrate`, and nothing in the session code touches this key.
     await setItem(LANGUAGE_STORAGE_KEY, lang);
-
-    if (!DIRECTION_NEEDS_RESTART) {
-      set({ language: lang, restartRequired: false });
-      return;
-    }
-
-    const wantsRtl = isRtlLanguage(lang);
-    const directionChanges = I18nManager.isRTL !== wantsRtl;
-    if (directionChanges) {
-      I18nManager.allowRTL(true);
-      I18nManager.forceRTL(wantsRtl);
-    }
-    set({ language: lang, restartRequired: directionChanges });
+    const direction = await settleDirection(lang, true);
+    set({ language: lang, direction, restartRequired: direction === 'restart' });
   },
 }));
 

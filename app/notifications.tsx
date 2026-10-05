@@ -58,7 +58,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('notifications.title') }} />
 
       {page.isLoading ? (

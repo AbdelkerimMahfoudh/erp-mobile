@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users } from 'lucide-react-native';
+import { UserPlus, Users } from 'lucide-react-native';
 import {
   Button,
   Chip,
@@ -28,6 +28,9 @@ import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { dialog } from '../lib/dialog';
 import type { TeamUser } from '../types/api';
+import { useBusinessAccess } from '../lib/entitlement';
+import { CreateMemberSheet } from '../components/team/CreateMemberSheet';
+import { PendingPanel } from '../components/team/PendingPanel';
 
 /**
  * Team — the Owner's list of who can use the shop's app (F1 Stage 1).
@@ -56,7 +59,9 @@ export default function TeamScreen() {
   const { t } = useTranslation();
   const header = <Stack.Screen options={{ headerShown: true, title: t('team.title') }} />;
   const canManage = usePermission('user.manage');
+  const access = useBusinessAccess();
   const [editing, setEditing] = useState<TeamUser | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const usersQuery = useQuery({
     queryKey: qk.users,
@@ -131,6 +136,12 @@ export default function TeamScreen() {
         <Text variant="caption" tone="secondary" style={styles.subtitle}>
           {t('team.subtitle')}
         </Text>
+        {/*
+          Accounts are created here and activated by the server (docs/21,
+          2026-10-05): the person proves each contact given, and a seat is held
+          at each store. Hidden, like every write, while the business cannot write.
+        */}
+        {access.canWrite ? <Button title={t('team.add')} icon={UserPlus} onPress={() => setCreating(true)} /> : null}
       </View>
 
       {users.length === 0 ? (
@@ -151,6 +162,7 @@ export default function TeamScreen() {
       )}
 
       <EditSheet user={editing} onClose={() => setEditing(null)} roleLabel={roleLabel} />
+      <CreateMemberSheet open={creating} onClose={() => setCreating(false)} />
     </Screen>
   );
 }
@@ -302,20 +314,31 @@ function EditSheet({
             maxLength={160}
           />
 
-          {/* No toggle for yourself — you cannot lock yourself out. */}
-          {isSelf ? null : (
-            <Toggle
-              label={t('team.field.active')}
-              hint={t('team.field.activeHint')}
-              onLabel={t('settings.toggle.on')}
-              offLabel={t('settings.toggle.off')}
-              value={isActive}
-              onValueChange={setIsActive}
-            />
-          )}
+          {/*
+            A pending account is activated by the server alone, once the person
+            has proven every contact and a seat is held — never by this toggle
+            (the server refuses it too). Delegations wait until it is active.
+          */}
+          {user.status === 'pending' ? (
+            <PendingPanel user={user} onCancelled={onClose} />
+          ) : (
+            <>
+              {/* No toggle for yourself — you cannot lock yourself out. */}
+              {isSelf ? null : (
+                <Toggle
+                  label={t('team.field.active')}
+                  hint={t('team.field.activeHint')}
+                  onLabel={t('settings.toggle.on')}
+                  offLabel={t('settings.toggle.off')}
+                  value={isActive}
+                  onValueChange={setIsActive}
+                />
+              )}
 
-          <PriceEditDelegation user={user} />
-          <ClosingDelegation user={user} />
+              <PriceEditDelegation user={user} />
+              <ClosingDelegation user={user} />
+            </>
+          )}
 
           <Text variant="caption" tone="tertiary">
             {t('team.detail.lastLogin')}: {lastLogin}

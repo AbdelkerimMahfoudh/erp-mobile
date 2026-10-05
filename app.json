@@ -34,7 +34,12 @@
           "backgroundColor": "#4f46e5"
         }
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true
+        }
+      ],
       [
         "expo-camera",
         {

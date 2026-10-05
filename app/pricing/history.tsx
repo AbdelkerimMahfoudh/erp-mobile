@@ -25,7 +25,7 @@ export default function PriceHistoryScreen() {
   const history = usePriceHistory(productId);
 
   return (
-    <Screen>
+    <Screen scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('pricing.history.title') }} />
 
       {history.isLoading ? (

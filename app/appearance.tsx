@@ -5,6 +5,7 @@ import { InlineNotice, RowGroup, Screen, Text, Toggle } from '../components/ui';
 import { LanguageRow } from '../components/navigation/LanguageRow';
 import { space } from '../lib/design/tokens';
 import { useI18n, useTranslation } from '../lib/i18n';
+import { DIRECTION_NOTICE_KEYS } from '../lib/design/direction-restart';
 import { makeStyles, useTheme } from '../lib/design/theme';
 
 /**
@@ -45,7 +46,7 @@ export default function AppearanceScreen() {
   const { t } = useTranslation();
   const header = <Stack.Screen options={{ headerShown: true, title: t('appearance.title') }} />;
   const { isDark, setTheme } = useTheme();
-  const restartRequired = useI18n((s) => s.restartRequired);
+  const direction = useI18n((s) => s.direction);
 
   return (
     <Screen>
@@ -69,10 +70,16 @@ export default function AppearanceScreen() {
         <LanguageRow />
       </RowGroup>
 
-      {restartRequired ? (
-        <InlineNotice tone="warning" title={t('settings.language.restartTitle')} style={styles.notice}>
+      {direction !== 'ok' ? (
+        /*
+          Says what is TRUE about the layout (docs/21, 2026-10-05): a restart that
+          will apply the direction, Expo Go that cannot, or a build in which a
+          restart already happened and nothing flipped. It never clears while the
+          layout still disagrees with the language.
+        */
+        <InlineNotice tone="warning" title={t(DIRECTION_NOTICE_KEYS[direction].title)} style={styles.notice}>
           <Text variant="caption" tone="secondary">
-            {t('settings.language.restartBody')}
+            {t(DIRECTION_NOTICE_KEYS[direction].body)}
           </Text>
         </InlineNotice>
       ) : null}

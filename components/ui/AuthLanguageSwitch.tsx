@@ -12,6 +12,7 @@ import {
   type Language,
 } from '../../lib/i18n';
 import { makeStyles } from '../../lib/design/theme';
+import { DIRECTION_NOTICE_KEYS } from '../../lib/design/direction-restart';
 
 /**
  * Choosing the language **before** signing in.
@@ -48,7 +49,7 @@ export function AuthLanguageSwitch({ style, compact = false }: AuthLanguageSwitc
   const { t } = useTranslation();
   const language = useI18n((s) => s.language);
   const setLanguage = useI18n((s) => s.setLanguage);
-  const restartRequired = useI18n((s) => s.restartRequired);
+  const direction = useI18n((s) => s.direction);
 
   /*
    * The notice appears only after somebody switches HERE.
@@ -89,10 +90,10 @@ export function AuthLanguageSwitch({ style, compact = false }: AuthLanguageSwitc
           void setLanguage(lang);
         }}
       />
-      {switched && restartRequired ? (
-        <InlineNotice tone="info" title={t('settings.language.restartTitle')}>
+      {switched && direction !== 'ok' ? (
+        <InlineNotice tone="info" title={t(DIRECTION_NOTICE_KEYS[direction].title)}>
           <Text variant="caption" tone="secondary">
-            {t('settings.language.restartBody')}
+            {t(DIRECTION_NOTICE_KEYS[direction].body)}
           </Text>
         </InlineNotice>
       ) : null}
