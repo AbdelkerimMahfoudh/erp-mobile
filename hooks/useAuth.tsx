@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+import { usePathname, useRouter, useSegments } from 'expo-router';
 import { api, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
@@ -328,12 +328,15 @@ function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branch
    * screen is shown instead, before any branch is chosen. Asked only once
    * there is a session; decided by the server, never by a date on the phone.
    */
+  const pathname = usePathname();
   const entitlement = useEntitlement(Boolean(user) && !bootstrapping);
   const closed = Boolean(user) && entitlement.data !== undefined && !entitlement.data.canRead;
+  // Readable but closed to business writes (the period and its grace are over): a screen that only writes is not offered.
+  const readOnly = Boolean(user) && entitlement.data !== undefined && entitlement.data.canRead && !entitlement.data.canWrite;
 
   useEffect(() => {
     // The decision is pure and tested (`lib/navigation/entry.ts`): nobody is left on the splash or a redirect.
-    const target = entryRoute({ bootstrapping, signedIn: Boolean(user), branchChosen: Boolean(branchId), closed, segment: segments[0] });
+    const target = entryRoute({ bootstrapping, signedIn: Boolean(user), branchChosen: Boolean(branchId), closed, readOnly, segment: segments[0], pathname });
     if (target) router.replace(target as never);
-  }, [user, bootstrapping, branchId, segments, router, closed]);
+  }, [user, bootstrapping, branchId, segments, pathname, router, closed, readOnly]);
 }

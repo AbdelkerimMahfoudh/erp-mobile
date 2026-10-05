@@ -70,7 +70,7 @@ it('every route file is exactly one of: parent tab, child with the arrow, invisi
 
 it('the routes without an arrow: /stores is an invisible redirect; branch choice and the access refusal are authentication roots', () => {
   assert.ok('/stores' in REDIRECTS);
-  assert.ok('/select-branch' in AUTH_ROOTS && '/subscription-blocked' in AUTH_ROOTS);
+  assert.ok('/select-branch' in AUTH_ROOTS && '/access-closed' in AUTH_ROOTS);
   // A redirect renders nothing but the redirect, to a route that exists; it needs no parameter and loads nothing.
   const stores = code(read('app/stores/index.tsx'));
   assert.match(stores, /return <Redirect href="\/\(tabs\)\/partners" \/>;/);
@@ -85,9 +85,9 @@ it('the routes without an arrow: /stores is an invisible redirect; branch choice
   assert.match(branch, /title=\{t\('action\.signOut'\)\}[\s\S]*onPress=\{signOut\}/);
   assert.match(branch, /<ErrorState error=\{query\.error\} onRetry=/);
   assert.match(branch, /onPress=\{\(\) => setBranch\(branch\)\}/);
-  const blocked = code(read('app/subscription-blocked.tsx'));
-  assert.match(blocked, /title=\{t\('sub\.recheck'\)\}/);
-  assert.match(blocked, /title=\{t\('action\.signOut'\)\}/);
+  const closed = code(read('app/access-closed.tsx'));
+  assert.match(closed, /title=\{t\('access\.recheck'\)\}/);
+  assert.match(closed, /title=\{t\('action\.signOut'\)\}/);
 });
 
 it('every listed route exists — the map cannot rot', () => {

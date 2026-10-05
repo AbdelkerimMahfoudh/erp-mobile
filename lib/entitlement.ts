@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { businessAccess, type BusinessAccess } from './access';
 import { api } from './api-client';
 import { qk } from './query-keys';
 
@@ -73,4 +74,14 @@ export function useEntitlement(enabled = true) {
 export function isStale(query: { data?: Entitlement; isStale: boolean; isError: boolean }): boolean {
   if (!query.data) return true;
   return query.isError || query.isStale;
+}
+
+/**
+ * What the shop may do right now, for every screen that offers an action
+ * (`lib/access.ts`). One cached query behind it, so the tabs agree and nothing
+ * is asked twice.
+ */
+export function useBusinessAccess(): BusinessAccess {
+  const query = useEntitlement();
+  return businessAccess(query.data, isStale(query));
 }

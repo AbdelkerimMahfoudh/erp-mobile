@@ -23,6 +23,7 @@ import {
   Text,
   TextField,
 } from '../../components/ui';
+import { AccessNotice } from '../../components/access';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
 import { ApiError } from '../../lib/api-client';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,6 +33,7 @@ import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
+import { useBusinessAccess } from '../../lib/entitlement';
 import {
   useCancelConnection,
   useConnectionSummary,
@@ -105,6 +107,7 @@ export default function PartnersScreen() {
           ) : null
         }
       />
+      <AccessNotice />
 
       <OwnStoreCode />
 
@@ -279,8 +282,10 @@ function ConnectedStore({ connection: c, onOpen }: { connection: Connection; onO
   const { t } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const canLend = usePermission('loan.manage');
-  const canConsign = usePermission('consignment.request');
+  // Lending and consigning are business writes: not offered while the business is read-only (lib/access.ts).
+  const access = useBusinessAccess();
+  const canLend = usePermission('loan.manage') && access.canWrite;
+  const canConsign = usePermission('consignment.request') && access.canWrite;
   const summary = useConnectionSummary(open ? c.id : undefined);
   const counterparties = useCounterparties();
   const counterparty = (counterparties.data?.rows ?? []).find((x) => x.connectionId === c.id);

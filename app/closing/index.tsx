@@ -21,6 +21,7 @@ import { formatDate, formatMoney, formatTime } from '../../lib/format';
 import { dayChoices, dayWordKey, historyKey, openingKey, standingKey, standingTone } from '../../lib/home-day';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
+import { useBusinessAccess } from '../../lib/entitlement';
 import { useOpenClosing, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
 import { useDailyReport, type DailyReport } from '../../lib/closing-report';
 import { channelLabel, reportFreshness, warningKey, type Freshness } from '../../lib/closing-report-view';
@@ -148,9 +149,11 @@ function Report({
   const router = useRouter();
   const { branchName } = useBranch();
   const online = useConnectivity((s) => s.online);
+  // The server's word on business writes (lib/access.ts): a read-only business reads its days and prints them, and changes nothing.
+  const access = useBusinessAccess();
   const canCount = usePermission('closing.count');
-  const canClose = usePermission('closing.perform');
-  const canCorrect = usePermission('financial.correction.request');
+  const canClose = usePermission('closing.perform') && access.canWrite;
+  const canCorrect = usePermission('financial.correction.request') && access.canWrite;
   /** The daily report document needs the reports permission as well as this screen's own (docs/66). */
   const canPrint = usePermission('report.view') && canCount;
   /*
@@ -176,7 +179,7 @@ function Report({
 
   const standing = report.standing;
   const closed = standing === 'closed';
-  const showOpen = report.isToday && canCount && !!day?.canOpen && !closed;
+  const showOpen = report.isToday && canCount && access.canWrite && !!day?.canOpen && !closed;
   const openingLine = day
     ? t(
         openingKey(day.opening, report.isToday) as never,

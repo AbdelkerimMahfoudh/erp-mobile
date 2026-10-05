@@ -44,6 +44,20 @@ export function toFriendlyError(error: unknown): FriendlyError {
   }
 
   if (error instanceof ApiError) {
+    // The business's access has ended (docs/21, 2026-10-05): not a role, not a
+    // fault. The code is matched, never the English; the app's own words say
+    // what still works.
+    if (error.status === 403 && error.code === 'ENTITLEMENT_WRITE_BLOCKED') {
+      return {
+        titleKey: 'access.blocked.title',
+        title: t('access.blocked.title'),
+        body: t('access.blocked.body'),
+        retryable: false,
+        permissionDenied: false,
+        status: error.status,
+      };
+    }
+
     // 403 is a role boundary, not a fault. Saying "something went wrong" here
     // teaches employees to distrust the app; say what is actually true.
     if (error.status === 403) {

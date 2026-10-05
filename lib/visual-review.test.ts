@@ -202,8 +202,8 @@ it('at 320 points with large text a status wraps inside its chip and the row mak
   assert.match(code('app/consignments/[id].tsx'), /moneyState\.\$\{s\.money\}`\)\} size="sm" dot style=\{styles\.value\} \/>/, 'the money state shrinks beside its label');
 });
 
-it('an open shop that lands on the refusal screen is sent into the app, not told its subscription ended', () => {
-  assert.match(code('app/subscription-blocked.tsx'), /if \(entitlement\?\.canRead && entitlement\.canWrite\) return <Redirect href="\/" \/>;/);
+it('a readable shop that lands on the closed screen is sent into the app, never told its access ended', () => {
+  assert.match(code('app/access-closed.tsx'), /if \(entitlement\?\.canRead\) return <Redirect href="\/" \/>;/);
 });
 
 console.log(`visual review: ${passed} passed`);

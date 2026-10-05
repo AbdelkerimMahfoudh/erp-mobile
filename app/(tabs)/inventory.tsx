@@ -19,6 +19,7 @@ import {
   TabHeader,
   Text,
 } from '../../components/ui';
+import { AccessNotice } from '../../components/access';
 import { InlineNotice } from '../../components/ui/InlineNotice';
 import { ScannerSheet } from '../../components/scanner/ScannerSheet';
 import { STOCK_THUMB, StockRow } from '../../components/inventory/StockRow';
@@ -31,6 +32,7 @@ import { lastFour } from '../../lib/home-day';
 import { useTranslation } from '../../lib/i18n';
 import { withDismiss } from '../../lib/keyboard-dismiss';
 import { usePermission } from '../../lib/permissions';
+import { useBusinessAccess } from '../../lib/entitlement';
 import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
@@ -81,7 +83,9 @@ export default function InventoryScreen() {
   const router = useRouter();
   const { branchId, branchName } = useBranch();
   const online = useConnectivity((s) => s.online);
-  const canReceive = usePermission('purchase.manage');
+  // Receiving is a business write: not offered while the business is read-only (lib/access.ts).
+  const access = useBusinessAccess();
+  const canReceive = usePermission('purchase.manage') && access.canWrite;
   const canViewReports = usePermission('report.view');
   const canViewTransfers = usePermission('transfer.view');
 
@@ -419,6 +423,7 @@ export default function InventoryScreen() {
             />
           }
         >
+          <AccessNotice style={styles.notice} />
           {staleNotice}
           {mode === 'summary' ? (
             <ShelfList

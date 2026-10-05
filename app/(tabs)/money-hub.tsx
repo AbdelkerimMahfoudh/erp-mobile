@@ -16,6 +16,7 @@ import {
   Text,
   Thumbnail,
 } from '../../components/ui';
+import { AccessNotice } from '../../components/access';
 import { OpeningMoneySheet } from '../../components/day/OpeningMoneySheet';
 import { CompanyAccountsSheet } from '../../components/money/CompanyAccountsSheet';
 import { ExpectedMoneyCard } from '../../components/money/ExpectedMoneyCard';
@@ -40,6 +41,7 @@ import { tabHub, visibleChildren } from '../../lib/navigation/registry';
 import { usePeriod, type PeriodKey } from '../../lib/period';
 import { useBusinessDay, usePeriodRange } from '../../lib/home';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
+import { useBusinessAccess } from '../../lib/entitlement';
 import { useSales } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { useTodayOnArrival } from '../../lib/use-tab-arrival';
@@ -107,8 +109,10 @@ export default function MoneyTabScreen() {
   const card = useMoneyOverview(todayRange.from, todayRange.to, { enabled: canViewFigures });
   const cardData = card.data;
   const held = cardData?.trackedMoney;
+  // The server's word on business writes (lib/access.ts): a read-only business records nothing new here.
+  const access = useBusinessAccess();
   // Only the Owner records money positions: the review of a carried opening, and the company's accounts.
-  const canAnchor = usePermission('money.anchor.record');
+  const canAnchor = usePermission('money.anchor.record') && access.canWrite;
   const review = useReviewOpening();
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -157,6 +161,7 @@ export default function MoneyTabScreen() {
       refreshing={overview.isRefetching}
     >
       <TabHeader context={branchName} title={t('tab.money')} />
+      <AccessNotice />
 
       {canViewFigures ? (
         <Section gap="md">
@@ -301,7 +306,7 @@ export default function MoneyTabScreen() {
                   </Text>
                 </View>
               </View>
-              {expenses ? (
+              {expenses && access.canWrite ? (
                 <Button
                   title={t('moneyOverview.addExpense')}
                   icon={Plus}

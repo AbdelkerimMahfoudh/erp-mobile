@@ -205,8 +205,8 @@ export const HUBS: readonly Hub[] = [
     placement: 'business',
     children: [
       { id: 'team', route: '/team', titleKey: 'nav.team', icon: 'Users', perm: 'user.manage' },
-      // Ungated, as before: anyone may look at what the shop is entitled to.
-      { id: 'subscription', route: '/subscription', titleKey: 'nav.subscription', icon: 'BadgeCheck' },
+      // Ungated: anyone may see where the business's access stands. Status and dates only — no price, no action (docs/21, 2026-10-05).
+      { id: 'access', route: '/access', titleKey: 'nav.access', icon: 'BadgeCheck' },
       { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', perm: 'settings.manage' },
     ],
   },
@@ -254,7 +254,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
   { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'imports', 'catalog', 'settings'] },
-  { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'subscription', 'devices', 'sync'] },
+  { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 
 /**
@@ -298,9 +298,9 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/more': 'Bottom tab — this screen itself.',
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
   '/login': 'Authentication, reached when signed out. Accounts are set up by the organisation; the app offers no self-registration (docs/21, 2026-10-05).',
-  // Shown INSTEAD of the app when the server says the subscription blocks
-  // operational access. Not a destination anybody navigates to on purpose.
-  '/subscription-blocked': 'Subscription state screen, reached when the server refuses operational access.',
+  // Shown INSTEAD of the app when the server says the business is closed
+  // (pending, suspended, cancelled, refused). Not a destination anybody navigates to on purpose.
+  '/access-closed': 'The access screen of a closed business, reached when the server refuses operational access.',
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
   '/alerts': 'Every alert to review, newest first — the rest of the Analyses overview’s "Needs your attention", reached from its "View all".',
@@ -325,6 +325,45 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/hub/[id]': 'The hub container itself, generated from this registry.',
   '/approvals/[id]': 'One price approval, opened from the list or from the notification about it.',
 };
+
+/**
+ * Screens whose only purpose is a business write, each with what it writes.
+ *
+ * A read-only business (the period and its grace are over; the server refuses
+ * every business write) is not offered these: the sign-in guard sends an
+ * opened link to the access screen, which explains, instead of a form that
+ * fails at the end (docs/21, 2026-10-05). Mixed screens — a sale's detail with
+ * its payment, a team list with its switches — stay readable, and the server's
+ * refusal is shown where an action is tried. Patterns are expo-router's.
+ */
+export const WRITE_ONLY_ROUTES: Readonly<Record<string, string>> = {
+  '/quick-sell': 'A sale.',
+  '/sell': 'The full sale.',
+  '/quick-receive': 'Receiving one phone.',
+  '/receive': 'Receiving stock.',
+  '/receive/pick': 'Receiving stock from a file.',
+  '/receive/file': 'Receiving stock from a file.',
+  '/sales/pay/[id]': 'A payment on a sale.',
+  '/expenses/new': 'An expense.',
+  '/transfers/new': 'A transfer.',
+  '/consignments/new': 'A consignment.',
+  '/loans/new': 'A loan.',
+  '/returns/new': 'A return.',
+  '/goals/new': 'A target.',
+  '/catalog/new': 'A product.',
+  '/catalog/edit': 'A product change.',
+  '/unit/edit': 'A stock correction.',
+  '/pricing/unit': 'A price.',
+};
+
+/** Whether a path the router reports (`/sales/pay/0190-ab`) is one of the write-only screens: segment by segment, a `[param]` matching any one segment. */
+export function isWriteOnlyRoute(pathname: string): boolean {
+  const path = (pathname.replace(/\/+$/, '') || '/').split('/');
+  return Object.keys(WRITE_ONLY_ROUTES).some((pattern) => {
+    const parts = pattern.split('/');
+    return parts.length === path.length && parts.every((part, i) => (part.startsWith('[') && part.endsWith(']') ? path[i].length > 0 : part === path[i]));
+  });
+}
 
 /** Whether a destination should be offered, given what the server granted. */
 export function canSee(destination: Destination, granted: ReadonlySet<string>): boolean {

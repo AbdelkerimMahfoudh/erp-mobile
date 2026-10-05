@@ -269,23 +269,24 @@ it('the blocked screen never decides the state itself', () => {
     entitlement from a date can be made to derive it wrongly, and a shopkeeper
     told the wrong reason makes the wrong phone call.
   */
-  const code = withoutComments(source('app/subscription-blocked.tsx'));
-  assert.match(code, /entitlement\?\.state/);
+  const code = withoutComments(source('app/access-closed.tsx'));
+  assert.match(code, /closedReason\(entitlement\?\.state\)/);
   // No date arithmetic anywhere on this screen.
   assert.ok(!/Date\.now\(\)|getTime\(\)/.test(code), 'the screen must not compute a state from dates');
 });
 
 it('and always offers a way forward', () => {
-  const code = withoutComments(source('app/subscription-blocked.tsx'));
-  assert.match(code, /sub\.recheck/);
-  // Whom to contact, in words — not a website, a payment link or a price.
-  assert.match(code, /sub\.contact/);
+  const code = withoutComments(source('app/access-closed.tsx'));
+  assert.match(code, /access\.recheck/);
+  // Managed by the organisation, in words — not a website, a payment link or a price.
+  assert.match(code, /access\.managed/);
+  assert.match(code, /access\.mistake/);
   // Re-checking must let a newly activated shop straight in.
   assert.match(code, /router\.replace\('\/'\)/);
 });
 
 it('no new screen mentions a Store ID or a personal ID', () => {
-  for (const f of ['app/(auth)/login.tsx', 'app/subscription-blocked.tsx']) {
+  for (const f of ['app/(auth)/login.tsx', 'app/access-closed.tsx', 'app/access.tsx']) {
     const code = withoutComments(source(f));
     for (const banned of ['storeId', 'storeAccountId', 'personalId', 'personal_id']) {
       assert.ok(!code.includes(banned), `${f} must not mention ${banned}`);
@@ -320,7 +321,7 @@ it('no build wears a staging label on a user-facing screen', () => {
   for (const f of [
     'app/_layout.tsx',
     'app/(auth)/login.tsx',
-    'app/subscription-blocked.tsx',
+    'app/access-closed.tsx',
     'lib/i18n/en.ts',
     'lib/i18n/ar.ts',
     'lib/i18n/fr.ts',

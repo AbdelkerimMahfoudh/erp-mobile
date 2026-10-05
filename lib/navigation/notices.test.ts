@@ -1,5 +1,5 @@
 /**
- * What More is allowed to say about sync and subscription (milestone N).
+ * What More is allowed to say about sync (milestone N).
  *
  * Run directly with Node (type-stripping):
  *   node lib/navigation/notices.test.ts
@@ -14,13 +14,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  SUBSCRIPTION_NOTICE_DAYS,
-  subscriptionNotice,
-  syncNotice,
-  type QueueEntry,
-} from './notices.ts';
-import type { Entitlement } from '../entitlement.ts';
+import { syncNotice, type QueueEntry } from './notices.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -30,27 +24,6 @@ const it = (name: string, fn: () => void) => {
 };
 
 const q = (...states: string[]): QueueEntry[] => states.map((state) => ({ state }));
-
-const entitlement = (over: Partial<Entitlement>): Entitlement =>
-  ({
-    state: 'active',
-    periodEnd: null,
-    graceEnd: null,
-    daysRemaining: 90,
-    graceHoursRemaining: 0,
-    subscribedBranchCount: 1,
-    activeBranchCount: 1,
-    includedSeats: 5,
-    additionalSeats: 0,
-    seatLimit: 5,
-    seatsUsed: 3,
-    overLimit: false,
-    canRead: true,
-    canWrite: true,
-    isComplimentary: false,
-    calculatedAt: '2026-08-22T00:00:00.000Z',
-    ...over,
-  }) as Entitlement;
 
 // ── sync: empty and non-empty ────────────────────────────────────────────────
 
@@ -85,51 +58,9 @@ it('a draft saved on the phone is not, on its own, something to interrupt for', 
   assert.deepEqual(syncNotice(q('draft', 'draft')), { kind: 'none', count: 0 });
 });
 
-// ── subscription: placement ──────────────────────────────────────────────────
-
-it('a healthy subscription stays in its hub and is never surfaced', () => {
-  assert.equal(subscriptionNotice(entitlement({})), 'none');
-});
-
-it('a complimentary shop is told nothing', () => {
-  assert.equal(subscriptionNotice(entitlement({ state: 'complimentary', daysRemaining: null })), 'none');
-});
-
-it('an unknown entitlement says nothing rather than guessing', () => {
-  assert.equal(subscriptionNotice(undefined), 'none');
-});
-
-it('approaching expiry is surfaced, using the server-calculated days', () => {
-  assert.equal(subscriptionNotice(entitlement({ daysRemaining: SUBSCRIPTION_NOTICE_DAYS })), 'approaching');
-  assert.equal(subscriptionNotice(entitlement({ daysRemaining: 1 })), 'approaching');
-  assert.equal(subscriptionNotice(entitlement({ daysRemaining: 0 })), 'approaching');
-});
-
-it('a comfortable margin is left alone', () => {
-  assert.equal(subscriptionNotice(entitlement({ daysRemaining: SUBSCRIPTION_NOTICE_DAYS + 1 })), 'none');
-});
-
-it('grace is surfaced', () => {
-  assert.equal(
-    subscriptionNotice(entitlement({ state: 'grace', graceHoursRemaining: 20, canWrite: true })),
-    'grace',
-  );
-});
-
-it('expired is surfaced, and outranks an over-limit seat count', () => {
-  assert.equal(
-    subscriptionNotice(entitlement({ state: 'expired', canWrite: false, overLimit: true })),
-    'expired',
-  );
-});
-
-it('over the seat limit is surfaced while otherwise healthy', () => {
-  assert.equal(subscriptionNotice(entitlement({ overLimit: true, seatsUsed: 7 })), 'over_limit');
-});
-
 // ── the rules themselves ─────────────────────────────────────────────────────
 
-it('nothing here recomputes entitlement — only server fields are read', () => {
+it('nothing here reads a clock or an entitlement', () => {
   const HERE = path.dirname(fileURLToPath(import.meta.url));
   const src = fs.readFileSync(path.join(HERE, 'notices.ts'), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
@@ -140,8 +71,8 @@ it('nothing here recomputes entitlement — only server fields are read', () => 
       'the notice rule must not read or derive "' + forbidden + '" — the server decides entitlement',
     );
   }
-  // The one number it may hold, and it is a display threshold.
-  assert.ok(code.includes('SUBSCRIPTION_NOTICE_DAYS'));
+  // What the tabs say about access is decided in lib/access.ts, not here.
+  assert.ok(!code.includes('subscription'), 'the subscription decision left this file');
 });
 
 it('the sync wording keys never claim a queued item was sent or confirmed', () => {

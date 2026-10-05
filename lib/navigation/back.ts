@@ -90,7 +90,7 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/goals': TABS.more,
   '/goals/new': '/goals',
   '/team': TABS.more,
-  '/subscription': TABS.more,
+  '/access': TABS.more,
   '/settings': TABS.more,
   // The person's own account (docs/64), and its one detail screen.
   '/account': TABS.more,
@@ -129,8 +129,8 @@ export const AUTH_ROOTS: Readonly<Record<string, string>> = {
   '/login': 'Signing in — the start. The app offers no account creation: accounts are set up by the organisation.',
   '/select-branch':
     'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
-  '/subscription-blocked':
-    'The server refuses this shop access: shown instead of the app, and the guard returns here from anywhere in it. Check again, or Sign out.',
+  '/access-closed':
+    'The server says this business is closed (pending, suspended, cancelled, refused): shown instead of the app, and the guard returns here from anywhere in it. Check again, or Sign out.',
 };
 
 /** Routes that never draw the arrow: the tabs, the redirects and the authentication roots. */

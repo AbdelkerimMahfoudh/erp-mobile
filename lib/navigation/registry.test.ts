@@ -31,6 +31,8 @@ import {
   MORE_GROUPS,
   REACHED_FROM_TABS,
   EXCLUDED_ROUTES,
+  WRITE_ONLY_ROUTES,
+  isWriteOnlyRoute,
   allDestinations,
   canSee,
   hubById,
@@ -258,7 +260,7 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   // Money moved to the tab bar, and a Manager still reaches it there.
   assert.equal(tabHubIsVisible(MANAGER), true);
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
-  assert.deepEqual(business, ['subscription'], 'a Manager holds neither user.manage nor settings.manage');
+  assert.deepEqual(business, ['access'], 'a Manager holds neither user.manage nor settings.manage');
 
   // A Manager cannot reach partner-store discovery, but does run consignments.
   const network = visibleChildren(hubById('network')!, MANAGER).map((c) => c.id);
@@ -402,7 +404,8 @@ it('every route the old More screen linked to is still linked, unchanged', () =>
     // Suppliers was removed from the MVP on purpose.
     '/sales', '/returns', '/catalog', '/transfers', '/team',
     '/money', '/analytics', '/expenses', '/closing', '/goals', '/stores',
-    '/consignments', '/loans', '/sync', '/subscription', '/imports',
+    // /subscription became /access (2026-10-05): the status screen, under the same place.
+    '/consignments', '/loans', '/sync', '/access', '/imports',
     '/settings', '/devices', '/notifications', '/select-branch',
   ];
   for (const route of legacy) {
@@ -484,7 +487,7 @@ it('the bell carries a translated accessible label, not a hardcoded one', () => 
   assert.match(src, /accessibilityLabel=\{t\('more\.notifications\.a11y'\)\}/);
   // No badge is rendered, because the notifications contract supplies no
   // unread count. Inventing or estimating one would be worse than showing none.
-  // `BadgeCheck` is the subscription icon, not a badge — hence the exclusion.
+  // `BadgeCheck` is the business-access icon, not a badge — hence the exclusion.
   const withoutIcons = src.replace(/BadgeCheck/g, '');
   assert.ok(
     !/<Badge\b|badgeCount|unread/i.test(withoutIcons),
@@ -709,6 +712,32 @@ it('every More group name exists in all three catalogues', () => {
     const src = fs.readFileSync(path.join(MOBILE, 'lib', 'i18n', locale + '.ts'), 'utf8');
     for (const g of MORE_GROUPS) assert.ok(src.includes(`'${g.titleKey}':`), locale + ' is missing ' + g.titleKey);
   }
+});
+
+
+// ── 11. the write-only screens a read-only business is not offered ───────────
+
+it('every write-only route is a real screen with a reason, and no tab, list or detail is among them', () => {
+  const routes = new Set(appRoutes());
+  for (const [route, reason] of Object.entries(WRITE_ONLY_ROUTES)) {
+    assert.ok(routes.has(route), 'WRITE_ONLY_ROUTES lists a route that no longer exists: ' + route);
+    assert.ok(reason.trim().length > 5, 'a write-only route needs a reason: ' + route);
+    assert.ok(!['/', '/partners', '/money-hub', '/inventory', '/more'].includes(route), route + ' is a tab');
+  }
+  // Lists and details stay readable: the server's refusal is shown where an action is tried.
+  for (const readable of ['/', '/sales', '/sales/[id]', '/expenses', '/expenses/[id]', '/team', '/settings', '/closing', '/account', '/account/delete', '/access', '/transfers', '/transfers/[id]', '/approvals/[id]']) {
+    assert.ok(!(readable in WRITE_ONLY_ROUTES), readable + ' must stay readable');
+  }
+});
+
+it('a path the router reports matches its pattern, parameters included', () => {
+  assert.equal(isWriteOnlyRoute('/quick-sell'), true);
+  assert.equal(isWriteOnlyRoute('/sales/pay/0190-ab'), true);
+  assert.equal(isWriteOnlyRoute('/receive/file/'), true);
+  assert.equal(isWriteOnlyRoute('/sales/0190-ab'), false);
+  assert.equal(isWriteOnlyRoute('/sales/pay'), false);
+  assert.equal(isWriteOnlyRoute('/expenses'), false);
+  assert.equal(isWriteOnlyRoute('/'), false);
 });
 
 console.log('\n' + passed + ' passed');

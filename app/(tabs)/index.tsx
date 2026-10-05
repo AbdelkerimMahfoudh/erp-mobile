@@ -22,6 +22,7 @@ import {
   Text,
   TextMeasure,
 } from '../../components/ui';
+import { AccessNotice } from '../../components/access';
 import { HomeHeader } from '../../components/home/HomeHeader';
 import { OpenStoreNow } from '../../components/day/OpenStoreNow';
 import { dayGate } from '../../lib/day-gate';
@@ -32,6 +33,7 @@ import { useBranch } from '../../lib/branch';
 import { useAuth } from '../../hooks/useAuth';
 import { useConnectivity } from '../../lib/connectivity';
 import { dateLocaleFor } from '../../lib/date-locale';
+import { useBusinessAccess } from '../../lib/entitlement';
 import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
@@ -82,6 +84,8 @@ export default function HomeScreen() {
   const canViewReturns = usePermission('return.view');
   const canCount = usePermission('closing.count');
   const canPerform = usePermission('closing.perform');
+  // The server's word on business writes (lib/access.ts): a read-only business is offered no counter action.
+  const access = useBusinessAccess();
   const shortcutsReady = Boolean(branchId) && permissionsReady;
   /*
     The server's business day decides the counter (2026-09-27, docs/59 D76): while the current day is closed, Sell
@@ -184,8 +188,10 @@ export default function HomeScreen() {
         note={dayNote}
       />
 
+      <AccessNotice />
+
       {/* ── The two counter actions, side by side: Receive on the start side, Sell on the end side ── */}
-      {canSell || canReceive ? (
+      {(canSell || canReceive) && access.canWrite ? (
         <View style={styles.shortcuts}>
           <View style={styles.actionRow}>
             {canReceive ? (

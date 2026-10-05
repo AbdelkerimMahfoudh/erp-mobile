@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { BadgeCheck, ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
+import { ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
 import {
   Card,
   InlineNotice,
@@ -11,14 +11,14 @@ import {
   TabHeader,
   Text,
 } from '../../components/ui';
+import { AccessNotice } from '../../components/access';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { mirror } from '../../lib/design/direction';
-import { useEntitlement } from '../../lib/entitlement';
 import { useTranslation } from '../../lib/i18n';
-import { subscriptionNotice, syncNotice } from '../../lib/navigation/notices';
+import { syncNotice } from '../../lib/navigation/notices';
 import { visibleGroups } from '../../lib/navigation/registry';
 import { useQueue } from '../../lib/offline/queue';
 import { usePermissionStore } from '../../lib/permissions';
@@ -70,7 +70,8 @@ export default function MoreScreen() {
       <BranchControl />
 
       <SyncNotice />
-      <SubscriptionNotice />
+      {/* What the business may do right now, said once and the same way on every tab (lib/access.ts). */}
+      <AccessNotice style={styles.notice} />
 
       {/*
         One grouped list per section, each row a real screen. The previous
@@ -217,55 +218,6 @@ function SyncNotice() {
     >
       <Text variant="caption" tone="secondary">
         {t('more.sync.notConfirmed')}
-      </Text>
-    </InlineNotice>
-  );
-}
-
-/**
- * How long the shop has left, when that has become worth saying.
- *
- * Subscription lives in Team & business during normal operation and is only
- * surfaced here in the four states the server reports as needing attention.
- * Every one of those states is the server's word — `state`, `daysRemaining`
- * and `overLimit` are read, never derived. No price and no payment link, as in
- * milestone K.
- */
-function SubscriptionNotice() {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  const router = useRouter();
-  const { data } = useEntitlement();
-
-  const kind = subscriptionNotice(data);
-  if (kind === 'none' || !data) return null;
-
-  const days = data.daysRemaining;
-  const message = () => {
-    if (kind === 'expired') return t('subscription.expired');
-    if (kind === 'grace') return t('subscription.grace', { hours: data.graceHoursRemaining });
-    if (kind === 'over_limit') return t('subscription.seats.over');
-    return days !== null && days <= 0
-      ? t('subscription.endsToday')
-      : t('subscription.countdown', { days: String(days) });
-  };
-
-  return (
-    <InlineNotice
-      tone={kind === 'expired' ? 'danger' : 'warning'}
-      title={t('subscription.title')}
-      icon={BadgeCheck}
-      action={
-        <Pressable onPress={() => router.push('/subscription' as Href)} accessibilityRole="button">
-          <Text variant="caption" tone="accent">
-            {t('nav.subscription')}
-          </Text>
-        </Pressable>
-      }
-      style={styles.notice}
-    >
-      <Text variant="caption" tone="secondary">
-        {message()}
       </Text>
     </InlineNotice>
   );
