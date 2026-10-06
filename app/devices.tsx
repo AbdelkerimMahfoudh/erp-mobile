@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react-native';
 import {
@@ -117,6 +118,7 @@ export default function DevicesScreen() {
           {current.map((d) => (
             <DeviceRow key={d.id} device={d} onRevoke={() => void onRevoke(d)} />
           ))}
+          <BuildIdentifier />
         </View>
       ) : null}
 
@@ -153,6 +155,47 @@ export default function DevicesScreen() {
         {t('devices.notVerifiedYet')}
       </Text>
     </Screen>
+  );
+}
+
+/**
+ * The build this phone is running — development only.
+ *
+ * `extra.build` is stamped by `app.config.js` from the checkout Metro bundled
+ * (the commit, its branch, whether files were changed, and when the
+ * configuration was read); `executionEnvironment` says whether this is Expo Go,
+ * the installed app or a bare build. It exists so a screenshot can prove which
+ * source a phone is showing — the 6 Oct screenshots were of a bundle older than
+ * the pushed commit, and nothing on screen could say so. A release build shows
+ * nothing here: repository details are not for a shop's employees.
+ */
+function BuildIdentifier() {
+  const { t } = useTranslation();
+  if (!__DEV__) return null;
+  const build = (Constants.expoConfig?.extra?.build ?? null) as { commit: string; branch: string; dirty: boolean; readAt: string } | null;
+  const environment =
+    Platform.OS === 'web'
+      ? 'web'
+      : Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+        ? 'Expo Go'
+        : Constants.executionEnvironment === ExecutionEnvironment.Standalone
+          ? 'standalone'
+          : 'bare';
+  const stamp = build ? `${build.commit}${build.dirty ? '+' : ''} · ${build.branch} · ${environment}` : `${t('devices.build.unknown')} · ${environment}`;
+  return (
+    <View style={styles.build} testID="build-identifier">
+      <Text variant="caption" tone="tertiary">
+        {t('devices.build.title')}
+      </Text>
+      <Text variant="caption" tone="secondary" selectable>
+        {stamp}
+      </Text>
+      {build ? (
+        <Text variant="caption" tone="tertiary">
+          {t('devices.build.readAt', { when: build.readAt.replace('T', ' ').slice(0, 16) + 'Z' })}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -197,4 +240,5 @@ function DeviceRow({ device, onRevoke }: { device: UserDeviceView; onRevoke?: ()
 const styles = StyleSheet.create({
   subtitle: { marginTop: space.xs },
   list: {},
+  build: { marginTop: space.sm, gap: 2 },
 });

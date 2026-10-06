@@ -2,6 +2,7 @@ import { I18nManager } from 'react-native';
 import { getLocales } from 'expo-localization';
 import { create } from 'zustand';
 import { deleteItem, getItem, setItem } from '../storage';
+import Constants from 'expo-constants';
 import { applyWebDirection, DIRECTION_NEEDS_RESTART, isExpoGo, layoutIsRTL } from '../design/layout-direction';
 import { directionVerdict, type DirectionVerdict } from '../design/direction-restart';
 import { en } from './en';
@@ -20,6 +21,26 @@ const LANGUAGE_STORAGE_KEY = 'erp.language';
  * notice must say so rather than ask for another restart forever.
  */
 const DIRECTION_REQUEST_KEY = 'erp.language.directionRequestedFor';
+
+/**
+ * The request is remembered with the native process it was made in
+ * (`Constants.sessionId`, new for every launch of the app). At the next
+ * hydration the request counts as "an earlier launch" only when that id has
+ * changed: a reload of the JavaScript — Metro, the developer menu — keeps the
+ * process and keeps the id, and must not be mistaken for the restart the OS
+ * needs to apply a direction (the false "this build cannot switch direction"
+ * a reload would otherwise produce in development).
+ */
+function directionRequest(lang: Language): string {
+  return `${lang}@${Constants.sessionId}`;
+}
+
+function parseDirectionRequest(stored: string | null): { lang: string; session: string } | null {
+  if (!stored) return null;
+  const at = stored.indexOf('@');
+  // A value written before the session id was recorded: the language alone, from an unknown process.
+  return at === -1 ? { lang: stored, session: '' } : { lang: stored.slice(0, at), session: stored.slice(at + 1) };
+}
 
 /**
  * Each language named in its own words.
@@ -133,20 +154,31 @@ function applyLanguage(lang: Language): void {
 async function settleDirection(lang: Language, afterSwitch: boolean): Promise<DirectionVerdict> {
   if (!DIRECTION_NEEDS_RESTART) return 'ok';
 
-  // Permit RTL at all; without this, forceRTL is ignored on some builds.
-  I18nManager.allowRTL(true);
   const wantsRtl = isRtlLanguage(lang);
+  /*
+   * Both flags follow the language, and both are persisted by the native side
+   * and read by the OS at the next launch. `allowRTL` is not left permanently on:
+   * on Android, an allowed-but-not-forced app follows the PHONE's language, so
+   * English or French on an Arabic phone would lay out right-to-left. With the
+   * flags set together, the layout follows the app's language and nothing else.
+   *
+   * No native setting may override this at launch — see `app.json`, where
+   * `expo-localization` is configured without `supportsRTL`: that option makes
+   * its native module force the device locale's direction before React loads,
+   * which silently discarded this request at every launch on iOS (2026-10-06).
+   */
+  I18nManager.allowRTL(wantsRtl);
   const actualRtl = I18nManager.isRTL;
-  const requestedFor = await getItem(DIRECTION_REQUEST_KEY);
+  const requested = parseDirectionRequest(await getItem(DIRECTION_REQUEST_KEY));
 
   if (wantsRtl === actualRtl) {
-    if (requestedFor) await deleteItem(DIRECTION_REQUEST_KEY);
+    if (requested) await deleteItem(DIRECTION_REQUEST_KEY);
     return 'ok';
   }
 
   I18nManager.forceRTL(wantsRtl);
-  const relaunchedSinceRequest = !afterSwitch && requestedFor === lang;
-  if (requestedFor !== lang) await setItem(DIRECTION_REQUEST_KEY, lang);
+  const relaunchedSinceRequest = !afterSwitch && requested?.lang === lang && requested.session !== Constants.sessionId;
+  if (requested?.lang !== lang) await setItem(DIRECTION_REQUEST_KEY, directionRequest(lang));
 
   return directionVerdict({ needsRestart: true, wantsRtl, actualRtl, isExpoGo: isExpoGo(), relaunchedSinceRequest });
 }

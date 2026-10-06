@@ -35,6 +35,7 @@ import { formatDate, formatDayRange, formatMoney } from '../../lib/format';
 import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
 import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-overview';
+import { ApiError } from '../../lib/api-client';
 import { useReviewOpening } from '../../lib/closing';
 import { openingMethodsOf, type OpeningMoneyInput } from '../../lib/opening-money';
 import { tabHub, visibleChildren } from '../../lib/navigation/registry';
@@ -100,7 +101,8 @@ export default function MoneyTabScreen() {
     with the card. Only for somebody the server answers (`closing.count`): `refetch()` asks even when disabled.
   */
   const canCount = usePermission('closing.count');
-  const refetchDay = useBusinessDay({ enabled: canCount }).refetch;
+  const dayQuery = useBusinessDay({ enabled: canCount });
+  const refetchDay = dayQuery.refetch;
   const range = usePeriodRange(key);
   const overview = useMoneyOverview(range.from, range.to, { enabled: canViewFigures });
   // The two top cards are today's whatever the period: their own query on today's range (the same cache as Today's),
@@ -129,8 +131,8 @@ export default function MoneyTabScreen() {
           toast.success(t('opening.review.done'));
           void card.refetch();
         },
-        // Nothing was saved: the sheet keeps the amounts and says why.
-        onError: (e) => setReviewError(toFriendlyError(e).body || t('opening.review.failed')),
+        // Nothing was saved: the sheet keeps the amounts and says why — a keep of an unknown drawer in its own words.
+        onError: (e) => setReviewError(e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : toFriendlyError(e).body || t('opening.review.failed')),
       },
     );
   };
@@ -179,7 +181,7 @@ export default function MoneyTabScreen() {
             </InlineNotice>
           ) : (
             // 1. Expected money in store today: one card, the server's figures, short lines (docs/63).
-            <ExpectedMoneyCard held={held} canReview={canAnchor} onReview={() => setReviewing(true)} />
+            <ExpectedMoneyCard held={held} canReview={canAnchor} dayOpen={dayQuery.data?.door === 'open'} onReview={() => setReviewing(true)} />
           )}
 
           <PeriodSelector />

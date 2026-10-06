@@ -7,7 +7,16 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { attemptKey, openingDraft, openingMethodsOf, openingRequest, openingTotal, prefilledCash, type OpeningMethod } from './opening-money.ts';
+import {
+  attemptKey,
+  openingDraft,
+  openingMethodsOf,
+  openingRequest,
+  openingTotal,
+  prefilledCash,
+  type OpeningMethod,
+  keepAvailable,
+} from './opening-money.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -32,6 +41,22 @@ const account = (key: string, previous: number | null) => method({ key, channel:
 it('nothing is chosen for the Owner: no choice, nothing to send', () => {
   assert.deepEqual(openingDraft(null, '3400'), { ok: false, reason: 'choose' });
   assert.equal(openingRequest(openingDraft(null, ''), 'k', true), undefined);
+});
+
+it('keep needs something to keep: an unknown drawer offers no keep, and the amount is the only decision (2026-10-06)', () => {
+  const unknown: OpeningMethod[] = [{ key: 'cash', channel: 'cash', accountId: null, label: '', scope: 'branch', known: false, previous: null }];
+  const known: OpeningMethod[] = [{ key: 'cash', channel: 'cash', accountId: null, label: '', scope: 'branch', known: true, previous: 3400 }];
+  assert.equal(keepAvailable(unknown), false);
+  assert.equal(keepAvailable(known), true);
+  assert.equal(keepAvailable([]), false);
+  assert.deepEqual(openingDraft('keep', '', false), { ok: false, reason: 'keep_unavailable' });
+  assert.deepEqual(openingDraft('keep', '', true), { ok: true, decision: 'keep' });
+  // Set still needs a typed amount — an unknown drawer is not quietly zeroed.
+  assert.deepEqual(openingDraft('set', '', false), { ok: false, reason: 'amount_required' });
+  assert.deepEqual(openingDraft('set', '0', false), { ok: true, decision: 'set', cashAmount: 0 });
+  // The server's refusal of a keep it cannot honour is said in the sheet's own words.
+  assert.match(code(read('../components/day/useOpeningFlow.tsx')), /opening_cash_unknown/);
+  assert.match(code(read('../app/(tabs)/money-hub.tsx')), /opening_cash_unknown/);
 });
 
 it('keep sends the decision alone — the server keeps the drawer as it tracks it', () => {
@@ -93,7 +118,11 @@ it('Money’s methods become the step’s, the position as the previous amount �
 
 it('the sheet: no choice until the Owner makes one, Set to 0 as its own action, the error kept in place', () => {
   const sheet = code(read('../components/day/OpeningMoneySheet.tsx'));
-  assert.match(sheet, /const \[choice, setChoice\] = useState<OpeningChoice \| null>\(null\);/);
+  // Nothing chosen for the Owner — unless there is nothing to keep, when the amount is the only decision (2026-10-06).
+  assert.match(sheet, /const keepPossible = !mayDecide \|\| keepAvailable\(methods\);/);
+  assert.match(sheet, /const \[choice, setChoice\] = useState<OpeningChoice \| null>\(keepPossible \? null : 'set'\);/);
+  assert.match(sheet, /const draft = openingDraft\(choice, cash, keepPossible\);/);
+  assert.match(sheet, /\{mayDecide && !keepPossible \? \(\s*<InlineNotice tone="warning" title=\{t\('opening\.keep\.unavailable\.title'\)\}/);
   assert.match(sheet, /if \(next === 'set' && choice !== 'set'\) setCash\(prefilledCash\(methods\)\);/);
   assert.match(sheet, /onPress=\{\(\) => setCash\('0'\)\}/);
   assert.match(sheet, /disabled=\{busy \|\| \(mayDecide && !draft\.ok\)\}/);
@@ -154,7 +183,7 @@ it('a failure keeps the chosen day, the amounts and the key; only a success star
 });
 
 it('the words: the final action says what it does, and Keep, Set, Unknown in every language', () => {
-  const keys = ['opening.keep.title', 'opening.set.title', 'opening.setZero', 'opening.unknown', 'opening.confirm', 'opening.confirm.carried', 'opening.confirm.review', 'opening.total', 'opening.accounts.note'];
+  const keys = ['opening.keep.title', 'opening.set.title', 'opening.setZero', 'opening.unknown', 'opening.confirm', 'opening.confirm.carried', 'opening.confirm.review', 'opening.total', 'opening.accounts.note', 'opening.keep.unavailable.title', 'opening.keep.unavailable.body'];
   for (const locale of ['en', 'fr', 'ar']) {
     const cat = read(`./i18n/${locale}.ts`);
     for (const k of keys) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);

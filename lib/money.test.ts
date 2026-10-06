@@ -137,7 +137,7 @@ it('the day’s expenses say which day (docs/55 D42); the card of today’s move
   assert.ok(!/moneyToday|moneyTab\.today\./.test(overview), 'no card of today’s movement at the top');
 });
 it('one card at the top: the server’s total, or no figure at all while a method is unknown (docs/63)', () => {
-  assert.match(overview, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
+  assert.match(overview, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} dayOpen=\{dayQuery\.data\?\.door === 'open'\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
   // The figure is the server's — its total, or for anybody but the Owner the drawer's own — never a sum made here.
   assert.match(card, /const figure = held\.accountsVisible \? held\.total : \(cash\?\.position \?\? null\);/);
   assert.match(card, /\{figure !== null \? \(\s*<MoneyValue value=\{figure\} size="display" signed=\{figure < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong">\{t\('moneyTab\.expected\.unknown', \{ names: unknown\.map\(name\)\.join\(' · '\) \}\)\}<\/Text>/);
@@ -167,12 +167,12 @@ it('each line: a position or the word Unknown — never a 0 — and an account s
 });
 it('a shop opened with carried amounts says so until the Owner reviews them — and only the Owner may (docs/63)', () => {
   assert.match(card, /const awaiting = cash\?\.anchor\?\.awaitingOwnerReview === true;/);
-  assert.match(card, /\{awaiting \? \([\s\S]*?t\('moneyTab\.expected\.awaiting'\)[\s\S]*?\{canReview \? \([\s\S]*?t\('moneyTab\.expected\.review'\)[\s\S]*?onPress=\{onReview\}/);
+  assert.match(card, /\{cashUnknown \? \([\s\S]*?t\('moneyTab\.expected\.cashUnknown'\)[\s\S]*?\{canReview && dayOpen \? \([\s\S]*?t\('moneyTab\.expected\.setCash'\)[\s\S]*?onPress=\{onReview\}[\s\S]*?\) : awaiting \? \([\s\S]*?t\('moneyTab\.expected\.awaiting'\)[\s\S]*?\{canReview \? \([\s\S]*?t\('moneyTab\.expected\.review'\)[\s\S]*?onPress=\{onReview\}/);
   assert.match(overview, /const canAnchor = usePermission\('money\.anchor\.record'\) && access\.canWrite;/);
   assert.match(overview, /<OpeningMoneySheet\s+intent="review"\s+open=\{reviewing\}[\s\S]*?mayDecide\s+methods=\{openingMethodsOf\(held\.methods\)\}[\s\S]*?onConfirm=\{confirmReview\}/);
   assert.match(overview, /review\.mutate\(\s*\{ clientUuid: money\.clientUuid, decision: money\.decision, \.\.\.\(money\.cashAmount !== undefined \? \{ cashAmount: money\.cashAmount \} : \{\}\) \},/);
   // Refused, the sheet keeps what was entered and says why.
-  assert.match(overview, /onError: \(e\) => setReviewError\(toFriendlyError\(e\)\.body \|\| t\('opening\.review\.failed'\)\),/);
+  assert.match(overview, /onError: \(e\) => setReviewError\(e instanceof ApiError && e\.code === 'opening_cash_unknown' \? t\('opening\.keep\.unavailable\.body'\) : toFriendlyError\(e\)\.body \|\| t\('opening\.review\.failed'\)\),/);
   const hooks = code(read('./closing.ts'));
   assert.match(hooks, /api\.post<OpenClosing>\('\/closings\/opening\/review', input\)/);
 });
@@ -234,7 +234,7 @@ it('the starting-amount sheet posts the account, the amount and a key bound to t
 it('Money’s words are in all three languages, and the old top cards’ are gone (docs/63)', () => {
   const keys = ['ownerOnly', 'unknown', 'wholeBusiness', 'setAmount']
     .map((k) => `moneyTab.held.${k}`)
-    .concat(['title', 'unknown', 'awaiting', 'review'].map((k) => `moneyTab.expected.${k}`))
+    .concat(['title', 'unknown', 'awaiting', 'review', 'explain', 'cashUnknown', 'setCash'].map((k) => `moneyTab.expected.${k}`))
     .concat(['title', 'subtitle', 'body'].map((k) => `moneyTab.company.${k}`))
     .concat(['title', 'body', 'amount', 'note', 'save', 'saved', 'failed', 'maybeSaved', 'forbidden', 'company'].map((k) => `moneyTab.anchor.${k}`));
   const gone = ['moneyTab.held.title', 'moneyTab.held.hint', 'moneyTab.held.incomplete', 'moneyTab.held.cash.known', 'moneyTab.today.title', 'moneyTab.today.hint'];

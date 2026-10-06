@@ -23,15 +23,23 @@ import type { TrackedMethod, TrackedMoney } from '../../lib/money-overview';
  * When the shop was opened by somebody other than the Owner, with the amounts
  * carried forward, the card says so until the Owner reviews them — and offers
  * the Owner that review.
+ *
+ * An open boutique whose drawer is still unknown is not a state to live with
+ * (the brief of 2026-10-06): the card says the opening amount was not set and,
+ * for the Owner while the day is open, offers **Set today's opening cash** —
+ * the same review sheet, which then asks for the amount alone. The server
+ * records it as the day's figure from that instant; nothing is backdated.
  */
 export interface ExpectedMoneyCardProps {
   held: TrackedMoney;
-  /** The Owner, who may review a carried opening's amounts. */
+  /** The Owner, who may review a carried opening's amounts, or set an unknown drawer. */
   canReview: boolean;
+  /** The business day is open: an unknown drawer can be set now, rather than at the opening. */
+  dayOpen: boolean;
   onReview: () => void;
 }
 
-export function ExpectedMoneyCard({ held, canReview, onReview }: ExpectedMoneyCardProps) {
+export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview }: ExpectedMoneyCardProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -42,6 +50,7 @@ export function ExpectedMoneyCard({ held, canReview, onReview }: ExpectedMoneyCa
   // Whole units, unless a figure carries cents: then every figure on the card shows them, so the lines visibly add up.
   const decimals = [figure, ...held.methods.map((m) => m.position)].some((v) => v !== null && Math.round(v * 100) % 100 !== 0) ? 2 : 0;
   const awaiting = cash?.anchor?.awaitingOwnerReview === true;
+  const cashUnknown = cash !== null && !cash.known;
   const name = (m: TrackedMethod) =>
     m.channel === 'cash' ? t('moneyTab.cash') : m.scope === 'company' && held.branchCount > 1 ? `${m.label} ${t('moneyTab.held.wholeBusiness')}` : m.label;
 
@@ -51,9 +60,14 @@ export function ExpectedMoneyCard({ held, canReview, onReview }: ExpectedMoneyCa
         <View style={styles.icon}>
           <Wallet color={colors.text.accent} size={22} />
         </View>
-        <Text variant="body" tone="secondary" style={styles.grow}>
-          {t('moneyTab.expected.title')}
-        </Text>
+        <View style={styles.grow}>
+          <Text variant="body" tone="secondary">
+            {t('moneyTab.expected.title')}
+          </Text>
+          <Text variant="caption" tone="tertiary">
+            {t('moneyTab.expected.explain')}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.total}>
@@ -86,7 +100,18 @@ export function ExpectedMoneyCard({ held, canReview, onReview }: ExpectedMoneyCa
         ))}
       </View>
 
-      {awaiting ? (
+      {cashUnknown ? (
+        <View style={styles.awaiting} testID="expected-cash-unknown">
+          <Text variant="caption" tone="warning">
+            {t('moneyTab.expected.cashUnknown')}
+          </Text>
+          {canReview && dayOpen ? (
+            <View style={styles.row}>
+              <Button title={t('moneyTab.expected.setCash')} variant="secondary" size="sm" wrap onPress={onReview} />
+            </View>
+          ) : null}
+        </View>
+      ) : awaiting ? (
         <View style={styles.awaiting}>
           <Text variant="caption" tone="warning">
             {t('moneyTab.expected.awaiting')}

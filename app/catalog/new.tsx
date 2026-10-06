@@ -13,6 +13,7 @@ import {
   type ProductFormValues,
 } from '../../components/catalog/ProductForm';
 import { ApiError, api } from '../../lib/api-client';
+import { toFriendlyError } from '../../lib/errors';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
@@ -167,7 +168,7 @@ export default function NewProductScreen() {
         }
         return;
       }
-      toast.error(error instanceof ApiError ? error.message : t('state.error.body'));
+      toast.error(toFriendlyError(error).body);
     },
   });
 

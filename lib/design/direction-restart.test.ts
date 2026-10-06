@@ -26,9 +26,11 @@ test('a restart already happened and nothing flipped: the build does not support
   assert.equal(directionVerdict({ ...base, relaunchedSinceRequest: true }), 'unsupported_build');
 });
 
-test('Expo Go cannot apply a direction change, and is told apart from a broken build', () => {
-  assert.equal(directionVerdict({ ...base, isExpoGo: true }), 'expo_go');
+test('Expo Go is asked for one restart like any build; only a restart that changed nothing says Expo Go cannot', () => {
+  assert.equal(directionVerdict({ ...base, isExpoGo: true }), 'restart');
   assert.equal(directionVerdict({ ...base, isExpoGo: true, relaunchedSinceRequest: true }), 'expo_go');
+  // The two "did not flip" verdicts are told apart by where the app runs, never merged.
+  assert.notEqual(directionVerdict({ ...base, isExpoGo: true, relaunchedSinceRequest: true }), directionVerdict({ ...base, relaunchedSinceRequest: true }));
 });
 
 test('every verdict that is not ok has its own words', () => {

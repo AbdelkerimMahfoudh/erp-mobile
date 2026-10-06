@@ -18,6 +18,7 @@ import {
 } from '../../components/ui';
 import { BottomSheet } from '../../components/overlay';
 import { ApiError, api } from '../../lib/api-client';
+import { toFriendlyError } from '../../lib/errors';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
@@ -162,7 +163,7 @@ function CategorySheet({
         setError(t('categories.duplicate'));
         return;
       }
-      toast.error(e instanceof ApiError ? e.message : t('state.error.body'));
+      toast.error(toFriendlyError(e).body);
     },
   });
 

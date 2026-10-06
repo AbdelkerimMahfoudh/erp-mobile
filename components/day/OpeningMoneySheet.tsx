@@ -10,6 +10,7 @@ import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import {
   attemptKey,
+  keepAvailable,
   openingDraft,
   openingRequest,
   openingTotal,
@@ -31,6 +32,12 @@ import { uuidv4 } from '../../lib/utils';
  * and the total that results, before anything is sent. Anybody else who may open
  * sees the cash as it carries forward and opens with it; the day then awaits the
  * Owner's review.
+ *
+ * **When the drawer is unknown there is nothing to keep** (the brief of
+ * 2026-10-06): the choice is not offered, the sheet says why, and the Owner
+ * enters the cash — 0 when the drawer is empty — before the boutique opens. The
+ * server refuses a keep it cannot honour (`opening_cash_unknown`), so an older
+ * phone cannot open a boutique on an unknown drawer either.
  *
  * One request saves the opening and its money together. Refused or unanswered,
  * the sheet keeps what was entered and the store stays closed; the same request
@@ -57,10 +64,12 @@ export interface OpeningMoneySheetProps {
 export function OpeningMoneySheet({ intent, open, onClose, businessDate, notice, mayDecide, methods, branchCount, busy, error, onConfirm }: OpeningMoneySheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const [choice, setChoice] = useState<OpeningChoice | null>(null);
+  /** Nothing to keep: the only decision is the amount, so the field is shown at once — still empty, never a made-up 0. */
+  const keepPossible = !mayDecide || keepAvailable(methods);
+  const [choice, setChoice] = useState<OpeningChoice | null>(keepPossible ? null : 'set');
   const [cash, setCash] = useState('');
   const attempt = useRef<{ key: string; payload: string } | null>(null);
-  const draft = openingDraft(choice, cash);
+  const draft = openingDraft(choice, cash, keepPossible);
   const total = openingTotal(methods, draft);
   const date = formatDate(businessDate);
   const shown = mayDecide ? methods : methods.filter((m) => m.channel === 'cash');
@@ -124,7 +133,11 @@ export function OpeningMoneySheet({ intent, open, onClose, businessDate, notice,
           ))}
         </View>
 
-        {mayDecide ? (
+        {mayDecide && !keepPossible ? (
+          <InlineNotice tone="warning" title={t('opening.keep.unavailable.title')} testID="opening-keep-unavailable">
+            {t('opening.keep.unavailable.body')}
+          </InlineNotice>
+        ) : mayDecide ? (
           <View style={styles.list} accessibilityRole="radiogroup">
             <Choice selected={choice === 'keep'} title={t('opening.keep.title')} body={t('opening.keep.body')} onPress={() => choose('keep')} />
             <Choice selected={choice === 'set'} title={t('opening.set.title')} body={t('opening.set.body')} onPress={() => choose('set')} />

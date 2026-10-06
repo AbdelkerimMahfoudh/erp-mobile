@@ -20,6 +20,19 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  *
  * Drawn with react-native-svg, already installed for the app: no dependency
  * is added, and a header of text and one tint stays cheap to mount.
+ *
+ * ## Why the tint and the padding live on two different views
+ *
+ * The gradient fills its parent with `width="100%"`, positioned absolutely.
+ * On a phone, React Native's default layout conformance resolves an absolute
+ * child's percentage against the parent's CONTENT box — the box inside the
+ * padding — not against the padded box the way the web does. With the padding
+ * on the same view as the tint, the tint came up 32 pt short on the end side:
+ * the card looked cut off before the screen margin (the Home screenshot of
+ * 6 Oct). The web renders never showed it, because CSS resolves against the
+ * padded box. So the outer view owns the shape and the tint and carries no
+ * padding, and an inner view carries the padding and the content: there is
+ * then no content box smaller than the card for the tint to be measured by.
  */
 export interface HomeHeaderProps {
   context: string;
@@ -36,7 +49,8 @@ export function HomeHeader({ context, title, subtitle, date, note }: HomeHeaderP
   const styles = useStyles();
   const colors = useColors();
   return (
-    <View style={styles.panel}>
+    <View style={styles.panel} testID="home-header">
+      {/* The tint: the only child of an unpadded view, so 100% is the whole card on every platform. */}
       <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" accessible={false} importantForAccessibility="no">
         <Defs>
           <LinearGradient id="home-header-tint" x1="0" y1="0" x2="0" y2="1">
@@ -46,30 +60,35 @@ export function HomeHeader({ context, title, subtitle, date, note }: HomeHeaderP
         </Defs>
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#home-header-tint)" />
       </Svg>
-      <TabHeader
-        context={context}
-        title={title}
-        subtitle={subtitle}
-        bell
-        actions={
-          date ? (
-            <Text variant="label" tone="secondary" numberOfLines={1} style={styles.date}>
-              {date}
-            </Text>
-          ) : null
-        }
-      />
-      {note ? (
-        <Text variant="captionStrong" tone="secondary" style={styles.note}>
-          {note}
-        </Text>
-      ) : null}
+      <View style={styles.inner} testID="home-header-content">
+        <TabHeader
+          context={context}
+          title={title}
+          subtitle={subtitle}
+          bell
+          actions={
+            date ? (
+              <Text variant="label" tone="secondary" numberOfLines={1} style={styles.date}>
+                {date}
+              </Text>
+            ) : null
+          }
+        />
+        {note ? (
+          <Text variant="captionStrong" tone="secondary" style={styles.note}>
+            {note}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
-  panel: { borderRadius: radius.xl, overflow: 'hidden', padding: space.base, marginHorizontal: -space.xs, gap: space.sm },
+  /** The shape and the tint. No padding here — see the note above. */
+  panel: { borderRadius: radius.xl, overflow: 'hidden', marginHorizontal: -space.xs },
+  /** The content, padded symmetrically; the bell keeps its full touch target inside. */
+  inner: { padding: space.base, gap: space.sm },
   date: { paddingHorizontal: space.xs },
   note: { borderTopWidth: 1, borderTopColor: colors.border.subtle, paddingTop: space.sm },
 }));

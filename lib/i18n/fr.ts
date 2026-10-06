@@ -1819,15 +1819,12 @@ export const fr: Catalogue = {
   'team.pending.cancelled': 'Compte retiré',
   'team.pending.cancelConfirm.title': 'Retirer le compte ?',
   'team.pending.cancelConfirm.body': '{name} ne pourra pas terminer son installation. Vous pourrez l’ajouter de nouveau plus tard.',
-  'settings.language.expoGo.title': 'Le sens de la mise en page ne change pas dans Expo Go',
-  'settings.language.expoGo.body':
-    'Le texte s’affiche dans la langue choisie, mais Expo Go garde son propre sens de mise en page. L’application installée change de sens après un redémarrage.',
+  'settings.language.expoGo.title': 'Expo Go n’a pas changé la mise en page',
+  'settings.language.expoGo.body': 'Expo Go a été redémarré et garde son propre sens de mise en page : il ne peut pas appliquer ce changement sur ce téléphone, et redémarrer encore n’y changera rien. Le texte reste dans la langue choisie ; l’application installée change de sens à son prochain lancement.',
   'settings.language.unsupported.title': 'Le sens de la mise en page n’a pas changé',
-  'settings.language.unsupported.body':
-    'L’application a été redémarrée et la mise en page va toujours dans l’autre sens : cette version ne peut pas changer de sens. Le texte reste dans la langue choisie ; demandez une version avec la prise en charge droite-à-gauche.',
+  'settings.language.unsupported.body': 'L’application a été redémarrée et la mise en page va toujours dans l’autre sens : cette version ne peut pas changer de sens, une version plus récente est nécessaire. En développement, recharger n’est pas un redémarrage : fermez d’abord complètement l’app. Le texte reste dans la langue choisie.',
   'settings.language.restartTitle': 'Redémarrage nécessaire',
-  'settings.language.restartBody':
-    'Fermez puis rouvrez l’app pour terminer le changement de langue.',
+  'settings.language.restartBody': 'Fermez complètement l’app — balayez-la dans le sélecteur d’apps — puis rouvrez-la. Recharger ne suffit pas.',
 
   'settings.title': 'Paramètres de l’entreprise',
   'settings.subtitle': 'Le fonctionnement de votre boutique. Tout le monde s’y conforme.',
@@ -2000,6 +1997,9 @@ export const fr: Catalogue = {
   'devices.section.removed': 'Appareils retirés',
   'devices.removedHint':
     'Conservés pour que vous puissiez voir ce qui est arrivé à votre compte.',
+  'devices.build.title': 'Version de développement (affichée seulement en développement)',
+  'devices.build.unknown': 'Commit non estampillé — Metro a démarré sans app.config.js',
+  'devices.build.readAt': 'Configuration lue le {when} — redémarrez Metro après un pull pour l’actualiser',
   'devices.notVerifiedYet':
     'Les codes de confirmation par téléphone arrivent dans une mise à jour ultérieure. Rien ici ne prétend qu’un téléphone a été confirmé.',
   'devices.owner.title': 'Appareils',
@@ -2982,7 +2982,9 @@ export const fr: Catalogue = {
   'opening.account.shared': 'Partagé par toutes les boutiques · reporté',
   'opening.unknown': 'Inconnu',
   'opening.keep.title': 'Garder les montants précédents',
-  'opening.keep.body': 'Rien ne change. Un montant inconnu reste inconnu.',
+  'opening.keep.body': 'Rien ne change : la caisse reste au montant affiché.',
+  'opening.keep.unavailable.title': 'Aucun montant précédent à garder',
+  'opening.keep.unavailable.body': 'L’application ne sait pas ce que contient cette caisse. Saisissez les espèces qu’elle contient maintenant — 0 si elle est vide — et la boutique ouvre sur ce montant.',
   'opening.set.title': 'Saisir les montants d’ouverture du jour',
   'opening.set.body': 'Saisissez les espèces présentes dans la caisse maintenant.',
   'opening.cash.now': 'Espèces dans la caisse maintenant',
@@ -3311,6 +3313,9 @@ export const fr: Catalogue = {
   'moneyTab.anchor.company': 'Partagé par toutes les boutiques : le montant enregistré est celui que voient toutes les boutiques.',
   'moneyTab.expected.title': 'Argent attendu en boutique aujourd’hui',
   'moneyTab.expected.unknown': 'Inconnu tant que tout n’est pas connu : {names}',
+  'moneyTab.expected.explain': 'Les montants d’ouverture plus ce qui a été enregistré depuis — ce que l’application suit, jamais le solde d’une banque.',
+  'moneyTab.expected.cashUnknown': 'Le montant d’ouverture de la caisse n’a pas été fixé pour aujourd’hui.',
+  'moneyTab.expected.setCash': 'Fixer les espèces d’ouverture du jour',
   'moneyTab.expected.awaiting': 'Ouverte avec les montants reportés — en attente de la vérification du propriétaire',
   'moneyTab.expected.review': 'Vérifier les montants d’ouverture',
   'moneyTab.company.title': 'Comptes de l’entreprise',

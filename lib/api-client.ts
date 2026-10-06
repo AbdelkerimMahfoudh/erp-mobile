@@ -151,9 +151,12 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
 
   if (!res.ok) {
     const payload = await parse<any>(res).catch(() => null);
-    const message = payload?.message || payload?.error || `Request failed (${res.status})`;
+    // Never an empty message: a server validation payload can carry `message: []`, and an empty string is what an
+    // error toast showed as a blank red box (the Notifications screenshot of 5 Oct). The status is the last resort.
+    const raw = payload?.message || payload?.error;
+    const message = (Array.isArray(raw) ? raw.filter(Boolean).join(', ') : raw) || `Request failed (${res.status})`;
     throw new ApiError(
-      Array.isArray(message) ? message.join(', ') : message,
+      message,
       res.status,
       typeof payload?.code === 'string' ? payload.code : undefined,
       payload,
@@ -205,9 +208,12 @@ async function download(path: string): Promise<DownloadedFile> {
 
   if (!res.ok) {
     const payload = await parse<any>(res).catch(() => null);
-    const message = payload?.message || payload?.error || `Request failed (${res.status})`;
+    // Never an empty message: a server validation payload can carry `message: []`, and an empty string is what an
+    // error toast showed as a blank red box (the Notifications screenshot of 5 Oct). The status is the last resort.
+    const raw = payload?.message || payload?.error;
+    const message = (Array.isArray(raw) ? raw.filter(Boolean).join(', ') : raw) || `Request failed (${res.status})`;
     throw new ApiError(
-      Array.isArray(message) ? message.join(', ') : message,
+      message,
       res.status,
       typeof payload?.code === 'string' ? payload.code : undefined,
       payload,

@@ -7,8 +7,11 @@ import { parseAmount } from './price-input.ts';
  * cash, recorded with the opening by the server:
  *
  * - the Owner chooses, explicitly — nothing is selected for them: **keep** the
- *   drawer as the app tracks it (an unknown one stays unknown), or **set** what
- *   is in it now (zero included, when chosen);
+ *   drawer as the app tracks it, or **set** what is in it now (zero included,
+ *   when chosen). **Keep needs something to keep** (the brief of 2026-10-06): a
+ *   drawer whose amount the app does not know is never kept into an open day as
+ *   "unknown" — the Owner sets it, 0 when it is empty — and the server refuses a
+ *   keep it cannot honour (`opening_cash_unknown`);
  * - anybody else who may open does so with the tracked amounts, and the day then
  *   awaits the Owner's review — never presented as checked;
  * - the company's accounts carry forward; a shop's opening never sets them.
@@ -73,15 +76,22 @@ export function openingMethodsOf(
 export type OpeningDraft =
   | { ok: true; decision: 'keep' }
   | { ok: true; decision: 'set'; cashAmount: number }
-  | { ok: false; reason: 'choose' | 'amount_required' | 'amount_invalid' };
+  | { ok: false; reason: 'choose' | 'keep_unavailable' | 'amount_required' | 'amount_invalid' };
+
+/** Whether there is a previous drawer amount to keep: the shop's cash is known. */
+export function keepAvailable(methods: readonly OpeningMethod[]): boolean {
+  const cash = methods.find((m) => m.channel === 'cash');
+  return cash !== undefined && cash.previous !== null;
+}
 
 /**
  * The Owner's decision from the step's state. Nothing is chosen until the Owner
  * chooses; a set amount must be typed or chosen as 0 — an empty field is not 0.
+ * Keep is not a decision while there is nothing to keep (`keepPossible` false).
  */
-export function openingDraft(choice: OpeningChoice | null, cashText: string): OpeningDraft {
+export function openingDraft(choice: OpeningChoice | null, cashText: string, keepPossible = true): OpeningDraft {
   if (choice === null) return { ok: false, reason: 'choose' };
-  if (choice === 'keep') return { ok: true, decision: 'keep' };
+  if (choice === 'keep') return keepPossible ? { ok: true, decision: 'keep' } : { ok: false, reason: 'keep_unavailable' };
   const parsed = parseAmount(cashText);
   if (!parsed.ok) return { ok: false, reason: parsed.reason === 'empty' ? 'amount_required' : 'amount_invalid' };
   return { ok: true, decision: 'set', cashAmount: parsed.value };

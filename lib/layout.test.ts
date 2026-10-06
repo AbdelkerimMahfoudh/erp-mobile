@@ -226,7 +226,7 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   assert.deepEqual(t, { moneyIn: 1500.1, moneyOut: 200.05, net: 1300.05 });
   const src = code(read('../app/(tabs)/money-hub.tsx'));
   // One card at the top (docs/63): the money expected in the store today — today's movement is no longer a card there.
-  assert.match(src, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
+  assert.match(src, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} dayOpen=\{dayQuery\.data\?\.door === 'open'\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
   assert.ok(!/moneyToday|MethodLine|HeldLine/.test(src), 'no second card, no per-method explanations at the top');
   // One focal figure: the server's total — or the drawer's own, for anybody but the Owner — in display size, once.
   const card = code(read('../components/money/ExpectedMoneyCard.tsx'));
@@ -239,7 +239,7 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   assert.match(src, /useTodayOnArrival\(\(\) => setKey\('today'\)\)/);
   assert.ok(!/useSegments\(/.test(src), 'a mounted tab never sees its route change');
   // Pull-to-refresh reads the business day again, so a tab left open across 06:00 moves on with the card.
-  assert.match(src, /const refetchDay = useBusinessDay\(\{ enabled: canCount \}\)\.refetch;/);
+  assert.match(src, /const dayQuery = useBusinessDay\(\{ enabled: canCount \}\);\s*const refetchDay = dayQuery\.refetch;/);
   assert.match(src, /\? \(\) => \{\s*if \(canCount\) void refetchDay\(\);\s*void overview\.refetch\(\);/);
   assert.match(src, /visibleChildren\(hub, granted\)/, 'actions come from the registry');
   assert.match(src, /enabled: canViewFigures/, 'figures need report.view');

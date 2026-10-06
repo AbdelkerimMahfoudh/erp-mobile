@@ -3,6 +3,7 @@ import { DayChoiceSheet } from '../closing/DayChoiceSheet';
 import { OpeningMoneySheet } from './OpeningMoneySheet';
 import { useOpenDay, useReopenDay, type OpenClosing } from '../../lib/closing';
 import { isolateLtr } from '../../lib/design/direction';
+import { ApiError } from '../../lib/api-client';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
 import { formatDate } from '../../lib/format';
@@ -91,8 +92,9 @@ export function useOpeningFlow({
       }
       onOpened?.();
     } catch (e) {
-      // Nothing was opened: the sheet keeps what was entered and says why; without a sheet, a toast does.
-      const message = toFriendlyError(e).body || t(intent === 'open' ? 'closingHistory.open.failed' : 'reopen.failed');
+      // Nothing was opened: the sheet keeps what was entered and says why; without a sheet, a toast does. A keep the
+      // server cannot honour — the drawer unknown (2026-10-06) — is said in the sheet's own words.
+      const message = e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : toFriendlyError(e).body || t(intent === 'open' ? 'closingHistory.open.failed' : 'reopen.failed');
       setError(message);
       setFailed(true);
       if (!day.openingMoney) toast.error(message);
