@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Ban, FileText, Store, UserRound } from 'lucide-react-native';
 import { CorrectionSheet } from '../../components/corrections/CorrectionSheet';
+import { PayerNumberSheet } from '../../components/sales/PayerNumberSheet';
 import {
   Button,
   Card,
@@ -24,6 +25,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
+import { isolateLtr } from '../../lib/design/direction';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -97,6 +99,9 @@ function Body({ sale }: { sale: SaleDetail }) {
   /** Whoever may ask for a correction may ask for this sale to be cancelled (0079); the server says whether it can be. */
   const canAskCancel = usePermission('financial.correction.request') && !sale.cancellation && !sale.isReversed;
   const [cancelling, setCancelling] = useState(false);
+  /** Whoever may request a money correction may fix the number a payment came from — it moves no money (D151). */
+  const mayCorrectPayer = usePermission('financial.correction.request');
+  const [payerFor, setPayerFor] = useState<SalePaymentRecord | null>(null);
 
   // "Payment recorded", once, when we have just come back from recording one.
   const recordedAt = useRecentSuccess((s) => s.at[`payment:${sale.id}`]);
@@ -196,7 +201,7 @@ function Body({ sale }: { sale: SaleDetail }) {
           <RowGroup separatorInset={space.md}>
             {sale.payments.map((p) => (
               <View key={p.id} style={styles.groupedRow}>
-                <PaymentLine payment={p} />
+                <PaymentLine payment={p} onCorrectPayer={mayCorrectPayer && p.method !== 'cash' ? () => setPayerFor(p) : undefined} />
               </View>
             ))}
           </RowGroup>
@@ -272,6 +277,7 @@ function Body({ sale }: { sale: SaleDetail }) {
           onClose={() => setCancelling(false)}
         />
       ) : null}
+      {payerFor ? <PayerNumberSheet saleId={sale.id} payment={payerFor} onClose={() => setPayerFor(null)} /> : null}
     </ScrollView>
   );
 }
@@ -414,7 +420,7 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
  * one was given, and who recorded it. Renaming or closing an account later
  * changes none of this.
  */
-function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
+function PaymentLine({ payment: p, onCorrectPayer }: { payment: SalePaymentRecord; onCorrectPayer?: () => void }) {
   const { t } = useTranslation();
   const via = p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never));
   return (
@@ -429,6 +435,12 @@ function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
         {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
         {p.recordedBy ? ` · ${t('saleDetail.history.by', { name: p.recordedBy })}` : ''}
       </Text>
+      {/* The number the money came from (D151), under its method and apart from the transfer's reference. */}
+      {p.payerNumber && p.method !== 'cash' ? (
+        <Text variant="caption" tone="secondary">
+          {t('saleDetail.history.payer', { number: isolateLtr(p.payerNumber) })}
+        </Text>
+      ) : null}
       {p.reference ? (
         <Text variant="caption" tone="secondary">
           {t('saleDetail.history.ref', { reference: p.reference })}
@@ -439,6 +451,7 @@ function PaymentLine({ payment: p }: { payment: SalePaymentRecord }) {
           {p.note}
         </Text>
       ) : null}
+      {onCorrectPayer ? <Button title={t('saleDetail.payer.correct')} variant="tertiary" size="sm" onPress={onCorrectPayer} /> : null}
     </View>
   );
 }

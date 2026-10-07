@@ -6,6 +6,7 @@ import { invalidateMoney } from './money-invalidation';
 import { checkMoneyOverview, checkSalesByDay, retryUnlessIncompatible } from './contract';
 import { qk } from './query-keys';
 import { isStoreClosedRefusal } from './day-gate';
+import { payerNumberField } from './payer-number';
 import { uuidv4 } from './utils';
 import type { DebtorKind, PaymentMethod, SalePayStatus, SalePaymentState } from '../types/api';
 
@@ -226,6 +227,8 @@ export interface RecordPaymentInput {
   paidAt: string | null;
   reference: string;
   note: string;
+  /** The number the money came from, as typed (D151); sent normalised, and only for money that is not cash. */
+  payerNumber: string;
 }
 
 /**
@@ -252,6 +255,7 @@ export function useRecordSalePayment(saleId: string) {
         ...(input.paidAt ? { paidAt: input.paidAt } : {}),
         ...(input.reference.trim() ? { reference: input.reference.trim() } : {}),
         ...(input.note.trim() ? { note: input.note.trim() } : {}),
+        ...payerNumberField(input.method, input.payerNumber),
       }),
     onSuccess: () => {
       key.current = uuidv4();

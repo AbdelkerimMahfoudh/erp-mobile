@@ -20,6 +20,8 @@ import { Thumbnail } from '../ui/Thumbnail';
 import { ReceivedVia, type MoneySource } from '../money/ReceivedVia';
 import { ReturnPolicyControl } from './ReturnPolicyControl';
 import { DebtorPicker } from './DebtorPicker';
+import { PayerNumberField } from './PayerNumberField';
+import { parsePayerNumber, payerNumberField, PAYER_NUMBER_MAX_DIGITS } from '../../lib/payer-number';
 import {
   amountProblem,
   debtorProblem,
@@ -57,6 +59,11 @@ import { makeStyles } from '../../lib/design/theme';
  * owed by a named debtor. A split starts from the amount already typed and,
  * down to its last part removed, goes back to one method with that amount.
  * Every amount is judged as typed: past two decimals, nothing is sent.
+ *
+ * A non-cash place may carry the number the money came from (D151): optional,
+ * one per part, kept by the part's own key so adding or removing a part can
+ * never hand one part's number to another. Choosing Cash for a place drops its
+ * number; moving between accounts keeps it.
  */
 
 /** A configured place non-cash money can land. Only ACTIVE ones are offered. */
@@ -147,6 +154,10 @@ function PaymentSheetBody({
   /** A fifth method, or a part with no place left, was asked for: said until a part is removed. */
   const [limitHit, setLimitHit] = useState<'max' | 'noPlace' | null>(null);
   const [receivedText, setReceivedText] = useState(String(total));
+  /** The payer number typed for the one method, as typed (D151). */
+  const [payerText, setPayerText] = useState('');
+  /** Each split part's payer number, as typed, by the part's key — never by its position. */
+  const [partPayers, setPartPayers] = useState<Record<string, string>>({});
   const [debtor, setDebtor] = useState<DebtorDraft>(() =>
     presetCustomer ? { kind: 'customer_existing', customerId: presetCustomer.id, name: presetCustomer.name ?? '' } : { kind: 'none' },
   );
@@ -192,7 +203,37 @@ function PaymentSheetBody({
 
   const method = methodOf(source);
   const labelOf = (s: MoneySource) => (s.kind === 'cash' ? t('payment.cash') : (accountOf(s.accountId)?.label ?? ''));
-  const sourceLabel = labelOf(source);
+
+  /**
+   * The payer numbers (D151): judged as typed, sent normalised, only for money
+   * that is not cash. A malformed one holds Complete with the reason on screen;
+   * a blank one is simply none.
+   */
+  const payerIssue = (isSplitting
+    ? split.filter((entry) => needsAccount(entry.method)).map((entry) => parsePayerNumber(partPayers[entry.key]))
+    : source.kind === 'account'
+      ? [parsePayerNumber(payerText)]
+      : []
+  ).find((parsed) => !parsed.ok);
+  const payerBad = payerIssue !== undefined;
+  const payerFields = payerNumberField;
+  /** "Bankily", or "Bankily from 36123456" when the number it came from was typed. */
+  const namedSource = (s: MoneySource, typed: string | undefined) => {
+    const number = payerFields(methodOf(s), typed).payerNumber;
+    return number ? t('sell.payment.payerNumber.inReview', { account: labelOf(s), number: isolateLtr(number) }) : labelOf(s);
+  };
+  /** A part’s payer number leaves with the part, or with the account it was typed for. */
+  const dropPayer = (key: string) =>
+    setPartPayers((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  /** Choosing Cash for the one method drops its payer number; moving between accounts keeps it. */
+  const chooseSource = (next: MoneySource) => {
+    setSource(next);
+    if (next.kind === 'cash') setPayerText('');
+  };
 
   const complete = async () => {
     // A balance is money the shop is agreeing to wait for: say it in words
@@ -205,14 +246,14 @@ function PaymentSheetBody({
           split.length > 1
             ? t('sellDebt.review.bodySplit', {
                 received: isolateLtr(formatMoney(paid, { decimals })),
-                // "Cash 3 000 MRU + Bankily 2 000 MRU": each figure isolated, so Arabic keeps every amount beside its method.
-                parts: split.map((entry) => `${labelOf(sourceOf(entry))} ${isolateLtr(formatMoney(entry.amount, { decimals }))}`).join(' + '),
+                // "Cash 3 000 MRU + Bankily from 36123456 2 000 MRU": each figure isolated, so Arabic keeps every amount beside its method.
+                parts: split.map((entry) => `${namedSource(sourceOf(entry), partPayers[entry.key])} ${isolateLtr(formatMoney(entry.amount, { decimals }))}`).join(' + '),
                 remaining: isolateLtr(formatMoney(remaining, { decimals })),
                 name,
               })
             : t('sellDebt.review.body', {
                 received: formatMoney(paid, { decimals }),
-                method: isSplitting && split[0] ? labelOf(sourceOf(split[0])) : sourceLabel,
+                method: isSplitting && split[0] ? namedSource(sourceOf(split[0]), partPayers[split[0].key]) : namedSource(source, payerText),
                 remaining: formatMoney(remaining, { decimals }),
                 name,
               }),
@@ -227,6 +268,8 @@ function PaymentSheetBody({
           // Cash carries no account: the drawer belongs to none, and the
           // database refuses the alternative.
           receivingAccountId: needsAccount(entry.method) ? entry.receivingAccountId : undefined,
+          // The number THIS part came from, found by the part's key — never another part's (D151).
+          ...payerFields(entry.method, partPayers[entry.key]),
         })),
         debtorToSend,
       );
@@ -240,6 +283,7 @@ function PaymentSheetBody({
                 method,
                 amount: paid,
                 ...(source.kind === 'account' && source.accountId ? { receivingAccountId: source.accountId } : {}),
+                ...payerFields(method, payerText),
               },
             ]
           : [],
@@ -258,13 +302,16 @@ function PaymentSheetBody({
       setLimitHit('noPlace');
       return;
     }
+    // The first part is the one method so far: it keeps that method's payer number, under its own new key.
+    const firstKey = uuidv4();
+    if (parts.length === 0 && source.kind === 'account' && payerText) setPartPayers({ [firstKey]: payerText });
     setParts((prev) => {
       if (prev.length === 0) {
         // The first part keeps what was typed as received now, when the sale can take it; otherwise the whole total.
         const typed = Number(receivedText);
         return [
           {
-            key: uuidv4(),
+            key: firstKey,
             method,
             ...(source.kind === 'account' && source.accountId ? { receivingAccountId: source.accountId } : {}),
             amountText: Number.isFinite(typed) && typed > 0 && typed <= total ? receivedText : String(total),
@@ -295,6 +342,9 @@ function PaymentSheetBody({
       setReceivedText(last.amountText);
       setSource(sourceOf(last));
     }
+    // Back to one method, that part's payer number comes with it; a removed part takes its number away with it.
+    if (last) setPayerText(needsAccount(last.method) ? (partPayers[key] ?? '') : '');
+    dropPayer(key);
     setParts((prev) => prev.filter((x) => x.key !== key));
     setLimitHit(null);
   };
@@ -303,7 +353,7 @@ function PaymentSheetBody({
     accounts.filter((a) => a.id === entry.receivingAccountId || !split.some((o) => o.key !== entry.key && o.method !== 'cash' && o.receivingAccountId === a.id));
   const splitSum = Math.round(splitTotal * 100) / 100;
 
-  const setEntrySource = (key: string, next: MoneySource) =>
+  const setEntrySource = (key: string, next: MoneySource) => {
     setParts((prev) =>
       prev.map((x) =>
         x.key === key
@@ -315,6 +365,9 @@ function PaymentSheetBody({
           : x,
       ),
     );
+    // Cash was paid in notes: the part's payer number goes; moving between accounts keeps it (D151).
+    if (next.kind === 'cash') dropPayer(key);
+  };
 
   const debtorBlock = owing ? (
     <>
@@ -346,7 +399,7 @@ function PaymentSheetBody({
             fullWidth
             size="lg"
             loading={submitting}
-            disabled={amountBad || overpaid || owedBy !== null || !accountsSettled || splitIssue !== null}
+            disabled={amountBad || overpaid || owedBy !== null || !accountsSettled || splitIssue !== null || payerBad}
             onPress={() => void complete()}
           />
           {amountBad ? (
@@ -377,6 +430,12 @@ function PaymentSheetBody({
                     : 'sell.payment.split.empty',
               )}
             </Text>
+          ) : payerIssue && !payerIssue.ok ? (
+            <Text variant="caption" tone="tertiary" align="center">
+              {payerIssue.reason === 'too_long'
+                ? t('sell.payment.payerNumber.tooLong', { max: PAYER_NUMBER_MAX_DIGITS })
+                : t('sell.payment.payerNumber.invalid')}
+            </Text>
           ) : null}
         </>
       }
@@ -401,7 +460,8 @@ function PaymentSheetBody({
         {!isSplitting ? (
           <>
             <MoneyField label={t('sell.payment.receivedNow')} value={receivedText} onChangeText={setReceivedText} />
-            <ReceivedVia label={t('recordPayment.method')} value={source} onChange={setSource} accounts={accounts} />
+            <ReceivedVia label={t('recordPayment.method')} value={source} onChange={chooseSource} accounts={accounts} />
+            {source.kind === 'account' ? <PayerNumberField value={payerText} onChangeText={setPayerText} /> : null}
           </>
         ) : null}
 
@@ -448,6 +508,12 @@ function PaymentSheetBody({
                         onPress={() => removeSplitRow(entry.key)}
                       />
                     </View>
+                    {needsAccount(entry.method) ? (
+                      <PayerNumberField
+                        value={partPayers[entry.key] ?? ''}
+                        onChangeText={(text) => setPartPayers((prev) => ({ ...prev, [entry.key]: text }))}
+                      />
+                    ) : null}
                   </View>
                 ))}
               </View>

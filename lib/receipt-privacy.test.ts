@@ -26,7 +26,8 @@ const it = (name: string, fn: () => void) => {
   }
 };
 
-const read = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8');
+// Line endings normalised: a Windows checkout (core.autocrlf) carries CRLF, and the slices below end on LF.
+const read = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 /** The document builder — the one generator behind every share and print. */
 const RECEIPT = read('./receipt-html.ts');
@@ -155,6 +156,36 @@ it('the sale key is one per sale, not one per attempt', () => {
     false,
     'the key must not be regenerated inside a submission attempt',
   );
+});
+
+// ── The payer number (D151) stays off the customer's copy ───────────────────
+
+it('the payer number never reaches the receipt: no field for it, no generator line, no builder passes it', () => {
+  // The type has nowhere to put it, and the one generator never names it.
+  const paymentType = RECEIPT.slice(RECEIPT.indexOf('export interface ReceiptPayment {'), RECEIPT.indexOf('\n}', RECEIPT.indexOf('export interface ReceiptPayment {')));
+  assert.ok(paymentType.length > 0, 'ReceiptPayment not found');
+  for (const text of [RECEIPT_TYPE, paymentType, RECEIPT]) assert.equal(/payer/i.test(text), false, 'the receipt must not carry a payer number');
+
+  // The three places a receipt is built from payments copy fields one by one — and the payer number is not among them.
+  const receiptPayments = (src: string, name: string) => {
+    const start = src.indexOf('payments: payments.map((p) => ({');
+    const end = src.indexOf('returnPolicy: sale.returnPolicy,', start);
+    assert.ok(start >= 0 && end > start, `${name}: the receipt's payments not found`);
+    return src.slice(start, end);
+  };
+  const SELL = read('../app/(tabs)/sell.tsx');
+  const DETAIL = read('../app/sales/[id].tsx');
+  const detailReceipt = DETAIL.slice(DETAIL.indexOf('function receiptOf'), DETAIL.indexOf('\n}\n', DETAIL.indexOf('function receiptOf')));
+  assert.ok(detailReceipt.length > 0, 'receiptOf not found');
+  for (const [name, region] of [
+    ['sell', receiptPayments(SELL, 'sell')],
+    ['quick sell', receiptPayments(QUICK_SELL, 'quick sell')],
+    ['sale detail', detailReceipt],
+  ] as const) {
+    assert.equal(/payer/i.test(region), false, `${name}: the receipt is built without the payer number`);
+  }
+  // …while the request a few lines further on does send it: the absence above is a choice, not an oversight.
+  assert.ok(SELL.indexOf('payerNumber: p.payerNumber') > SELL.indexOf('returnPolicy: sale.returnPolicy,'), 'sell sends it in the request, after the receipt');
 });
 
 console.log(`receipt-privacy: ${passed} passed`);

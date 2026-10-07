@@ -20,6 +20,9 @@ import {
   THUMB_SIZE,
 } from '../../../components/ui';
 import { ReceivedVia, type MoneySource } from '../../../components/money/ReceivedVia';
+import { PayerNumberField } from '../../../components/sell/PayerNumberField';
+import { isolateLtr } from '../../../lib/design/direction';
+import { parsePayerNumber } from '../../../lib/payer-number';
 import { toErrorMessage } from '../../../lib/errors';
 import { OpenStoreNow } from '../../../components/day/OpenStoreNow';
 import { closedDayOf, closedReasonOf } from '../../../lib/day-gate';
@@ -102,6 +105,12 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
   const [time, setTime] = useState(localTime(now));
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
+  /** The number the money came from, as typed (D151): offered only for an account, dropped on Cash. */
+  const [payer, setPayer] = useState('');
+  const chooseSource = (next: MoneySource) => {
+    setSource(next);
+    if (next.kind === 'cash') setPayer('');
+  };
 
   const product = sale.lines.find((l) => !l.voided)?.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo });
   const paidAt = paidAtFrom(date, time);
@@ -115,10 +124,17 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
     paidAt,
   });
   const after = remainingAfter(sale.balanceDue, amount);
-  const viaLabel = source.kind === 'cash' ? t('payment.cash') : (account?.label ?? '');
+  const payerParsed = parsePayerNumber(source.kind === 'account' ? payer : '');
+  const payerBad = !payerParsed.ok;
+  const accountLabel = source.kind === 'cash' ? t('payment.cash') : (account?.label ?? '');
+  // "Bankily from 36123456" when the number the money came from was typed.
+  const viaLabel =
+    payerParsed.ok && payerParsed.value
+      ? t('sell.payment.payerNumber.inReview', { account: accountLabel, number: isolateLtr(payerParsed.value) })
+      : accountLabel;
 
   const submit = async () => {
-    if (problem) return;
+    if (problem || payerBad) return;
     const value = Number(amount);
     const ok = await dialog.confirm({
       title: t('recordPayment.review.title', { amount: formatMoney(value) }),
@@ -146,6 +162,7 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
         paidAt: paidAt ? paidAt.toISOString() : null,
         reference,
         note,
+        payerNumber: payer,
       },
       {
         onSuccess: () => {
@@ -166,7 +183,7 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
           title={t('recordPayment.review')}
           size="lg"
           fullWidth
-          disabled={problem !== null}
+          disabled={problem !== null || payerBad}
           loading={record.isPending}
           onPress={() => void submit()}
         />
@@ -201,7 +218,8 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
 
       <Section gap="md">
         <MoneyField label={t('recordPayment.amount')} value={amount} onChangeText={setAmount} required autoFocus />
-        <ReceivedVia label={t('recordPayment.method')} value={source} onChange={setSource} accounts={accounts} />
+        <ReceivedVia label={t('recordPayment.method')} value={source} onChange={chooseSource} accounts={accounts} />
+        {source.kind === 'account' ? <PayerNumberField value={payer} onChangeText={setPayer} /> : null}
         {accounts.length === 0 ? (
           <Text variant="caption" tone="tertiary">
             {t('recordPayment.noAccounts')}

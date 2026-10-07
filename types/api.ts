@@ -835,6 +835,8 @@ export interface SalePaymentRecord {
   /** The account label as it stood when the money arrived. Never rewritten. */
   accountLabel: string | null;
   accountProvider: string | null;
+  /** The phone or account number the money came from (D151); never on cash, never the reference. */
+  payerNumber: string | null;
   recordedBy: string | null;
 }
 

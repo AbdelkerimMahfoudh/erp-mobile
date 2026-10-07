@@ -374,6 +374,8 @@ function QuickSellScreen() {
           method: p.method,
           amount: p.amount,
           ...(p.receivingAccountId ? { receivingAccountId: p.receivingAccountId } : {}),
+          // The number the money came from (D151): sent only when there is one, never on cash.
+          ...(p.payerNumber ? { payerNumber: p.payerNumber } : {}),
         })),
         ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),

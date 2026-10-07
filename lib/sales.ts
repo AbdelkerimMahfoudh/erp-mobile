@@ -1,8 +1,8 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
-import type { PaymentMethod, SaleDetail, SalePage, SalePayStatus } from '../types/api';
+import type { PaymentMethod, SaleDetail, SalePage, SalePayStatus, SalePaymentState } from '../types/api';
 
 /**
  * The mobile side of sale history.
@@ -62,6 +62,25 @@ export function useSale(id: string | undefined) {
     queryKey: qk.sale(id ?? ''),
     enabled: Boolean(id),
     queryFn: () => api.get<SaleDetail>(`/sales/${id}`),
+  });
+}
+
+/**
+ * Correct the number a non-cash payment came from (D151). It moves no money —
+ * the amount, account and day stay as recorded — and the server audits the
+ * change. Owner and Store Manager (`financial.correction.request`).
+ */
+export function useCorrectPayerNumber(saleId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { paymentId: string; payerNumber: string | null; reason: string }) =>
+      api.post<SalePaymentState>(`/sales/${saleId}/payments/${input.paymentId}/payer-number`, {
+        payerNumber: input.payerNumber,
+        ...(input.reason.trim() ? { reason: input.reason.trim() } : {}),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.sale(saleId) });
+    },
   });
 }
 

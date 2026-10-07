@@ -319,7 +319,8 @@ it('what is owed sits under the one-method field, and after the parts while spli
 });
 it('a split: at most four places, each once, each with an amount — refused with the reason on screen', () => {
   assert.match(sheet, /const splitIssue = isSplitting \? splitProblem\(parts\) : null;/);
-  assert.match(sheet, /disabled=\{amountBad \|\| overpaid \|\| owedBy !== null \|\| !accountsSettled \|\| splitIssue !== null\}/);
+  // …and a malformed payer number holds it too (D151), with its own reason line.
+  assert.match(sheet, /disabled=\{amountBad \|\| overpaid \|\| owedBy !== null \|\| !accountsSettled \|\| splitIssue !== null \|\| payerBad\}/);
   assert.match(sheet, /if \(split\.length >= MAX_PAYMENT_METHODS\) \{\s*setLimitHit\('max'\);\s*return;/);
   assert.match(sheet, /nextFreeSource\(split, accounts\.map\(\(a\) => a\.id\)\) === null\) \{\s*setLimitHit\('noPlace'\);/);
   assert.match(sheet, /\{t\(limitHit === 'max' \? 'sell\.payment\.split\.max' : 'sell\.payment\.split\.noPlace'\)\}/);
@@ -373,8 +374,9 @@ it('a split part keeps its amount as typed, and nothing empty is sent', () => {
 });
 it('the review names each part when more than one is sent; one part or one method keeps the one-method sentence', () => {
   assert.match(sheet, /split\.length > 1\s*\?\s*t\('sellDebt\.review\.bodySplit', \{/);
-  assert.match(sheet, /parts: split\.map\(\(entry\) => `\$\{labelOf\(sourceOf\(entry\)\)\} \$\{isolateLtr\(formatMoney\(entry\.amount, \{ decimals \}\)\)\}`\)\.join\(' \+ '\)/);
-  assert.match(sheet, /:\s*t\('sellDebt\.review\.body', \{\s*received: formatMoney\(paid, \{ decimals \}\),\s*method: isSplitting && split\[0\] \? labelOf\(sourceOf\(split\[0\]\)\) : sourceLabel,/);
+  // Each part named by its place — and by the number it came from when one was typed (D151), found by the part's own key.
+  assert.match(sheet, /parts: split\.map\(\(entry\) => `\$\{namedSource\(sourceOf\(entry\), partPayers\[entry\.key\]\)\} \$\{isolateLtr\(formatMoney\(entry\.amount, \{ decimals \}\)\)\}`\)\.join\(' \+ '\)/);
+  assert.match(sheet, /:\s*t\('sellDebt\.review\.body', \{\s*received: formatMoney\(paid, \{ decimals \}\),\s*method: isSplitting && split\[0\] \? namedSource\(sourceOf\(split\[0\]\), partPayers\[split\[0\]\.key\]\) : namedSource\(source, payerText\),/);
   assert.match(read('./i18n/en.ts'), /'sellDebt\.review\.bodySplit': "\{received\} received now: \{parts\}\. \{remaining\} will be owed by \{name\}\."/);
 });
 it('an amount past two decimals — or under 0.01 — is never sent: Complete waits, and the sheet says why', () => {

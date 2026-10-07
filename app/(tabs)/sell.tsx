@@ -474,6 +474,8 @@ function SellScreen() {
           amount: p.amount,
           // Sent only when there is one: the server refuses an account on cash.
           ...(p.receivingAccountId ? { receivingAccountId: p.receivingAccountId } : {}),
+          // The same for the number the money came from (D151): never on cash, never invented.
+          ...(p.payerNumber ? { payerNumber: p.payerNumber } : {}),
         })),
         ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(discount > 0 ? { saleDiscount: discount } : {}),

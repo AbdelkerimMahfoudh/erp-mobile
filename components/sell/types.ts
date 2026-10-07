@@ -40,6 +40,13 @@ export interface PaymentEntry {
    * which nothing could reconcile.
    */
   receivingAccountId?: string;
+  /**
+   * The phone or account number this money came FROM (D151): optional, typed at
+   * the till, normalised to `+` and digits. Only ever on a non-cash payment —
+   * the server and the database refuse it on cash — and never copied from the
+   * customer's saved phone.
+   */
+  payerNumber?: string;
 }
 
 export function lineTotal(line: CartLine): number {
