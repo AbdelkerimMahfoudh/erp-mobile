@@ -21,7 +21,7 @@
  * SERVER's own list and fails the moment either side moves.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   FALLBACK_STORAGE_OPTIONS,
   FALLBACK_COLOUR_OPTIONS,
@@ -41,12 +41,14 @@ const it = (name: string, fn: () => void) => {
 };
 
 const source = (p: string) => readFileSync(p, 'utf8');
+/** The backend beside this checkout: `../backend` where the documentation repository nests both, `../erp-backend` on the owner's PC. */
+const BACKEND = existsSync('../backend/src') ? '../backend' : '../erp-backend';
 const withoutComments = (t: string): string =>
   t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 /** The server's list, parsed out of its TypeScript rather than duplicated here. */
 function serverOptions(constName: string): { key: string; label: string }[] {
-  const src = source('../backend/src/catalog/device-attributes.ts');
+  const src = source(`${BACKEND}/src/catalog/device-attributes.ts`);
   const start = src.indexOf(`export const ${constName}`);
   assert.ok(start > 0, `${constName} not found in the backend source`);
   const block = src.slice(start, src.indexOf('];', start));
@@ -73,7 +75,7 @@ it('the bundled COLOUR list matches the server exactly', () => {
 });
 
 it('the separator matches the server', () => {
-  const src = source('../backend/src/catalog/device-attributes.ts');
+  const src = source(`${BACKEND}/src/catalog/device-attributes.ts`);
   const m = /export const VARIANT_SEPARATOR = '([^']*)'/.exec(src);
   assert.ok(m, 'the server separator could not be read');
   assert.equal(FALLBACK_VARIANT_SEPARATOR, m![1]);

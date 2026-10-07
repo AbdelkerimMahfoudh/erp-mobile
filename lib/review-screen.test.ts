@@ -14,7 +14,8 @@ let passed = 0;
 const it = (name: string, fn: () => void) => {
   try { fn(); passed++; } catch (e) { console.error(`✗ ${name}`); throw e; }
 };
-const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
+// Line endings normalised: a Windows checkout (core.autocrlf) carries CRLF, and the slices below match on LF.
+const read = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const code = (s: string) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const screen = code(read('../app/receive/file.tsx'));
 const between = (s: string, from: string, to: string) => s.slice(s.indexOf(from), s.indexOf(to, s.indexOf(from)));

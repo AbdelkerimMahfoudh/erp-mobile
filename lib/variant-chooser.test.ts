@@ -30,7 +30,7 @@
  * unable to say which of four things went wrong.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -44,6 +44,8 @@ const it = (name: string, fn: () => void) => {
 };
 
 const source = (p: string) => readFileSync(p, 'utf8');
+/** The backend beside this checkout: `../backend` where the documentation repository nests both, `../erp-backend` on the owner's PC. */
+const BACKEND = existsSync('../backend/src') ? '../backend' : '../erp-backend';
 const withoutComments = (t: string): string =>
   t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
@@ -186,13 +188,13 @@ it('the client calls the endpoint the backend actually exposes', () => {
    */
   assert.match(source(CATALOGUE), /api\.get<DeviceAttributes>\('\/device-catalogue\/attributes'\)/);
 
-  const controller = source('../backend/src/catalog/device-catalogue.controller.ts');
+  const controller = source(`${BACKEND}/src/catalog/device-catalogue.controller.ts`);
   assert.match(controller, /@Get\('attributes'\)/);
   assert.match(controller, /path: 'device-catalogue', version: '1'/);
 });
 
 it('the response shape the client reads is the one the service returns', () => {
-  const service = source('../backend/src/catalog/device-catalogue.service.ts');
+  const service = source(`${BACKEND}/src/catalog/device-catalogue.service.ts`);
   const attributes = service.slice(service.indexOf('attributes()'), service.indexOf('async version()'));
   for (const field of ['storage:', 'colour:', 'separator:']) {
     assert.ok(attributes.includes(field), `the service returns ${field}`);
