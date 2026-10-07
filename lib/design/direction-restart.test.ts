@@ -26,9 +26,14 @@ test('a restart already happened and nothing flipped: the build does not support
   assert.equal(directionVerdict({ ...base, relaunchedSinceRequest: true }), 'unsupported_build');
 });
 
-test('Expo Go is asked for one restart like any build; only a restart that changed nothing says Expo Go cannot', () => {
-  assert.equal(directionVerdict({ ...base, isExpoGo: true }), 'restart');
+test('Expo Go cannot apply a direction: it says so at once and never asks for a restart (D150)', () => {
+  assert.equal(directionVerdict({ ...base, isExpoGo: true }), 'expo_go');
   assert.equal(directionVerdict({ ...base, isExpoGo: true, relaunchedSinceRequest: true }), 'expo_go');
+  assert.equal(directionVerdict({ ...base, isExpoGo: true, wantsRtl: false, actualRtl: true }), 'expo_go');
+  // Re-selecting the language in Expo Go (a fresh request in this process) must not bring "restart" back.
+  for (const relaunchedSinceRequest of [false, true]) {
+    assert.notEqual(directionVerdict({ ...base, isExpoGo: true, relaunchedSinceRequest }), 'restart');
+  }
   // The two "did not flip" verdicts are told apart by where the app runs, never merged.
   assert.notEqual(directionVerdict({ ...base, isExpoGo: true, relaunchedSinceRequest: true }), directionVerdict({ ...base, relaunchedSinceRequest: true }));
 });

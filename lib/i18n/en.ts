@@ -1711,9 +1711,9 @@ export const en = {
   'team.pending.cancelled': 'Account withdrawn',
   'team.pending.cancelConfirm.title': 'Withdraw the account?',
   'team.pending.cancelConfirm.body': '{name} will not be able to finish setting up. You can add them again later.',
-  'settings.language.expoGo.title': 'Expo Go did not switch the layout',
+  'settings.language.expoGo.title': 'Expo Go can’t switch the layout',
   'settings.language.expoGo.body':
-    'Expo Go was restarted and keeps its own layout direction: it cannot apply this change on this phone, and restarting again will not help. Text stays in the language you chose; the installed app switches direction at its next launch.',
+    'Expo Go keeps its own layout direction, so the layout stays as it is here, and restarting Expo Go will not change that. The text is in the language you chose. A development or store build of the app switches direction when it restarts.',
   'settings.language.unsupported.title': 'Layout direction did not change',
   'settings.language.unsupported.body':
     'The app was restarted and the layout still runs the other way, so this build cannot switch direction; a newer build is needed. In a development session, reloading is not a restart: close the app completely first. Text stays in the language you chose.',

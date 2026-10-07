@@ -142,11 +142,11 @@ function applyLanguage(lang: Language): void {
  * and whether it took, is what decides the notice:
  *
  *  - direction already matches → nothing to say (and the earlier request is forgotten);
+ *  - mismatch in Expo Go → it cannot apply a direction (D150): say so at once;
  *  - mismatch, first time → ask the native side, remember for which language, say "restart";
  *  - mismatch at a LATER launch for the same language → the restart happened and
- *    nothing flipped: in Expo Go that is expected; in our own build it means the
- *    native RTL option is missing — either way the words are honest and the
- *    warning stays while the layout is wrong.
+ *    nothing flipped: in our own build that means the native RTL option is
+ *    missing — the words are honest and the warning stays while the layout is wrong.
  *
  * `afterSwitch` is true when called from the language control, false from
  * hydration: only a hydration can be "a later launch".

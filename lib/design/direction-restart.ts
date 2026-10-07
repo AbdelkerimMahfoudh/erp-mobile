@@ -8,7 +8,7 @@
  *  - `actualRtl`  — the layout the running app is actually using;
  *  - `isExpoGo`   — the app is running inside Expo Go, whose native shell is
  *                   Expo's: it applies its own direction setting at every launch,
- *                   so a project's request may not survive into the next one;
+ *                   so a project's request does not survive into the next one;
  *  - `relaunchedSinceRequest` — the app asked the native side to flip the
  *                   direction for THIS language in an earlier process, and this
  *                   process still sees the old direction.
@@ -17,20 +17,24 @@
  * still wrong:
  *
  *  - `ok`                 — direction and language agree: nothing to say;
- *  - `restart`            — the flip was requested; the next genuine restart
- *                           applies it (a reload of the JavaScript is not one);
- *  - `expo_go`            — Expo Go was restarted and did not apply it: on this
- *                           phone it cannot, and no further restart will — the
- *                           installed app applies it at its next launch;
+ *  - `restart`            — our own build: the flip was requested; the next
+ *                           genuine restart applies it (a reload of the
+ *                           JavaScript is not one);
+ *  - `expo_go`            — Expo Go: it cannot apply a layout direction, so the
+ *                           notice says so at once and never asks for a restart;
+ *                           a development or store build applies it;
  *  - `unsupported_build`  — our own build was restarted and nothing flipped: this
  *                           build cannot switch direction and a newer one is
  *                           needed. Text is in the chosen language; the layout
  *                           is not, and the notice says so.
  *
- * Why Expo Go is only ever "cannot" AFTER a restart: whether Expo Go keeps a
- * project's direction request depends on Expo Go's own build, which this code
- * cannot read. Promising failure before trying would be as dishonest as
- * promising success; the restart is asked for once, and the result is reported.
+ * Why Expo Go is "cannot" at once (D150, superseding the try-once rule of D147):
+ * on the owner's iPhone (Expo Go 1017880, SDK 57, 2026-10-07) the request was
+ * persisted, Expo Go was swiped away and reopened — a new process, a new
+ * `Constants.sessionId` — and `I18nManager.isRTL` was still false. Asking for a
+ * restart in Expo Go therefore promised what Expo Go cannot do, and every
+ * re-selection of the language asked again. If a future Expo Go does apply the
+ * request, the next launch agrees with the language and the verdict is `ok`.
  */
 export type DirectionVerdict = 'ok' | 'restart' | 'expo_go' | 'unsupported_build';
 
@@ -46,8 +50,8 @@ export interface DirectionFacts {
 export function directionVerdict(f: DirectionFacts): DirectionVerdict {
   if (!f.needsRestart) return 'ok';
   if (f.wantsRtl === f.actualRtl) return 'ok';
-  if (!f.relaunchedSinceRequest) return 'restart';
-  return f.isExpoGo ? 'expo_go' : 'unsupported_build';
+  if (f.isExpoGo) return 'expo_go';
+  return f.relaunchedSinceRequest ? 'unsupported_build' : 'restart';
 }
 
 /** The notice keys for a verdict that is not `ok`. */
