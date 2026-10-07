@@ -5,7 +5,9 @@ import { Button, Card, MoneyValue, Text, THUMB_SIZE } from '../ui';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { isolateLtr } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
+import { formatMoney } from '../../lib/money-format';
 import type { TrackedMethod, TrackedMoney } from '../../lib/money-overview';
 
 /**
@@ -29,6 +31,14 @@ import type { TrackedMethod, TrackedMoney } from '../../lib/money-overview';
  * for the Owner while the day is open, offers **Set today's opening cash** —
  * the same review sheet, which then asks for the amount alone. The server
  * records it as the day's figure from that instant; nothing is backdated.
+ *
+ * An account nobody ever recorded an amount for is unknown — and stays unknown
+ * however much moved through it (the brief of 2026-10-07): a movement is never
+ * turned into a balance. What moved is not hidden either: under such a row the
+ * card says *Starting amount unknown · +20 000 MRU recorded today*, from the
+ * server's own day figure. The Owner is offered **Set account amounts** — the
+ * company-wide sheet, which says every shop will see the amount — so an unknown
+ * account has a way out of the card itself.
  */
 export interface ExpectedMoneyCardProps {
   held: TrackedMoney;
@@ -37,9 +47,11 @@ export interface ExpectedMoneyCardProps {
   /** The business day is open: an unknown drawer can be set now, rather than at the opening. */
   dayOpen: boolean;
   onReview: () => void;
+  /** The Owner's company-account sheet, offered while an account is unknown. */
+  onSetAccounts?: () => void;
 }
 
-export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview }: ExpectedMoneyCardProps) {
+export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview, onSetAccounts }: ExpectedMoneyCardProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -51,6 +63,14 @@ export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview }: Expect
   const decimals = [figure, ...held.methods.map((m) => m.position)].some((v) => v !== null && Math.round(v * 100) % 100 !== 0) ? 2 : 0;
   const awaiting = cash?.anchor?.awaitingOwnerReview === true;
   const cashUnknown = cash !== null && !cash.known;
+  const unknownAccounts = held.methods.filter((m) => m.channel === 'account' && !m.known);
+  /** The day's net movement of an unknown method, as the server says it — never a balance. */
+  const movedToday = (m: TrackedMethod): string | null => {
+    const net = m.movement?.net ?? 0;
+    if (m.known || net === 0) return null;
+    const amount = `${net > 0 ? '+' : '−'}${formatMoney(Math.abs(net), { decimals })}`;
+    return t('moneyTab.held.unknownMoved', { amount: isolateLtr(amount) });
+  };
   const name = (m: TrackedMethod) =>
     m.channel === 'cash' ? t('moneyTab.cash') : m.scope === 'company' && held.branchCount > 1 ? `${m.label} ${t('moneyTab.held.wholeBusiness')}` : m.label;
 
@@ -85,19 +105,31 @@ export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview }: Expect
 
       <View style={styles.lines}>
         {held.methods.map((m) => (
-          <View key={m.key} style={[AMOUNT_ROW, styles.line]}>
-            <View style={AMOUNT_LABEL}>
-              <Text variant="body">{name(m)}</Text>
+          <View key={m.key} style={styles.method}>
+            <View style={[AMOUNT_ROW, styles.line]}>
+              <View style={AMOUNT_LABEL}>
+                <Text variant="body">{name(m)}</Text>
+              </View>
+              {m.position !== null ? (
+                <MoneyValue value={m.position} size="small" signed={m.position < 0} decimals={decimals} />
+              ) : (
+                <Text variant="bodyStrong" tone="secondary">
+                  {t('moneyTab.held.unknown')}
+                </Text>
+              )}
             </View>
-            {m.position !== null ? (
-              <MoneyValue value={m.position} size="small" signed={m.position < 0} decimals={decimals} />
-            ) : (
-              <Text variant="bodyStrong" tone="secondary">
-                {t('moneyTab.held.unknown')}
+            {movedToday(m) ? (
+              <Text variant="caption" tone="tertiary" testID={`moved-${m.key}`}>
+                {movedToday(m)}
               </Text>
-            )}
+            ) : null}
           </View>
         ))}
+        {unknownAccounts.length > 0 && canReview && onSetAccounts ? (
+          <View style={styles.row}>
+            <Button title={t('moneyTab.expected.setAccounts')} variant="secondary" size="sm" wrap onPress={onSetAccounts} />
+          </View>
+        ) : null}
       </View>
 
       {cashUnknown ? (
@@ -141,6 +173,7 @@ const useStyles = makeStyles((colors) => ({
   grow: { flex: 1, minWidth: 0 },
   total: { gap: 2 },
   lines: { gap: space.xs },
+  method: { gap: 2 },
   line: { minHeight: 32 },
   awaiting: { gap: space.sm, borderTopWidth: 1, borderTopColor: colors.border.subtle, paddingTop: space.sm },
   row: { flexDirection: 'row' },

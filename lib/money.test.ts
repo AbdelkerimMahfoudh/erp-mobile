@@ -137,7 +137,11 @@ it('the day’s expenses say which day (docs/55 D42); the card of today’s move
   assert.ok(!/moneyToday|moneyTab\.today\./.test(overview), 'no card of today’s movement at the top');
 });
 it('one card at the top: the server’s total, or no figure at all while a method is unknown (docs/63)', () => {
-  assert.match(overview, /<ExpectedMoneyCard held=\{held\} canReview=\{canAnchor\} dayOpen=\{dayQuery\.data\?\.door === 'open'\} onReview=\{\(\) => setReviewing\(true\)\} \/>/);
+  assert.match(overview, /<ExpectedMoneyCard\s+held=\{held\}\s+canReview=\{canAnchor\}\s+dayOpen=\{dayQuery\.data\?\.door === 'open'\}\s+onReview=\{\(\) => setReviewing\(true\)\}\s+onSetAccounts=\{\(\) => setCompanyOpen\(true\)\}\s*\/>/);
+  // An unknown account's day movement is shown as its own line, from the server's figure — never as a balance (2026-10-07).
+  assert.match(card, /const net = m\.movement\?\.net \?\? 0;\s*if \(m\.known \|\| net === 0\) return null;/);
+  assert.match(card, /t\('moneyTab\.held\.unknownMoved', \{ amount: isolateLtr\(amount\) \}\)/);
+  assert.match(card, /\{unknownAccounts\.length > 0 && canReview && onSetAccounts \? \(/);
   // The figure is the server's — its total, or for anybody but the Owner the drawer's own — never a sum made here.
   assert.match(card, /const figure = held\.accountsVisible \? held\.total : \(cash\?\.position \?\? null\);/);
   assert.match(card, /\{figure !== null \? \(\s*<MoneyValue value=\{figure\} size="display" signed=\{figure < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong">\{t\('moneyTab\.expected\.unknown', \{ names: unknown\.map\(name\)\.join\(' · '\) \}\)\}<\/Text>/);
@@ -163,7 +167,7 @@ it('each line: a position or the word Unknown — never a 0 — and an account s
   assert.match(card, /\{m\.position !== null \? \(\s*<MoneyValue value=\{m\.position\} size="small" signed=\{m\.position < 0\} decimals=\{decimals\} \/>\s*\) : \(\s*<Text variant="bodyStrong" tone="secondary">\s*\{t\('moneyTab\.held\.unknown'\)\}/);
   assert.match(card, /m\.channel === 'cash' \? t\('moneyTab\.cash'\) : m\.scope === 'company' && held\.branchCount > 1 \? `\$\{m\.label\} \$\{t\('moneyTab\.held\.wholeBusiness'\)\}` : m\.label;/);
   // Label and amount on one line while the amount needs at most half of it (docs/61 §8).
-  assert.match(card, /<View key=\{m\.key\} style=\{\[AMOUNT_ROW, styles\.line\]\}>\s*<View style=\{AMOUNT_LABEL\}>/);
+  assert.match(card, /<View key=\{m\.key\} style=\{styles\.method\}>\s*<View style=\{\[AMOUNT_ROW, styles\.line\]\}>\s*<View style=\{AMOUNT_LABEL\}>/);
 });
 it('a shop opened with carried amounts says so until the Owner reviews them — and only the Owner may (docs/63)', () => {
   assert.match(card, /const awaiting = cash\?\.anchor\?\.awaitingOwnerReview === true;/);
@@ -232,9 +236,9 @@ it('the starting-amount sheet posts the account, the amount and a key bound to t
   assert.match(anchorSheet, /label=\{t\('moneyTab\.anchor\.note'\)\} value=\{note\} onChangeText=\{setNote\} maxLength=\{255\}/);
 });
 it('Money’s words are in all three languages, and the old top cards’ are gone (docs/63)', () => {
-  const keys = ['ownerOnly', 'unknown', 'wholeBusiness', 'setAmount']
+  const keys = ['ownerOnly', 'unknown', 'wholeBusiness', 'setAmount', 'unknownMoved']
     .map((k) => `moneyTab.held.${k}`)
-    .concat(['title', 'unknown', 'awaiting', 'review', 'explain', 'cashUnknown', 'setCash'].map((k) => `moneyTab.expected.${k}`))
+    .concat(['title', 'unknown', 'awaiting', 'review', 'explain', 'cashUnknown', 'setCash', 'setAccounts'].map((k) => `moneyTab.expected.${k}`))
     .concat(['title', 'subtitle', 'body'].map((k) => `moneyTab.company.${k}`))
     .concat(['title', 'body', 'amount', 'note', 'save', 'saved', 'failed', 'maybeSaved', 'forbidden', 'company'].map((k) => `moneyTab.anchor.${k}`));
   const gone = ['moneyTab.held.title', 'moneyTab.held.hint', 'moneyTab.held.incomplete', 'moneyTab.held.cash.known', 'moneyTab.today.title', 'moneyTab.today.hint'];

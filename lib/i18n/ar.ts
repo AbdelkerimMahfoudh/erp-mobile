@@ -3080,6 +3080,8 @@ export const ar: Catalogue = {
   'moneyTab.expected.explain': 'مبالغ الافتتاح زائد ما سُجّل بعدها — ما يتتبعه التطبيق، وليس رصيد بنك أبدًا.',
   'moneyTab.expected.cashUnknown': 'لم يُحدَّد مبلغ افتتاح الصندوق لهذا اليوم.',
   'moneyTab.expected.setCash': 'تحديد نقد افتتاح اليوم',
+  'moneyTab.expected.setAccounts': 'تحديد مبالغ الحسابات',
+  'moneyTab.held.unknownMoved': 'المبلغ الابتدائي غير معروف · {amount} مسجَّل اليوم',
   'moneyTab.expected.awaiting': 'فُتح بالمبالغ المُرحَّلة — بانتظار مراجعة المالك',
   'moneyTab.expected.review': 'مراجعة مبالغ الافتتاح',
   'moneyTab.company.title': 'مبالغ حسابات الشركة',

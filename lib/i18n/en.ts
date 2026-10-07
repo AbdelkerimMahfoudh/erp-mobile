@@ -3143,6 +3143,8 @@ export const en = {
   'moneyTab.expected.explain': 'The opening amounts plus what was recorded since — what the app tracks, never a bank’s balance.',
   'moneyTab.expected.cashUnknown': 'The drawer’s opening amount has not been set for today.',
   'moneyTab.expected.setCash': 'Set today’s opening cash',
+  'moneyTab.expected.setAccounts': 'Set account amounts',
+  'moneyTab.held.unknownMoved': 'Starting amount unknown · {amount} recorded today',
   'moneyTab.expected.awaiting': 'Opened with the carried amounts — awaiting the Owner’s review',
   'moneyTab.expected.review': 'Review opening amounts',
   'moneyTab.company.title': 'Company account amounts',

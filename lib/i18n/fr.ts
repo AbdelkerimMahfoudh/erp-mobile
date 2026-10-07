@@ -3321,6 +3321,8 @@ export const fr: Catalogue = {
   'moneyTab.expected.explain': 'Les montants d’ouverture plus ce qui a été enregistré depuis — ce que l’application suit, jamais le solde d’une banque.',
   'moneyTab.expected.cashUnknown': 'Le montant d’ouverture de la caisse n’a pas été fixé pour aujourd’hui.',
   'moneyTab.expected.setCash': 'Fixer les espèces d’ouverture du jour',
+  'moneyTab.expected.setAccounts': 'Fixer les montants des comptes',
+  'moneyTab.held.unknownMoved': 'Montant de départ inconnu · {amount} enregistré aujourd’hui',
   'moneyTab.expected.awaiting': 'Ouverte avec les montants reportés — en attente de la vérification du propriétaire',
   'moneyTab.expected.review': 'Vérifier les montants d’ouverture',
   'moneyTab.company.title': 'Comptes de l’entreprise',

@@ -181,7 +181,13 @@ export default function MoneyTabScreen() {
             </InlineNotice>
           ) : (
             // 1. Expected money in store today: one card, the server's figures, short lines (docs/63).
-            <ExpectedMoneyCard held={held} canReview={canAnchor} dayOpen={dayQuery.data?.door === 'open'} onReview={() => setReviewing(true)} />
+            <ExpectedMoneyCard
+              held={held}
+              canReview={canAnchor}
+              dayOpen={dayQuery.data?.door === 'open'}
+              onReview={() => setReviewing(true)}
+              onSetAccounts={() => setCompanyOpen(true)}
+            />
           )}
 
           <PeriodSelector />

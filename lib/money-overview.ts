@@ -65,6 +65,12 @@ export interface TrackedMethod {
     awaitingOwnerReview?: boolean;
   } | null;
   sinceAnchorNet: number | null;
+  /**
+   * What moved through the method on the current business day — inflows, confirmed outflows and the net — whatever
+   * the position (2026-10-07): an unknown opening never becomes a balance, but the recorded money is not hidden. The
+   * drawer's day is this branch's; an account's is every shop's. Absent on an older server.
+   */
+  movement?: { businessDate: string; inflows: number; outflows: number; net: number };
 }
 
 export interface TrackedMoney {
