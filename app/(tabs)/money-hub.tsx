@@ -132,7 +132,7 @@ export default function MoneyTabScreen() {
           void card.refetch();
         },
         // Nothing was saved: the sheet keeps the amounts and says why — a keep of an unknown drawer in its own words.
-        onError: (e) => setReviewError(e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : toFriendlyError(e).body || t('opening.review.failed')),
+        onError: (e) => setReviewError(e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : e instanceof ApiError && e.code === 'opening_cash_negative' ? t('opening.keep.negative.body') : toFriendlyError(e).body || t('opening.review.failed')),
       },
     );
   };

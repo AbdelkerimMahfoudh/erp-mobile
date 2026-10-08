@@ -2990,6 +2990,8 @@ export const fr: Catalogue = {
   'opening.keep.body': 'Rien ne change : la caisse reste au montant affiché.',
   'opening.keep.unavailable.title': 'Aucun montant précédent à garder',
   'opening.keep.unavailable.body': 'L’application ne sait pas ce que contient cette caisse. Saisissez les espèces qu’elle contient maintenant — 0 si elle est vide — et la boutique ouvre sur ce montant.',
+  'opening.keep.negative.title': 'La caisse est suivie en dessous de zéro',
+  'opening.keep.negative.body': 'Plus d’espèces ont été enregistrées en sortie de cette caisse qu’en entrée : il n’y a aucun montant à garder. Saisissez les espèces qu’elle contient maintenant — 0 si elle est vide — et corrigez les enregistrements précédents.',
   'opening.set.title': 'Saisir les montants d’ouverture du jour',
   'opening.set.body': 'Saisissez les espèces présentes dans la caisse maintenant.',
   'opening.cash.now': 'Espèces dans la caisse maintenant',

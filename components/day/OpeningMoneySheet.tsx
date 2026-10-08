@@ -10,7 +10,7 @@ import { formatDate } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import {
   attemptKey,
-  keepAvailable,
+  keepUnavailableReason,
   openingDraft,
   openingRequest,
   openingTotal,
@@ -65,7 +65,8 @@ export function OpeningMoneySheet({ intent, open, onClose, businessDate, notice,
   const styles = useStyles();
   const { t } = useTranslation();
   /** Nothing to keep: the only decision is the amount, so the field is shown at once — still empty, never a made-up 0. */
-  const keepPossible = !mayDecide || keepAvailable(methods);
+  const keepUnavailable = keepUnavailableReason(methods);
+  const keepPossible = !mayDecide || keepUnavailable === null;
   const [choice, setChoice] = useState<OpeningChoice | null>(keepPossible ? null : 'set');
   const [cash, setCash] = useState('');
   const attempt = useRef<{ key: string; payload: string } | null>(null);
@@ -133,7 +134,11 @@ export function OpeningMoneySheet({ intent, open, onClose, businessDate, notice,
           ))}
         </View>
 
-        {mayDecide && !keepPossible ? (
+        {mayDecide && keepUnavailable === 'negative' ? (
+          <InlineNotice tone="warning" title={t('opening.keep.negative.title')} testID="opening-keep-negative">
+            {t('opening.keep.negative.body')}
+          </InlineNotice>
+        ) : mayDecide && !keepPossible ? (
           <InlineNotice tone="warning" title={t('opening.keep.unavailable.title')} testID="opening-keep-unavailable">
             {t('opening.keep.unavailable.body')}
           </InlineNotice>

@@ -16,6 +16,7 @@ import {
   prefilledCash,
   type OpeningMethod,
   keepAvailable,
+  keepUnavailableReason,
 } from './opening-money.ts';
 
 let passed = 0;
@@ -119,10 +120,10 @@ it('Money’s methods become the step’s, the position as the previous amount �
 it('the sheet: no choice until the Owner makes one, Set to 0 as its own action, the error kept in place', () => {
   const sheet = code(read('../components/day/OpeningMoneySheet.tsx'));
   // Nothing chosen for the Owner — unless there is nothing to keep, when the amount is the only decision (2026-10-06).
-  assert.match(sheet, /const keepPossible = !mayDecide \|\| keepAvailable\(methods\);/);
+  assert.match(sheet, /const keepPossible = !mayDecide \|\| keepUnavailable === null;/);
   assert.match(sheet, /const \[choice, setChoice\] = useState<OpeningChoice \| null>\(keepPossible \? null : 'set'\);/);
   assert.match(sheet, /const draft = openingDraft\(choice, cash, keepPossible\);/);
-  assert.match(sheet, /\{mayDecide && !keepPossible \? \(\s*<InlineNotice tone="warning" title=\{t\('opening\.keep\.unavailable\.title'\)\}/);
+  assert.match(sheet, /: mayDecide && !keepPossible \? \(\s*<InlineNotice tone="warning" title=\{t\('opening\.keep\.unavailable\.title'\)\}/);
   assert.match(sheet, /if \(next === 'set' && choice !== 'set'\) setCash\(prefilledCash\(methods\)\);/);
   assert.match(sheet, /onPress=\{\(\) => setCash\('0'\)\}/);
   assert.match(sheet, /disabled=\{busy \|\| \(mayDecide && !draft\.ok\)\}/);
@@ -195,3 +196,21 @@ it('the words: the final action says what it does, and Keep, Set, Unknown in eve
 });
 
 console.log(`opening-money: ${passed} passed`);
+
+it('a drawer tracked below zero cannot be kept either (2026-10-08): its own reason, no prefilled amount, no total until set', () => {
+  const negative = [cash(-1231250), account('account:b', 2600)];
+  assert.equal(keepUnavailableReason(negative), 'negative');
+  assert.equal(keepAvailable(negative), false);
+  assert.equal(keepUnavailableReason([cash(null)]), 'unknown');
+  assert.equal(keepUnavailableReason([cash(0)]), null);
+  assert.equal(keepUnavailableReason([cash(3400)]), null);
+  assert.equal(prefilledCash(negative), '');
+  assert.equal(openingTotal(negative, { ok: false, reason: 'choose' }), null);
+  assert.equal(openingTotal(negative, { ok: true, decision: 'set', cashAmount: 1000 }), 3600);
+  // The sheet says why in its own words, and the server's refusal is read by name.
+  const sheet = code(read('../components/day/OpeningMoneySheet.tsx'));
+  assert.match(sheet, /keepUnavailable === 'negative'/);
+  assert.match(sheet, /opening\.keep\.negative\.body/);
+  assert.match(code(read('../components/day/useOpeningFlow.tsx')), /opening_cash_negative/);
+  assert.match(code(read('../app/(tabs)/money-hub.tsx')), /opening_cash_negative/);
+});

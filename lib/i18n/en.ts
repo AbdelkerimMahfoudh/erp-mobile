@@ -2812,6 +2812,8 @@ export const en = {
   'opening.keep.body': 'Nothing changes: the drawer stays at the amount shown.',
   'opening.keep.unavailable.title': 'No previous amount to keep',
   'opening.keep.unavailable.body': 'The app does not know what this drawer holds. Enter the cash in it now — 0 if it is empty — and the boutique opens on that amount.',
+  'opening.keep.negative.title': 'The drawer is tracked below zero',
+  'opening.keep.negative.body': 'More cash was recorded out of this drawer than into it, so there is no amount to keep. Enter the cash in it now — 0 if it is empty — and correct the earlier records.',
   'opening.set.title': 'Set today’s opening amounts',
   'opening.set.body': 'Enter the cash in the drawer now.',
   'opening.cash.now': 'Cash in the drawer now',

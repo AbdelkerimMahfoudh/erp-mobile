@@ -94,7 +94,7 @@ export function useOpeningFlow({
     } catch (e) {
       // Nothing was opened: the sheet keeps what was entered and says why; without a sheet, a toast does. A keep the
       // server cannot honour — the drawer unknown (2026-10-06) — is said in the sheet's own words.
-      const message = e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : toFriendlyError(e).body || t(intent === 'open' ? 'closingHistory.open.failed' : 'reopen.failed');
+      const message = e instanceof ApiError && e.code === 'opening_cash_unknown' ? t('opening.keep.unavailable.body') : e instanceof ApiError && e.code === 'opening_cash_negative' ? t('opening.keep.negative.body') : toFriendlyError(e).body || t(intent === 'open' ? 'closingHistory.open.failed' : 'reopen.failed');
       setError(message);
       setFailed(true);
       if (!day.openingMoney) toast.error(message);

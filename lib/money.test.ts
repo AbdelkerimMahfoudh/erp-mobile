@@ -176,7 +176,7 @@ it('a shop opened with carried amounts says so until the Owner reviews them — 
   assert.match(overview, /<OpeningMoneySheet\s+intent="review"\s+open=\{reviewing\}[\s\S]*?mayDecide\s+methods=\{openingMethodsOf\(held\.methods\)\}[\s\S]*?onConfirm=\{confirmReview\}/);
   assert.match(overview, /review\.mutate\(\s*\{ clientUuid: money\.clientUuid, decision: money\.decision, \.\.\.\(money\.cashAmount !== undefined \? \{ cashAmount: money\.cashAmount \} : \{\}\) \},/);
   // Refused, the sheet keeps what was entered and says why.
-  assert.match(overview, /onError: \(e\) => setReviewError\(e instanceof ApiError && e\.code === 'opening_cash_unknown' \? t\('opening\.keep\.unavailable\.body'\) : toFriendlyError\(e\)\.body \|\| t\('opening\.review\.failed'\)\),/);
+  assert.match(overview, /onError: \(e\) => setReviewError\(e instanceof ApiError && e\.code === 'opening_cash_unknown' \? t\('opening\.keep\.unavailable\.body'\) : e instanceof ApiError && e\.code === 'opening_cash_negative' \? t\('opening\.keep\.negative\.body'\) : toFriendlyError\(e\)\.body \|\| t\('opening\.review\.failed'\)\),/);
   const hooks = code(read('./closing.ts'));
   assert.match(hooks, /api\.post<OpenClosing>\('\/closings\/opening\/review', input\)/);
 });

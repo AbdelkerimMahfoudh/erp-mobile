@@ -78,10 +78,23 @@ export type OpeningDraft =
   | { ok: true; decision: 'set'; cashAmount: number }
   | { ok: false; reason: 'choose' | 'keep_unavailable' | 'amount_required' | 'amount_invalid' };
 
-/** Whether there is a previous drawer amount to keep: the shop's cash is known. */
-export function keepAvailable(methods: readonly OpeningMethod[]): boolean {
+/**
+ * Why the drawer cannot be kept, or null when it can: its amount is **unknown**
+ * (nothing to keep — the brief of 2026-10-06), or the app tracks it **below
+ * zero** (the brief of 2026-10-08: more cash recorded out than in — a figure to
+ * correct, never an amount a day opens on; the server refuses it by name,
+ * `opening_cash_negative`, and never reads it as zero). Either way the Owner
+ * sets what the drawer holds, 0 included.
+ */
+export function keepUnavailableReason(methods: readonly OpeningMethod[]): 'unknown' | 'negative' | null {
   const cash = methods.find((m) => m.channel === 'cash');
-  return cash !== undefined && cash.previous !== null;
+  if (cash === undefined || cash.previous === null) return 'unknown';
+  return cash.previous < 0 ? 'negative' : null;
+}
+
+/** Whether there is a previous drawer amount to keep: the shop's cash is known, and not below zero. */
+export function keepAvailable(methods: readonly OpeningMethod[]): boolean {
+  return keepUnavailableReason(methods) === null;
 }
 
 /**
@@ -97,10 +110,10 @@ export function openingDraft(choice: OpeningChoice | null, cashText: string, kee
   return { ok: true, decision: 'set', cashAmount: parsed.value };
 }
 
-/** The cash field when "set" is chosen: the drawer's previous amount when known, else empty — never a made-up 0. */
+/** The cash field when "set" is chosen: the drawer's previous amount when known and not below zero, else empty — never a made-up 0. */
 export function prefilledCash(methods: readonly OpeningMethod[]): string {
   const cash = methods.find((m) => m.channel === 'cash');
-  return cash && cash.previous !== null ? String(cash.previous) : '';
+  return cash && cash.previous !== null && cash.previous >= 0 ? String(cash.previous) : '';
 }
 
 const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -113,7 +126,8 @@ const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 1
 export function openingTotal(methods: readonly OpeningMethod[], draft: OpeningDraft): number | null {
   let sum = 0;
   for (const m of methods) {
-    const amount = m.channel === 'cash' && draft.ok && draft.decision === 'set' ? draft.cashAmount : m.previous;
+    // A drawer tracked below zero carries no opening amount (the server records none): no total until it is set.
+    const amount = m.channel === 'cash' ? (draft.ok && draft.decision === 'set' ? draft.cashAmount : m.previous !== null && m.previous >= 0 ? m.previous : null) : m.previous;
     if (amount === null) return null;
     sum += amount;
   }
