@@ -263,6 +263,12 @@ function NewExchangeScreen() {
                 name: direct.confirmation.recordedByName,
               })}
             </Text>
+            {/* The server's commission, as the phone's own queue shows it once recorded. */}
+            <Text variant="caption" tone="secondary">
+              {t('agent.outcome.recorded.commission', {
+                amount: isolateLtr(formatMoney(direct.confirmation.commission, { decimals: Math.round(direct.confirmation.commission * 100) % 100 === 0 ? 0 : 2 })),
+              })}
+            </Text>
           </View>
         ) : item ? (
           <QueuedExchange item={item} onPrepareAgain={() => void prepareAgain()} />
