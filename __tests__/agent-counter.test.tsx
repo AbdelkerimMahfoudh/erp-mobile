@@ -21,6 +21,7 @@ import { usePermissionStore, type Permission } from '../lib/permissions';
 import { useI18n, t } from '../lib/i18n';
 import { useConnectivity } from '../lib/connectivity';
 import { formatMoney } from '../lib/format';
+import * as layoutDirection from '../lib/design/layout-direction';
 
 const mockStore = new Map<string, string>();
 const mockQueueWrites: string[] = [];
@@ -133,6 +134,7 @@ beforeEach(async () => {
     if (path.startsWith('/agent/providers')) return providers;
     if (path.startsWith('/entitlement')) return entitlement;
     if (path.startsWith('/auth/permissions')) return { branchId: 'b1', permissions: EMPLOYEE };
+    if (path.startsWith('/closings/business-day')) return { businessDate: '2026-10-09', localDate: '2026-10-09', standing: 'open', door: 'open' };
     return {};
   });
 });
@@ -249,6 +251,37 @@ describe('the counter flow', () => {
     expect(await screen.findByDisplayValue('36 12 34 56')).toBeTruthy();
     expect(screen.getByText(t('draft.restored.hint'))).toBeTruthy();
     for (const draft of mockDrafts.values()) expect(draft).not.toMatch(/3612|customerNumber/);
+  });
+
+  it('while the business day is closed, the store is opened first — no form to fill', async () => {
+    (api.get as jest.Mock).mockImplementation(async (path: string) => {
+      if (path.startsWith('/closings/business-day')) return { businessDate: '2026-10-09', localDate: '2026-10-09', standing: 'closed', door: 'closed' };
+      if (path.startsWith('/entitlement')) return entitlement;
+      return providers;
+    });
+    mount();
+    expect(await screen.findByText(t('gate.closed.title'))).toBeTruthy();
+    expect(screen.queryByText('Receive cash → send digital credit')).toBeNull();
+  });
+
+  it('in Arabic, laid out right-to-left, the direction reads its way and the number stays left-to-right', async () => {
+    await useI18n.getState().setLanguage('ar');
+    const rtl = jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
+    try {
+      mount();
+      // The money arrow points the reading way: ←, never →.
+      const card = await screen.findByText('استلام النقد ← إرسال رصيد رقمي');
+      fireEvent.press(card);
+      fireEvent.press(await screen.findByText('Bankily'));
+      fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
+      fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
+      fireEvent.press(screen.getByText(t('agent.review.action')));
+      expect(await screen.findByText(t('agent.review.cashIn'))).toBeTruthy();
+      expect(screen.getByText(`\u2066${NUMBER}\u2069`)).toBeTruthy();
+      expect(screen.getByText('العمولة (\u20662\u2069%)')).toBeTruthy();
+    } finally {
+      rtl.mockRestore();
+    }
   });
 
   it('a branch without the money services activity offers no form', async () => {

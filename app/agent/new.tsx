@@ -18,6 +18,7 @@ import {
   TextField,
 } from '../../components/ui';
 import { DraftNotice } from '../../components/DraftNotice';
+import { DayGate } from '../../components/day/DayGate';
 import { DirectionCard } from '../../components/agent/DirectionCard';
 import { ExchangeReview } from '../../components/agent/ExchangeReview';
 import { QueuedExchange } from '../../components/agent/QueuedExchange';
@@ -78,7 +79,7 @@ import { uuidv4 } from '../../lib/utils';
  * customer's number is typed here, never taken from a customer record, kept in
  * SecureStore rather than in the draft or the queue file.
  */
-export default function NewExchangeScreen() {
+function NewExchangeScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
@@ -381,3 +382,16 @@ export default function NewExchangeScreen() {
 const useStyles = makeStyles(() => ({
   block: { gap: space.sm },
 }));
+
+/**
+ * Behind the business-day guard, as Sell and Receive are (D76): while the current day is closed the store is opened
+ * first, here — the server refuses an exchange on a closed day (store_closed) as it refuses a sale. A failed read
+ * never blocks: offline, the exchange is still prepared and queued.
+ */
+export default function NewExchangeRoute() {
+  return (
+    <DayGate>
+      <NewExchangeScreen />
+    </DayGate>
+  );
+}
