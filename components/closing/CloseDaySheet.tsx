@@ -16,6 +16,10 @@ import { parseAmount } from '../../lib/price-input';
 import { canConfirmClose, channelLabel, verificationKey, verificationTone, warningKey, type Freshness } from '../../lib/closing-report-view';
 import { useCloseDay, type DailyReport } from '../../lib/closing-report';
 import { useRecordCount, type OpenClosing } from '../../lib/closing';
+import { useExchangesHeld } from '../../lib/agent';
+import { floatsOutstanding } from '../../lib/agent-money';
+import { useConnectivity } from '../../lib/connectivity';
+import { FloatCountRow, floatStateWords } from './FloatCountRow';
 
 /**
  * "Close the business day" (docs/58 D71; docs/51 D2, D5).
@@ -37,6 +41,14 @@ import { useRecordCount, type OpenClosing } from '../../lib/closing';
  * amount is never carried past quietly: Continue waits until it is saved or
  * cleared, and Back clears it; closing the popup discards it, as closing any
  * form does.
+ *
+ * On a branch with the money services counter (docs/73 §4.5) the amounts step
+ * also asks for each provider float beside the drawer — what the provider's
+ * app shows, or a skip with its reason — and the close waits until every float
+ * is counted or skipped (the server's `float_count_required`); the person's
+ * word covers the channels, never a float. And while this phone still holds an
+ * exchange for the branch, the day is not closed at all: the exchange happened
+ * at the counter and belongs to it (D155).
  */
 export interface CloseDaySheetProps {
   open: boolean;
@@ -61,6 +73,11 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   const date = report.isToday ? undefined : report.date;
   const close = useCloseDay(date);
   const { mutate: recordCount, isPending: saving } = useRecordCount(date);
+  const online = useConnectivity((s) => s.online);
+  // Exchanges this phone has not sent: the closing waits for them (D155).
+  const held = useExchangesHeld();
+  const floats = day?.floats ?? [];
+  const floatsLeft = floatsOutstanding(floats);
   const [step, setStep] = useState<Step>('ask');
   const [values, setValues] = useState<Record<string, string>>({});
   const [changing, setChanging] = useState<Record<string, boolean>>({});
@@ -96,17 +113,20 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   // A drawer holds nothing below zero; an account's net movement for the day can be (docs/51 §12.4).
   const amountOf = (c: Row, v: string) => parseAmount(v, { allowNegative: c.channel === 'account' });
   const withoutAmount = rows.filter((c) => !hasCount(c)).length;
-  // Only with channels to show: a live view that did not load offers the attestation alone, never an empty step.
-  const countable = canCount && rows.length > 0;
+  // Only with channels or floats to show: a live view that did not load offers the attestation alone, never an empty step.
+  const countable = canCount && (rows.length > 0 || floats.length > 0);
   const unsaved = rows.some((c) => editing(c) && typed(c) !== '');
   const needsAttest = report.close?.requiresAcknowledgement ?? false;
-  const enabled = canConfirmClose({
-    canClose: report.close?.canClose ?? false,
-    freshness,
-    requiresAcknowledgement: needsAttest,
-    attested: true,
-    busy: close.isPending || refreshing,
-  });
+  const enabled =
+    canConfirmClose({
+      canClose: report.close?.canClose ?? false,
+      freshness,
+      requiresAcknowledgement: needsAttest,
+      attested: true,
+      busy: close.isPending || refreshing,
+    }) &&
+    floatsLeft.length === 0 &&
+    held === 0;
   const money = (v: number) => isolateLtr(formatMoney(v));
   const params = (p?: Record<string, string | number>) =>
     Object.fromEntries(Object.entries(p ?? {}).map(([k, v]) => [k, typeof v === 'number' && k !== 'count' && k !== 'days' ? money(v) : String(v)]));
@@ -139,6 +159,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   };
 
   const confirm = async () => {
+    if (held > 0) return;
     try {
       const done = await close.mutateAsync({
         date: report.date,
@@ -159,6 +180,13 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
         onClose();
         return;
       }
+      // A float nobody counted or skipped: named, and the amounts step offered to whoever counts.
+      if (e instanceof ApiError && e.status === 409 && e.code === 'float_count_required') {
+        const names = ((e.body as { providers?: { label?: string }[] } | undefined)?.providers ?? []).map((p) => p.label ?? '').filter(Boolean);
+        toast.error(t('closing.float.required', { names: names.join(' · ') }));
+        if (canCount) setStep('count');
+        return;
+      }
       toast.error(toFriendlyError(e).body || t('closeReview.failed'));
     }
   };
@@ -175,8 +203,8 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       footer={
         step === 'ask' ? (
           <View style={styles.footer}>
-            {countable ? <Button title={t('closeDay.enterAmounts')} fullWidth onPress={() => setStep('count')} /> : null}
-            <Button title={t('closeDay.checked')} variant={countable ? 'secondary' : 'primary'} fullWidth onPress={() => setStep('confirm')} />
+            {countable ? <Button title={t('closeDay.enterAmounts')} fullWidth disabled={held > 0} onPress={() => setStep('count')} /> : null}
+            <Button title={t('closeDay.checked')} variant={countable ? 'secondary' : 'primary'} fullWidth disabled={held > 0} onPress={() => setStep('confirm')} />
             <Text variant="caption" tone="tertiary" align="center">
               {t('closeReview.selling')}
             </Text>
@@ -204,6 +232,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       {step === 'ask' ? (
         <View style={styles.body}>
           <Text variant="heading">{t('closeDay.question')}</Text>
+          {held > 0 ? <InlineNotice tone="warning">{t('closing.queue.body', { count: held })}</InlineNotice> : null}
         </View>
       ) : step === 'count' ? (
         // Scrolls under the keyboard and at large text, its actions after the last channel: nothing pinned takes the room.
@@ -264,7 +293,23 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
               </View>
             );
           })}
+          {floats.length > 0 ? (
+            <View style={styles.floats}>
+              <Text variant="heading">{t('closing.floats.title')}</Text>
+              <Text variant="caption" tone="tertiary">
+                {t('closing.floats.explain')}
+              </Text>
+              {floats.map((f) => (
+                <FloatCountRow key={f.providerId} float={f} date={report.date} viewDate={date} editable={canCount && held === 0 && online} onSaved={onChanged} />
+              ))}
+            </View>
+          ) : null}
           <View style={styles.footer}>
+            {floatsLeft.length > 0 ? (
+              <Text variant="caption" tone="secondary" align="center">
+                {t('closing.floats.left', { count: floatsLeft.length })}
+              </Text>
+            ) : null}
             {unsaved ? (
               <Text variant="caption" tone="secondary" align="center">
                 {t('closeDay.count.unsaved')}
@@ -316,6 +361,32 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
               </Text>
             ) : null}
           </View>
+          {/* Each float as the close will hold it: counted (with its difference), skipped, or still waiting — never attested. */}
+          {floats.length > 0 ? (
+            <View style={styles.lines} testID="close-floats">
+              {floats.map((f) => (
+                <View key={f.providerId} style={styles.between}>
+                  <Text variant="body" style={styles.flex}>
+                    {t('agent.positions.float', { provider: f.label })}
+                  </Text>
+                  <Chip
+                    tone={f.counted === null && !f.isSkipped ? 'warning' : f.difference !== null && f.difference !== 0 ? 'warning' : f.isSkipped ? 'neutral' : 'success'}
+                    label={floatStateWords(f, t)}
+                    size="sm"
+                    dot
+                  />
+                </View>
+              ))}
+              {floatsLeft.length > 0 ? (
+                <InlineNotice
+                  tone="warning"
+                  action={canCount ? <Button title={t('closing.floats.count')} variant="secondary" size="sm" disabled={held > 0} onPress={() => setStep('count')} /> : undefined}
+                >
+                  {t('closing.floats.waiting', { names: floatsLeft.map((f) => f.label).join(' · ') })}
+                </InlineNotice>
+              ) : null}
+            </View>
+          ) : null}
         </ScrollView>
       )}
     </BottomSheet>
@@ -346,4 +417,5 @@ const useStyles = makeStyles(() => ({
   end: { flexDirection: 'row', justifyContent: 'flex-end' },
   flex: { flex: 1, minWidth: 0 },
   footer: { gap: space.sm },
+  floats: { gap: space.md },
 }));

@@ -8,7 +8,7 @@ import { positionRows, type PositionRow } from './agent-positions';
 import { useQueue } from './offline/queue';
 import { qk } from './query-keys';
 import { uuidv4 } from './utils';
-import type { ExternalCounterparty, FloatAccountKind, RebalancingBody } from './agent-money';
+import { exchangesHeld, type ExternalCounterparty, type FloatAccountKind, type RebalancingBody } from './agent-money';
 import type { ConfigBody, ProviderKind } from './agent-providers';
 import type { ReportPeriod } from './agent-reports';
 import type { AgentDirection, AgentProvider, CommissionDestination, LegAccount, LegDirection, LegKind, PrincipalFeeMode, ProviderConfig } from './agent-rules';
@@ -307,6 +307,17 @@ export function useQueuedCash(providers: readonly AgentProvider[]): { count: num
   const items = useQueue((s) => s.items);
   const count = pendingExchanges(items, branchId).filter((i) => i.state !== 'needs_attention').length;
   return { count, cashNet: provisionalNet(items, branchId, providers).cash ?? 0 };
+}
+
+/**
+ * How many exchanges this phone still holds for the branch — waiting, on their
+ * way or waiting for a person. While there is one, the phone does not start the
+ * closing or count a float (D155).
+ */
+export function useExchangesHeld(): number {
+  const branchId = useBranch((s) => s.branchId);
+  const items = useQueue((s) => s.items);
+  return exchangesHeld(items, branchId);
 }
 
 /** The query string of a filter set, keys in a fixed order so equal filters share a cache entry. */

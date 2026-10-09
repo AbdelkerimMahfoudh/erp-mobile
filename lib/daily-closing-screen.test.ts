@@ -104,15 +104,18 @@ it('Close the business day: a short popup — the question, then the amounts rig
   assert.match(sheet, /titleLines=\{2\}/);
   assert.match(read('components/overlay/BottomSheet.tsx'), /<Text variant="heading" numberOfLines=\{titleLines\}>/);
   // The amount step only when there is a channel to show: a live view that did not load offers the attestation alone.
-  assert.match(sheet, /const countable = canCount && rows\.length > 0;/);
-  assert.match(sheet, /\{countable \? <Button title=\{t\('closeDay\.enterAmounts'\)\} fullWidth onPress=\{\(\) => setStep\('count'\)\} \/> : null\}/);
-  assert.match(sheet, /title=\{t\('closeDay\.checked'\)\} variant=\{countable \? 'secondary' : 'primary'\} fullWidth onPress=\{\(\) => setStep\('confirm'\)\}/);
+  // Changed 2026-10-09 (docs/73 §4.5, D155): an agent branch's provider floats are counted in the same step, so a float
+  // to count opens it too; and neither way on is offered while this phone still holds an exchange for the branch.
+  assert.match(sheet, /const countable = canCount && \(rows\.length > 0 \|\| floats\.length > 0\);/);
+  assert.match(sheet, /\{countable \? <Button title=\{t\('closeDay\.enterAmounts'\)\} fullWidth disabled=\{held > 0\} onPress=\{\(\) => setStep\('count'\)\} \/> : null\}/);
+  assert.match(sheet, /title=\{t\('closeDay\.checked'\)\} variant=\{countable \? 'secondary' : 'primary'\} fullWidth disabled=\{held > 0\} onPress=\{\(\) => setStep\('confirm'\)\}/);
   // The confirmation signs what it shows: the day is read again as it opens.
   assert.match(sheet, /useEffect\(\(\) => \{\s*if \(open && step === 'confirm'\) onChanged\(\);\s*\}, \[open, step\]\);/);
   // The counting step scrolls under the keyboard and at large text, and pins nothing: its actions follow the last channel.
   assert.match(sheet, /step === 'count' \? \([\s\S]*?<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle=\{styles\.body\}>/);
   assert.match(sheet, /\) : step === 'count' \? \(\s*undefined\s*\) : \(/);
-  assert.match(sheet, /\}\)\}\s*<View style=\{styles\.footer\}>[\s\S]*?t\('closeDay\.count\.continue'\)[\s\S]*?<\/View>\s*<\/ScrollView>/);
+  // Changed 2026-10-09 (docs/73 §4.5): an agent branch's floats follow the channels, before the step's actions.
+  assert.match(sheet, /\}\)\}\s*\{floats\.length > 0 \? \([\s\S]*?<FloatCountRow [\s\S]*?\) : null\}\s*<View style=\{styles\.footer\}>[\s\S]*?t\('closeDay\.count\.continue'\)[\s\S]*?<\/View>\s*<\/ScrollView>/);
   // A typed amount is saved or cleared, never dropped: Continue waits and says why; Back clears; a change can be called off.
   assert.match(sheet, /const unsaved = rows\.some\(\(c\) => editing\(c\) && typed\(c\) !== ''\);/);
   assert.match(sheet, /disabled=\{saving \|\| unsaved\} onPress=\{\(\) => setStep\('confirm'\)\}/);

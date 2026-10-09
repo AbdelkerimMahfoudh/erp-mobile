@@ -5,6 +5,7 @@ import { qk } from './query-keys';
 import { invalidateMoney } from './money-invalidation';
 import type { DayStanding } from './home-day';
 import type { CorrectionAction, Verification } from './closing-report-view';
+import type { FloatCount } from './closing';
 
 /**
  * The Daily closing report (docs/51): what the boutique sold, where the money
@@ -23,8 +24,9 @@ export interface ReportChannel {
   label: string;
   isUnattributed: boolean;
   countable: boolean;
-  in: { todaysSales: number; olderDebts: number; correctionsIn: number; total: number };
-  out: { refunds: number; stockPurchases: number; expenses: number; correctionsOut: number; total: number };
+  /** `agentIn` / `agentOut` (D154): the money services counter's cash on the drawer's row; absent on an older server. */
+  in: { todaysSales: number; olderDebts: number; correctionsIn: number; agentIn?: number; total: number };
+  out: { refunds: number; stockPurchases: number; expenses: number; correctionsOut: number; agentOut?: number; total: number };
   net: number;
 }
 
@@ -120,6 +122,8 @@ export interface DailyReport {
       verification: Verification;
       basis: 'recorded_movement_not_balance';
     }[];
+    /** The provider floats of an agent branch (D154): expected (or unknown) against counted; empty or absent for a shop. */
+    floats?: FloatCount[];
   };
   warnings: ReportWarning[];
   close: {
@@ -191,6 +195,9 @@ export function useCloseDay(date?: string) {
       void qc.invalidateQueries({ queryKey: qk.openClosing(branchId, date ?? 'today') });
       void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
       void qc.invalidateQueries({ queryKey: ['home', branchId] });
+      // A locked close with a counted float is where the float stands next (docs/73 §4.5): the counter reads it again.
+      void qc.invalidateQueries({ queryKey: ['agent-positions'] });
+      void qc.invalidateQueries({ queryKey: ['agent-report'] });
       invalidateMoney(qc);
     },
   });

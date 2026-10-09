@@ -2,14 +2,16 @@ import React, { useContext, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 import { CalendarDays, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
 import { Button, Card, Chip, Divider, ErrorState, Expandable, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
 import { CloseDaySheet } from '../../components/closing/CloseDaySheet';
+import { FloatCountRow } from '../../components/closing/FloatCountRow';
 import { useOpeningFlow } from '../../components/day/useOpeningFlow';
 import { HistoryPanel } from '../../components/closing/HistoryPanel';
 import { ReportPdfPanel } from '../../components/reports/ReportPdfPanel';
+import { useExchangesHeld } from '../../lib/agent';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
@@ -25,6 +27,7 @@ import { useBusinessAccess } from '../../lib/entitlement';
 import { useOpenClosing, type ClosingHistoryEntry, type OpenClosing } from '../../lib/closing';
 import { useDailyReport, type DailyReport } from '../../lib/closing-report';
 import { channelLabel, reportFreshness, warningKey, type Freshness } from '../../lib/closing-report-view';
+import { TABS } from '../../lib/navigation/back';
 
 /**
  * The Daily closing (docs/51, docs/58): one business date as a short,
@@ -39,6 +42,13 @@ import { channelLabel, reportFreshness, warningKey, type Freshness } from '../..
  * amounts right there or the person's word, and closes — and its history as
  * one rectangle that slides open. Nothing is typed again, nothing is added up
  * here, and the physical check stays optional.
+ *
+ * On a branch with the money services counter (docs/73 §4.5) the day's floats
+ * follow the money movements — each provider's float expected (or Unknown)
+ * against counted, the difference in words — and whoever counts the drawer
+ * counts them there too, or in the close. While this phone still holds an
+ * exchange for the branch, the day is not closed and no float is counted: the
+ * screen says why and leads to the exchanges (D155).
  *
  * The body is a plain `ScrollView` with nothing above the rows: a drag that
  * starts on a card scrolls the page (the shared `Screen` wraps its body in a
@@ -160,6 +170,8 @@ function Report({
     Opening and reopening, each with the money the shop opens with (docs/63): the shared flow — the day before 06:00,
     then the amounts — so this screen and Home's Open store now can never ask differently.
   */
+  // Exchanges this phone has not sent yet for the branch: the closing waits for them (D155).
+  const held = useExchangesHeld();
   const opening = useOpeningFlow({ intent: 'open', day, date, onOpened: onRefresh });
   const reopening = useOpeningFlow({ intent: 'reopen', day, date, onOpened: onRefresh });
   const [closing, setClosing] = useState(false);
@@ -179,6 +191,12 @@ function Report({
 
   const standing = report.standing;
   const closed = standing === 'closed';
+  // The floats of an agent branch, as the live view has them; the report's own on a day without one. None at a shop.
+  const floats = day?.floats ?? report.expected.floats ?? [];
+  const countFloats = canCount && access.canWrite && report.isToday && !closed && held === 0 && online;
+  const cashChannel = report.money.channels.find((c) => c.channel === 'cash') ?? null;
+  const agentIn = cashChannel?.in.agentIn ?? 0;
+  const agentOut = cashChannel?.out.agentOut ?? 0;
   const showOpen = report.isToday && canCount && access.canWrite && !!day?.canOpen && !closed;
   const openingLine = day
     ? t(
@@ -322,6 +340,12 @@ function Report({
             // The drawer is named as the closing popup names it, so the two read as one.
             <Line key={c.key} label={c.channel === 'cash' ? t('dailyReport.expected.cash') : channelLabel(c, words)} value={c.net} signed tone="auto" />
           ))}
+        {/* The counter's exchanges are the drawer's cash too (docs/73 §4.5): said inside its line, never added again. */}
+        {agentIn !== 0 || agentOut !== 0 ? (
+          <Text variant="caption" tone="tertiary" testID="closing-agent-cash">
+            {t('closing.agentCash', { in: money(agentIn), out: money(agentOut) })}
+          </Text>
+        ) : null}
         <Divider />
         <Line label={t('dailyReport.movements.debtSettled')} value={report.money.totals.olderDebts} quiet />
         <Line label={t('dailyReport.movements.total')} value={report.money.totals.net} strong signed />
@@ -330,13 +354,38 @@ function Report({
         </Text>
       </Card>
 
+      {/* The provider floats of an agent branch, beside the drawer: expected or Unknown, counted, the difference in words. */}
+      {floats.length > 0 ? (
+        <Card style={styles.card} testID="closing-floats">
+          <Text variant="heading">{t('closing.floats.title')}</Text>
+          <Text variant="caption" tone="tertiary">
+            {t('closing.floats.explain')}
+          </Text>
+          {floats.map((f, i) => (
+            <View key={f.providerId} style={i > 0 ? styles.floatJoin : undefined}>
+              <FloatCountRow float={f} date={report.date} viewDate={date} editable={countFloats} onSaved={onRefresh} />
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
       {/* ── The actions of the day ── */}
       <View style={styles.actions}>
+        {report.isToday && !closed && held > 0 ? (
+          <InlineNotice
+            tone="warning"
+            title={t('closing.queue.title')}
+            testID="closing-queue"
+            action={<Button title={t('closing.queue.see')} variant="secondary" size="sm" onPress={() => router.push(TABS.agent as Href)} />}
+          >
+            {t('closing.queue.body', { count: held })}
+          </InlineNotice>
+        ) : null}
         {showOpen ? (
           <Button title={t('closingHistory.open')} fullWidth wrap loading={opening.busy} disabled={!online || !day || opening.busy} onPress={opening.start} />
         ) : null}
         {report.isToday && canClose && report.close?.canClose ? (
-          <Button title={t('dailyReport.closeDay')} fullWidth variant={showOpen ? 'secondary' : 'primary'} disabled={!online} onPress={() => setClosing(true)} />
+          <Button title={t('dailyReport.closeDay')} fullWidth variant={showOpen ? 'secondary' : 'primary'} disabled={!online || held > 0} onPress={() => setClosing(true)} />
         ) : null}
         {report.isToday && closed && canClose && day?.canReopen ? (
           <Button title={t('closingHistory.reopen')} fullWidth wrap variant="secondary" loading={reopening.busy} disabled={!online || !day || reopening.busy} onPress={reopening.start} />
@@ -590,4 +639,5 @@ const useStyles = makeStyles((colors) => ({
   rowJoin: { borderTopWidth: 1, borderTopColor: colors.border.subtle },
   dot: { width: 10, height: 10, borderRadius: radius.full, marginTop: 6 },
   rowBody: { flex: 1, minWidth: 0, gap: 2 },
+  floatJoin: { borderTopWidth: 1, borderTopColor: colors.border.subtle, paddingTop: space.sm },
 }));

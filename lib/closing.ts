@@ -35,6 +35,9 @@ export interface ChannelRow {
   correctionsIn: number;
   /** A payment reclassified out of this channel (0078). */
   correctionsOut: number;
+  /** The money services counter's cash on the drawer's row (D154); 0 on an account, absent on an older server. */
+  agentIn?: number;
+  agentOut?: number;
   expected: number;
   /** `null` means genuinely not counted yet — never the same as counted zero. */
   counted: number | null;
@@ -120,6 +123,27 @@ export interface OpenClosing {
   cashSet?: CashSet | null;
   /** What the opening step shows (docs/63) — the current day only; absent on an older server. */
   openingMoney?: OpeningStep | null;
+  /** The provider floats of an agent branch, counted beside the drawer (D154); empty or absent for a shop. */
+  floats?: FloatCount[];
+}
+
+/**
+ * One provider float at the closing of an agent branch (docs/73 §4.5): what the
+ * app tracked at the count instant — null while the float is unknown, never a
+ * fabricated figure — what the provider's app showed, and the difference only
+ * when both are known. Skipped with a reason, or not counted at all.
+ */
+export interface FloatCount {
+  providerId: string;
+  label: string;
+  expected: number | null;
+  counted: number | null;
+  difference: number | null;
+  explanation: string | null;
+  isSkipped: boolean;
+  skipReason: string | null;
+  countedAt: string | null;
+  countedByName: string | null;
 }
 
 /**
@@ -170,6 +194,32 @@ export function useRecordCount(date?: string) {
       // Written straight into the cache: the response IS the new view, so
       // re-fetching would only make the screen flicker on a slow counter.
       qc.setQueryData(qk.openClosing(branchId, date ?? 'today'), fresh);
+    },
+  });
+}
+
+export type RecordFloatCountBody =
+  | { providerId: string; counted: number; explanation?: string }
+  | { providerId: string; skip: true; skipReason: string };
+
+/**
+ * One float's count (`POST closings/:date/float-counts`, `closing.count`): the
+ * same act as a channel's count — the day stays open and correctable, a
+ * difference opens a question for the closing. `viewDate` is the date the
+ * screen keys its view on (undefined for the current day); the business date
+ * itself is always sent, as the route needs it.
+ */
+export function useRecordFloatCount(viewDate?: string) {
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
+  return useMutation({
+    mutationFn: ({ date, body }: { date: string; body: RecordFloatCountBody }) =>
+      api.post<OpenClosing & { float: FloatCount | null }>(`/closings/${encodeURIComponent(date)}/float-counts`, body),
+    onSuccess: (fresh) => {
+      // The response is the day's view: written straight in, as a channel's count is.
+      qc.setQueryData(qk.openClosing(branchId, viewDate ?? 'today'), fresh);
+      // The report's version follows the counts: the close must sign the figures it shows.
+      void qc.invalidateQueries({ queryKey: qk.dailyReport(branchId, viewDate ?? 'today') });
     },
   });
 }
