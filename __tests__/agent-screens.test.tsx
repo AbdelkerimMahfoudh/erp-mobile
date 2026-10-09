@@ -233,7 +233,8 @@ describe('one exchange', () => {
     mount(<ExchangeDetailScreen />);
     expect(await screen.findByText('•••• 1234')).toBeTruthy();
     expect(screen.queryByText('00001234')).toBeNull();
-    expect(screen.getByText(t('agent.mistake.action'))).toBeTruthy();
+    // Awaited: the action waits for the entitlement's activity, which may answer after the exchange (seen under load).
+    expect(await screen.findByText(t('agent.mistake.action'))).toBeTruthy();
     expect(screen.queryByText(t('agent.reverse.action'))).toBeNull();
     expect(screen.getByText('Commission (2 %)')).toBeTruthy();
     expect(screen.getByText('Credited to your Bankily float.')).toBeTruthy();
@@ -245,7 +246,8 @@ describe('one exchange', () => {
     mount(<ExchangeDetailScreen />);
     expect(await screen.findByText('00001234')).toBeTruthy();
     expect(screen.getByText(t('agent.detail.numberRevealed'))).toBeTruthy();
-    expect(screen.getByText(t('agent.reverse.action'))).toBeTruthy();
+    // Awaited for the same reason: the action waits for the entitlement's activity.
+    expect(await screen.findByText(t('agent.reverse.action'))).toBeTruthy();
   });
 
   it('a reversed exchange shows its counter-legs apart, and offers nothing more', async () => {
