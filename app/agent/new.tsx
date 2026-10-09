@@ -243,7 +243,9 @@ function NewExchangeScreen() {
     );
   }
 
-  const reviewing = step === 'review';
+  // The review shows only what can be confirmed: a restored review whose number was not kept goes back to the form.
+  const reviewing = step === 'review' && canReview(problems);
+  const editing = step === 'details' || (step === 'review' && !reviewing);
   const refField = ready ? referenceField(ready.referenceRule) : 'hidden';
   const numberError =
     customerNumber.trim() === '' || problems.number === undefined
@@ -268,7 +270,7 @@ function NewExchangeScreen() {
             />
             <Button title={t('agent.review.edit')} variant="secondary" fullWidth onPress={() => update({ reviewing: false })} />
           </>
-        ) : step === 'details' ? (
+        ) : editing ? (
           <Button title={t('agent.review.action')} size="lg" fullWidth disabled={!canReview(problems)} onPress={() => update({ reviewing: true })} />
         ) : null
       }
@@ -338,7 +340,7 @@ function NewExchangeScreen() {
           ) : null}
 
           {/* 3 — the amount, the customer's number, the reference when the provider issues one. */}
-          {step === 'details' && ready && provider ? (
+          {editing && ready && provider ? (
             <Section gap="md">
               <MoneyField label={t('agent.amount')} accessibilityLabel={t('agent.amount')} value={form.amount} onChangeText={(amount) => update({ amount })} error={amountError} required />
               <TextField

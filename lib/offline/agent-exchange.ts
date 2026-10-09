@@ -1,4 +1,4 @@
-import { exchangeLegs, type AgentDirection, type AgentProvider, type Leg } from '../agent-rules.ts';
+import { commissionOf, exchangeLegs, type AgentDirection, type AgentProvider, type Leg } from '../agent-rules.ts';
 import type { QueueItem } from './queue-rules.ts';
 
 /**
@@ -177,8 +177,7 @@ export function queuedLegs(payload: ExchangePayload, providers: readonly AgentPr
   if (config && config.id === payload.configVersionId && config.commissionDestination && config.principalFeeMode) {
     const rate = payload.direction === 'cash_in_credit_out' ? config.rateInBp : config.rateOutBp;
     if (rate !== null) {
-      const commission = Math.round(((payload.amount * rate) / 10_000 + Number.EPSILON) * 100) / 100;
-      return exchangeLegs({ ...payload, commission, commissionDestination: config.commissionDestination, principalFeeMode: config.principalFeeMode });
+      return exchangeLegs({ ...payload, commission: commissionOf(payload.amount, rate), commissionDestination: config.commissionDestination, principalFeeMode: config.principalFeeMode });
     }
   }
   const cashIn = payload.direction === 'cash_in_credit_out';

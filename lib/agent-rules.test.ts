@@ -100,6 +100,11 @@ it('commission: the whole amount at the direction’s own rate, to the cent, nev
   assert.equal(commissionOf(15_000, 150), 225);
   assert.equal(commissionOf(333, 150), 5); // 4.995 → 5.00
   assert.equal(commissionOf(1234.56, 75), 9.26);
+  // A half cent always rounds up, whatever the amount's binary form (the server's own cases, 2026-10-09 review).
+  assert.equal(commissionOf(837, 50), 4.19);
+  assert.equal(commissionOf(879, 50), 4.4);
+  assert.equal(commissionOf(0.5, 100), 0.01);
+  assert.equal(commissionOf(999_999_999_999.99, 9_999), 999_899_999_999.99);
   assert.equal(percentOfBp(200), '2');
   assert.equal(percentOfBp(150), '1.5');
   assert.equal(percentOfBp(5), '0.05');

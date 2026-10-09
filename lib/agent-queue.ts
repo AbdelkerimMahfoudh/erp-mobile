@@ -84,6 +84,9 @@ export async function recordExchange(input: {
   const queue = useQueue.getState();
   const result = queue.enqueue({ kind: AGENT_EXCHANGE_KIND, payload: { ...payload }, summary, clientUuid });
   if (!result.queued || !result.id) return { kind: 'refused', error: new Error(result.reason ?? 'not_queued') };
+  // The same key confirmed again — a draft restored after the exchange was already sent — is the exchange already
+  // recorded: the number just kept has nothing left to wait for.
+  if (useQueue.getState().items.find((i) => i.id === result.id)?.state === 'synced') await forgetNumber(clientUuid);
   void queue.process();
   return { kind: 'queued', itemId: result.id };
 }

@@ -114,9 +114,16 @@ export function rateFor(direction: AgentDirection, config: Pick<ProviderConfig, 
   return direction === 'cash_in_credit_out' ? config.rateInBp : config.rateOutBp;
 }
 
-/** The whole amount at the rate, never brackets (A4), to the cent. */
+/**
+ * The whole amount at the rate, never brackets (A4), to the cent, a half cent up — counted in whole cents and basis
+ * points, exactly, as the server counts it: in floating point the same half cent rounded up or down with the amount's
+ * binary form (837 MRU at 0.50 % is 4.19, as 879 MRU is 4.40).
+ */
 export function commissionOf(amount: number, rateBp: number): number {
-  return round2((amount * rateBp) / 10_000);
+  const scaled = BigInt(Math.round(amount * 100)) * BigInt(rateBp);
+  const whole = scaled / BigInt(10_000);
+  const cents = (scaled % BigInt(10_000)) * BigInt(2) >= BigInt(10_000) ? whole + BigInt(1) : whole;
+  return Number(cents) / 100;
 }
 
 export interface Leg {
