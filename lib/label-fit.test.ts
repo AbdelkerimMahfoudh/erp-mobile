@@ -92,8 +92,11 @@ test('Home’s counter actions stack before a label is cut', () => {
   const home = code(read('../app/(tabs)/index.tsx'));
   assert.match(home, /const actionBasis = sideBySideBasis\(ACTION_BASIS, actionTitles\.map\(\(title\) => actionWidths\[title\] \?\? 0\), buttonChrome\('lg', true\)\);/);
   const row = home.slice(home.indexOf('styles.actionRow'), home.indexOf('<OpenStoreNow'));
-  assert.equal((row.match(/size="lg"/g) ?? []).length, 2, 'both are large buttons, as measured');
-  assert.equal((row.match(/style=\{\[styles\.action, \{ flexBasis: actionBasis \}\]\}/g) ?? []).length, 2);
+  // Receive and Sell are measured side by side; New exchange (D157) is a third large button on a row of its own,
+  // full width, so it never shares — and never crowds — the measured row.
+  assert.equal((row.match(/size="lg"/g) ?? []).length, 3, 'three large buttons');
+  assert.equal((row.match(/style=\{\[styles\.action, \{ flexBasis: actionBasis \}\]\}/g) ?? []).length, 2, 'two of them measured side by side');
+  assert.match(row, /title=\{t\('nav\.agent\.new'\)\}[\s\S]*?fullWidth/, 'New exchange takes the whole row');
   assert.match(row, /<TextMeasure\s+texts=\{actionTitles\}\s+style=\{typeScale\[buttonLabelVariant\('lg'\)\]\}/);
   assert.match(home, /const actionTitles = \[\.\.\.\(canReceive \? \[t\('home\.shortcut\.receive'\)\] : \[\]\), \.\.\.\(canSell \? \[t\('home\.shortcut\.sell'\)\] : \[\]\)\];/);
   assert.match(home, /action: \{ flexGrow: 1 \},/);

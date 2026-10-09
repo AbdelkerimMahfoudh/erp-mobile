@@ -3,7 +3,8 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClie
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { invalidateMoney } from './money-invalidation';
-import { AGENT_EXCHANGE_KIND } from './offline/agent-exchange';
+import { AGENT_EXCHANGE_KIND, pendingExchanges, provisionalNet } from './offline/agent-exchange';
+import { positionRows, type PositionRow } from './agent-positions';
 import { useQueue } from './offline/queue';
 import { qk } from './query-keys';
 import { uuidv4 } from './utils';
@@ -162,6 +163,30 @@ export function useAgentPositions(options: { enabled?: boolean } = {}) {
     queryFn: () => api.get<AgentPositions>('/agent/positions'),
     enabled: (options.enabled ?? true) && Boolean(branchId),
   });
+}
+
+/**
+ * The drawer and the floats as the counter shows them: the server's positions,
+ * plus — said as Provisional — the legs of the exchanges this phone has not
+ * sent yet (docs/73 §5.3). An exchange waiting for a person moves nothing.
+ */
+export function useCounterPositions(options: { enabled?: boolean } = {}): {
+  query: ReturnType<typeof useAgentPositions>;
+  rows: PositionRow[] | null;
+  provisionalCount: number;
+  anchors: Record<string, FloatView['anchor']>;
+} {
+  const branchId = useBranch((s) => s.branchId);
+  const query = useAgentPositions(options);
+  const providers = useAgentProviders(options);
+  const items = useQueue((s) => s.items);
+  const net = provisionalNet(items, branchId, providers.data?.providers ?? []);
+  const provisionalCount = pendingExchanges(items, branchId).filter((i) => i.state !== 'needs_attention').length;
+  const data = query.data;
+  const anchors: Record<string, FloatView['anchor']> = {};
+  for (const f of data?.floats ?? []) anchors[`provider:${f.providerId}`] = f.anchor;
+  for (const f of data?.commissionHeld ?? []) anchors[`commission_held:${f.providerId}`] = f.anchor;
+  return { query, rows: data ? positionRows(data, net) : null, provisionalCount, anchors };
 }
 
 /** Today's count, volume and commission — the reports' day, for whoever reads the reports. */

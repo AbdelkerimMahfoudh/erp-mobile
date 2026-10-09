@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, PixelRatio, View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
-import { ChevronRight, ClipboardCheck, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
+import { ArrowRightLeft, ChevronRight, ClipboardCheck, Handshake, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
 import {
   Button,
   buttonChrome,
@@ -24,6 +24,8 @@ import {
 } from '../../components/ui';
 import { AccessNotice } from '../../components/access';
 import { HomeHeader } from '../../components/home/HomeHeader';
+import { CounterToday } from '../../components/agent/CounterToday';
+import { invalidateAgent } from '../../lib/agent';
 import { OpenStoreNow } from '../../components/day/OpenStoreNow';
 import { dayGate } from '../../lib/day-gate';
 import { SalesBars } from '../../components/home/SalesBars';
@@ -35,7 +37,9 @@ import { useConnectivity } from '../../lib/connectivity';
 import { dateLocaleFor } from '../../lib/date-locale';
 import { activityAllows } from '../../lib/activity';
 import { useBranchActivity, useBusinessAccess } from '../../lib/entitlement';
-import { usePermission, usePermissionStatus } from '../../lib/permissions';
+import { useConnections } from '../../lib/consignment';
+import { incomingNeedingAction } from '../../lib/partners';
+import { useAnyPermission, usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
 import { radius, space, type as typeScale } from '../../lib/design/tokens';
@@ -83,9 +87,26 @@ export default function HomeScreen() {
     What the branch is subscribed to do (D156, D157): an agent-only counter has no Sell, no Receive and no sales
     figures — the store's own cards would only ever read zero there.
   */
-  const sells = activityAllows(useBranchActivity(), 'electronics');
+  const activity = useBranchActivity();
+  const sells = activityAllows(activity, 'electronics');
   const canSell = usePermission('sale.create') && sells;
   const canReceive = usePermission('purchase.manage') && sells;
+  /*
+    The money services counter (D157): its one big action, New exchange, and the day at the counter — the drawer,
+    the floats and, for whoever reads the reports, today's count and commission.
+  */
+  const exchanges = activityAllows(activity, 'money_agent');
+  const canExchange = usePermission('agent.transaction.record') && exchanges;
+  const canSeeCounter = useAnyPermission(['agent.transaction.view', 'agent.report.view']) && exchanges;
+  /*
+    On a combined branch Partners is a row of More, not a tab (D157), so the requests it would have carried as a
+    badge are a line of the work waiting here instead. Only what this user may answer, as the badge counted.
+  */
+  const partnersOffBar = sells && exchanges;
+  const canViewPartners = usePermission('consignment.view');
+  const canManagePartners = usePermission('connection.manage');
+  const connections = useConnections({ enabled: partnersOffBar && canViewPartners && Boolean(branchId) });
+  const partnerRequests = partnersOffBar ? incomingNeedingAction(connections.data?.rows, canManagePartners) : 0;
   const canViewTransfers = usePermission('transfer.view');
   const canViewReturns = usePermission('return.view');
   const canCount = usePermission('closing.count');
@@ -144,9 +165,11 @@ export default function HomeScreen() {
     so refreshing used to ask for transfers and returns a seller may not see — and the
     server answered each with a refusal.
   */
+  const queryClient = useQueryClient();
   const onRefresh = () => {
     if (permissionsReady) void home.refetch();
     readDay();
+    if (canSeeCounter) invalidateAgent(queryClient);
     if (canViewTransfers) void transfers.refetch();
     if (canViewReturns) {
       void refunds.refetch();
@@ -158,7 +181,7 @@ export default function HomeScreen() {
   const awaitingRefundCount = refunds.data?.awaitingConfirmation.count ?? 0;
   const returnRows = pendingReturns.data?.rows.length ?? 0;
   const returnsMore = Boolean(pendingReturns.data?.nextCursor);
-  const hasPendingWork = pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0;
+  const hasPendingWork = pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0 || partnerRequests > 0;
 
   const firstName = user?.name?.trim().split(/\s+/)[0];
   const data = home.data;
@@ -196,39 +219,57 @@ export default function HomeScreen() {
 
       <AccessNotice />
 
-      {/* ── The two counter actions, side by side: Receive on the start side, Sell on the end side ── */}
-      {(canSell || canReceive) && access.canWrite ? (
+      {/*
+        ── The counter actions. Receive and Sell side by side (Receive on the start side), and New exchange on a row
+        of its own — the one big action of an agent counter, beneath the shop's two on a combined branch, so three
+        never crowd one row at 320 points (D157). ──
+      */}
+      {(canSell || canReceive || canExchange) && access.canWrite ? (
         <View style={styles.shortcuts}>
-          <View style={styles.actionRow}>
-            {canReceive ? (
-              <Button
-                title={t('home.shortcut.receive')}
-                icon={PackagePlus}
-                variant="secondary"
-                size="lg"
-                disabled={!shortcutsReady || gate.locked}
-                onPress={() => router.push('/quick-receive' as Href)}
-                accessibilityHint={t('home.shortcut.receive.hint')}
-                style={[styles.action, { flexBasis: actionBasis }]}
+          {canSell || canReceive ? (
+            <View style={styles.actionRow}>
+              {canReceive ? (
+                <Button
+                  title={t('home.shortcut.receive')}
+                  icon={PackagePlus}
+                  variant="secondary"
+                  size="lg"
+                  disabled={!shortcutsReady || gate.locked}
+                  onPress={() => router.push('/quick-receive' as Href)}
+                  accessibilityHint={t('home.shortcut.receive.hint')}
+                  style={[styles.action, { flexBasis: actionBasis }]}
+                />
+              ) : null}
+              {canSell ? (
+                <Button
+                  title={t('home.shortcut.sell')}
+                  icon={ScanLine}
+                  size="lg"
+                  disabled={!shortcutsReady || gate.locked}
+                  onPress={() => router.push('/quick-sell' as Href)}
+                  accessibilityHint={t('home.shortcut.sell.hint')}
+                  style={[styles.action, { flexBasis: actionBasis }]}
+                />
+              ) : null}
+              <TextMeasure
+                texts={actionTitles}
+                style={typeScale[buttonLabelVariant('lg')]}
+                onWidth={(title, w) => setActionWidths((prev) => (prev[title] === w ? prev : { ...prev, [title]: w }))}
               />
-            ) : null}
-            {canSell ? (
-              <Button
-                title={t('home.shortcut.sell')}
-                icon={ScanLine}
-                size="lg"
-                disabled={!shortcutsReady || gate.locked}
-                onPress={() => router.push('/quick-sell' as Href)}
-                accessibilityHint={t('home.shortcut.sell.hint')}
-                style={[styles.action, { flexBasis: actionBasis }]}
-              />
-            ) : null}
-            <TextMeasure
-              texts={actionTitles}
-              style={typeScale[buttonLabelVariant('lg')]}
-              onWidth={(title, w) => setActionWidths((prev) => (prev[title] === w ? prev : { ...prev, [title]: w }))}
+            </View>
+          ) : null}
+          {canExchange ? (
+            <Button
+              title={t('nav.agent.new')}
+              icon={ArrowRightLeft}
+              variant={canSell ? 'secondary' : 'primary'}
+              size="lg"
+              fullWidth
+              disabled={!shortcutsReady || gate.locked}
+              onPress={() => router.push('/agent/new' as Href)}
+              accessibilityHint={t('home.shortcut.exchange.hint')}
             />
-          </View>
+          ) : null}
           {/* Selling several items stays inside Sell; while the day is closed, the store is opened first, here. */}
           {gate.locked ? <OpenStoreNow businessDate={gate.businessDate} reason={gate.reason} mayOpen={gate.mayOpen} /> : null}
         </View>
@@ -247,9 +288,15 @@ export default function HomeScreen() {
             {awaitingRefundCount > 0 ? (
               <PendingRow icon={Wallet} label={t('home.pending.refunds')} count={String(awaitingRefundCount)} onPress={() => router.push('/returns' as Href)} />
             ) : null}
+            {partnerRequests > 0 ? (
+              <PendingRow icon={Handshake} label={t('home.pending.partners')} count={String(partnerRequests)} onPress={() => router.push('/partners' as Href)} />
+            ) : null}
           </RowGroup>
         </Section>
       ) : null}
+
+      {/* ── The day at the counter: today's exchanges, the drawer and the floats (D157) ── */}
+      {canSeeCounter ? <CounterToday /> : null}
 
       {/* ── The period, and the figures the server gives for it ── */}
       {/* A server that answered in an older shape says so: no figure is shown, none as zero (docs/54). */}
