@@ -1,4 +1,5 @@
-import { isWriteOnlyRoute } from './registry.ts';
+import { activityAllows, type Activity } from '../activity.ts';
+import { activityRouteNeed, isWriteOnlyRoute } from './registry.ts';
 
 /**
  * Where the sign-in guard sends the person (`useProtectedRoute` in
@@ -22,6 +23,8 @@ export interface EntryState {
   segment: string | undefined;
   /** The whole path (`/sales/pay/0190-ab`), for the write-only screens a read-only business is not offered. */
   pathname: string | undefined;
+  /** The branch's activity as the server said it; null while it is not known (nothing is redirected on a guess). */
+  activity?: Activity | null;
 }
 
 export const LOGIN = '/(auth)/login';
@@ -51,5 +54,10 @@ export function entryRoute(s: EntryState): string | null {
   // A screen whose only purpose is a business write is not opened for a read-only
   // business: the access screen explains, instead of a form that fails at the end.
   if (s.signedIn && s.branchChosen && s.readOnly && s.pathname !== undefined && isWriteOnlyRoute(s.pathname)) return ACCESS_STATUS;
+  // A write the branch's activity does not allow (D156), opened by a deep link: Home, where the branch's own work is.
+  if (s.signedIn && s.branchChosen && s.activity && s.pathname !== undefined) {
+    const need = activityRouteNeed(s.pathname);
+    if (need && !activityAllows(s.activity, need)) return APP_HOME;
+  }
   return null;
 }

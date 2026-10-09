@@ -461,11 +461,37 @@ export const WRITE_ONLY_ROUTES: Readonly<Record<string, string>> = {
 
 /** Whether a path the router reports (`/sales/pay/0190-ab`) is one of the write-only screens: segment by segment, a `[param]` matching any one segment. */
 export function isWriteOnlyRoute(pathname: string): boolean {
+  return Object.keys(WRITE_ONLY_ROUTES).some((pattern) => routeMatches(pattern, pathname));
+}
+
+function routeMatches(pattern: string, pathname: string): boolean {
   const path = (pathname.replace(/\/+$/, '') || '/').split('/');
-  return Object.keys(WRITE_ONLY_ROUTES).some((pattern) => {
-    const parts = pattern.split('/');
-    return parts.length === path.length && parts.every((part, i) => (part.startsWith('[') && part.endsWith(']') ? path[i].length > 0 : part === path[i]));
-  });
+  const parts = pattern.split('/');
+  return parts.length === path.length && parts.every((part, i) => (part.startsWith('[') && part.endsWith(']') ? path[i].length > 0 : part === path[i]));
+}
+
+/**
+ * The screens whose only purpose is a write the server refuses at a branch of the other activity (D156): a new sale,
+ * receiving stock, a new consignment placement need a shop; an exchange and a rebalancing need the money services
+ * counter. Opened by a deep link at a branch of the other activity, they are not shown — Home is. Everything else stays
+ * reachable whatever the activity, as on the server: reads, returns and refunds, money owed on existing records.
+ */
+export const ACTIVITY_ROUTES: Readonly<Record<string, ActivityNeed>> = {
+  '/quick-sell': 'electronics',
+  '/sell': 'electronics',
+  '/quick-receive': 'electronics',
+  '/receive': 'electronics',
+  '/receive/pick': 'electronics',
+  '/receive/file': 'electronics',
+  '/consignments/new': 'electronics',
+  '/agent/new': 'money_agent',
+  '/agent/rebalance': 'money_agent',
+};
+
+/** The activity a path needs, or null when every branch may open it. */
+export function activityRouteNeed(pathname: string): ActivityNeed | null {
+  const hit = Object.keys(ACTIVITY_ROUTES).find((pattern) => routeMatches(pattern, pathname));
+  return hit ? ACTIVITY_ROUTES[hit] : null;
 }
 
 /**

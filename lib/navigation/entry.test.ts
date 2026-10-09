@@ -109,8 +109,29 @@ it('every combination settles within two steps, never back where it started, nev
   assert.ok(checked >= 30, `checked ${checked}`);
 });
 
+it('a deep link to a write the branch’s activity does not allow lands on Home; reads, returns and unknown activities stay (D156, review)', () => {
+  const at = (pathname: string, activity: 'electronics' | 'money_agent' | 'both' | null) =>
+    entryRoute({ bootstrapping: false, signedIn: true, branchChosen: true, closed: false, readOnly: false, segment: pathname.split('/')[1], pathname, activity });
+  for (const path of ['/sell', '/quick-sell', '/receive', '/quick-receive', '/receive/file', '/consignments/new']) {
+    assert.equal(at(path, 'money_agent'), APP_HOME, path);
+    assert.equal(at(path, 'both'), null, path);
+    assert.equal(at(path, 'electronics'), null, path);
+    // Not known yet: nobody is redirected on a guess.
+    assert.equal(at(path, null), null, path);
+  }
+  for (const path of ['/agent/new', '/agent/rebalance']) {
+    assert.equal(at(path, 'electronics'), APP_HOME, path);
+    assert.equal(at(path, 'money_agent'), null, path);
+  }
+  // Reads and the return workflow stay open at any branch, as on the server.
+  for (const path of ['/inventory', '/catalog', '/returns/new', '/unit/356938035643809', '/agent/0192-ab', '/agent-transactions']) {
+    assert.equal(at(path, 'money_agent'), null, path);
+  }
+});
+
 it('the guard uses exactly this decision', () => {
   const src = readFileSync(new URL('../../hooks/useAuth.tsx', import.meta.url), 'utf8');
-  assert.match(src, /const target = entryRoute\(\{ bootstrapping, signedIn: Boolean\(user\), branchChosen: Boolean\(branchId\), closed, readOnly, segment: segments\[0\], pathname \}\);\s*if \(target\) router\.replace\(target as never\);/);
+  assert.match(src, /const target = entryRoute\(\{ bootstrapping, signedIn: Boolean\(user\), branchChosen: Boolean\(branchId\), closed, readOnly, segment: segments\[0\], pathname, activity \}\);\s*if \(target\) router\.replace\(target as never\);/);
+  assert.match(src, /const activity = entitlement\.data !== undefined && branchId \? branchActivity\(entitlement\.data, branchId\) : null;/);
   assert.match(src, /const readOnly = Boolean\(user\) && entitlement\.data !== undefined && entitlement\.data\.canRead && !entitlement\.data\.canWrite;/);
 });

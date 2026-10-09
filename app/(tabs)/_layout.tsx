@@ -124,6 +124,15 @@ export default function TabsLayout() {
     );
   }
 
+  // Not read at all is not "a shop": an agent counter would be shown the shop's bar and refused its own work (review).
+  if (entitlement.isError && entitlement.data === undefined) {
+    return (
+      <View style={styles.centered}>
+        <ErrorState error={entitlement.error} onRetry={() => void entitlement.refetch()} />
+      </View>
+    );
+  }
+
   if (status !== 'ready' || entitlement.isPending) {
     return (
       <View style={styles.centered}>

@@ -7,6 +7,7 @@ import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { useEntitlement } from '../lib/entitlement';
+import { branchActivity } from '../lib/activity';
 import { usePermissionStore } from '../lib/permissions';
 import { qk } from '../lib/query-keys';
 import { clearExports } from '../lib/report-export';
@@ -348,10 +349,12 @@ function useProtectedRoute(user: AuthUser | null, bootstrapping: boolean, branch
   const closed = Boolean(user) && entitlement.data !== undefined && !entitlement.data.canRead;
   // Readable but closed to business writes (the period and its grace are over): a screen that only writes is not offered.
   const readOnly = Boolean(user) && entitlement.data !== undefined && entitlement.data.canRead && !entitlement.data.canWrite;
+  // Known only once the server answered: a guess never redirects anybody.
+  const activity = entitlement.data !== undefined && branchId ? branchActivity(entitlement.data, branchId) : null;
 
   useEffect(() => {
     // The decision is pure and tested (`lib/navigation/entry.ts`): nobody is left on the splash or a redirect.
-    const target = entryRoute({ bootstrapping, signedIn: Boolean(user), branchChosen: Boolean(branchId), closed, readOnly, segment: segments[0], pathname });
+    const target = entryRoute({ bootstrapping, signedIn: Boolean(user), branchChosen: Boolean(branchId), closed, readOnly, segment: segments[0], pathname, activity });
     if (target) router.replace(target as never);
-  }, [user, bootstrapping, branchId, segments, pathname, router, closed, readOnly]);
+  }, [user, bootstrapping, branchId, segments, pathname, router, closed, readOnly, activity]);
 }
