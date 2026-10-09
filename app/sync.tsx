@@ -18,6 +18,8 @@ import { useTranslation } from '../lib/i18n';
 import { useConnectivity } from '../lib/connectivity';
 import { useQueue } from '../lib/offline/queue';
 import { mayCancel, toneFor, type QueueItem } from '../lib/offline/queue-rules';
+import { agentRefusal } from '../lib/agent-rules';
+import type { TranslationKey } from '../lib/i18n';
 
 /**
  * Everything this device is holding (Milestone J).
@@ -150,6 +152,8 @@ function QueueRow({ item }: { item: QueueItem }) {
   const online = useConnectivity((s) => s.online);
   const cancel = useQueue((s) => s.cancel);
   const retry = useQueue((s) => s.retry);
+  // A refusal the counter names in its own words (D155) is said that way here too, rather than in the server's English.
+  const refusal = agentRefusal(item.lastError?.code);
 
   return (
     <Card style={styles.card}>
@@ -159,7 +163,11 @@ function QueueRow({ item }: { item: QueueItem }) {
         <Chip tone={toneFor(item.state)} label={t(`sync.state.${item.state}`)} size="sm" dot />
       </View>
 
-      {item.lastError ? (
+      {item.lastError && refusal ? (
+        <Text variant="caption" tone="secondary">
+          {t(refusal.key as TranslationKey)}
+        </Text>
+      ) : item.lastError ? (
         <>
           {/* What the server actually said, kept verbatim — it was written for
               a person, and a generic message would send somebody guessing. */}

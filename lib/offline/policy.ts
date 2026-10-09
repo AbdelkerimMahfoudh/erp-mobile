@@ -136,7 +136,22 @@ export const OPERATIONS: readonly OperationSpec[] = [
   spec('device.adopt', 'online_only', 'Granting a device trust is the one thing that must never happen from an untrusted queue'),
   spec('device.revoke', 'online_only', 'Revoking a lost phone must reach the server to mean anything at all'),
 
-  // ── The four that may wait ────────────────────────────────────────────────
+  // ── The money services counter: one record may wait, nothing else (D155) ──
+  spec('agent.exchange.reverse', 'online_only',
+    'A reversal counters every leg of an exchange exactly once; only the server knows whether it already happened, and an Owner or Manager decides it while looking at the record'),
+  spec('agent.mistake.report', 'online_only',
+    'A report names an exchange as the server holds it, and is made while reading that record; nobody acts on a report the server has not received'),
+  spec('agent.mistake.dismiss', 'online_only', 'Dismissing a report is a decision somebody is waiting on, made against the record as it stands now'),
+  spec('agent.rebalance', 'online_only', 'Moving money between the drawer and the floats is decided against positions only the server knows'),
+  spec('agent.position.set', 'online_only', 'Setting what a float holds anchors every later figure; it must be the server’s instant, never a late replay'),
+  spec('agent.provider.manage', 'online_only', 'A provider’s rate and settlement decide every later commission; a configuration is company-wide policy'),
+  spec('closing.floatCount', 'online_only',
+    'A counted float is compared against the server’s expected position at the count, like the drawer'),
+
+  // ── The five that may wait ────────────────────────────────────────────────
+  spec('agent.exchange.record', 'queueable',
+    'The counter’s report of an exchange that already happened physically — the cash changed hands (D155). The server still decides the commission, the legs, the business day and who recorded it; a replay under the same key returns the same record, a changed payload or a newer rate is refused by name and waits for a person, and the customer’s number stays out of the queue file',
+    'client_uuid_with_fingerprint'),
   spec('expense.submit', 'queueable',
     'A report of money already spent. It grants nothing — somebody still has to confirm it — and the server refuses a replay whose payload changed',
     'client_uuid_with_fingerprint'),
@@ -192,6 +207,7 @@ export const DRAFTABLE_FORMS: readonly { form: string; becomes: string; note: st
   { form: 'loan.proposal', becomes: 'loan.create', note: 'Same — nobody has been notified' },
   { form: 'closing.counts', becomes: 'closing.count', note: 'Counted values survive; the day cannot be closed' },
   { form: 'goal.form', becomes: 'goal.create', note: 'A target nobody has been set yet' },
+  { form: 'agent.exchange', becomes: 'agent.exchange.record', note: 'The unsent exchange survives a restart; the customer’s number stays in SecureStore, never in the draft' },
 ] as const;
 
 /**

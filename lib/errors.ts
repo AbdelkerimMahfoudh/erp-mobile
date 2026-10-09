@@ -1,4 +1,5 @@
 import { ApiError } from './api-client';
+import { agentRefusal } from './agent-rules';
 import { IncompatibleResponse } from './contract';
 import { t, type TranslationKey } from './i18n';
 
@@ -102,6 +103,26 @@ export function toFriendlyError(error: unknown): FriendlyError {
   }
 
   return generic('state.error.title', 'state.error.body', true);
+}
+
+/**
+ * A refusal of the money services counter, in the counter's own words (D155):
+ * a newer rate, a closed store, a branch not set up for the activity, a number
+ * or a reference the server would not take — each named by its code, never by
+ * the server's English, and each saying whether trying again can help. Anything
+ * else is the ordinary friendly error.
+ */
+export function toAgentError(error: unknown): FriendlyError {
+  const refusal = error instanceof ApiError && error.code !== 'ENTITLEMENT_WRITE_BLOCKED' ? agentRefusal(error.code) : null;
+  if (!refusal || !(error instanceof ApiError)) return toFriendlyError(error);
+  return {
+    titleKey: 'agent.refusal.title',
+    title: t('agent.refusal.title'),
+    body: t(refusal.key as TranslationKey),
+    retryable: refusal.action === 'retry',
+    permissionDenied: false,
+    status: error.status,
+  };
 }
 
 /** One-line form, for toasts where a title and body would be too much. */

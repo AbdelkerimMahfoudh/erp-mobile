@@ -34,6 +34,8 @@ interface StatusCarrier {
 export function classifyError(error: unknown, online = true): ClassifiedError {
   const e = (error ?? {}) as StatusCarrier;
   const message = typeof e.message === 'string' && e.message ? e.message : 'Something went wrong';
+  // The server's machine code travels with the classification, so a screen can say the refusal in its own words.
+  const withCode = (c: ClassifiedError): ClassifiedError => (typeof e.code === 'string' && e.code ? { ...c, code: e.code } : c);
 
   // A timeout first: it is the only case where the outcome is genuinely unknown,
   // and mistaking it for a failure is how a shop is told to create a second
@@ -44,25 +46,27 @@ export function classifyError(error: unknown, online = true): ClassifiedError {
 
   if (typeof e.status === 'number') {
     const status = e.status;
-    if (status === 401) return { kind: 'session_expired', message, status };
+    if (status === 401) return withCode({ kind: 'session_expired', message, status });
     if (status === 403) {
       /*
         A lapsed subscription is its own thing, not a role problem (Milestone K).
         Both stop, so neither can loop — but telling somebody they lack
         permission when the shop simply has not renewed sends them to the wrong
-        person. The code is matched, never the English.
+        person. The code is matched, never the English. A branch that is not
+        subscribed to the activity (D156) is the same kind of thing: what the
+        business has, not what the person may do.
       */
-      if (e.code === 'ENTITLEMENT_WRITE_BLOCKED') {
-        return { kind: 'entitlement_blocked', message, status };
+      if (e.code === 'ENTITLEMENT_WRITE_BLOCKED' || e.code === 'activity_not_subscribed') {
+        return withCode({ kind: 'entitlement_blocked', message, status });
       }
-      return { kind: 'permission_denied', message, status };
+      return withCode({ kind: 'permission_denied', message, status });
     }
-    if (status === 409) return { kind: 'conflict', message, status };
+    if (status === 409) return withCode({ kind: 'conflict', message, status });
     // 404 and 410 mean the thing this refers to is gone. Retrying cannot bring
     // it back, and the shop needs to know which record vanished.
-    if (status === 404 || status === 410) return { kind: 'conflict', message, status };
+    if (status === 404 || status === 410) return withCode({ kind: 'conflict', message, status });
     if (status >= 500) return { kind: 'server_error', message, status };
-    if (status >= 400) return { kind: 'validation', message, status };
+    if (status >= 400) return withCode({ kind: 'validation', message, status });
   }
 
   /*

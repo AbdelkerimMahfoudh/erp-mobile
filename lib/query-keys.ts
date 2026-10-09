@@ -194,4 +194,14 @@ export const qk = {
    */
   anomalies: (branchId: string | null, page?: { limit: number; page: number | 'all' }) =>
     page ? (['anomalies', branchId, page.limit, page.page] as const) : (['anomalies', branchId] as const),
+
+  /**
+   * The money services counter (docs/73). The providers are the company's; every
+   * position, exchange and report is one branch's, so the branch is in the key.
+   */
+  agentProviders: () => ['agent-providers'] as const,
+  agentPositions: (branchId: string | null) => ['agent-positions', branchId] as const,
+  agentTransactions: (branchId: string | null, filters: string) => ['agent-transactions', branchId, filters] as const,
+  agentTransaction: (id: string) => ['agent-transaction', id] as const,
+  agentReport: (branchId: string | null, period: string, date: string) => ['agent-report', branchId, period, date] as const,
 };

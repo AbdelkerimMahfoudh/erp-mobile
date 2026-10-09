@@ -87,15 +87,22 @@ it('nor anything that grants authority', () => {
   }
 });
 
-// ── The four that may wait ──────────────────────────────────────────────────
+// ── The five that may wait ──────────────────────────────────────────────────
 
-it('exactly four operations may be queued, and they are the audited ones', () => {
+it('exactly five operations may be queued, and they are the audited ones', () => {
+  // The agent exchange joined the four on the owner's brief (D155): the counter's report of an exchange that already
+  // happened, the one money record that may wait. Its reversal, rebalancing and position settings stay online-only.
   assert.deepEqual([...QUEUEABLE_KINDS].sort(), [
+    'agent.exchange.record',
     'consignment.payment.report',
     'expense.submit',
     'loan.payment.report',
     'notification.read',
   ]);
+  for (const kind of ['agent.exchange.reverse', 'agent.rebalance', 'agent.position.set', 'agent.provider.manage', 'agent.mistake.report', 'closing.floatCount']) {
+    assert.equal(classify(kind), 'online_only', `${kind} must be online-only`);
+  }
+  assert.equal(specFor('agent.exchange.record')!.idempotency, 'client_uuid_with_fingerprint');
 });
 
 it('every queueable operation states how the server survives a replay', () => {

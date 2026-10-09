@@ -50,6 +50,13 @@ export interface QueueItem {
   /** Plain words, safe to show on a list. Never the raw payload. */
   summary: string;
   lastError: ClassifiedError | null;
+  /**
+   * What the server answered when it accepted the item, reduced to what a
+   * screen shows — for an agent exchange, the record's id, the server's instant
+   * and business day (D155): a queued exchange is never shown with a time the
+   * server did not give it.
+   */
+  result?: Record<string, string | number> | null;
 }
 
 export type ErrorKind =
@@ -67,6 +74,8 @@ export interface ClassifiedError {
   kind: ErrorKind;
   message: string;
   status?: number;
+  /** The server's machine code (`stale_configuration`, `store_closed` …), so a screen can say it in its own words. */
+  code?: string;
 }
 
 /**
@@ -167,6 +176,9 @@ export function decideReplay(
  * where one bad expense freezes every notification is a queue people turn off.
  */
 export function dependencyGroup(item: QueueItem): string {
+  // Each exchange at the agent counter is its own subject (D155): one that needs a person must never hold back the
+  // next customer's, and no exchange depends on another's outcome.
+  if (item.kind === 'agent.exchange.record') return `${item.kind}:${item.clientUuid}`;
   return `${item.kind}:${groupSubject(item)}`;
 }
 

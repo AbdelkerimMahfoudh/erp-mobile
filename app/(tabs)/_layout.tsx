@@ -8,6 +8,7 @@ import { incomingNeedingAction } from '../../lib/partners';
 import { ErrorState, TextMeasure } from '../../components/ui';
 import { activityAllows } from '../../lib/activity';
 import { useBranch } from '../../lib/branch';
+import { useExchangeSyncRefresh } from '../../lib/agent';
 import { useBranchActivity, useEntitlement } from '../../lib/entitlement';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
@@ -59,6 +60,8 @@ export default function TabsLayout() {
   const activity = useBranchActivity();
   const bar = tabBarFor(activity, granted);
   const shows = (tab: TabId) => bar.includes(tab);
+  // An exchange this phone held reaching the server moves every figure of the counter: read again, wherever shown.
+  useExchangeSyncRefresh();
   /*
     Partners is shown to anybody who can see the stores this shop deals with
     or manage who it deals with. The list itself is `consignment.view`; the

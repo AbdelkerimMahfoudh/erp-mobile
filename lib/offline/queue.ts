@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { api } from '../api-client';
 import { useConnectivity } from '../connectivity';
 import { usePermissionStore } from '../permissions';
+import { deleteItem, getItem } from '../storage';
 import { uuidv4 } from '../utils';
+import { AGENT_EXCHANGE_KIND, confirmationOf, containsPersonalNumber, exchangeBody, isExchangePayload, numberKey, openNumber } from './agent-exchange.ts';
 import { classifyError } from './classify.ts';
 import { mayQueue } from './policy.ts';
 import { isDurable } from './durable-storage.ts';
@@ -41,7 +43,33 @@ const ENDPOINT: Record<string, (payload: Record<string, unknown>) => { path: str
     body: { ...p, consignmentId: undefined, action: 'report' },
   }),
   'notification.read': (p) => ({ path: `/notifications/${p.id}/read`, body: undefined }),
+  [AGENT_EXCHANGE_KIND]: (p) => ({ path: '/agent/transactions', body: p }),
 };
+
+/**
+ * What must be joined to a payload at the moment of sending, and from where.
+ *
+ * Only the agent exchange has anything (D155): the customer's number, kept in
+ * SecureStore under the exchange's own key and sealed with the company, branch
+ * and person it was typed by. When it is gone or belongs to somebody else the
+ * exchange is not sent — it waits for a person, with the reason named.
+ */
+type Prepared = { payload: Record<string, unknown> } | { refusal: ClassifiedError };
+
+const PREPARE: Record<string, (item: QueueItem, scope: Scope) => Promise<Prepared>> = {
+  [AGENT_EXCHANGE_KIND]: async (item, scope): Promise<Prepared> => {
+    const number = openNumber(await getItem(numberKey(item.clientUuid)), scope);
+    if (!isExchangePayload(item.payload) || number === null) {
+      return { refusal: { kind: 'validation', code: 'customer_number_missing', message: 'The customer’s number is no longer on this phone.' } };
+    }
+    return { payload: { ...exchangeBody(item.payload, number) } };
+  },
+};
+
+/** Forget what was kept outside the queue file for an item that will never be sent again. */
+async function forgetOutside(item: QueueItem): Promise<void> {
+  if (item.kind === AGENT_EXCHANGE_KIND) await deleteItem(numberKey(item.clientUuid));
+}
 
 interface QueueStoreState {
   scope: Scope | null;
@@ -59,7 +87,9 @@ interface QueueStoreState {
     kind: string;
     payload: Record<string, unknown>;
     summary: string;
-  }) => { queued: boolean; reason?: string };
+    /** The key the record was prepared under (an agent exchange's draft UUID); a fresh one otherwise. */
+    clientUuid?: string;
+  }) => { queued: boolean; reason?: string; id?: string };
   process: () => Promise<void>;
   cancel: (id: string) => void;
   retry: (id: string) => void;
@@ -86,9 +116,17 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     set({ scope, items, corruptionDetected: quarantined });
   },
 
-  enqueue: ({ kind, payload, summary }) => {
+  enqueue: ({ kind, payload, summary, clientUuid }) => {
     const { scope, items } = get();
     if (!scope) return { queued: false, reason: 'no_session' };
+
+    /*
+      The same key twice — a second tap on Confirm, a screen confirmed again
+      after a restart — is the same record, not a second one: the item already
+      waiting is the answer.
+    */
+    const existing = clientUuid ? items.find((i) => i.clientUuid === clientUuid && i.state !== 'cancelled') : undefined;
+    if (existing) return { queued: true, id: existing.id };
 
     /*
       The gate. An operation that is not on the queueable list is refused here
@@ -104,12 +142,14 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     if (!isDurable()) return { queued: false, reason: 'not_durable' };
     if (!mayQueue(kind)) return { queued: false, reason: 'not_queueable' };
     if (!ENDPOINT[kind]) return { queued: false, reason: 'no_endpoint' };
+    // Personal data never reaches the file (D155), whatever a caller passes.
+    if (containsPersonalNumber(payload)) return { queued: false, reason: 'personal_data' };
 
     const item: QueueItem = {
       id: uuidv4(),
       kind,
-      // Created once, here. Every later attempt reuses it.
-      clientUuid: uuidv4(),
+      // Created once — here, or with the draft it was prepared in. Every later attempt reuses it.
+      clientUuid: clientUuid ?? uuidv4(),
       companyId: scope.companyId,
       branchId: scope.branchId,
       userId: scope.userId,
@@ -126,7 +166,7 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     const next = [...items, item];
     set({ items: next });
     writeQueue(scope, next);
-    return { queued: true };
+    return { queued: true, id: item.id };
   },
 
   /**
@@ -155,6 +195,14 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     } finally {
       set({ running: false });
     }
+    /*
+      Something queued while this pass was running — an exchange confirmed at
+      the counter a moment ago — goes now rather than waiting for the next
+      reconnect. Items just attempted are backing off and not sendable, so this
+      ends.
+    */
+    const after = get();
+    if (after.scope && nextSendable(after.items, after.scope, Date.now()).length > 0) void after.process();
   },
 
   cancel: (id) => {
@@ -162,9 +210,12 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     if (!scope) return;
     // Only ever a state change: the row stays, so "I cancelled it" is visible
     // rather than the item simply vanishing from a list somebody was watching.
+    const target = items.find((i) => i.id === id);
     const next = items.map((i) => (i.id === id ? { ...i, state: 'cancelled' as QueueState } : i));
     set({ items: next });
     writeQueue(scope, next);
+    // A cancelled exchange will never be sent: its number has no reason to stay on the phone.
+    if (target) void forgetOutside(target);
   },
 
   /** A person deciding to try again clears the backoff, not the history. */
@@ -212,17 +263,33 @@ async function send(
 
   patch({ state: 'sending', lastAttemptAt: Date.now(), attempts: item.attempts + 1 });
 
+  // What lives outside the file is joined now, or the item waits for a person with the reason named.
+  let payload = item.payload as Record<string, unknown>;
+  const prepare = PREPARE[item.kind];
+  if (prepare) {
+    const prepared = await prepare(item, scope);
+    if ('refusal' in prepared) {
+      patch({ state: 'needs_attention', lastError: prepared.refusal });
+      return;
+    }
+    payload = prepared.payload;
+  }
+
   // The payload shape was validated on the way in; this only narrows it back.
-  const { path, body } = ENDPOINT[item.kind](item.payload as Record<string, unknown>);
+  const { path, body } = ENDPOINT[item.kind](payload);
   try {
     // The original key, always. This is what makes a replay a replay.
-    await api.post(path, body === undefined ? undefined : { ...(body as object), clientUuid: item.clientUuid });
+    const answer = await api.post(path, body === undefined ? undefined : { ...(body as object), clientUuid: item.clientUuid });
     /*
       A server that recognises the key and returns the original record is a
       SUCCESS, not a duplicate — that is the whole point of idempotency, and
-      treating it as a failure would leave a synced item waiting forever.
+      treating it as a failure would leave a synced item waiting forever. An
+      exchange keeps the server's record of it — the instant and the business
+      day are the server's — and its number leaves the phone.
     */
-    patch({ state: 'synced', lastError: null });
+    const result = item.kind === AGENT_EXCHANGE_KIND ? confirmationOf(answer) : null;
+    patch({ state: 'synced', lastError: null, ...(result ? { result: { ...result } } : {}) });
+    await forgetOutside(item);
   } catch (error) {
     const classified: ClassifiedError = classifyError(error, useConnectivity.getState().online);
     const nextState = nextStateAfterError(classified);

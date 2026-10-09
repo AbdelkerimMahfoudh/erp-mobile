@@ -108,6 +108,9 @@ const FORBIDDEN_KEYS = [
   'blob',
   'filecontent',
   'buffer',
+  // Personal data (D155): the customer's number of an agent exchange lives in SecureStore under the draft's key,
+  // never in a draft file.
+  'customernumber',
 ];
 
 /** Recursive: something nested three objects deep is still the thing. */

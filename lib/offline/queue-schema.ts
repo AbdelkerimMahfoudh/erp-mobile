@@ -1,4 +1,5 @@
 import type { QueueItem } from './queue-rules.ts';
+import { containsPersonalNumber } from './agent-exchange.ts';
 
 /**
  * What is allowed to reach the disk (Milestone J).
@@ -42,6 +43,8 @@ export function isQueueItem(v: unknown): v is QueueItem {
   if (typeof i.payloadVersion !== 'number') return false;
   if (i.branchId !== null && typeof i.branchId !== 'string') return false;
   if (containsCredential(i.payload)) return false;
+  // Nor a customer's number (D155): an exchange's number is joined from SecureStore at the moment of sending.
+  if (containsPersonalNumber(i.payload)) return false;
   return true;
 }
 
