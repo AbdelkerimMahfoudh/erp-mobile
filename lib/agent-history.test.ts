@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { addDays, directionRowKey, legKindKey, legWordsKey, periodRange, queuedFirst, searchFilter, splitLegs } from './agent-history.ts';
-import { positionRows, type PositionsLike } from './agent-positions.ts';
+import { positionRows, provisionalFigure, type PositionsLike } from './agent-positions.ts';
 import type { QueueItem } from './offline/queue-rules.ts';
 
 let passed = 0;
@@ -124,6 +124,14 @@ it('with exchanges on the phone, known figures move by their legs and say Provis
     ['provider:masrvi', null, false],
     ['commission_held:moov', null, false],
   ]);
+});
+
+it('Money’s drawer line with this phone’s exchanges: the server’s figure plus the queued net — never for an unknown drawer', () => {
+  assert.equal(provisionalFigure(99400, 5000.5), 104400.5);
+  assert.equal(provisionalFigure(99400, -10000), 89400);
+  assert.equal(provisionalFigure(null, 5000), null, 'unknown stays unknown, however much is queued');
+  assert.equal(provisionalFigure(99400, 0), null, 'nothing queued: nothing provisional to say');
+  assert.equal(provisionalFigure(0.1, 0.2), 0.3, 'to the cent');
 });
 
 console.log(`agent history and positions: ${passed} passed`);

@@ -121,6 +121,7 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/agent/reports': TABS.money,
   '/agent/rebalance': TABS.money,
   '/agent/providers': TABS.money,
+  '/agent/providers/[id]': '/agent/providers',
 };
 
 /** The parent tabs, each with its reason. */

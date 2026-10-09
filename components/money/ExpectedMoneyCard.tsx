@@ -49,9 +49,15 @@ export interface ExpectedMoneyCardProps {
   onReview: () => void;
   /** The Owner's company-account sheet, offered while an account is unknown. */
   onSetAccounts?: () => void;
+  /**
+   * On a branch with the money services counter, while this phone holds exchanges the server has not recorded: the
+   * drawer's figure with them, and how many (docs/73 §5.3). Said beside the server's figure as Provisional — never in
+   * its place, never in the total. Absent or null: nothing is said.
+   */
+  provisionalCash?: { count: number; position: number } | null;
 }
 
-export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview, onSetAccounts }: ExpectedMoneyCardProps) {
+export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview, onSetAccounts, provisionalCash }: ExpectedMoneyCardProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -121,6 +127,14 @@ export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview, onSetAcc
             {movedToday(m) ? (
               <Text variant="caption" tone="tertiary" testID={`moved-${m.key}`}>
                 {movedToday(m)}
+              </Text>
+            ) : null}
+            {m.channel === 'cash' && m.known && provisionalCash && provisionalCash.count > 0 ? (
+              <Text variant="caption" tone="secondary" testID="expected-cash-provisional">
+                {t('agent.money.cashProvisional', {
+                  amount: isolateLtr(formatMoney(provisionalCash.position, { decimals: Math.round(provisionalCash.position * 100) % 100 !== 0 ? 2 : decimals })),
+                  count: provisionalCash.count,
+                })}
               </Text>
             ) : null}
           </View>

@@ -63,3 +63,13 @@ export function positionRows(positions: PositionsLike, queuedNet: Readonly<Recor
     ...positions.commissionHeld.map((f) => row(`commission_held:${f.providerId}`, 'commission_held', f.providerLabel, f.known, f.position, f.movement)),
   ];
 }
+
+/**
+ * A known figure with the legs this phone still holds added — the Provisional
+ * figure (docs/73 §5.3) — or null: an unknown position stays unknown whatever
+ * is queued, and nothing queued means there is nothing provisional to say.
+ */
+export function provisionalFigure(position: number | null, queued: number): number | null {
+  if (position === null || queued === 0) return null;
+  return round2(position + queued);
+}

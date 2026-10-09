@@ -204,4 +204,6 @@ export const qk = {
   agentTransactions: (branchId: string | null, filters: string) => ['agent-transactions', branchId, filters] as const,
   agentTransaction: (id: string) => ['agent-transaction', id] as const,
   agentReport: (branchId: string | null, period: string, date: string) => ['agent-report', branchId, period, date] as const,
+  agentRebalancings: (branchId: string | null, from: string, to: string) => ['agent-rebalancings', branchId, from, to] as const,
+  agentProviderConfigs: (providerId: string) => ['agent-provider-configs', providerId] as const,
 };

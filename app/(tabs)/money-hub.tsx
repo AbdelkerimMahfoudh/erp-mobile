@@ -17,6 +17,7 @@ import {
   Thumbnail,
 } from '../../components/ui';
 import { AccessNotice } from '../../components/access';
+import { MoneyFloats } from '../../components/agent/MoneyFloats';
 import { OpeningMoneySheet } from '../../components/day/OpeningMoneySheet';
 import { CompanyAccountsSheet } from '../../components/money/CompanyAccountsSheet';
 import { ExpectedMoneyCard } from '../../components/money/ExpectedMoneyCard';
@@ -26,6 +27,9 @@ import { LinkRow } from '../../components/money/LinkRow';
 import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
+import { activityAllows } from '../../lib/activity';
+import { useAgentPositions, useAgentProviders, useQueuedCash } from '../../lib/agent';
+import { provisionalFigure } from '../../lib/agent-positions';
 import { useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
@@ -74,6 +78,11 @@ const DAYS_PREVIEW = 3;
  * 3. **Short previews** — today's sales, or a week or month a day at a time,
  *    and today's expenses, each with a way to see everything. A month of sales
  *    is never mounted here, and the phone never adds days up itself.
+ *    On a branch with the money services counter (D157), the branch's floats
+ *    follow on their own card — each provider's float, the commission a
+ *    provider holds, Unknown kept Unknown — never among the company's accounts;
+ *    the drawer stays the top card's one line, with what it comes to once this
+ *    phone's unsent exchanges are recorded beside it, said as Provisional.
  * 4. **Where to go** — Results, Expenses, Loans and Outstanding payments, from
  *    the navigation registry so the tab cannot drift from it (the Daily closing
  *    is reached from Home, docs/63), and, for the Owner, the company accounts.
@@ -145,6 +154,19 @@ export default function MoneyTabScreen() {
   // The rows come from the registry, by role and by what the branch is subscribed to (D157).
   const activity = useBranchActivity();
   const actions = moneyRows(granted, activity);
+  /*
+    The money services counter's floats (D157): the branch's own, on their own card, never among the company's
+    accounts. The drawer is one — the top card's — so while this phone holds exchanges for the branch the top card
+    says what the drawer comes to with them, as Provisional, beside the server's figure (docs/73 §5.3).
+  */
+  const canSeeFloats = usePermission('agent.transaction.view') && activityAllows(activity, 'money_agent');
+  const agentProviders = useAgentProviders({ enabled: canSeeFloats });
+  const agentPositions = useAgentPositions({ enabled: canSeeFloats });
+  const queued = useQueuedCash(agentProviders.data?.providers ?? []);
+  const drawer = held?.methods.find((m) => m.channel === 'cash');
+  const withQueued = activityAllows(activity, 'money_agent') && queued.count > 0 && drawer?.known ? provisionalFigure(drawer.position, queued.cashNet) : null;
+  const provisionalCash = withQueued !== null ? { count: queued.count, position: withQueued } : null;
+  const floats = canSeeFloats ? <MoneyFloats withCash={!canViewFigures} /> : null;
   const expenses = actions.find((c) => c.id === 'expenses');
   const data = overview.data;
   const preview = (sales.data?.pages[0]?.rows ?? []).slice(0, SALES_PREVIEW);
@@ -161,13 +183,18 @@ export default function MoneyTabScreen() {
               void overview.refetch();
               void card.refetch();
               void (key === 'today' ? sales.refetch() : days.refetch());
+              if (canSeeFloats) void agentPositions.refetch();
             }
-          : undefined
+          : canSeeFloats
+            ? () => void agentPositions.refetch()
+            : undefined
       }
       refreshing={overview.isRefetching}
     >
       <TabHeader context={branchName} title={t('tab.money')} />
       <AccessNotice />
+      {/* Without the figures there is no top card: the floats card carries the drawer itself. */}
+      {canViewFigures ? null : floats}
 
       {canViewFigures ? (
         <Section gap="md">
@@ -191,8 +218,11 @@ export default function MoneyTabScreen() {
               dayOpen={dayQuery.data?.door === 'open'}
               onReview={() => setReviewing(true)}
               onSetAccounts={() => setCompanyOpen(true)}
+              provisionalCash={provisionalCash}
             />
           )}
+
+          {floats}
 
           <PeriodSelector />
 

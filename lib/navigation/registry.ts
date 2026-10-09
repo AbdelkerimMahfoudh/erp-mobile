@@ -396,6 +396,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
   '/agent-reports': 'Bottom tab — Reports of an agent-only branch (D157): the same screen as /agent/reports, which a combined branch reaches from Money. A container, like /money-hub.',
   '/agent/[id]': 'One exchange of the agent counter, opened from the Transactions tab.',
+  '/agent/providers/[id]': 'One provider of the agent counter — its configuration, its versions, switching it off — opened from Providers.',
   '/login': 'Authentication, reached when signed out. Accounts are set up by the organisation; the app offers no self-registration (docs/21, 2026-10-05).',
   // Shown INSTEAD of the app when the server says the business is closed
   // (pending, suspended, cancelled, refused). Not a destination anybody navigates to on purpose.
