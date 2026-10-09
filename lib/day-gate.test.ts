@@ -153,10 +153,14 @@ it('a later payment refused on a closed day keeps the form and offers to open th
   assert.match(open, /useOpeningFlow\(\{ intent: notOpened \? 'open' : 'reopen', day, onOpened \}\)/);
   const flow = code(read('../components/day/useOpeningFlow.tsx'));
   assert.match(flow, /setStage\('idle'\);[\s\S]*?onOpened\?\.\(\);/);
-  assert.match(open, /\{mayOpen\s*\? \(closedText \?\? t\(notOpened \? 'home\.store\.notOpened' : 'home\.store\.closed', \{ date \}\)\)\s*: t\(notOpened \? 'home\.store\.notOpened\.noPermission' : 'home\.store\.noPermission', \{ date \}\)\}/);
+  assert.match(open, /\{mayOpen\s*\? \(closedText \?\? t\(waiting, \{ date \}\)\)\s*: t\(notOpened \? 'home\.store\.notOpened\.noPermission' : 'home\.store\.noPermission', \{ date \}\)\}/);
+  // What waits is said in the branch's own work (D157): selling and receiving, exchanges, or both.
+  assert.match(open, /const waiting: TranslationKey = notOpened \? NOT_OPENED\[activity\] : CLOSED\[activity\];/);
+  assert.match(open, /money_agent: 'home\.store\.closed\.agent'/);
+  assert.match(open, /money_agent: 'home\.store\.notOpened\.agent'/);
   for (const locale of ['en', 'fr', 'ar']) {
     const src = read(`./i18n/${locale}.ts`);
-    for (const key of ['recordPayment.storeClosed', 'recordPayment.storeClosed.open', 'recordPayment.notOpened', 'recordPayment.notOpened.open', 'gate.notOpened.title', 'home.store.notOpened', 'home.store.notOpened.noPermission']) {
+    for (const key of ['recordPayment.storeClosed', 'recordPayment.storeClosed.open', 'recordPayment.notOpened', 'recordPayment.notOpened.open', 'gate.notOpened.title', 'home.store.notOpened', 'home.store.notOpened.noPermission', 'home.store.closed.agent', 'home.store.closed.both', 'home.store.notOpened.agent', 'home.store.notOpened.both']) {
       assert.match(src, new RegExp(String.raw`'${key.replace(/\./g, '\\.')}': '[^']+'`), `${locale}: ${key}`);
     }
   }

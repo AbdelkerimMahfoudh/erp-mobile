@@ -106,6 +106,7 @@ const tx = (over: Record<string, unknown> = {}) => ({
 });
 
 let activity: Activity = 'money_agent';
+let dayView: Record<string, unknown> = { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'open' };
 let detail: Record<string, unknown> = tx();
 function serve(path: string): unknown {
   if (path.startsWith('/entitlement')) return entitlement(activity);
@@ -114,7 +115,9 @@ function serve(path: string): unknown {
   if (path.startsWith('/agent/reports')) return report;
   if (path.startsWith('/agent/transactions/')) return detail;
   if (path.startsWith('/agent/transactions')) return { rows: [tx()], nextCursor: null };
-  if (path.startsWith('/closings/business-day')) return { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'open' };
+  if (path.startsWith('/closings/business-day')) return dayView;
+  // The opening flow's own view is not these tests' subject: it stays loading.
+  if (path.startsWith('/closings/open')) return new Promise(() => undefined);
   // Home's own figures are not this test's subject: they stay loading.
   if (path.startsWith('/home')) return new Promise(() => undefined);
   return { rows: [], nextCursor: null };
@@ -149,6 +152,7 @@ beforeEach(async () => {
   (api.post as jest.Mock).mockReset();
   (api.get as jest.Mock).mockImplementation(async (path: string) => serve(path));
   detail = tx();
+  dayView = { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'open' };
   useQueue.setState({ items: [], running: false, scope: { companyId: 'c1', branchId: 'b1', userId: 'u-emp' } });
 });
 afterEach(() => settle());
@@ -194,6 +198,14 @@ describe('Home', () => {
     expect(await screen.findByText(t('nav.agent.new'))).toBeTruthy();
     expect(screen.getByText(t('home.shortcut.sell'))).toBeTruthy();
     expect(screen.getByText(t('home.shortcut.receive'))).toBeTruthy();
+  });
+
+  it('a counter not opened yet says what waits in its own words — exchanges, never selling or receiving', async () => {
+    signIn('owner', OWNER, 'money_agent');
+    dayView = { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'never_opened', standing: 'open' };
+    mount(<HomeScreen />);
+    expect(await screen.findByText('The counter has not been opened for 9 Oct 2026. Open it to record exchanges.')).toBeTruthy();
+    expect(screen.queryByText(/to sell or receive/)).toBeNull();
   });
 
   it('a shop: nothing of the counter', async () => {

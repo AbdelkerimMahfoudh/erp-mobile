@@ -8,8 +8,9 @@ import { useConnectivity } from '../../lib/connectivity';
 import type { GateReason } from '../../lib/day-gate';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
+import { useBranchActivity } from '../../lib/entitlement';
 import { formatDate } from '../../lib/format';
-import { useTranslation } from '../../lib/i18n';
+import { useTranslation, type TranslationKey } from '../../lib/i18n';
 
 /**
  * *Open store now*, beneath a locked Sell and Receive (2026-09-27, `docs/59` D76).
@@ -39,6 +40,17 @@ export interface OpenStoreNowProps {
   onOpened?: () => void;
 }
 
+const CLOSED: Record<'electronics' | 'money_agent' | 'both', TranslationKey> = {
+  electronics: 'home.store.closed',
+  money_agent: 'home.store.closed.agent',
+  both: 'home.store.closed.both',
+};
+const NOT_OPENED: Record<'electronics' | 'money_agent' | 'both', TranslationKey> = {
+  electronics: 'home.store.notOpened',
+  money_agent: 'home.store.notOpened.agent',
+  both: 'home.store.notOpened.both',
+};
+
 export function OpenStoreNow({ businessDate, reason = 'closed', mayOpen, closedText, onOpened }: OpenStoreNowProps) {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -49,12 +61,15 @@ export function OpenStoreNow({ businessDate, reason = 'closed', mayOpen, closedT
   const notOpened = reason === 'not_opened';
   const flow = useOpeningFlow({ intent: notOpened ? 'open' : 'reopen', day, onOpened });
   const date = formatDate(businessDate);
+  // What the closed store stops, in the branch's own work: selling and receiving, exchanges, or both (D157).
+  const activity = useBranchActivity();
+  const waiting: TranslationKey = notOpened ? NOT_OPENED[activity] : CLOSED[activity];
 
   return (
     <View style={styles.block}>
       <Text variant="body" tone="secondary" align="center">
         {mayOpen
-          ? (closedText ?? t(notOpened ? 'home.store.notOpened' : 'home.store.closed', { date }))
+          ? (closedText ?? t(waiting, { date }))
           : t(notOpened ? 'home.store.notOpened.noPermission' : 'home.store.noPermission', { date })}
       </Text>
       {mayOpen ? (
