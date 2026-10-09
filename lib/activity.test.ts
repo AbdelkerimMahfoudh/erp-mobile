@@ -4,7 +4,7 @@
  *   node lib/activity.test.ts
  */
 import assert from 'node:assert/strict';
-import { ACTIVITIES, activityAllows, branchActivity, isActivity, scheduledActivity } from './activity.ts';
+import { ACTIVITIES, activityAllows, branchActivity, companySells, isActivity, scheduledActivity } from './activity.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -63,6 +63,15 @@ it('a scheduled downgrade is read, never acted on', () => {
   assert.equal(scheduledActivity(undefined, 'shop'), null);
   // The branch keeps its activity until the renewal applies the change (docs/73 §3.2).
   assert.equal(branchActivity(entitlement, 'mixed'), 'both');
+});
+
+it('the company sells while one of its branches does — and on an older server, which has only shops', () => {
+  assert.equal(companySells(entitlement), true, 'a shop and a combined branch');
+  assert.equal(companySells({ seatsByStore: [{ branchId: 'counter', activity: 'money_agent' }] }), false, 'agent counters only');
+  assert.equal(companySells({ seatsByStore: [{ branchId: 'counter', activity: 'money_agent' }, { branchId: 'mixed', activity: 'both' }] }), true);
+  assert.equal(companySells({ seatsByStore: [{ branchId: 'old' }] }), true, 'a line without an activity is a shop');
+  assert.equal(companySells({}), true);
+  assert.equal(companySells(undefined), true);
 });
 
 console.log(`activity: ${passed} passed`);

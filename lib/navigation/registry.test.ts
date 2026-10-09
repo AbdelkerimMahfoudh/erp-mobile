@@ -853,8 +853,9 @@ it('a shop shows no agent screen, whatever keys a role holds', () => {
 it('an agent-only branch shows nothing of the store: no Sell, Stock, Catalog, Partners, Results or sales targets', () => {
   const store = ['sales', 'returns', 'approvals', 'catalog', 'transfers', 'stores', 'consignments', 'analytics', 'goals', 'money', 'outstanding'];
   for (const [role, granted] of ROLES_ALL) {
+    // A company of agent counters only: nothing of a store anywhere.
     const shown = [
-      ...visibleGroups(granted, 'money_agent').flatMap((g) => g.destinations.map((d) => d.id)),
+      ...visibleGroups(granted, 'money_agent', false).flatMap((g) => g.destinations.map((d) => d.id)),
       ...moneyRows(granted, 'money_agent').map((d) => d.id),
     ];
     for (const id of store) assert.ok(!shown.includes(id), `${role} sees ${id} on an agent-only branch`);
@@ -871,6 +872,17 @@ it('Money carries the counter’s rows: reports beside Results on a combined bra
   // The providers are the Owner's alone (agent.provider.manage); an Employee reports expenses and nothing more.
   assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'money_agent').map((d) => d.id), ['expenses']);
   assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'both').map((d) => d.id), ['expenses']);
+});
+
+it('at an agent counter of a company that has a shop, the company’s partner stores stay on More — its consignments do not', () => {
+  // docs/73 §5.1: Partners is reachable from More only if the role has it and the company has electronics elsewhere.
+  for (const [role, granted] of ROLES_ALL) {
+    const more = visibleGroups(granted, 'money_agent', true).flatMap((g) => g.destinations.map((d) => d.id));
+    assert.equal(more.includes('stores'), partnersTabVisible(granted), role);
+    assert.ok(!more.includes('consignments'), role + ': consignments are a branch’s stock');
+    assert.ok(!more.includes('sales') && !more.includes('catalog'), role);
+  }
+  assert.ok(!visibleGroups(OWNER_ALL, 'money_agent', false).flatMap((g) => g.destinations.map((d) => d.id)).includes('stores'));
 });
 
 it('on a combined branch Partners is a row of More for whoever had the tab — and on a shop it is not repeated', () => {
@@ -896,7 +908,7 @@ it('the counter’s screens are offered by their own keys, and its forms are wri
 
 it('More and Money pass the branch’s activity to the registry', () => {
   const more = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
-  assert.match(more, /visibleGroups\(granted, activity\)/);
+  assert.match(more, /visibleGroups\(granted, activity, companySells\)/);
   const hub = fs.readFileSync(path.join(MOBILE, 'app', 'hub', '[id].tsx'), 'utf8');
   assert.match(hub, /visibleChildren\(hub, granted, activity\)/);
 });

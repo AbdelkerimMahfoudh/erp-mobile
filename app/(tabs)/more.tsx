@@ -15,7 +15,7 @@ import { AccessNotice } from '../../components/access';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
-import { useBranchActivity } from '../../lib/entitlement';
+import { useBranchActivity, useCompanySells } from '../../lib/entitlement';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { mirror } from '../../lib/design/direction';
 import { useTranslation } from '../../lib/i18n';
@@ -50,12 +50,13 @@ export default function MoreScreen() {
   const { signOut } = useAuth();
   const granted = usePermissionStore((s) => s.granted);
   const activity = useBranchActivity();
+  const companySells = useCompanySells();
 
   // Grouped sections, one tap to a screen. Membership, permissions and what the
   // branch is subscribed to (D157: no Sales or Catalog row on an agent counter,
   // Partners here on a combined branch) still come from the registry; this
   // screen decides nothing about who sees what.
-  const groups = visibleGroups(granted, activity);
+  const groups = visibleGroups(granted, activity, companySells);
 
   // Branch and role, as context for everything below — never the company.
   const { branchName, role } = useBranch();

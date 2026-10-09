@@ -111,6 +111,11 @@ export interface Destination {
   readonly anyOf?: readonly Permission[];
   /** The activity this screen belongs to; shown only on a branch subscribed to it (D156). Absent: every branch. */
   readonly activity?: ActivityNeed;
+  /**
+   * The company's rather than the branch's: still offered on More at a branch of another activity while the company
+   * has a branch of its own activity (docs/73 §5.1) — the partner stores at an agent counter of a company with a shop.
+   */
+  readonly companyWide?: boolean;
 }
 
 export interface Hub {
@@ -252,7 +257,7 @@ export const HUBS: readonly Hub[] = [
         stores this shop deals with, or manage who it deals with — never to the
         Owner alone.
       */
-      { id: 'stores', route: '/partners', titleKey: 'nav.stores', icon: 'Building2', anyOf: ['consignment.view', 'connection.manage'] },
+      { id: 'stores', route: '/partners', titleKey: 'nav.stores', icon: 'Building2', anyOf: ['consignment.view', 'connection.manage'], companyWide: true },
       { id: 'consignments', route: '/consignments', titleKey: 'nav.consignments', icon: 'Handshake', perm: 'consignment.view' },
     ],
   },
@@ -348,16 +353,23 @@ export const REACHED_FROM_TABS: Readonly<Record<string, { tab: TabId; where: str
 /**
  * The More groups this user may be offered on a branch of this activity, each
  * with its permitted destinations; empty groups omitted. A destination whose
- * tab is on the bar is left to the tab.
+ * tab is on the bar is left to the tab. What belongs to the company rather than
+ * the branch stays on More at a branch of another activity while the company
+ * has one of its own (`companyWide`, docs/73 §5.1).
  */
-export function visibleGroups(granted: ReadonlySet<string>, activity: Activity = 'electronics'): { group: MoreGroup; destinations: Destination[] }[] {
+export function visibleGroups(
+  granted: ReadonlySet<string>,
+  activity: Activity = 'electronics',
+  companySells = true,
+): { group: MoreGroup; destinations: Destination[] }[] {
   const byId = new Map(allDestinations().map((d) => [d.id, d]));
   const bar = tabBarFor(activity, granted);
+  const offered = (d: Destination) => canSee(d, granted, activity) || (d.companyWide === true && companySells && canSee(d, granted, 'electronics'));
   return MORE_GROUPS.map((group) => ({
     group,
     destinations: group.destinationIds
       .map((id) => byId.get(id))
-      .filter((d): d is Destination => d !== undefined && canSee(d, granted, activity))
+      .filter((d): d is Destination => d !== undefined && offered(d))
       .filter((d) => !(d.id in REACHED_FROM_TABS && bar.includes(REACHED_FROM_TABS[d.id].tab))),
   })).filter((entry) => entry.destinations.length > 0);
 }

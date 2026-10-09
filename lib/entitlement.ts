@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { businessAccess, type BusinessAccess } from './access';
-import { branchActivity, scheduledActivity, type Activity } from './activity';
+import { branchActivity, companySells, scheduledActivity, type Activity } from './activity';
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
@@ -121,6 +121,11 @@ export function useBranchActivity(): Activity {
   const branchId = useBranch((s) => s.branchId);
   const query = useEntitlement();
   return branchActivity(query.data, branchId);
+}
+
+/** Whether any branch of the company sells electronics — what the company's partner stores belong to (docs/73 §5.1). */
+export function useCompanySells(): boolean {
+  return companySells(useEntitlement().data);
 }
 
 /** A downgrade the Owner scheduled for the branch in use, or null. Said, never acted on. */

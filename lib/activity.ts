@@ -66,3 +66,16 @@ export function scheduledActivity(entitlement: EntitlementActivities | null | un
   const row = entitlement?.seatsByStore?.find((b) => b.branchId === branchId);
   return isActivity(row?.activityNext) ? row.activityNext : null;
 }
+
+/**
+ * Whether the company has a branch that sells electronics — a shop, or a
+ * combined branch. What belongs to the company rather than to one branch (the
+ * partner stores it deals with) stays reachable from an agent-only branch while
+ * this holds (docs/73 §5.1). An older server, which knows no activity, answers
+ * yes: every branch it has is a shop.
+ */
+export function companySells(entitlement: EntitlementActivities | null | undefined): boolean {
+  const rows = entitlement?.seatsByStore;
+  if (!rows || rows.length === 0) return true;
+  return rows.some((b) => activityAllows(isActivity(b.activity) ? b.activity : 'electronics', 'electronics'));
+}
