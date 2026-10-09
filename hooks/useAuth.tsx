@@ -55,6 +55,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const queryClient = useQueryClient();
   const [bootstrapping, setBootstrapping] = useState(true);
   const branch = useBranch();
 
@@ -153,6 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * from the common one.
    */
   const establish = async (res: AuthResponse, namespace: string) => {
+    // A new identity starts from an empty cache, whatever the last session left (an expiry signs out without signOut).
+    queryClient.clear();
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
@@ -226,6 +229,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * signs out leaves it for whoever signs in next.
      */
     clearExports();
+    /*
+     * Everything read under this session goes with it: a cached exchange carries the customer's full number for a
+     * holder of agent.customer.reveal, and the next person to sign in on a shared counter phone must not be shown it
+     * — nor the previous company's providers, positions or reports — while their own read is on its way.
+     */
+    queryClient.clear();
     setUser(null);
   };
 
@@ -237,7 +246,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * redundant loads itself.
    */
   const branchId = branch.branchId;
-  const queryClient = useQueryClient();
   useEffect(() => {
     if (!user || !branchId) {
       // No branch selected (signed out, or switching) — grant nothing.

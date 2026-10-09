@@ -86,6 +86,9 @@ function Detail({ tx, styles }: { tx: AgentTransaction; styles: ReturnType<typeo
   const decide = activityAllows(activity, 'money_agent') && access.canWrite && tx.status === 'completed';
   const canReport = usePermission('agent.mistake.report') && decide;
   const canReverse = usePermission('agent.transaction.reverse') && decide;
+  // The full number only for a holder of agent.customer.reveal — whatever a cached answer may still carry.
+  const canReveal = usePermission('agent.customer.reveal');
+  const revealed = canReveal && tx.customerNumber ? tx.customerNumber : null;
   const [sheet, setSheet] = useState<'mistake' | 'reverse' | null>(null);
   const { original, reversal } = splitLegs(tx.legs);
   const provider = tx.providerLabel;
@@ -113,8 +116,8 @@ function Detail({ tx, styles }: { tx: AgentTransaction; styles: ReturnType<typeo
       </Card>
 
       <Card style={styles.card}>
-        <Field label={t('agent.number')} value={isolateLtr(tx.customerNumber ?? tx.customerNumberMasked)} />
-        {tx.customerNumber ? (
+        <Field label={t('agent.number')} value={isolateLtr(revealed ?? tx.customerNumberMasked)} />
+        {revealed ? (
           <Text variant="caption" tone="tertiary">
             {t('agent.detail.numberRevealed')}
           </Text>

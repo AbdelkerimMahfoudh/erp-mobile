@@ -24,13 +24,18 @@ export interface CounterForm {
   reference: string;
   /** On the review rather than the form. */
   reviewing: boolean;
+  /**
+   * The phone's clock at the first Confirm under this key, kept: the server fingerprints it with the rest, so a
+   * second Confirm after a lost answer is the SAME request (answered with its record), never a different one.
+   */
+  stampedAt?: string | null;
 }
 
 export const COUNTER_DRAFT_FORM = 'agent.exchange';
 export const COUNTER_DRAFT_VERSION = 1;
 
 export function emptyCounterForm(clientUuid: string): CounterForm {
-  return { clientUuid, direction: null, providerId: null, amount: '', reference: '', reviewing: false };
+  return { clientUuid, direction: null, providerId: null, amount: '', reference: '', reviewing: false, stampedAt: null };
 }
 
 /** The step the form is on: what the person is asked next. */

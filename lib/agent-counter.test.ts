@@ -105,7 +105,8 @@ it('a confirmed exchange is pending until the server accepts it, then recorded â
 
 it('a refused exchange is prepared again under a new key, with its words and figures', () => {
   const again = againForm({ providerId: 'bankily', direction: 'cash_out_credit_in', amount: 2500.5, providerReference: 'R1', configVersionId: 'old', deviceRecordedAt: 'x' }, 'key-2');
-  assert.deepEqual(again, { clientUuid: 'key-2', direction: 'cash_out_credit_in', providerId: 'bankily', amount: '2500.5', reference: 'R1', reviewing: false });
+  // Unstamped: a new key is a new request, its own claim of when taken at its own first Confirm.
+  assert.deepEqual(again, { clientUuid: 'key-2', direction: 'cash_out_credit_in', providerId: 'bankily', amount: '2500.5', reference: 'R1', reviewing: false, stampedAt: null });
   assert.equal(againForm({ nonsense: true }, 'k'), null);
 });
 

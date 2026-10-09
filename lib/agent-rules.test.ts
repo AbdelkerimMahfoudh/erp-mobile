@@ -163,7 +163,8 @@ it('the customer number: the payer number’s digits, mandatory, at least four d
 it('every refusal the exchange route names has the counter’s own words and one honest action', () => {
   // The contract's needs-attention codes (D155): each maps to its own sentence.
   const expected: Record<string, string> = {
-    idempotency_conflict: 'prepare_again',
+    // The key already holds a record: the list says what it is; nothing is confirmed as new (review).
+    idempotency_conflict: 'check_list',
     stale_configuration: 'prepare_again',
     provider_not_configured: 'prepare_again',
     customer_number_invalid: 'prepare_again',

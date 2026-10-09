@@ -11,6 +11,9 @@ import { isDurable } from './durable-storage.ts';
 import { readQueue, writeQueue, type Scope } from './queue-store.ts';
 import {
   MAX_ATTEMPTS,
+  mayCancel,
+  mayHaveRecorded,
+  mayRemove,
   nextSendable,
   nextStateAfterError,
   type ClassifiedError,
@@ -92,6 +95,8 @@ interface QueueStoreState {
   }) => { queued: boolean; reason?: string; id?: string };
   process: () => Promise<void>;
   cancel: (id: string) => void;
+  /** An exchange that may be recorded, taken off this phone by a person who checked the exchanges list. */
+  remove: (id: string) => void;
   retry: (id: string) => void;
   countsFor: () => { waiting: number; needsAttention: number; drafts: number };
 }
@@ -211,11 +216,25 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     // Only ever a state change: the row stays, so "I cancelled it" is visible
     // rather than the item simply vanishing from a list somebody was watching.
     const target = items.find((i) => i.id === id);
+    // Never "cancelled, nothing sent" for an exchange that may already be recorded.
+    if (!target || !mayCancel(target)) return;
     const next = items.map((i) => (i.id === id ? { ...i, state: 'cancelled' as QueueState } : i));
     set({ items: next });
     writeQueue(scope, next);
     // A cancelled exchange will never be sent: its number has no reason to stay on the phone.
     if (target) void forgetOutside(target);
+  },
+
+  remove: (id) => {
+    const { scope, items } = get();
+    if (!scope) return;
+    const target = items.find((i) => i.id === id);
+    if (!target || !mayRemove(target)) return;
+    // Said as what it is: taken off this phone, the server's list being the record of what happened.
+    const next = items.map((i) => (i.id === id ? { ...i, state: 'cancelled' as QueueState, result: { ...(i.result ?? {}), removed: 1 } } : i));
+    set({ items: next });
+    writeQueue(scope, next);
+    void forgetOutside(target);
   },
 
   /** A person deciding to try again clears the backoff, not the history. */
@@ -299,6 +318,11 @@ async function send(
       to make it pass.
     */
     const exhausted = item.attempts + 1 >= MAX_ATTEMPTS && nextState === 'waiting_for_connection';
-    patch({ state: exhausted ? 'needs_attention' : nextState, lastError: classified });
+    patch({
+      state: exhausted ? 'needs_attention' : nextState,
+      lastError: classified,
+      // A money record remembers whether any attempt may have been recorded (D155): it decides what a person is offered.
+      ...(item.kind === AGENT_EXCHANGE_KIND ? { mayBeRecorded: mayHaveRecorded(Boolean(item.mayBeRecorded), classified) } : {}),
+    });
   }
 }

@@ -57,6 +57,12 @@ export interface QueueItem {
    * server did not give it.
    */
   result?: Record<string, string | number> | null;
+  /**
+   * An agent exchange only: an attempt may have reached the server and been recorded — its answer was lost (a
+   * timeout, a 5xx) or its key already holds a record. From then on it is never "cancelled, nothing sent": it is
+   * checked again under the same key, or removed from the phone by a person who looked at the exchanges list.
+   */
+  mayBeRecorded?: boolean;
 }
 
 export type ErrorKind =
@@ -223,9 +229,36 @@ export function nextSendable(
   return out;
 }
 
-/** Cancelling is only honest while nothing has been sent. */
+/**
+ * Whether an exchange may now be recorded on the server, after one more failed attempt (D155).
+ *
+ * The server reads an exchange's key before anything else in the ledger, so a refusal from the ledger itself (a
+ * newer rate, a closed store, a number it would not take) proves that nothing is recorded under the key. A refusal
+ * raised in front of it — the session, a permission, the business's access, the branch's activity — proves nothing,
+ * and neither does a request that never left (no network): the earlier answer stands. A lost answer (a timeout, a
+ * 5xx) or a key that already holds a record means it may be recorded.
+ */
+export function mayHaveRecorded(before: boolean, e: ClassifiedError): boolean {
+  if (e.code === 'idempotency_conflict') return true;
+  if (e.kind === 'timeout_uncertain' || e.kind === 'server_error') return true;
+  if (e.kind === 'no_network' || e.kind === 'api_unreachable') return before;
+  if (e.kind === 'session_expired' || e.kind === 'permission_denied' || e.kind === 'entitlement_blocked') return before;
+  if (e.code === 'activity_not_subscribed' || e.code === 'ENTITLEMENT_WRITE_BLOCKED') return before;
+  return false;
+}
+
+/**
+ * Cancelling is only honest while nothing has been sent — or while every answer since proved nothing was recorded.
+ * An exchange that may be recorded is never cancelled with "nothing is sent": it is checked again, or removed.
+ */
 export function mayCancel(item: QueueItem): boolean {
+  if (item.mayBeRecorded) return false;
   return item.state === 'draft' || item.state === 'waiting_for_connection' || item.state === 'needs_attention';
+}
+
+/** Removing an exchange that may be recorded: only once it is not on its way, by a person who checked the list. */
+export function mayRemove(item: QueueItem): boolean {
+  return Boolean(item.mayBeRecorded) && (item.state === 'waiting_for_connection' || item.state === 'needs_attention');
 }
 
 /**

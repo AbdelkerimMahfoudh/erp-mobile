@@ -63,6 +63,7 @@ import { useQueue } from '../lib/offline/queue';
 import HomeScreen from '../app/(tabs)/index';
 import AgentTransactionsTab from '../app/(tabs)/agent-transactions';
 import ExchangeDetailScreen from '../app/agent/[id]';
+import { QueuedExchange } from '../components/agent/QueuedExchange';
 
 const AGENT_OWNER = ['agent.transaction.record', 'agent.transaction.view', 'agent.customer.reveal', 'agent.mistake.report', 'agent.transaction.reverse', 'agent.rebalance', 'agent.position.set', 'agent.report.view', 'agent.provider.manage'];
 const OWNER = ['closing.count', 'closing.perform', 'report.view', 'sale.create', 'purchase.manage', 'consignment.view', 'connection.manage', 'expense.submit', ...AGENT_OWNER] as Permission[];
@@ -250,6 +251,16 @@ describe('one exchange', () => {
     expect(await screen.findByText(t('agent.reverse.action'))).toBeTruthy();
   });
 
+  it('a number a cached answer still carries is never shown without agent.customer.reveal (review)', async () => {
+    signIn('store_employee', EMPLOYEE, 'money_agent');
+    // What a Manager's read left in a cache: the whole number. The Employee is shown the masked one.
+    detail = tx({ customerNumber: '00001234' });
+    mount(<ExchangeDetailScreen />);
+    expect(await screen.findByText('•••• 1234')).toBeTruthy();
+    expect(screen.queryByText('00001234')).toBeNull();
+    expect(screen.queryByText(t('agent.detail.numberRevealed'))).toBeNull();
+  });
+
   it('a reversed exchange shows its counter-legs apart, and offers nothing more', async () => {
     signIn('owner', OWNER, 'money_agent');
     detail = tx({
@@ -268,5 +279,30 @@ describe('one exchange', () => {
     expect(within(screen.getByTestId('exchange-reversal')).getAllByText(t('agent.leg.kind.reversal'))).toHaveLength(3);
     expect(screen.queryByText(t('agent.reverse.action'))).toBeNull();
     expect(screen.queryByText(t('agent.mistake.action'))).toBeNull();
+  });
+});
+
+describe('an exchange whose answer was lost (review)', () => {
+  it('is "Not confirmed yet": checked again under the same key or removed after a look at the list — never "cancelled, nothing sent"', async () => {
+    signIn('store_employee', EMPLOYEE, 'money_agent');
+    const item = queued({ attempts: 1, lastError: { kind: 'timeout_uncertain', message: 'timeout' }, mayBeRecorded: true });
+    useQueue.setState({ items: [item] });
+    mount(<QueuedExchange item={item} />);
+    expect(await screen.findByText(t('agent.uncertain.title'))).toBeTruthy();
+    expect(screen.getByText(t('agent.outcome.uncertain.body'))).toBeTruthy();
+    expect(screen.getByText(t('agent.action.checkAgain'))).toBeTruthy();
+    expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
+    expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
+  });
+
+  it('a key that already holds a record leads to the list, never to a new confirmation', async () => {
+    signIn('store_employee', EMPLOYEE, 'money_agent');
+    const item = queued({ state: 'needs_attention', attempts: 2, lastError: { kind: 'conflict', message: 'conflict', status: 409, code: 'idempotency_conflict' }, mayBeRecorded: true });
+    useQueue.setState({ items: [item] });
+    mount(<QueuedExchange item={item} onPrepareAgain={() => undefined} />);
+    expect(await screen.findByText(t('agent.refusal.idempotency_conflict'))).toBeTruthy();
+    expect(screen.getByText(t('agent.outcome.list'))).toBeTruthy();
+    expect(screen.queryByText(t('agent.action.prepareAgain'))).toBeNull();
+    expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
   });
 });

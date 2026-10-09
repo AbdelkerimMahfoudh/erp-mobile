@@ -24,6 +24,10 @@ import { ExchangeReview } from '../../components/agent/ExchangeReview';
 import { QueuedExchange } from '../../components/agent/QueuedExchange';
 import { activityAllows } from '../../lib/activity';
 import { useAgentProviders } from '../../lib/agent';
+import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '../../lib/query-keys';
+import { classifyError } from '../../lib/offline/classify';
+import { useConnectivity } from '../../lib/connectivity';
 import {
   againForm,
   canReview,
@@ -36,7 +40,7 @@ import {
   REFERENCE_MAX,
   type CounterForm,
 } from '../../lib/agent-counter';
-import { carryNumber, keepNumber, readNumber, recordExchange, useExchangeScope, type RecordOutcome } from '../../lib/agent-queue';
+import { carryNumber, forgetNumber, keepNumber, readNumber, recordExchange, useExchangeScope, type RecordOutcome } from '../../lib/agent-queue';
 import {
   CUSTOMER_NUMBER_MAX_DIGITS,
   CUSTOMER_NUMBER_MIN_DIGITS,
@@ -95,7 +99,8 @@ function NewExchangeScreen() {
   /** The queue item this screen confirmed, or what a browser recorded directly. */
   const [sentId, setSentId] = useState<string | null>(null);
   const [direct, setDirect] = useState<Extract<RecordOutcome, { kind: 'recorded' }> | null>(null);
-  const [refusal, setRefusal] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<{ title: string; body: string } | null>(null);
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const sent = sentId !== null || direct !== null;
   const item = useQueue((s) => (sentId ? s.items.find((i) => i.id === sentId) : undefined));
@@ -140,6 +145,8 @@ function NewExchangeScreen() {
   const update = (patch: Partial<CounterForm>) => setForm((f) => ({ ...f, ...patch }));
 
   const startOver = () => {
+    // The discarded key's number leaves the phone with it: nothing would ever reference it again (D155).
+    if (!sent) void forgetNumber(form.clientUuid);
     setSentId(null);
     setDirect(null);
     setRefusal(null);
@@ -151,7 +158,10 @@ function NewExchangeScreen() {
   const confirm = async () => {
     if (!scope || !provider || !ready || !preview || busy) return;
     const number = parseCustomerNumber(customerNumber);
-    const payload = counterPayload(form, { ...provider, config: ready }, new Date());
+    // Stamped once per key: a Confirm after a lost answer is the same request, answered with the record if there is one.
+    const stampedAt = form.stampedAt ?? new Date().toISOString();
+    if (!form.stampedAt) update({ stampedAt });
+    const payload = counterPayload(form, { ...provider, config: ready }, new Date(stampedAt));
     if (!number.ok || !payload) return;
     setBusy(true);
     setRefusal(null);
@@ -170,10 +180,26 @@ function NewExchangeScreen() {
       draft.clear();
       setDirect(outcome);
     } else if (outcome.kind === 'offline_unavailable') {
-      setRefusal(t('agent.web.offline'));
+      setRefusal({ title: t('agent.refusal.title'), body: t('agent.web.offline') });
     } else {
-      // Nothing was recorded: the review stays, with the reason in the counter's words, under the same key.
-      setRefusal(toAgentError(outcome.error).body);
+      const kind = classifyError(outcome.error, useConnectivity.getState().online).kind;
+      if (kind === 'timeout_uncertain' || kind === 'server_error' || kind === 'api_unreachable') {
+        // The answer was lost, not a refusal: it may be recorded. The review stays under the same key and stamp.
+        setRefusal({ title: t('agent.uncertain.title'), body: t('agent.uncertain.body') });
+      } else {
+        // Refused by name: the review stays, with the reason in the counter's words, under the same key.
+        const e = toAgentError(outcome.error);
+        setRefusal({ title: e.title, body: e.body });
+        refreshProvidersAfter(outcome.error);
+      }
+    }
+  };
+
+  /** A refusal about the provider's configuration means the phone's copy is old: it is read again before a new review. */
+  const refreshProvidersAfter = (error: unknown) => {
+    const code = (error as { code?: string } | null)?.code;
+    if (code === 'stale_configuration' || code === 'provider_not_configured' || code === 'provider_inactive') {
+      void queryClient.invalidateQueries({ queryKey: qk.agentProviders() });
     }
   };
 
@@ -183,6 +209,8 @@ function NewExchangeScreen() {
     const next = againForm(item.payload, uuidv4());
     if (!next) return;
     const number = await carryNumber(scope, item.clientUuid, next.clientUuid);
+    // The review is built again from the configuration in force, never from the copy that was refused.
+    await queryClient.invalidateQueries({ queryKey: qk.agentProviders() });
     useQueue.getState().cancel(item.id);
     setSentId(null);
     setDirect(null);
@@ -290,8 +318,8 @@ function NewExchangeScreen() {
             {t('agent.review.serverNote')}
           </Text>
           {refusal ? (
-            <InlineNotice tone="warning" title={t('agent.refusal.title')}>
-              {refusal}
+            <InlineNotice tone="warning" title={refusal.title}>
+              {refusal.body}
             </InlineNotice>
           ) : null}
         </>

@@ -348,8 +348,9 @@ export function useAgentTransactions(filters: AgentTransactionFilters, options: 
 }
 
 export function useAgentTransaction(id: string | undefined) {
+  const branchId = useBranch((s) => s.branchId);
   return useQuery({
-    queryKey: qk.agentTransaction(id ?? ''),
+    queryKey: qk.agentTransaction(branchId, id ?? ''),
     queryFn: () => api.get<AgentTransaction>(`/agent/transactions/${encodeURIComponent(id ?? '')}`),
     enabled: Boolean(id),
   });
@@ -359,7 +360,7 @@ export function useAgentTransaction(id: string | undefined) {
 
 /** Everything the counter's figures are read from: after an exchange posts or is reversed, all of it is read again. */
 export function invalidateAgent(qc: Pick<QueryClient, 'invalidateQueries'>): void {
-  for (const key of ['agent-positions', 'agent-transactions', 'agent-transaction', 'agent-report', 'agent-rebalancings']) void qc.invalidateQueries({ queryKey: [key] });
+  for (const key of ['agent-positions', 'agent-transactions', 'agent-transaction', 'agent-report', 'agent-rebalancings', 'agent-providers']) void qc.invalidateQueries({ queryKey: [key] });
   // The drawer is one: an exchange's cash moves Money's expected cash and the closing too.
   invalidateMoney(qc);
 }
@@ -405,7 +406,8 @@ export function useReportMistake(id: string) {
       api.post<{ mistake: AgentMistake }>(`/agent/transactions/${encodeURIComponent(id)}/mistakes`, { clientUuid: attempt.take(), kind: input.kind, ...(input.note ? { note: input.note } : {}) }),
     onSuccess: () => {
       attempt.settle();
-      void qc.invalidateQueries({ queryKey: qk.agentTransaction(id) });
+      // Every branch's copy of this exchange: the key's prefix.
+      void qc.invalidateQueries({ queryKey: ['agent-transaction'] });
     },
     onError: (e) => {
       if ((e as { status?: number }).status !== undefined) attempt.settle();

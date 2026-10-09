@@ -239,9 +239,11 @@ export function maskedNumber(last4: string): string {
  *  - `retry` — nothing about the exchange is wrong; the moment is (the store is
  *    closed, the branch's activity or the business's access): it may be sent
  *    again unchanged, under the same key, once that changes;
- *  - `cancel` — nothing to do but drop it.
+ *  - `cancel` — nothing to do but drop it;
+ *  - `check_list` — the key already holds a record: what the server recorded is
+ *    in the exchanges list, and nothing is prepared again or confirmed as new.
  */
-export type RefusalAction = 'prepare_again' | 'retry' | 'cancel';
+export type RefusalAction = 'prepare_again' | 'retry' | 'cancel' | 'check_list';
 
 export interface AgentRefusal {
   /** The i18n key of the sentence the counter shows for it. */
@@ -251,7 +253,7 @@ export interface AgentRefusal {
 
 /** Every refusal of `POST agent/transactions` the counter names in its own words (the codes, never the English). */
 export const AGENT_REFUSALS: Readonly<Record<string, AgentRefusal>> = {
-  idempotency_conflict: { key: 'agent.refusal.idempotency_conflict', action: 'prepare_again' },
+  idempotency_conflict: { key: 'agent.refusal.idempotency_conflict', action: 'check_list' },
   stale_configuration: { key: 'agent.refusal.stale_configuration', action: 'prepare_again' },
   provider_not_configured: { key: 'agent.refusal.provider_not_configured', action: 'prepare_again' },
   provider_inactive: { key: 'agent.refusal.provider_inactive', action: 'prepare_again' },
