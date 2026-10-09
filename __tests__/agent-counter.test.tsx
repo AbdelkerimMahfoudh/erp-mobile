@@ -212,6 +212,15 @@ describe('the counter flow', () => {
     // The number is kept, sealed to this company, branch and person, under the item's key.
     expect(JSON.parse(mockStore.get(numberKey(item.clientUuid))!)).toEqual({ companyId: 'c1', branchId: 'b1', userId: 'u1', customerNumber: NUMBER });
     for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|customerNumber/);
+
+    // A mistake noticed before it is sent: cancelled, asked twice; nothing is sent and the number leaves the phone.
+    fireEvent.press(screen.getByText(t('agent.action.cancel')));
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('agent.action.cancelConfirm')));
+    });
+    expect(useQueue.getState().items[0].state).toBe('cancelled');
+    expect(await screen.findByText(t('agent.outcome.cancelled'))).toBeTruthy();
+    await waitFor(() => expect(mockStore.has(numberKey(item.clientUuid))).toBe(false));
   });
 
   it('a refusal is said in the counter’s words, and prepared again under a new key with its number', async () => {

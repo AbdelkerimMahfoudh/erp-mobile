@@ -10,7 +10,7 @@ import { agentRefusal } from '../../lib/agent-rules';
 import { exchangeOutcome } from '../../lib/agent-counter';
 import { useConnectivity } from '../../lib/connectivity';
 import { useQueue } from '../../lib/offline/queue';
-import type { QueueItem } from '../../lib/offline/queue-rules';
+import { mayCancel, type QueueItem } from '../../lib/offline/queue-rules';
 
 /**
  * Where an exchange this phone confirmed stands (D155) — on the counter right
@@ -65,6 +65,15 @@ export function QueuedExchange({ item, onPrepareAgain }: { item: QueueItem; onPr
     );
   }
 
+  // Cancelling is offered only while nothing is on its way: mid-flight the outcome is unknown (Milestone J).
+  const cancelAction = mayCancel(item) ? (
+    confirmCancel ? (
+      <Button title={t('agent.action.cancelConfirm')} size="sm" variant="danger" onPress={() => cancel(item.id)} />
+    ) : (
+      <Button title={t('agent.action.cancel')} size="sm" variant="tertiary" onPress={() => setConfirmCancel(true)} />
+    )
+  ) : null;
+
   if (outcome === 'pending') {
     return (
       <View style={styles.block} testID="exchange-pending">
@@ -72,6 +81,7 @@ export function QueuedExchange({ item, onPrepareAgain }: { item: QueueItem; onPr
         <Text variant="caption" tone="secondary">
           {item.state === 'sending' ? t('agent.outcome.sending') : t('agent.outcome.pending.body')}
         </Text>
+        {cancelAction}
       </View>
     );
   }
@@ -88,11 +98,7 @@ export function QueuedExchange({ item, onPrepareAgain }: { item: QueueItem; onPr
       <View style={styles.actions}>
         {action === 'prepare_again' && onPrepareAgain ? <Button title={t('agent.action.prepareAgain')} size="sm" onPress={onPrepareAgain} /> : null}
         {action === 'retry' ? <Button title={t('action.retry')} size="sm" variant="secondary" disabled={!online} onPress={() => retry(item.id)} /> : null}
-        {confirmCancel ? (
-          <Button title={t('agent.action.cancelConfirm')} size="sm" variant="danger" onPress={() => cancel(item.id)} />
-        ) : (
-          <Button title={t('agent.action.cancel')} size="sm" variant="tertiary" onPress={() => setConfirmCancel(true)} />
-        )}
+        {cancelAction}
       </View>
     </View>
   );
