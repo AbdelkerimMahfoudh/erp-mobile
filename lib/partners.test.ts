@@ -74,10 +74,16 @@ it('a loan waiting on us reads as your move', () => {
 const TABS = read('../app/(tabs)/_layout.tsx');
 
 it('the bar is Home · Partners · Money · Stock · More', () => {
+  /*
+    On a shop — every branch whose activity is electronics. Since the money services counter (D157) the layout
+    declares the counter's two tabs too and draws each tab by the registry's `tabBarFor` (pinned per activity and
+    role in lib/navigation/registry.test.ts); here, the shop's order and Partners' own gate.
+  */
   const src = stripComments(TABS);
   const screens = [...src.matchAll(/<Tabs\.Screen\s+name="([a-z-]+)"([\s\S]*?)\/>/g)];
-  const visible = screens.filter(([, , body]) => !/href:\s*null\s*[,}]/.test(body)).map(([, n]) => n);
-  assert.deepEqual(visible, ['index', 'partners', 'money-hub', 'inventory', 'more']);
+  const shop = screens.map(([, n]) => n).filter((n) => !['sell', 'agent-transactions', 'agent-reports'].includes(n));
+  assert.deepEqual(shop, ['index', 'partners', 'money-hub', 'inventory', 'more']);
+  assert.match(src, /href: shows\('partners'\) \? undefined : null/);
 });
 
 it('Sell is no longer a tab, but its route is still declared, hidden', () => {

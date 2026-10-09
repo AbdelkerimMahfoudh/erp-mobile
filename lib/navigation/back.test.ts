@@ -65,7 +65,9 @@ it('every route file is exactly one of: parent tab, child with the arrow, invisi
   for (const reason of [...Object.values(TAB_ROUTES), ...Object.values(REDIRECTS), ...Object.values(AUTH_ROOTS)]) assert.ok(reason.length > 10);
   // The routes without an arrow are exactly the tabs, the redirects and the authentication roots — nothing miscellaneous.
   assert.deepEqual(Object.keys(NO_BACK).sort(), [...Object.keys(TAB_ROUTES), ...Object.keys(REDIRECTS), ...Object.keys(AUTH_ROOTS)].sort());
-  assert.equal(Object.keys(TAB_ROUTES).length, 5);
+  // Seven parent tabs since the money services counter (D157) — a branch draws five at most, by its activity and
+  // the role (`tabBarFor`, pinned in registry.test.ts).
+  assert.equal(Object.keys(TAB_ROUTES).length, 7);
 });
 
 it('the routes without an arrow: /stores is an invisible redirect; branch choice and the access refusal are authentication roots', () => {
@@ -104,7 +106,7 @@ it('every parent is a real screen or tab, and following parents always ends at a
     for (let hops = 0; hops < 6 && !tabs.has(at); hops += 1) at = BACK_PARENTS[at];
     assert.ok(tabs.has(at), `${route} never reaches a tab (stopped at ${at})`);
   }
-  assert.deepEqual(Object.values(TABS), ['/', '/partners', '/money-hub', '/inventory', '/more']);
+  assert.deepEqual(Object.values(TABS), ['/', '/partners', '/agent-transactions', '/money-hub', '/inventory', '/agent-reports', '/more']);
 });
 
 it('with no history the arrow goes to the parent, with the route’s own parameters, never to a broken address', () => {
@@ -112,6 +114,10 @@ it('with no history the arrow goes to the parent, with the route’s own paramet
   assert.equal(backTarget('/expenses/new'), '/expenses');
   assert.equal(backTarget('/money'), '/money-hub');
   assert.equal(backTarget('/quick-sell'), '/');
+  // The counter flow is Home's action, as Quick sell is; one exchange returns to the exchanges (D157).
+  assert.equal(backTarget('/agent/new'), '/');
+  assert.equal(backTarget('/agent/[id]', { id: 'X-1' }), '/agent-transactions');
+  assert.equal(backTarget('/agent/reports'), '/money-hub');
   assert.equal(backTarget('/transfers/[id]', { id: 'T-1' }), '/transfers');
   // A payment returns to its own sale; without the sale's id, to the sales list.
   assert.equal(backTarget('/sales/pay/[id]', { id: '0190-ab' }), '/sales/0190-ab');

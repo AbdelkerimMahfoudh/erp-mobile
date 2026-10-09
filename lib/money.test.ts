@@ -255,7 +255,8 @@ it('Money’s words are in all three languages, and the old top cards’ are gon
   assert.match(en, /'moneyTab\.anchor\.body': 'Open the \{account\} app and enter the amount it shows now\. From now on, this app adds what is recorded here\.'/);
 });
 it('Outstanding payments and the other actions come from the registry', () => {
-  assert.match(overview, /visibleChildren\(hub, granted\)/);
+  // `moneyRows` since the money services counter (D157): the same Money children, with the counter's rows on its branches.
+  assert.match(overview, /moneyRows\(granted, activity\)/);
   assert.ok(!/'\/outstanding'|'\/expenses'|'\/closing'|'\/loans'/.test(overview), 'no route is written into the tab');
 });
 

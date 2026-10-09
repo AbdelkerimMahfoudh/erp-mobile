@@ -469,6 +469,9 @@ export const fr: Catalogue = {
   'tab.inventory': 'Stock',
   'tab.money': 'Argent',
   'tab.more': 'Plus',
+  'tab.transactions': 'Transactions',
+  'tab.exchanges': 'Échanges',
+  'tab.reports': 'Rapports',
 
   // ── Generic states ────────────────────────────────────────────────────────
   'state.loading': 'Chargement…',
@@ -1240,6 +1243,12 @@ export const fr: Catalogue = {
   'nav.stores': 'Boutiques partenaires',
   'nav.consignments': 'Dépôts-ventes',
   'nav.closing': 'Clôture du jour',
+  'nav.agent.transactions': 'Transactions',
+  'nav.agent.new': 'Nouvel échange',
+  'nav.agent.reports': 'Rapports des échanges',
+  'nav.agent.rebalance': 'Rééquilibrer caisse et soldes',
+  'nav.agent.providers': 'Opérateurs',
+  'nav.agent.positions': 'Caisse et soldes',
   'state.offline.banner': 'Pas de connexion — rien de ce que vous validez ne sera enregistré',
   'permission.notice.title': 'Vous ne pouvez pas faire ceci',
   'state.error.offline.title': 'Pas de connexion',
@@ -2673,6 +2682,8 @@ export const fr: Catalogue = {
   'hub.business.desc': 'Personnel, accès de l’entreprise et configuration de la boutique.',
   'hub.account.title': 'Compte et sécurité',
   'hub.account.desc': 'Vos appareils, la synchronisation et vos préférences.',
+  'hub.agent.title': 'Services d’argent mobile',
+  'hub.agent.desc': 'Espèces et crédit numérique échangés au comptoir, avec le solde de chaque opérateur.',
   'more.branch.switch': 'Changer de site',
   'more.notifications.a11y': 'Notifications',
   'more.sync.waiting': '{count} en attente d’envoi',
@@ -3806,4 +3817,5 @@ export const fr: Catalogue = {
   'reportPdf.severity.warning': 'À vérifier',
   'reportPdf.severity.error': 'Problème',
   'reportPdf.footer': 'Système de gestion de magasin d’électronique — chiffres issus des registres de la boutique sur le serveur',
+  'agent.next.body': 'Cette partie du comptoir d’argent mobile n’est pas encore dans cette version de l’application.',
 };

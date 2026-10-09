@@ -10,7 +10,7 @@
  * grants them renders what the phone renders for that role.
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import { useBranch } from '../lib/branch';
@@ -88,6 +88,9 @@ function signInAs(role: string, granted: readonly Permission[]) {
 
 const IMPORT_LABEL = t('nav.imports');
 
+/** Lets the cached reads resolve inside act: the entitlement decides what More lists (D157). */
+const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
 beforeEach(() => {
   (api.get as jest.Mock).mockReset();
   (api.get as jest.Mock).mockImplementation(async (path: string) => serve(path));
@@ -102,6 +105,7 @@ describe.each(ROLES)('More for the %s', (role, granted) => {
       </Harness>,
     );
     expect(await screen.findByText(t('tab.more'))).toBeTruthy();
+    await settle();
     expect(screen.queryByText(IMPORT_LABEL)).toBeNull();
     // Every section shown has at least one row; a section with nothing to show is not shown.
     const byId = new Map(allDestinations().map((d) => [d.id, d]));
@@ -111,6 +115,69 @@ describe.each(ROLES)('More for the %s', (role, granted) => {
       if (screen.queryByText(title)) expect(rows.length).toBeGreaterThan(0);
       else expect(rows).toHaveLength(0);
     }
+  });
+});
+
+/*
+ * More per activity (docs/21 D157): an agent counter lists nothing of the store; a combined branch lists Partner
+ * stores, because its tab bar is full; a shop does not repeat the Partners tab. The counter's keys are granted as the
+ * server grants them (migration 0090).
+ */
+const AGENT_KEYS: Record<string, Permission[]> = {
+  owner: ['agent.transaction.record', 'agent.transaction.view', 'agent.customer.reveal', 'agent.mistake.report', 'agent.transaction.reverse', 'agent.rebalance', 'agent.position.set', 'agent.report.view', 'agent.provider.manage'] as Permission[],
+  store_manager: ['agent.transaction.record', 'agent.transaction.view', 'agent.customer.reveal', 'agent.mistake.report', 'agent.transaction.reverse', 'agent.rebalance', 'agent.report.view'] as Permission[],
+  store_employee: ['agent.transaction.record', 'agent.transaction.view', 'agent.mistake.report'] as Permission[],
+};
+
+function serveActivity(activity: 'electronics' | 'money_agent' | 'both') {
+  (api.get as jest.Mock).mockImplementation(async (path: string) =>
+    path.startsWith('/entitlement')
+      ? { ...entitlement, seatsByStore: [{ branchId: 'b1', name: 'Boutique 1', activity, activityNext: null, seatsUsed: 1, paidSeats: 0, grantedSeats: 0, includedSeats: 1, seatLimit: 1, seatsAvailable: 0, overLimit: false }] }
+      : serve(path),
+  );
+}
+
+describe.each(ROLES)('More for the %s, per activity', (role, granted) => {
+  const all = [...granted, ...AGENT_KEYS[role]];
+  const storeRows = ['nav.sales', 'nav.returns', 'nav.catalog', 'nav.analytics', 'nav.goals', 'nav.stores', 'nav.consignments'] as const;
+
+  it('an agent-only branch lists nothing of the store', async () => {
+    serveActivity('money_agent');
+    signInAs(role, all);
+    render(
+      <Harness>
+        <MoreScreen />
+      </Harness>,
+    );
+    expect(await screen.findByText(t('nav.account'))).toBeTruthy();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/entitlement'));
+    await waitFor(() => {
+      for (const key of storeRows) expect(screen.queryByText(t(key))).toBeNull();
+    });
+  });
+
+  it('a combined branch lists Partner stores for whoever the Partners tab was for; a shop does not repeat the tab', async () => {
+    serveActivity('both');
+    signInAs(role, all);
+    const view = render(
+      <Harness>
+        <MoreScreen />
+      </Harness>,
+    );
+    expect(await screen.findByText(t('nav.account'))).toBeTruthy();
+    if (all.includes('consignment.view') || all.includes('connection.manage')) expect(await screen.findByText(t('nav.stores'))).toBeTruthy();
+    else expect(screen.queryByText(t('nav.stores'))).toBeNull();
+    view.unmount();
+
+    serveActivity('electronics');
+    render(
+      <Harness>
+        <MoreScreen />
+      </Harness>,
+    );
+    expect(await screen.findByText(t('nav.account'))).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText(t('nav.stores'))).toBeNull());
+    expect(screen.queryByText(t('nav.sales')) !== null).toBe(all.includes('sale.view'));
   });
 });
 

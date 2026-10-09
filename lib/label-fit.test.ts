@@ -66,14 +66,18 @@ test('the tab bar fits each name in the navigator’s own font, and keeps iOS’
   assert.match(tabs, /labelScale\(nameRoom, nameWidths\[nameKey\(names\[route\]\)\] \?\? 0\)/);
   assert.match(tabs, /tabBarLabelStyle: tabLabelStyle\(route\.name\),/);
   assert.match(tabs, /<TextMeasure\s+texts=\{shown\.map\(\(route\) => names\[route\]\)\}\s+style=\{\[DefaultTheme\.fonts\.medium, labelType\]\}\s+allowFontScaling=\{TAB_NAMES_SCALE\}/);
-  // The names measured are the names drawn: each shown tab's title, in the same order as the bar.
-  for (const [route, key] of [['index', 'tab.home'], ['partners', 'tab.partners'], ['money-hub', 'tab.money'], ['inventory', 'tab.inventory'], ['more', 'tab.more']]) {
+  // The names measured are the names drawn: each tab's title, keyed by its route — seven routes since the money
+  // services counter (D157), the agent tab named by `tabLabelKey` (Transactions on its own branch, Exchanges beside Stock).
+  for (const [route, key] of [['index', 'tab.home'], ['partners', 'tab.partners'], ['money-hub', 'tab.money'], ['inventory', 'tab.inventory'], ['agent-reports', 'tab.reports'], ['more', 'tab.more']]) {
     assert.ok(tabs.includes(`${route.includes('-') ? `'${route}'` : route}: t('${key}')`), `${route} measured as ${key}`);
     assert.match(tabs, new RegExp(`name="${route}"[\\s\\S]*?title: t\\('${key.replace('.', '\\.')}'\\)`), `${route} drawn as ${key}`);
   }
-  assert.match(tabs, /const shown = \['index', \.\.\.\(showPartners \? \['partners'\] : \[\]\), \.\.\.\(canSeeMoney \? \['money-hub'\] : \[\]\), 'inventory', 'more'\];/);
-  assert.match(tabs, /href: showPartners \? undefined : null/);
-  assert.match(tabs, /href: canSeeMoney \? undefined : null/);
+  assert.match(tabs, /'agent-transactions': t\(tabLabelKey\('agent', activity\)\),/);
+  assert.match(tabs, /name="agent-transactions"[\s\S]*?title: names\['agent-transactions'\],/);
+  // The shown tabs are the registry's bar, in its order; each hidden one is `href: null`.
+  assert.match(tabs, /const shown = bar\.map\(screenOfTab\);/);
+  assert.match(tabs, /href: shows\('partners'\) \? undefined : null/);
+  assert.match(tabs, /href: shows\('money'\) \? undefined : null/);
 });
 
 test('the store’s name in every tab’s header wraps instead of being cut', () => {

@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { businessAccess, type BusinessAccess } from './access';
+import { branchActivity, scheduledActivity, type Activity } from './activity';
 import { api } from './api-client';
+import { useBranch } from './branch';
 import { qk } from './query-keys';
 
 /**
@@ -31,6 +33,26 @@ export type SubscriptionStatus =
   | 'cancelled'
   | 'rejected';
 
+/**
+ * One store's line of the entitlement: its seats, and — the one thing the phone
+ * reads off it (D156) — what the branch is subscribed to do. `activity` is
+ * absent on a server older than the activity, which reads as `electronics`.
+ */
+export interface BranchSeat {
+  branchId: string;
+  name: string;
+  activity?: Activity;
+  /** A downgrade waiting for the next renewal; informational. */
+  activityNext?: Activity | null;
+  seatsUsed: number;
+  paidSeats: number;
+  grantedSeats?: number;
+  includedSeats: number;
+  seatLimit: number;
+  seatsAvailable: number;
+  overLimit: boolean;
+}
+
 export interface Entitlement {
   state: EntitlementState;
   periodEnd: string | null;
@@ -49,6 +71,8 @@ export interface Entitlement {
   isComplimentary: boolean;
   status: SubscriptionStatus;
   calculatedAt: string;
+  /** Per store, with each branch's activity (D156). Absent on an older server. */
+  seatsByStore?: BranchSeat[];
 }
 
 /** `enabled` lets the root gate ask only once there is a session to ask for. */
@@ -84,4 +108,24 @@ export function isStale(query: { data?: Entitlement; isStale: boolean; isError: 
 export function useBusinessAccess(): BusinessAccess {
   const query = useEntitlement();
   return businessAccess(query.data, isStale(query));
+}
+
+/**
+ * What the branch in use is subscribed to do (D156), from the same cached
+ * entitlement — `electronics` until the server has said otherwise, so a slow
+ * network or an older server leaves today's app exactly as it is. Read again
+ * on a branch switch and when the app returns to the foreground, as the
+ * permissions are (`hooks/useAuth.tsx`).
+ */
+export function useBranchActivity(): Activity {
+  const branchId = useBranch((s) => s.branchId);
+  const query = useEntitlement();
+  return branchActivity(query.data, branchId);
+}
+
+/** A downgrade the Owner scheduled for the branch in use, or null. Said, never acted on. */
+export function useScheduledActivity(): Activity | null {
+  const branchId = useBranch((s) => s.branchId);
+  const query = useEntitlement();
+  return scheduledActivity(query.data, branchId);
 }

@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Platform, View, useWindowDimensions } from 'react-native';
 import { DefaultTheme, Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Handshake, Boxes, Menu, Wallet } from 'lucide-react-native';
+import { ArrowRightLeft, ChartColumn, Home, Handshake, Boxes, Menu, Wallet } from 'lucide-react-native';
 import { useConnections } from '../../lib/consignment';
 import { incomingNeedingAction } from '../../lib/partners';
 import { ErrorState, TextMeasure } from '../../components/ui';
+import { activityAllows } from '../../lib/activity';
 import { useBranch } from '../../lib/branch';
+import { useBranchActivity, useEntitlement } from '../../lib/entitlement';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission, usePermissionStatus, usePermissionStore } from '../../lib/permissions';
-import { tabHubIsVisible } from '../../lib/navigation/registry';
+import { screenOfTab, type TabId } from '../../lib/navigation/back';
+import { tabBarFor, tabLabelKey } from '../../lib/navigation/registry';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { type as typeScale } from '../../lib/design/tokens';
 import { labelScale, tabLabelRoom } from '../../lib/label-fit';
@@ -22,15 +25,21 @@ const TAB_BAR_PADDING = 4;
 const TAB_NAMES_SCALE = Platform.OS === 'ios' ? false : undefined;
 
 /**
- * The tab bar, gated by role.
+ * The tab bar, gated by role and by what the branch is subscribed to do.
  *
  * A tab that 403s on tap is worse than no tab: it teaches staff the app is
  * unreliable. `href: null` removes the route from navigation entirely, so a
  * warehouse employee simply has no Sell tab rather than a broken one.
  *
- * The bar renders only once permissions resolve. Rendering first would show
- * every tab and then visibly remove some, which looks like a glitch and
- * invites a tap on something about to disappear.
+ * Which tabs a branch has is `tabBarFor` (lib/navigation/registry.ts, D157):
+ * a shop keeps Home · Partners · Money · Stock · More; an agent-only branch has
+ * Home · Transactions · Money · Reports · More; a combined branch Home ·
+ * Exchanges · Money · Stock · More — five tabs, never six. Seven routes are
+ * declared below; the activity and the role decide which five at most are drawn.
+ *
+ * The bar renders only once permissions and the branch's activity resolve.
+ * Rendering first would show every tab and then visibly remove some, which
+ * looks like a glitch and invites a tap on something about to disappear.
  */
 export default function TabsLayout() {
   const styles = useStyles();
@@ -41,22 +50,26 @@ export default function TabsLayout() {
   const { branchId } = useBranch();
   const granted = usePermissionStore((s) => s.granted);
   /*
+    The branch's activity, from the entitlement (D156). Waited for like the
+    permissions, so an agent counter never flashes the shop's bar first; an
+    entitlement that cannot be read leaves the shop's bar, as an older server
+    that knows no activity does.
+  */
+  const entitlement = useEntitlement();
+  const activity = useBranchActivity();
+  const bar = tabBarFor(activity, granted);
+  const shows = (tab: TabId) => bar.includes(tab);
+  /*
     Partners is shown to anybody who can see the stores this shop deals with
     or manage who it deals with. The list itself is `consignment.view`; the
-    badge counts only requests THIS user may answer (`connection.manage`).
+    badge counts only requests THIS user may answer (`connection.manage`). On a
+    combined branch Partners is a row of More, and the same count is a line of
+    Home's pending work instead of a badge (D157).
   */
   const canViewPartners = usePermission('consignment.view');
   const canManagePartners = usePermission('connection.manage');
-  const showPartners = canViewPartners || canManagePartners;
-  const connections = useConnections({ enabled: status === 'ready' && canViewPartners && Boolean(branchId) });
+  const connections = useConnections({ enabled: status === 'ready' && canViewPartners && Boolean(branchId) && activityAllows(activity, 'electronics') });
   const partnerBadge = incomingNeedingAction(connections.data?.rows, canManagePartners);
-  /*
-    Money is shown when the user can reach at least one of its children —
-    Results, Expenses, Loans, Outstanding — not when they are the Owner. The
-    Daily closing is reached from Home (docs/63), so somebody who only counts
-    the drawer finds it there.
-  */
-  const canSeeMoney = tabHubIsVisible(granted);
   const insets = useSafeAreaInsets();
   /*
     A 10-point label on a narrow phone. Five tabs on a 320-point screen leave each
@@ -73,17 +86,20 @@ export default function TabsLayout() {
     text or a long translation a name can be wider than its tab — French
     "Partenaires" at 320 points with 1.3× text needs 66 of 54 — so it is measured at
     full size, in the tab bar's own font, and drawn just small enough to fit. The
-    others keep their size; with ordinary text nothing changes.
+    others keep their size; with ordinary text nothing changes. The agent tab is
+    Transactions on its own branch and Exchanges beside Stock (`tabLabelKey`).
   */
   const [nameWidths, setNameWidths] = useState<Record<string, number>>({});
   const names: Record<string, string> = {
     index: t('tab.home'),
     partners: t('tab.partners'),
+    'agent-transactions': t(tabLabelKey('agent', activity)),
     'money-hub': t('tab.money'),
     inventory: t('tab.inventory'),
+    'agent-reports': t('tab.reports'),
     more: t('tab.more'),
   };
-  const shown = ['index', ...(showPartners ? ['partners'] : []), ...(canSeeMoney ? ['money-hub'] : []), 'inventory', 'more'];
+  const shown = bar.map(screenOfTab);
   const nameRoom = tabLabelRoom(width - 2 * Math.max(insets.left, insets.right), shown.length);
   const nameKey = (name: string) => `${labelType.fontSize}|${name}`;
   const tabLabelStyle = (route: string) => {
@@ -105,7 +121,7 @@ export default function TabsLayout() {
     );
   }
 
-  if (status !== 'ready') {
+  if (status !== 'ready' || entitlement.isPending) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.brand[600]} />
@@ -173,13 +189,27 @@ export default function TabsLayout() {
           name="partners"
           options={{
             title: t('tab.partners'),
-            href: showPartners ? undefined : null,
+            href: shows('partners') ? undefined : null,
             tabBarBadge: partnerBadge > 0 ? partnerBadge : undefined,
             tabBarAccessibilityLabel:
               partnerBadge > 0
                 ? t('partners.tab.a11y', { count: String(partnerBadge) })
                 : t('tab.partners'),
             tabBarIcon: ({ color, size }) => <Handshake color={color} size={size} />,
+          }}
+        />
+        {/*
+          The agent counter's exchanges (D157): Transactions on an agent-only
+          branch, Exchanges on a combined one, where it sits beside Money as
+          Partners does on a shop. Absent on a shop, and for a role that may not
+          read the exchanges.
+        */}
+        <Tabs.Screen
+          name="agent-transactions"
+          options={{
+            title: names['agent-transactions'],
+            href: shows('agent') ? undefined : null,
+            tabBarIcon: ({ color, size }) => <ArrowRightLeft color={color} size={size} />,
           }}
         />
         {/*
@@ -210,16 +240,30 @@ export default function TabsLayout() {
           name="money-hub"
           options={{
             title: t('tab.money'),
-            href: canSeeMoney ? undefined : null,
+            href: shows('money') ? undefined : null,
             tabBarIcon: ({ color, size }) => <Wallet color={color} size={size} />,
           }}
         />
-        {/* Everyone looks stock up — warehouse, sales and owner alike. */}
+        {/* Everyone looks stock up — warehouse, sales and owner alike — wherever the branch holds stock. */}
         <Tabs.Screen
           name="inventory"
           options={{
             title: t('tab.inventory'),
+            href: shows('stock') ? undefined : null,
             tabBarIcon: ({ color, size }) => <Boxes color={color} size={size} />,
+          }}
+        />
+        {/*
+          The counter's reports, as a tab of an agent-only branch where Stock
+          would be (D157). A combined branch reaches the same screen from Money,
+          beside Results, at /agent/reports.
+        */}
+        <Tabs.Screen
+          name="agent-reports"
+          options={{
+            title: t('tab.reports'),
+            href: shows('agentReports') ? undefined : null,
+            tabBarIcon: ({ color, size }) => <ChartColumn color={color} size={size} />,
           }}
         />
         {/* Always present: it holds the account and sign-out. */}

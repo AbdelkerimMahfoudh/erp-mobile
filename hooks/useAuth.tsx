@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { usePathname, useRouter, useSegments } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, clearSession } from '../lib/api-client';
 import { getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { useEntitlement } from '../lib/entitlement';
 import { usePermissionStore } from '../lib/permissions';
+import { qk } from '../lib/query-keys';
 import { clearExports } from '../lib/report-export';
 import { useSyncEngine } from '../lib/offline/use-sync';
 import {
@@ -235,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * redundant loads itself.
    */
   const branchId = branch.branchId;
+  const queryClient = useQueryClient();
   useEffect(() => {
     if (!user || !branchId) {
       // No branch selected (signed out, or switching) — grant nothing.
@@ -242,7 +245,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     void usePermissionStore.getState().load(branchId);
-  }, [user, branchId]);
+    // The branch's activity is read off the entitlement (D156): a switch reads it again, as it reads the role.
+    void queryClient.invalidateQueries({ queryKey: qk.entitlement() });
+  }, [user, branchId, queryClient]);
 
   /**
    * Re-resolve permissions when the app comes back to the foreground.
@@ -258,10 +263,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         void usePermissionStore.getState().refresh(branchId);
+        // An activity confirmed on the website while the app was in the background shows on this resume, not the next day's.
+        void queryClient.invalidateQueries({ queryKey: qk.entitlement() });
       }
     });
     return () => sub.remove();
-  }, [user, branchId]);
+  }, [user, branchId, queryClient]);
 
   /**
    * The offline queue follows the session (Milestone J).

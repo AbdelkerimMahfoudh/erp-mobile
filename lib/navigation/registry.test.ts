@@ -41,7 +41,13 @@ import {
   visibleHubs,
   tabHub,
   tabHubIsVisible,
+  tabBarFor,
+  tabLabelKey,
+  tabRouteOf,
+  moneyRows,
+  partnersTabVisible,
 } from './registry.ts';
+import { ACTIVITIES } from '../activity.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -73,6 +79,20 @@ const EMPLOYEE = new Set(
     ',',
   ),
 );
+
+/*
+ * The money services counter's nine keys, as the server grants them per role
+ * (`erp-backend/src/rbac/role-permissions.ts`, migration 0090; docs/73 §7): the
+ * counter records and reports a mistake, a Manager also reverses, rebalances,
+ * reveals a number and reads the reports, the Owner alone sets a float and
+ * configures the providers.
+ */
+const AGENT_OWNER = ['agent.transaction.record', 'agent.transaction.view', 'agent.customer.reveal', 'agent.mistake.report', 'agent.transaction.reverse', 'agent.rebalance', 'agent.position.set', 'agent.report.view', 'agent.provider.manage'];
+const AGENT_MANAGER = ['agent.transaction.record', 'agent.transaction.view', 'agent.customer.reveal', 'agent.mistake.report', 'agent.transaction.reverse', 'agent.rebalance', 'agent.report.view'];
+const AGENT_EMPLOYEE = ['agent.transaction.record', 'agent.transaction.view', 'agent.mistake.report'];
+const OWNER_ALL = new Set([...OWNER, ...AGENT_OWNER]);
+const MANAGER_ALL = new Set([...MANAGER, ...AGENT_MANAGER]);
+const EMPLOYEE_ALL = new Set([...EMPLOYEE, ...AGENT_EMPLOYEE]);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -244,8 +264,10 @@ it('an Owner sees the five business hubs — Money is a tab now, not a card', ()
   assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'loans', 'outstanding']);
 });
 
-it('an Owner sees every destination', () => {
-  const hidden = allDestinations().filter((d) => !canSee(d, OWNER));
+it('an Owner sees every destination on a combined branch', () => {
+  // A branch subscribed to both activities (D157) is the one place every screen belongs; the agent keys are the
+  // Owner's too (migration 0090).
+  const hidden = allDestinations().filter((d) => !canSee(d, OWNER_ALL, 'both'));
   assert.deepEqual(hidden.map((d) => d.id), []);
 });
 
@@ -262,9 +284,14 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
   assert.deepEqual(business, ['access'], 'a Manager holds neither user.manage nor settings.manage');
 
-  // A Manager cannot reach partner-store discovery, but does run consignments.
+  /*
+    A Manager runs consignments, and reaches the Partner stores screen the way the Partners tab is shown to them
+    (consignment.view): on a combined branch that row stands in for the tab (D157), so it follows the tab's own
+    rule instead of the Owner's. Finding a NEW partner stays `connection.manage`, gated inside the screen.
+  */
   const network = visibleChildren(hubById('network')!, MANAGER).map((c) => c.id);
-  assert.deepEqual(network, ['consignments']);
+  assert.deepEqual(network, ['stores', 'consignments']);
+  assert.equal(partnersTabVisible(MANAGER), true);
 });
 
 it('an Employee sees no money report, no imports and no loans', () => {
@@ -422,6 +449,7 @@ it('every route the old More screen linked to is still linked, unchanged', () =>
 // ── 10. RTL, structurally ────────────────────────────────────────────────────
 
 it('hub order is data, not layout — the registry knows nothing about direction', () => {
+  // The agent counter's hub (D157) sits beside Money: both are tabs, neither is a card on More.
   const src = fs.readFileSync(path.join(HERE, 'registry.ts'), 'utf8');
   for (const forbidden of ['I18nManager', 'isRTL', 'mirror(', 'flexDirection']) {
     assert.ok(
@@ -432,7 +460,7 @@ it('hub order is data, not layout — the registry knows nothing about direction
   // Same list, same order, whichever way the page reads.
   assert.deepEqual(
     HUBS.map((h) => h.id),
-    ['sales', 'stock', 'money', 'network', 'performance', 'business', 'account'],
+    ['sales', 'stock', 'money', 'agent', 'network', 'performance', 'business', 'account'],
   );
 });
 
@@ -548,28 +576,38 @@ it('the whole hub moved — Results, Expenses, Loans and Outstanding payments; t
 });
 
 /*
- * The bar as a user sees it: every declared tab except the ones taken off the
- * bar with `href: null`. Sell is still declared — its route and cart must keep
- * working — so it has to be excluded explicitly rather than by position.
- * (Partners milestone: Partners replaces Sell, superseding "Sell stays a tab".)
+ * The routes the bar declares, in source order — which is the bar's order. Since
+ * the activity (D157) every tab but Home and More is drawn or hidden by
+ * `shows(<tab>)`, the registry's `tabBarFor`; Sell is still declared — its route
+ * and cart must keep working — and is always off the bar.
  */
-const visibleTabs = (src: string) =>
-  [...src.matchAll(/<Tabs\.Screen\s+name="([a-z-]+)"([\s\S]*?)\/>/g)]
-    .filter(([, , body]) => !/href:\s*null\s*[,}]/.test(body))
-    .map((m) => m[1]);
+const declaredTabs = (src: string) => [...src.matchAll(/<Tabs\.Screen\s+name="([a-z-]+)"([\s\S]*?)\/>/g)].map((m) => ({ name: m[1], body: m[2] }));
 
-it('the bar order is Home, Partners, Money, Stock, More', () => {
-  assert.deepEqual(visibleTabs(TABS_LAYOUT()), ['index', 'partners', 'money-hub', 'inventory', 'more']);
+it('the shop’s bar is still Home, Partners, Money, Stock, More', () => {
+  // An electronics branch — every branch on a server older than the activity — keeps exactly today's bar.
+  for (const granted of [OWNER, MANAGER, EMPLOYEE]) {
+    assert.deepEqual(tabBarFor('electronics', granted), ['home', 'partners', 'money', 'stock', 'more']);
+  }
+  // Declared in that order, with the agent counter's two tabs where they stand on its bars.
+  assert.deepEqual(
+    declaredTabs(TABS_LAYOUT()).map((d) => d.name),
+    ['index', 'partners', 'agent-transactions', 'sell', 'money-hub', 'inventory', 'agent-reports', 'more'],
+  );
 });
 
 it('with Money directly beside Partners', () => {
-  const order = visibleTabs(TABS_LAYOUT());
-  assert.equal(order[order.indexOf('partners') + 1], 'money-hub');
+  const bar = tabBarFor('electronics', OWNER);
+  assert.equal(bar[bar.indexOf('partners') + 1], 'money');
 });
 
-it('Sell is off the bar but still a declared route', () => {
-  const sell = TABS_LAYOUT().match(/<Tabs\.Screen\s+name="sell"([\s\S]*?)\/>/);
-  assert.ok(sell && /href:\s*null/.test(sell[1]));
+it('every tab but Home and More is drawn by the registry’s bar; Sell is off the bar but still a declared route', () => {
+  const gate: Record<string, string> = { partners: 'partners', 'agent-transactions': 'agent', 'money-hub': 'money', inventory: 'stock', 'agent-reports': 'agentReports' };
+  for (const { name, body } of declaredTabs(TABS_LAYOUT())) {
+    if (name === 'index' || name === 'more') assert.ok(!/href:/.test(body), name + ' is always on the bar');
+    else if (name === 'sell') assert.match(body, /href:\s*null/);
+    else assert.match(body, new RegExp(`href: shows\\('${gate[name]}'\\) \\? undefined : null`), name + ' follows tabBarFor');
+  }
+  assert.match(TABS_LAYOUT(), /const bar = tabBarFor\(activity, granted\);/);
 });
 
 it('RTL is left to the navigator, not reversed a second time', () => {
@@ -582,8 +620,9 @@ it('RTL is left to the navigator, not reversed a second time', () => {
 it('the tab is hidden, not emptied, when no child is permitted', () => {
   assert.equal(tabHubIsVisible(new Set()), false);
   assert.equal(tabHubIsVisible(new Set(['sale.create'])), false, 'an unrelated permission grants nothing');
-  const src = TABS_LAYOUT();
-  assert.match(src, /href: canSeeMoney \? undefined : null/);
+  // The bar asks the registry (tabBarFor → tabHubIsVisible), so the tab follows its rows on every activity.
+  assert.ok(!tabBarFor('electronics', new Set()).includes('money'));
+  assert.ok(!tabBarFor('money_agent', new Set(['agent.transaction.view'])).includes('money'));
 });
 
 it('and is not restricted to the Owner', () => {
@@ -627,10 +666,10 @@ it('the tab screen is a primary screen, with no header and no back label', () =>
   assert.match(code, /t\('tab\.money'\)/, 'the title comes from the translated tab key');
 });
 
-it('the tab reads its children from the registry, not a second list', () => {
+it('the tab reads its rows from the registry, not a second list', () => {
   const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'money-hub.tsx'), 'utf8');
-  assert.match(src, /visibleChildren/);
-  assert.match(src, /tabHub\(\)/);
+  // `moneyRows`: the Money hub's children, and the agent counter's rows on a branch that has it (D157).
+  assert.match(src, /moneyRows\(granted, activity\)/);
   // A hardcoded route in the tab would let it drift from the registry.
   assert.ok(!/'\/expenses'|'\/closing'|'\/loans'/.test(src), 'routes must come from the registry');
 });
@@ -640,7 +679,10 @@ it('the old /hub/money deep link still resolves', () => {
   // destination they wanted, reached the way it is reached now.
   const src = fs.readFileSync(path.join(MOBILE, 'app', 'hub', '[id].tsx'), 'utf8');
   assert.match(src, /placement === 'tab'/);
-  assert.match(src, /router\.replace\('\/money-hub'/);
+  // Each tab hub lands on its own tab: Money's, and the agent counter's (D157).
+  assert.match(src, /router\.replace\(tabRouteOf\(hub\) as Href\)/);
+  assert.equal(tabRouteOf(hubById('money')!), '/money-hub');
+  assert.equal(tabRouteOf(hubById('agent')!), '/agent-transactions');
 });
 
 it('the tab route is classified, so the drift test does not report it missing', () => {
@@ -659,10 +701,14 @@ it('Money is named in all three languages', () => {
 // ── More as grouped sections (checkpoint 3e) ────────────────────────────────
 
 it('More groups name every business and account destination exactly once, and nothing else', () => {
-  // Destinations a tab already leads to are named once, with where, instead.
+  /*
+    Partner stores and consignments are named too since the activity (D157): on a combined branch the Partners tab
+    is off the bar, and these rows are the way there. Transfers stays a Stock-tab action — every branch with Stock
+    has it on the bar.
+  */
   const expected = HUBS.filter((h) => h.placement !== 'tab')
     .flatMap((h) => h.children.map((c) => c.id))
-    .filter((id) => !(id in REACHED_FROM_TABS))
+    .filter((id) => id !== 'transfers')
     .sort();
   const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
   assert.equal(new Set(grouped).size, grouped.length, 'a destination is in two More groups');
@@ -681,9 +727,10 @@ it('the groups follow the requested order', () => {
 
 it('what More leaves out is reachable from a tab, and says which', () => {
   const ids = new Set(allDestinations().map((d) => d.id));
-  for (const [id, reason] of Object.entries(REACHED_FROM_TABS)) {
+  for (const [id, { tab, where }] of Object.entries(REACHED_FROM_TABS)) {
     assert.ok(ids.has(id), id + ' must still be a real destination');
-    assert.match(reason, /tab/i, id + ' must name the tab that leads to it');
+    assert.match(where, /tab/i, id + ' must name the tab that leads to it');
+    assert.ok(tabBarFor('electronics', OWNER).includes(tab), id + ': its tab is on the shop’s bar');
   }
   const stock = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'inventory.tsx'), 'utf8');
   assert.match(stock, /router\.push\('\/transfers' as Href\)/, 'Stock must lead to transfers');
@@ -744,6 +791,114 @@ it('a path the router reports matches its pattern, parameters included', () => {
   assert.equal(isWriteOnlyRoute('/sales/pay'), false);
   assert.equal(isWriteOnlyRoute('/expenses'), false);
   assert.equal(isWriteOnlyRoute('/'), false);
+});
+
+// ── the activity dimension: a branch's bar, More and Money (docs/21 D156, D157) ──
+
+const ROLES_ALL = [
+  ['Owner', OWNER_ALL],
+  ['Manager', MANAGER_ALL],
+  ['Employee', EMPLOYEE_ALL],
+] as const;
+
+it('each activity and role gets its own bar, five tabs at most', () => {
+  const expected: Record<string, Record<string, string[]>> = {
+    electronics: {
+      Owner: ['home', 'partners', 'money', 'stock', 'more'],
+      Manager: ['home', 'partners', 'money', 'stock', 'more'],
+      Employee: ['home', 'partners', 'money', 'stock', 'more'],
+    },
+    // Home · Transactions · Money · Reports · More — an Employee does not read the reports, so has no Reports tab.
+    money_agent: {
+      Owner: ['home', 'agent', 'money', 'agentReports', 'more'],
+      Manager: ['home', 'agent', 'money', 'agentReports', 'more'],
+      Employee: ['home', 'agent', 'money', 'more'],
+    },
+    // Home · Exchanges · Money · Stock · More: Partners moves to More, the reports to Money.
+    both: {
+      Owner: ['home', 'agent', 'money', 'stock', 'more'],
+      Manager: ['home', 'agent', 'money', 'stock', 'more'],
+      Employee: ['home', 'agent', 'money', 'stock', 'more'],
+    },
+  };
+  for (const activity of ACTIVITIES) {
+    for (const [role, granted] of ROLES_ALL) {
+      assert.deepEqual(tabBarFor(activity, granted), expected[activity][role], `${activity} × ${role}`);
+    }
+  }
+  // Whatever anybody holds, never six tabs: a role holding every key there is.
+  const everything = new Set(knownPermissions());
+  for (const activity of ACTIVITIES) assert.ok(tabBarFor(activity, everything).length <= 5, activity);
+});
+
+it('the agent tab is Transactions on its own branch and Exchanges beside Stock', () => {
+  assert.equal(tabLabelKey('agent', 'money_agent'), 'tab.transactions');
+  assert.equal(tabLabelKey('agent', 'both'), 'tab.exchanges');
+  assert.equal(tabLabelKey('agentReports', 'money_agent'), 'tab.reports');
+  assert.equal(tabLabelKey('stock', 'both'), 'tab.inventory');
+});
+
+it('a shop shows no agent screen, whatever keys a role holds', () => {
+  for (const d of hubById('agent')!.children) assert.equal(canSee(d, OWNER_ALL, 'electronics'), false, d.id);
+  for (const [, granted] of ROLES_ALL) {
+    const more = visibleGroups(granted, 'electronics').flatMap((g) => g.destinations.map((d) => d.id));
+    assert.ok(!more.some((id) => id.startsWith('agent')), 'no agent row on More');
+    assert.ok(!moneyRows(granted, 'electronics').some((d) => d.id.startsWith('agent')), 'no agent row on Money');
+  }
+  // And the old rows, exactly: an electronics branch is unchanged.
+  assert.deepEqual(moneyRows(OWNER_ALL, 'electronics').map((d) => d.id), ['money', 'expenses', 'loans', 'outstanding']);
+  assert.deepEqual(moneyRows(OWNER, 'electronics').map((d) => d.id), visibleChildren(hubById('money')!, OWNER).map((d) => d.id));
+});
+
+it('an agent-only branch shows nothing of the store: no Sell, Stock, Catalog, Partners, Results or sales targets', () => {
+  const store = ['sales', 'returns', 'approvals', 'catalog', 'transfers', 'stores', 'consignments', 'analytics', 'goals', 'money', 'outstanding'];
+  for (const [role, granted] of ROLES_ALL) {
+    const shown = [
+      ...visibleGroups(granted, 'money_agent').flatMap((g) => g.destinations.map((d) => d.id)),
+      ...moneyRows(granted, 'money_agent').map((d) => d.id),
+    ];
+    for (const id of store) assert.ok(!shown.includes(id), `${role} sees ${id} on an agent-only branch`);
+    // What every branch has stays: the account, business access, expenses where the role reports them.
+    assert.ok(shown.includes('account') && shown.includes('access') && shown.includes('expenses'), role);
+  }
+});
+
+it('Money carries the counter’s rows: reports beside Results on a combined branch, never twice', () => {
+  assert.deepEqual(moneyRows(OWNER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers']);
+  // On an agent-only branch the reports are a tab, so not a row as well; Results and Outstanding are the store's.
+  assert.deepEqual(moneyRows(OWNER_ALL, 'money_agent').map((d) => d.id), ['expenses', 'loans', 'agent-rebalance', 'agent-providers']);
+  assert.deepEqual(moneyRows(MANAGER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance']);
+  // The providers are the Owner's alone (agent.provider.manage); an Employee reports expenses and nothing more.
+  assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'money_agent').map((d) => d.id), ['expenses']);
+  assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'both').map((d) => d.id), ['expenses']);
+});
+
+it('on a combined branch Partners is a row of More for whoever had the tab — and on a shop it is not repeated', () => {
+  for (const [role, granted] of ROLES_ALL) {
+    const more = (activity: 'electronics' | 'both') => visibleGroups(granted, activity).flatMap((g) => g.destinations.map((d) => d.id));
+    assert.equal(more('both').includes('stores'), partnersTabVisible(granted), role);
+    assert.ok(!more('electronics').includes('stores'), role + ': the tab leads there on a shop');
+    assert.ok(!more('electronics').includes('consignments'), role);
+    assert.equal(more('both').includes('consignments'), granted.has('consignment.view'), role);
+  }
+});
+
+it('the counter’s screens are offered by their own keys, and its forms are write-only', () => {
+  const ids = (granted: ReadonlySet<string>) => hubById('agent')!.children.filter((d) => canSee(d, granted, 'money_agent')).map((d) => d.id);
+  assert.deepEqual(ids(OWNER_ALL), ['agent-transactions', 'agent-new', 'agent-reports', 'agent-rebalance', 'agent-providers', 'agent-positions']);
+  assert.deepEqual(ids(MANAGER_ALL), ['agent-transactions', 'agent-new', 'agent-reports', 'agent-rebalance', 'agent-positions']);
+  assert.deepEqual(ids(EMPLOYEE_ALL), ['agent-transactions', 'agent-new', 'agent-positions']);
+  assert.equal(isWriteOnlyRoute('/agent/new'), true);
+  assert.equal(isWriteOnlyRoute('/agent/rebalance'), true);
+  assert.equal(isWriteOnlyRoute('/agent/0190-ab'), false, 'one exchange stays readable');
+  assert.equal(isWriteOnlyRoute('/agent-transactions'), false);
+});
+
+it('More and Money pass the branch’s activity to the registry', () => {
+  const more = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
+  assert.match(more, /visibleGroups\(granted, activity\)/);
+  const hub = fs.readFileSync(path.join(MOBILE, 'app', 'hub', '[id].tsx'), 'utf8');
+  assert.match(hub, /visibleChildren\(hub, granted, activity\)/);
 });
 
 console.log('\n' + passed + ' passed');

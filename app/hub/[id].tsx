@@ -6,7 +6,8 @@ import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermissionStore } from '../../lib/permissions';
-import { hubById, visibleChildren } from '../../lib/navigation/registry';
+import { useBranchActivity } from '../../lib/entitlement';
+import { hubById, tabRouteOf, visibleChildren } from '../../lib/navigation/registry';
 
 /**
  * One navigation hub.
@@ -25,17 +26,19 @@ export default function HubScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const granted = usePermissionStore((s) => s.granted);
+  const activity = useBranchActivity();
 
   const hub = typeof id === 'string' ? hubById(id) : undefined;
 
   /*
-    Money became a bottom tab (CP2), so /hub/money must not render a second
-    copy of it here. Old bookmarks and notification links keep working by
-    landing on the tab instead — the destination they wanted, reached the way
-    it is reached now.
+    Money became a bottom tab (CP2), and the agent counter is one too (D157),
+    so /hub/money and /hub/agent must not render a second copy of either here.
+    Old bookmarks and notification links keep working by landing on the hub's
+    own tab instead — the destination they wanted, reached the way it is
+    reached now.
   */
   useEffect(() => {
-    if (hub?.placement === 'tab') router.replace('/money-hub' as Href);
+    if (hub?.placement === 'tab') router.replace(tabRouteOf(hub) as Href);
   }, [hub, router]);
 
   if (hub?.placement === 'tab') return null;
@@ -49,7 +52,7 @@ export default function HubScreen() {
     );
   }
 
-  const children = visibleChildren(hub, granted);
+  const children = visibleChildren(hub, granted, activity);
 
   return (
     <Screen>

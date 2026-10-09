@@ -438,6 +438,9 @@ export const en = {
   'tab.inventory': 'Stock',
   'tab.money': 'Money',
   'tab.more': 'More',
+  'tab.transactions': 'Transactions',
+  'tab.exchanges': 'Exchanges',
+  'tab.reports': 'Reports',
 
   // ── Generic states ────────────────────────────────────────────────────────
   'state.loading': 'Loading…',
@@ -1161,6 +1164,12 @@ export const en = {
   'nav.stores': 'Partner stores',
   'nav.consignments': 'Consignments',
   'nav.closing': 'Daily closing',
+  'nav.agent.transactions': 'Transactions',
+  'nav.agent.new': 'New exchange',
+  'nav.agent.reports': 'Exchange reports',
+  'nav.agent.rebalance': 'Rebalance cash and floats',
+  'nav.agent.providers': 'Providers',
+  'nav.agent.positions': 'Cash and floats',
   'state.offline.banner': 'No connection — nothing you confirm will be saved',
   'permission.notice.title': 'You cannot do this',
   'state.error.offline.title': 'No connection',
@@ -2492,6 +2501,8 @@ export const en = {
   'hub.business.desc': 'People, business access and store configuration.',
   'hub.account.title': 'Account & security',
   'hub.account.desc': 'Your devices, sync and app preferences.',
+  'hub.agent.title': 'Money services',
+  'hub.agent.desc': 'Cash and digital credit exchanged at the counter, with each provider’s float.',
   'more.branch.switch': 'Switch branch',
   'more.notifications.a11y': 'Notifications',
   // Never says sent, and never says confirmed.
@@ -3628,4 +3639,5 @@ export const en = {
   'reportPdf.severity.warning': 'Check',
   'reportPdf.severity.error': 'Problem',
   'reportPdf.footer': 'Electronics Retail Management System — figures from the shop’s records on the server',
+  'agent.next.body': 'This part of the money services counter is not in this version of the app yet.',
 } as const;

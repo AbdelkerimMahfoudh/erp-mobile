@@ -1,5 +1,7 @@
 import type { Permission } from '../permissions';
 import type { TranslationKey } from '../i18n/keys';
+import { activityAllows, type Activity, type ActivityNeed } from '../activity.ts';
+import { TABS, type TabId } from './back.ts';
 
 /**
  * The single source of truth for what More contains (milestone N).
@@ -14,9 +16,22 @@ import type { TranslationKey } from '../i18n/keys';
  * ## Deliberately data only
  *
  * No React, no icon components, no `expo-router`. Every import here is
- * `import type`, which TypeScript erases, so this module can be loaded by a
- * plain `node` test with no bundler. That is what makes the drift test in
+ * `import type`, which TypeScript erases — or a pure sibling named with its
+ * extension (`../activity.ts`, `./back.ts`), which plain `node` resolves the
+ * way the offline modules are resolved — so this module can be loaded by a
+ * `node` test with no bundler. That is what makes the drift test in
  * `registry.test.ts` possible at all.
+ *
+ * ## The activity dimension (docs/21 D156, D157)
+ *
+ * A branch is subscribed to the electronics store, the money services agent
+ * counter, or both. A destination that belongs to one of them says so
+ * (`activity`), and `canSee` hides it on a branch of the other — a Sell or a
+ * Catalog row on an agent counter, an Exchanges row on a shop. `both` satisfies
+ * either. The bar itself is `tabBarFor`: Home · Partners · Money · Stock · More
+ * on a shop, unchanged; Home · Transactions · Money · Reports · More on an
+ * agent-only branch; Home · Exchanges · Money · Stock · More on a combined one,
+ * with Partners as a row of More and the agent reports a row of Money.
  *
  * Icons are named rather than imported for the same reason; the name is
  * resolved to a component in `components/navigation/hub-icons.ts`, whose
@@ -56,12 +71,18 @@ export type IconName =
   | 'Palette'
   | 'RefreshCw'
   | 'Clock'
-  | 'CircleUserRound';
+  | 'CircleUserRound'
+  | 'ArrowRightLeft'
+  | 'ChartColumn'
+  | 'Coins'
+  | 'Scale'
+  | 'Store';
 
 export type HubId =
   | 'sales'
   | 'stock'
   | 'money'
+  | 'agent'
   | 'network'
   | 'performance'
   | 'business'
@@ -88,6 +109,8 @@ export interface Destination {
   readonly perm?: Permission;
   /** Visible when the user holds ANY of these. */
   readonly anyOf?: readonly Permission[];
+  /** The activity this screen belongs to; shown only on a branch subscribed to it (D156). Absent: every branch. */
+  readonly activity?: ActivityNeed;
 }
 
 export interface Hub {
@@ -96,6 +119,10 @@ export interface Hub {
   readonly descriptionKey: TranslationKey;
   readonly icon: IconName;
   readonly placement: HubPlacement;
+  /** A `tab` hub's own tab, where its deep link lands. */
+  readonly tab?: TabId;
+  /** The activity the whole hub belongs to; its children inherit it. */
+  readonly activity?: ActivityNeed;
   readonly children: readonly Destination[];
 }
 
@@ -115,6 +142,8 @@ export const HUBS: readonly Hub[] = [
     descriptionKey: 'hub.sales.desc',
     icon: 'ReceiptText',
     placement: 'business',
+    // The store's own work: nothing here exists on an agent-only branch (D157).
+    activity: 'electronics',
     children: [
       { id: 'sales', route: '/sales', titleKey: 'nav.sales', icon: 'ReceiptText', perm: 'sale.view' },
       { id: 'returns', route: '/returns', titleKey: 'nav.returns', icon: 'Undo2', perm: 'return.view' },
@@ -133,6 +162,7 @@ export const HUBS: readonly Hub[] = [
     descriptionKey: 'hub.stock.desc',
     icon: 'Package',
     placement: 'business',
+    activity: 'electronics',
     children: [
       // Catalog stays ungated: Sell and Receive both depend on finding a
       // product, and the create/edit controls inside gate themselves.
@@ -157,17 +187,51 @@ export const HUBS: readonly Hub[] = [
       moment where both exist.
     */
     placement: 'tab',
+    tab: 'money',
     children: [
-      // `/money` is the Results screen: profit for the period Money shows.
-      { id: 'money', route: '/money', titleKey: 'nav.results', icon: 'BarChart3', perm: 'report.view' },
+      // `/money` is the Results screen: profit for the period Money shows — the
+      // store's sales less what they cost, which an agent counter has none of.
+      { id: 'money', route: '/money', titleKey: 'nav.results', icon: 'BarChart3', perm: 'report.view', activity: 'electronics' },
       // `expense.submit`, not `expense.manage`: the person who spent the money
-      // reports it, and the list scopes them to their own.
+      // reports it, and the list scopes them to their own. Every branch has expenses.
       { id: 'expenses', route: '/expenses', titleKey: 'nav.expenses', icon: 'Receipt', perm: 'expense.submit' },
       { id: 'loans', route: '/loans', titleKey: 'nav.loans', icon: 'HandCoins', perm: 'loan.view' },
       // Balances customers and partner stores still owe (0074). `report.view`,
       // like the figures: the whole branch's receivables are an Owner and
-      // Manager question. Quiet on purpose — a row, not a banner.
-      { id: 'outstanding', route: '/outstanding', titleKey: 'nav.outstanding', icon: 'Clock', perm: 'report.view' },
+      // Manager question. Quiet on purpose — a row, not a banner. Owed on sales,
+      // so a store's.
+      { id: 'outstanding', route: '/outstanding', titleKey: 'nav.outstanding', icon: 'Clock', perm: 'report.view', activity: 'electronics' },
+    ],
+  },
+  {
+    id: 'agent',
+    titleKey: 'hub.agent.title',
+    descriptionKey: 'hub.agent.desc',
+    icon: 'ArrowRightLeft',
+    /*
+      The Money Services Agent counter (docs/73 §5.1, D157): a bottom tab on a
+      branch subscribed to it — Transactions on an agent-only branch, Exchanges
+      beside Stock on a combined one — and nothing at all on a shop. Its
+      children are reached from the tabs, from Home and from Money, never from
+      More: the counter flow is Home's big action, the reports are the
+      agent-only branch's own tab (a combined branch finds them on Money beside
+      Results), rebalancing and the providers are rows of Money (`moneyRows`).
+    */
+    placement: 'tab',
+    tab: 'agent',
+    activity: 'money_agent',
+    children: [
+      // The tab itself, as Partners is for the stores: a deep link lands on it.
+      { id: 'agent-transactions', route: TABS.agent, titleKey: 'nav.agent.transactions', icon: 'ArrowRightLeft', perm: 'agent.transaction.view' },
+      // The counter flow: Home's one big action on an agent branch, and the Transactions tab's header.
+      { id: 'agent-new', route: '/agent/new', titleKey: 'nav.agent.new', icon: 'HandCoins', perm: 'agent.transaction.record' },
+      { id: 'agent-reports', route: '/agent/reports', titleKey: 'nav.agent.reports', icon: 'ChartColumn', perm: 'agent.report.view' },
+      // Money moved between the drawer and the floats, never an exchange (A8): the Owner and a Manager.
+      { id: 'agent-rebalance', route: '/agent/rebalance', titleKey: 'nav.agent.rebalance', icon: 'Scale', perm: 'agent.rebalance' },
+      // Rates and settlement, read from each provider's real schedule: the Owner alone (docs/73 §7).
+      { id: 'agent-providers', route: '/agent/providers', titleKey: 'nav.agent.providers', icon: 'Store', perm: 'agent.provider.manage' },
+      // The drawer, each float and each held commission now — the whole of Home's floats card.
+      { id: 'agent-positions', route: '/agent/positions', titleKey: 'nav.agent.positions', icon: 'Coins', perm: 'agent.transaction.view' },
     ],
   },
   {
@@ -176,11 +240,19 @@ export const HUBS: readonly Hub[] = [
     descriptionKey: 'hub.network.desc',
     icon: 'Building2',
     placement: 'business',
+    // Stock held between shops: a store's business, not an agent counter's.
+    activity: 'electronics',
     children: [
-      // Two entries on purpose: finding a partner is Owner-level company trust,
-      // running the consigned stock is operational and held by more people.
-      // Partners is a tab now; this row keeps More's link to it and lands on the tab.
-      { id: 'stores', route: '/partners', titleKey: 'nav.stores', icon: 'Building2', perm: 'connection.manage' },
+      /*
+        Two entries on purpose: finding a partner is Owner-level company trust,
+        running the consigned stock is operational and held by more people.
+        Partners is a tab on an electronics shop; on a combined branch the tab
+        bar is full and this row IS the way to the Partners screen (D157), so
+        it is shown to whoever the tab was shown to — anybody who may see the
+        stores this shop deals with, or manage who it deals with — never to the
+        Owner alone.
+      */
+      { id: 'stores', route: '/partners', titleKey: 'nav.stores', icon: 'Building2', anyOf: ['consignment.view', 'connection.manage'] },
       { id: 'consignments', route: '/consignments', titleKey: 'nav.consignments', icon: 'Handshake', perm: 'consignment.view' },
     ],
   },
@@ -190,6 +262,8 @@ export const HUBS: readonly Hub[] = [
     descriptionKey: 'hub.performance.desc',
     icon: 'BarChart3',
     placement: 'business',
+    // Sales analyses and sales targets: the store's; the counter's reports are its own tab.
+    activity: 'electronics',
     children: [
       { id: 'analytics', route: '/analytics', titleKey: 'nav.analytics', icon: 'BarChart3', perm: 'report.view' },
       // Ungated: an employee with a personal target must be able to see it, and
@@ -251,32 +325,40 @@ export interface MoreGroup {
 }
 
 export const MORE_GROUPS: readonly MoreGroup[] = [
-  { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals'] },
+  // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
+  { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
   { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 
 /**
- * Destinations deliberately NOT repeated on More, because a bottom tab already
- * leads to them — each with where. They stay registry destinations (their
- * `/hub/[id]` deep links and permissions are unchanged); More simply does not
- * list the same screen a second time.
+ * Destinations NOT repeated on More while the bottom tab that leads to them is
+ * on the bar — each with which tab, and where on it. They stay registry
+ * destinations (their `/hub/[id]` deep links and permissions are unchanged);
+ * More simply does not list the same screen a second time. When the tab is not
+ * on the bar — Partners on a combined branch (D157) — the row is the way there.
  */
-export const REACHED_FROM_TABS: Readonly<Record<string, string>> = {
-  transfers: 'Stock tab — the transfers button in its header.',
-  stores: 'Partners tab — it is this list.',
-  consignments: 'Partners tab — the Consignments row under the stores.',
+export const REACHED_FROM_TABS: Readonly<Record<string, { tab: TabId; where: string }>> = {
+  transfers: { tab: 'stock', where: 'Stock tab — the transfers button in its header.' },
+  stores: { tab: 'partners', where: 'Partners tab — it is this list.' },
+  consignments: { tab: 'partners', where: 'Partners tab — the Consignments row under the stores.' },
 };
 
-/** The More groups this user may be offered, each with its permitted destinations; empty groups omitted. */
-export function visibleGroups(granted: ReadonlySet<string>): { group: MoreGroup; destinations: Destination[] }[] {
+/**
+ * The More groups this user may be offered on a branch of this activity, each
+ * with its permitted destinations; empty groups omitted. A destination whose
+ * tab is on the bar is left to the tab.
+ */
+export function visibleGroups(granted: ReadonlySet<string>, activity: Activity = 'electronics'): { group: MoreGroup; destinations: Destination[] }[] {
   const byId = new Map(allDestinations().map((d) => [d.id, d]));
+  const bar = tabBarFor(activity, granted);
   return MORE_GROUPS.map((group) => ({
     group,
     destinations: group.destinationIds
       .map((id) => byId.get(id))
-      .filter((d): d is Destination => d !== undefined && canSee(d, granted)),
+      .filter((d): d is Destination => d !== undefined && canSee(d, granted, activity))
+      .filter((d) => !(d.id in REACHED_FROM_TABS && bar.includes(REACHED_FROM_TABS[d.id].tab))),
   })).filter((entry) => entry.destinations.length > 0);
 }
 
@@ -300,6 +382,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/imports/[id]': 'One stock file being checked before anything is added, opened from Import stock.',
   '/more': 'Bottom tab — this screen itself.',
   '/money-hub': 'Bottom tab — Money. Its children are registry destinations; the tab itself is a container, like /more.',
+  '/agent-reports': 'Bottom tab — Reports of an agent-only branch (D157): the same screen as /agent/reports, which a combined branch reaches from Money. A container, like /money-hub.',
+  '/agent/[id]': 'One exchange of the agent counter, opened from the Transactions tab.',
   '/login': 'Authentication, reached when signed out. Accounts are set up by the organisation; the app offers no self-registration (docs/21, 2026-10-05).',
   // Shown INSTEAD of the app when the server says the business is closed
   // (pending, suspended, cancelled, refused). Not a destination anybody navigates to on purpose.
@@ -357,6 +441,9 @@ export const WRITE_ONLY_ROUTES: Readonly<Record<string, string>> = {
   '/catalog/edit': 'A product change.',
   '/unit/edit': 'A stock correction.',
   '/pricing/unit': 'A price.',
+  // The agent counter's two forms (D157): an exchange recorded, money moved between the drawer and the floats.
+  '/agent/new': 'An agent exchange.',
+  '/agent/rebalance': 'A rebalancing of the drawer and the floats.',
 };
 
 /** Whether a path the router reports (`/sales/pay/0190-ab`) is one of the write-only screens: segment by segment, a `[param]` matching any one segment. */
@@ -368,16 +455,22 @@ export function isWriteOnlyRoute(pathname: string): boolean {
   });
 }
 
-/** Whether a destination should be offered, given what the server granted. */
-export function canSee(destination: Destination, granted: ReadonlySet<string>): boolean {
+/**
+ * Whether a destination should be offered, given what the server granted and
+ * what the branch is subscribed to. The activity defaults to `electronics`,
+ * which is what every branch is on a server older than the activity — so a
+ * caller that does not know keeps today's app.
+ */
+export function canSee(destination: Destination, granted: ReadonlySet<string>, activity: Activity = 'electronics'): boolean {
   if (destination.perm && !granted.has(destination.perm)) return false;
   if (destination.anyOf && !destination.anyOf.some((p) => granted.has(p))) return false;
-  return true;
+  const hub = HUBS.find((h) => h.children.includes(destination));
+  return activityAllows(activity, destination.activity ?? hub?.activity);
 }
 
-/** The children of one hub this user may be offered, in registry order. */
-export function visibleChildren(hub: Hub, granted: ReadonlySet<string>): Destination[] {
-  return hub.children.filter((c) => canSee(c, granted));
+/** The children of one hub this user may be offered on a branch of this activity, in registry order. */
+export function visibleChildren(hub: Hub, granted: ReadonlySet<string>, activity: Activity = 'electronics'): Destination[] {
+  return hub.children.filter((c) => canSee(c, granted, activity));
 }
 
 /**
@@ -389,9 +482,10 @@ export function visibleChildren(hub: Hub, granted: ReadonlySet<string>): Destina
 export function visibleHubs(
   granted: ReadonlySet<string>,
   placement?: HubPlacement,
+  activity: Activity = 'electronics',
 ): { hub: Hub; children: Destination[] }[] {
   return HUBS.filter((h) => placement === undefined || h.placement === placement)
-    .map((hub) => ({ hub, children: visibleChildren(hub, granted) }))
+    .map((hub) => ({ hub, children: visibleChildren(hub, granted, activity) }))
     .filter((entry) => entry.children.length > 0);
 }
 
@@ -400,28 +494,111 @@ export function hubById(id: string): Hub | undefined {
   return HUBS.find((h) => h.id === id);
 }
 
+/** One destination by id; a wrong id is a programming error, said loudly. */
+function destination(id: string): Destination {
+  const found = allDestinations().find((d) => d.id === id);
+  if (!found) throw new Error(`no destination "${id}" in the navigation registry`);
+  return found;
+}
+
 /** Every destination across every hub, for tests and audits. */
 export function allDestinations(): Destination[] {
   return HUBS.flatMap((h) => h.children);
 }
 
-/** The hub rendered as a bottom tab, if there is one. */
+/** The Money hub — the first hub that became a tab (CP2); the agent counter's is `hubById('agent')`. */
 export function tabHub(): Hub | undefined {
-  return HUBS.find((h) => h.placement === 'tab');
+  return hubById('money');
+}
+
+/**
+ * Whether the Partners tab is worth showing: to anybody who can see the stores
+ * this shop deals with, or manage who it deals with — the `stores` destination's
+ * own rule, so the tab and the More row that stands in for it never disagree.
+ */
+export function partnersTabVisible(granted: ReadonlySet<string>): boolean {
+  return canSee(destination('stores'), granted, 'electronics');
+}
+
+/**
+ * The rows the Money tab offers under its figures, in reading order: the Money
+ * hub's own children, with the agent counter's reports beside Results and its
+ * rebalancing and providers after — only on a branch subscribed to the counter.
+ * The reports are a row only where they are not a tab of their own: an
+ * agent-only branch has them on the bar, a combined branch finds them here
+ * (D157). Decided by the activity alone, so the bar and these rows never ask
+ * each other.
+ */
+const MONEY_ROW_ORDER = ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers'] as const;
+
+export function moneyRows(granted: ReadonlySet<string>, activity: Activity = 'electronics'): Destination[] {
+  const reportsOnTheBar = activity === 'money_agent';
+  return MONEY_ROW_ORDER.map((id) => destination(id))
+    .filter((d) => canSee(d, granted, activity))
+    .filter((d) => !(d.id === 'agent-reports' && reportsOnTheBar));
 }
 
 /**
  * Whether the Money tab should appear at all.
  *
- * Visible when the user can reach **at least one** child. Deliberately not
- * Owner-only: a store manager who can count the drawer needs the tab that
+ * Visible when the user can reach **at least one** of its rows. Deliberately
+ * not Owner-only: a store manager who can count the drawer needs the tab that
  * holds the daily closing, and hard-coding a role here would take it away
  * from exactly the person the closing workflow exists for.
  *
  * When nothing is reachable the tab is removed entirely rather than shown
  * empty — a tab that opens onto nothing teaches people the app lies.
  */
-export function tabHubIsVisible(granted: ReadonlySet<string>): boolean {
-  const hub = tabHub();
-  return hub !== undefined && visibleChildren(hub, granted).length > 0;
+export function tabHubIsVisible(granted: ReadonlySet<string>, activity: Activity = 'electronics'): boolean {
+  return moneyRows(granted, activity).length > 0;
+}
+
+/**
+ * The bottom bar of a branch, by its activity and the role (docs/73 §5.1, D157):
+ *
+ *  - a shop (`electronics`): Home · Partners · Money · Stock · More — unchanged;
+ *  - an agent-only branch (`money_agent`): Home · Transactions · Money · Reports · More,
+ *    with no Stock, no Partners and no Sell anywhere;
+ *  - a combined branch (`both`): Home · Exchanges · Money · Stock · More — five,
+ *    never six: Partners becomes a row of More, the agent reports a row of Money.
+ *
+ * Each tab still needs its permission: a tab that 403s on tap is worse than
+ * none. Order is fixed; a hidden tab is simply absent.
+ */
+export function tabBarFor(activity: Activity, granted: ReadonlySet<string>): TabId[] {
+  const sells = activityAllows(activity, 'electronics');
+  const exchanges = activityAllows(activity, 'money_agent');
+  const tabs: TabId[] = ['home'];
+  if (sells && !exchanges && partnersTabVisible(granted)) tabs.push('partners');
+  if (exchanges && canSee(destination('agent-transactions'), granted, activity)) tabs.push('agent');
+  if (tabHubIsVisible(granted, activity)) tabs.push('money');
+  if (sells) tabs.push('stock');
+  if (exchanges && !sells && canSee(destination('agent-reports'), granted, activity)) tabs.push('agentReports');
+  tabs.push('more');
+  return tabs;
+}
+
+/** Where a tab hub's deep link (`/hub/money`, `/hub/agent`) lands: its own tab. */
+export function tabRouteOf(hub: Hub): string {
+  return TABS[hub.tab ?? 'money'];
+}
+
+/** The name a tab is drawn with: the agent tab says Transactions on its own branch and Exchanges beside Stock. */
+export function tabLabelKey(tab: TabId, activity: Activity): TranslationKey {
+  switch (tab) {
+    case 'home':
+      return 'tab.home';
+    case 'partners':
+      return 'tab.partners';
+    case 'agent':
+      return activity === 'both' ? 'tab.exchanges' : 'tab.transactions';
+    case 'money':
+      return 'tab.money';
+    case 'stock':
+      return 'tab.inventory';
+    case 'agentReports':
+      return 'tab.reports';
+    default:
+      return 'tab.more';
+  }
 }

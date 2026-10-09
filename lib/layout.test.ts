@@ -241,7 +241,8 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   // Pull-to-refresh reads the business day again, so a tab left open across 06:00 moves on with the card.
   assert.match(src, /const dayQuery = useBusinessDay\(\{ enabled: canCount \}\);\s*const refetchDay = dayQuery\.refetch;/);
   assert.match(src, /\? \(\) => \{\s*if \(canCount\) void refetchDay\(\);\s*void overview\.refetch\(\);/);
-  assert.match(src, /visibleChildren\(hub, granted\)/, 'actions come from the registry');
+  // From the registry, by role and by what the branch is subscribed to (D157: the counter's rows on an agent branch).
+  assert.match(src, /moneyRows\(granted, activity\)/, 'actions come from the registry');
   assert.match(src, /enabled: canViewFigures/, 'figures need report.view');
 });
 

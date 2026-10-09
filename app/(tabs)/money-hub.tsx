@@ -38,11 +38,11 @@ import { useMoneyOverview, useSalesByDay, type SalesDay } from '../../lib/money-
 import { ApiError } from '../../lib/api-client';
 import { useReviewOpening } from '../../lib/closing';
 import { openingMethodsOf, type OpeningMoneyInput } from '../../lib/opening-money';
-import { tabHub, visibleChildren } from '../../lib/navigation/registry';
+import { moneyRows } from '../../lib/navigation/registry';
 import { usePeriod, type PeriodKey } from '../../lib/period';
 import { useBusinessDay, usePeriodRange } from '../../lib/home';
 import { usePermission, usePermissionStore } from '../../lib/permissions';
-import { useBusinessAccess } from '../../lib/entitlement';
+import { useBranchActivity, useBusinessAccess } from '../../lib/entitlement';
 import { useSales } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { useTodayOnArrival } from '../../lib/use-tab-arrival';
@@ -77,6 +77,9 @@ const DAYS_PREVIEW = 3;
  * 4. **Where to go** — Results, Expenses, Loans and Outstanding payments, from
  *    the navigation registry so the tab cannot drift from it (the Daily closing
  *    is reached from Home, docs/63), and, for the Owner, the company accounts.
+ *    On a branch with the money services counter the registry adds its rows
+ *    (D157): the exchange reports beside Results on a combined branch,
+ *    rebalancing and the providers after.
  *
  * Every figure is the server's. The phone chooses words, never amounts. The
  * figures need `report.view`; somebody who only counts the drawer or reports
@@ -139,8 +142,9 @@ export default function MoneyTabScreen() {
   const sales = useSales({ from: range.from, to: range.to }, { enabled: canViewFigures && key === 'today' });
   const days = useSalesByDay(range.from, range.to, { enabled: canViewFigures && key !== 'today' });
 
-  const hub = tabHub();
-  const actions = hub ? visibleChildren(hub, granted) : [];
+  // The rows come from the registry, by role and by what the branch is subscribed to (D157).
+  const activity = useBranchActivity();
+  const actions = moneyRows(granted, activity);
   const expenses = actions.find((c) => c.id === 'expenses');
   const data = overview.data;
   const preview = (sales.data?.pages[0]?.rows ?? []).slice(0, SALES_PREVIEW);

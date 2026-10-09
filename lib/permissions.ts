@@ -160,6 +160,25 @@ export const PERMISSIONS = [
   'integrations.manage',
   'price.edit',
   'catalog.manage',
+  /**
+   * The Money Services Agent counter (docs/73 §7, D154–D157; migration 0090).
+   * Nine keys, granted as the catalogue's patterns are: the counter records and
+   * reports a mistake (every store role); a Manager reverses, rebalances and
+   * reads the reports; the Owner alone sets a float's position and configures
+   * the providers — `agent.position.set` and `agent.provider.manage` follow the
+   * `money.anchor.record` precedent and are never delegated. They mean nothing
+   * on a branch whose activity is `electronics`: the server refuses every agent
+   * write there (D156), and the phone shows no agent screen.
+   */
+  'agent.transaction.record',
+  'agent.transaction.view',
+  'agent.customer.reveal',
+  'agent.mistake.report',
+  'agent.transaction.reverse',
+  'agent.rebalance',
+  'agent.position.set',
+  'agent.report.view',
+  'agent.provider.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

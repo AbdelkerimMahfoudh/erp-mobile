@@ -433,6 +433,9 @@ export const ar: Catalogue = {
   'tab.inventory': 'المخزون',
   'tab.money': 'المال',
   'tab.more': 'المزيد',
+  'tab.transactions': 'المعاملات',
+  'tab.exchanges': 'المبادلات',
+  'tab.reports': 'التقارير',
 
   // ── Generic states ────────────────────────────────────────────────────────
   'state.loading': 'جارٍ التحميل…',
@@ -1151,6 +1154,12 @@ export const ar: Catalogue = {
   'nav.stores': 'المتاجر الشريكة',
   'nav.consignments': 'بضاعة الأمانة',
   'nav.closing': 'الإغلاق اليومي',
+  'nav.agent.transactions': 'المعاملات',
+  'nav.agent.new': 'مبادلة جديدة',
+  'nav.agent.reports': 'تقارير المبادلات',
+  'nav.agent.rebalance': 'موازنة النقد والأرصدة',
+  'nav.agent.providers': 'المزوّدون',
+  'nav.agent.positions': 'النقد والأرصدة',
   'state.offline.banner': 'لا يوجد اتصال — لن يُحفظ أي شيء تؤكّده الآن',
   'permission.notice.title': 'لا يمكنك القيام بهذا',
   'state.error.offline.title': 'لا يوجد اتصال',
@@ -2433,6 +2442,8 @@ export const ar: Catalogue = {
   'hub.business.desc': 'الموظفون وصلاحية الوصول وإعدادات المتجر.',
   'hub.account.title': 'الحساب والأمان',
   'hub.account.desc': 'أجهزتك والمزامنة وتفضيلات التطبيق.',
+  'hub.agent.title': 'الخدمات المالية',
+  'hub.agent.desc': 'النقد والرصيد الرقمي المتبادلان عند الشباك، مع رصيد كل مزوّد.',
   'more.branch.switch': 'تغيير الفرع',
   'more.notifications.a11y': 'الإشعارات',
   'more.sync.waiting': '{count} بانتظار الإرسال',
@@ -3565,4 +3576,5 @@ export const ar: Catalogue = {
   'reportPdf.severity.warning': 'للتحقق',
   'reportPdf.severity.error': 'مشكلة',
   'reportPdf.footer': 'نظام إدارة متاجر الإلكترونيات — أرقام من سجلات المتجر على الخادم',
+  'agent.next.body': 'هذا الجزء من شباك الخدمات المالية غير متوفر بعد في هذا الإصدار من التطبيق.',
 };

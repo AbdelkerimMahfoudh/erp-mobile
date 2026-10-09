@@ -33,7 +33,8 @@ import { useBranch } from '../../lib/branch';
 import { useAuth } from '../../hooks/useAuth';
 import { useConnectivity } from '../../lib/connectivity';
 import { dateLocaleFor } from '../../lib/date-locale';
-import { useBusinessAccess } from '../../lib/entitlement';
+import { activityAllows } from '../../lib/activity';
+import { useBranchActivity, useBusinessAccess } from '../../lib/entitlement';
 import { usePermission, usePermissionStatus } from '../../lib/permissions';
 import { getLanguage, t as translate, useTranslation } from '../../lib/i18n';
 import { isolateLtr } from '../../lib/design/direction';
@@ -78,8 +79,13 @@ export default function HomeScreen() {
   useTodayOnArrival(() => setPeriod('today'));
 
   const permissionsReady = usePermissionStatus() === 'ready';
-  const canSell = usePermission('sale.create');
-  const canReceive = usePermission('purchase.manage');
+  /*
+    What the branch is subscribed to do (D156, D157): an agent-only counter has no Sell, no Receive and no sales
+    figures — the store's own cards would only ever read zero there.
+  */
+  const sells = activityAllows(useBranchActivity(), 'electronics');
+  const canSell = usePermission('sale.create') && sells;
+  const canReceive = usePermission('purchase.manage') && sells;
   const canViewTransfers = usePermission('transfer.view');
   const canViewReturns = usePermission('return.view');
   const canCount = usePermission('closing.count');
@@ -257,7 +263,7 @@ export default function HomeScreen() {
         </InlineNotice>
       ) : null}
 
-      {data?.figures !== undefined || home.isPending ? (
+      {sells && (data?.figures !== undefined || home.isPending) ? (
         <View style={styles.block}>
           <SegmentedControl<HomePeriod>
             value={period}
@@ -348,7 +354,7 @@ export default function HomeScreen() {
       {data ? (
         <>
           {/* ── Top boutique · all time ── */}
-          {data.partners.available ? (
+          {sells && data.partners.available ? (
             <Card style={styles.card}>
               <View style={styles.cardHead}>
                 <Text variant="heading" style={styles.flex}>
@@ -381,26 +387,28 @@ export default function HomeScreen() {
           ) : null}
 
           {/* ── Latest phones received ── */}
-          <Card style={styles.card}>
-            <View style={styles.cardHead}>
-              <Text variant="heading" style={styles.flex}>
-                {t('home.arrivals.title')}
-              </Text>
-              <SeeMore onPress={() => router.push({ pathname: '/(tabs)/inventory', params: { category: 'phone', status: 'all', sort: 'received' } } as Href)} />
-            </View>
-            {data.arrivals.length === 0 ? (
-              <Text variant="caption" tone="secondary">
-                {t('home.arrivals.empty')}
-              </Text>
-            ) : (
-              data.arrivals.map((a, i) => (
-                <View key={a.unitId}>
-                  {i > 0 ? <Divider /> : null}
-                  <ArrivalRow arrival={a} storeToday={data.businessDay.localDate} />
-                </View>
-              ))
-            )}
-          </Card>
+          {sells ? (
+            <Card style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text variant="heading" style={styles.flex}>
+                  {t('home.arrivals.title')}
+                </Text>
+                <SeeMore onPress={() => router.push({ pathname: '/(tabs)/inventory', params: { category: 'phone', status: 'all', sort: 'received' } } as Href)} />
+              </View>
+              {data.arrivals.length === 0 ? (
+                <Text variant="caption" tone="secondary">
+                  {t('home.arrivals.empty')}
+                </Text>
+              ) : (
+                data.arrivals.map((a, i) => (
+                  <View key={a.unitId}>
+                    {i > 0 ? <Divider /> : null}
+                    <ArrivalRow arrival={a} storeToday={data.businessDay.localDate} />
+                  </View>
+                ))
+              )}
+            </Card>
+          ) : null}
 
           {/*
             ── The business day: where the Daily closing is reached — it left the Money list (docs/63). One clear
