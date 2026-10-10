@@ -147,6 +147,8 @@ function AddProviderSheet({ open, onClose, onAdded }: { open: boolean; onClose: 
     setKind(null);
     setLabel('');
     setError(null);
+    // The submission ends with the sheet: the same name added another time is a new request, never a replay (D160).
+    create.reset();
     onClose();
   };
   const save = () => {

@@ -26,6 +26,7 @@ import { usePermissionStore, type Permission } from '../lib/permissions';
 import { useI18n, t } from '../lib/i18n';
 import { isolateLtr } from '../lib/design/direction';
 import type { QueueItem } from '../lib/offline/queue-rules';
+import { push as routerPush } from './mocks/expo-router';
 
 const mockParams: { id?: string } = {};
 jest.mock('expo-router', () => ({
@@ -351,7 +352,31 @@ describe('providers', () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect((api.post as jest.Mock).mock.calls[0]).toEqual([
       '/agent/providers/blank/configs',
-      { rateInBp: 150, rateOutBp: null, sameRateBothDirections: false, commissionDestination: null, principalFeeMode: null, referenceRule: null, reason: 'Schedule of October' },
+      // With its request key (D160): saved again after a lost answer, it is the same version, never a second one.
+      { clientRequestId: expect.any(String), rateInBp: 150, rateOutBp: null, sameRateBothDirections: false, commissionDestination: null, principalFeeMode: null, referenceRule: null, reason: 'Schedule of October' },
     ]);
+  });
+
+  it('adding a provider sends one request key per submission: a retry after a lost answer reuses it, and a replayed answer is a success (D160)', async () => {
+    signIn('owner', OWNER, 'money_agent');
+    const created = { ...providers.providers[1], id: 'p-new', label: 'Sedad', kind: 'sedad' };
+    (api.post as jest.Mock).mockRejectedValueOnce(new RequestTimeout()).mockResolvedValueOnce({ ...created, replayed: true });
+    mount(<AgentProvidersScreen />);
+    fireEvent.press(await screen.findByText(t('agent.providers.add')));
+    // The sheet's chip (the list behind it names a Sedad too); choosing it fills its own name.
+    await screen.findByText(t('agent.providers.kind.other'));
+    fireEvent.press(screen.getAllByText(t('agent.providers.kind.sedad')).at(-1)!);
+    fireEvent.press(screen.getByText(t('agent.providers.add.save')));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+    await settle();
+    // The answer was lost: Save again is the same submission, under the same key.
+    fireEvent.press(screen.getByText(t('agent.providers.add.save')));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+    const [[path, first], [, second]] = (api.post as jest.Mock).mock.calls;
+    expect(path).toBe('/agent/providers');
+    expect(first).toEqual({ clientRequestId: expect.stringMatching(/^[0-9a-f-]{36}$/), kind: 'sedad', label: 'Sedad' });
+    expect(second.clientRequestId).toBe(first.clientRequestId);
+    // Replayed by the server: the original provider, taken as added — straight to its configuration.
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith('/agent/providers/p-new'));
   });
 });

@@ -516,36 +516,74 @@ function invalidateProviders(qc: Pick<QueryClient, 'invalidateQueries'>, provide
   void qc.invalidateQueries({ queryKey: ['agent-positions'] });
 }
 
+/**
+ * A provider write's answer (D160): what the server recorded — or, for the same `clientRequestId` and the same
+ * request sent again after a lost answer, the original answer replayed (`replayed: true`, HTTP 200). Either way a
+ * success: one provider, one rename, one configuration version.
+ */
+export type ProviderWriteAnswer<T> = T & { replayed?: boolean };
+
+/**
+ * A provider write with its `clientRequestId` (D160): one key per submission — a retry of the same submission (the
+ * same figures, after a lost answer) keeps it and is answered with the original; a changed submission is a new
+ * one. `reset()` ends the submission, as a sheet closes.
+ */
+function useProviderWrite<I, T>(send: (input: I, clientRequestId: (body: unknown) => string) => Promise<T>, onDone: (answer: T, input: I) => void) {
+  const { keyFor, clear } = usePayloadKey();
+  const mutation = useMutation({
+    mutationFn: (input: I) => send(input, keyFor),
+    onSuccess: (answer, input) => {
+      clear();
+      onDone(answer, input);
+    },
+  });
+  const { reset: resetMutation } = mutation;
+  const reset = useCallback(() => {
+    clear();
+    resetMutation();
+  }, [clear, resetMutation]);
+  return { ...mutation, reset };
+}
+
 /** Add a provider the counters exchange credit with. Company-wide; it posts nothing until its configuration is complete. */
 export function useCreateProvider() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { kind: ProviderKind; label: string }) => api.post<AgentProvider>('/agent/providers', { kind: input.kind, label: input.label.trim() }),
-    onSuccess: (created) => invalidateProviders(qc, created.id),
-  });
+  return useProviderWrite(
+    (input: { kind: ProviderKind; label: string }, keyFor) => {
+      const body = { kind: input.kind, label: input.label.trim() };
+      return api.post<ProviderWriteAnswer<AgentProvider>>('/agent/providers', { clientRequestId: keyFor(body), ...body });
+    },
+    (created) => invalidateProviders(qc, created.id),
+  );
 }
 
 /** Rename a provider, or switch it off or on: switched off, it takes no new exchange; its float and history stay. */
 export function useUpdateProvider(id: string) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { label?: string; isActive?: boolean }) => api.patch<AgentProvider>(`/agent/providers/${encodeURIComponent(id)}`, input),
-    onSuccess: () => invalidateProviders(qc, id),
-  });
+  return useProviderWrite(
+    (input: { label?: string; isActive?: boolean }, keyFor) =>
+      api.patch<ProviderWriteAnswer<AgentProvider>>(`/agent/providers/${encodeURIComponent(id)}`, { clientRequestId: keyFor({ id, ...input }), ...input }),
+    () => invalidateProviders(qc, id),
+  );
 }
 
 /**
  * A new configuration version, in force from the server's instant. Append-only:
  * the version an exchange used is never edited. An exchange this phone prepared
  * under the older version is refused as stale and shown for a person to see the
- * new rate (D155).
+ * new rate (D155). Saved again after a lost answer, it is the same version, never
+ * a second identical one (D160).
  */
 export function useAddProviderConfig(id: string) {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: ConfigBody) => api.post<{ config: ProviderConfig; provider: AgentProvider }>(`/agent/providers/${encodeURIComponent(id)}/configs`, body),
-    onSuccess: () => invalidateProviders(qc, id),
-  });
+  return useProviderWrite(
+    (body: ConfigBody, keyFor) =>
+      api.post<ProviderWriteAnswer<{ config: ProviderConfig; provider: AgentProvider }>>(`/agent/providers/${encodeURIComponent(id)}/configs`, {
+        clientRequestId: keyFor({ id, ...body }),
+        ...body,
+      }),
+    () => invalidateProviders(qc, id),
+  );
 }
 
 /** Every version of a provider's configuration, newest first: the history behind every exchange's rate. */
