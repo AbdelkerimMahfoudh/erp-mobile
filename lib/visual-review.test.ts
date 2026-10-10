@@ -56,7 +56,8 @@ it('one is never "1 items", "1 lines", "1 phones" or "the 1 days before"', () =>
 
 it('every warning worded for one exists in every language, with the same placeholders', () => {
   const singles = Object.keys(en).filter((k) => /^dailyReport\.warning\.\w+\.one$/.test(k));
-  assert.equal(singles.length, 7);
+  // Eight since D159 added money moved after a count.
+  assert.equal(singles.length, 8);
   for (const key of singles) for (const [lang, catalogue] of Object.entries(catalogues)) assert.ok(catalogue[key], `${lang} lacks ${key}`);
 });
 

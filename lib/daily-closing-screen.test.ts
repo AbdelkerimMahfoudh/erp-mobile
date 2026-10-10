@@ -115,7 +115,7 @@ it('Close the business day: a short popup — the question, then the amounts rig
   assert.match(sheet, /step === 'count' \? \([\s\S]*?<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle=\{styles\.body\}>/);
   assert.match(sheet, /\) : step === 'count' \? \(\s*undefined\s*\) : \(/);
   // Changed 2026-10-09 (docs/73 §4.5): an agent branch's floats follow the channels, before the step's actions.
-  assert.match(sheet, /\}\)\}\s*\{floats\.length > 0 \? \([\s\S]*?<FloatCountRow [\s\S]*?\) : null\}\s*<View style=\{styles\.footer\}>[\s\S]*?t\('closeDay\.count\.continue'\)[\s\S]*?<\/View>\s*<\/ScrollView>/);
+  assert.match(sheet, /\}\)\}\s*\{floats\.length > 0 \? \([\s\S]*?<FloatCountRow\s[\s\S]*?\) : null\}\s*<View style=\{styles\.footer\}>[\s\S]*?t\('closeDay\.count\.continue'\)[\s\S]*?<\/View>\s*<\/ScrollView>/);
   // A typed amount is saved or cleared, never dropped: Continue waits and says why; Back clears; a change can be called off.
   assert.match(sheet, /const unsaved = rows\.some\(\(c\) => editing\(c\) && typed\(c\) !== ''\);/);
   assert.match(sheet, /disabled=\{saving \|\| unsaved\} onPress=\{\(\) => setStep\('confirm'\)\}/);
@@ -149,7 +149,14 @@ it('Close the business day: a short popup — the question, then the amounts rig
   assert.match(sheet, /const clientUuid = useMemo\(\(\) => \(open \? uuidv4\(\) : ''\), \[open\]\);/);
   assert.match(sheet, /reportVersion: report\.reportVersion,\s*\.\.\.\(needsAttest \? \{ attestChecked: true \} : \{\}\),/);
   // A refusal is read again by the close's own invalidation, and the button waits while the figures are re-read.
-  assert.match(sheet, /e\.code === 'report_changed'\) \{\s*toast\.error\(t\('closeReview\.changed'\)\);\s*return;/);
+  // A changed report, or money moved after the count (D159): the current report adopted, the refused version never
+  // sent again, what to count again named — else the plain "figures changed".
+  assert.match(sheet, /e\.code === 'report_changed' \|\| e\.code === 'money_moved_after_count'\)/);
+  assert.match(sheet, /setRefusedVersion\(report\.reportVersion\);/);
+  assert.match(sheet, /if \(!found\) \{\s*toast\.error\(t\('closeReview\.changed'\)\);\s*return;/);
+  assert.match(sheet, /report\.reportVersion !== refusedVersion/);
+  assert.match(sheet, /e\.code === 'idempotency_conflict'\) \{\s*toast\.info\(t\('closing\.idempotencyConflict'\)\);/);
+  assert.match(sheet, /e\.code === 'refresh_required'\) \{\s*toast\.error\(t\('closing\.refreshRequired'\)\);/);
   assert.match(sheet, /e\.code === 'already_closed'\) \{\s*toast\.info\(t\('closeDay\.alreadyClosed'\)\);/);
   assert.match(sheet, /busy: close\.isPending \|\| refreshing,/);
   assert.match(screen, /refreshing=\{report\.isFetching \|\| day\.isFetching\}/);

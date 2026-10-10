@@ -57,7 +57,8 @@ export type WarningCode =
   | 'previous_day_needs_review'
   | 'overcollected'
   | 'changed_since_close'
-  | 'figures_disagree';
+  | 'figures_disagree'
+  | 'money_moved_after_count';
 
 const KNOWN_WARNINGS: readonly string[] = [
   'channels_not_verified',
@@ -76,6 +77,7 @@ const KNOWN_WARNINGS: readonly string[] = [
   'overcollected',
   'changed_since_close',
   'figures_disagree',
+  'money_moved_after_count',
 ];
 
 /** The warnings that carry a number, and which parameter it is: worded for one too, never "1 differences". */
@@ -87,6 +89,7 @@ const COUNTED_WARNINGS: Readonly<Record<string, string>> = {
   cost_missing: 'count',
   opening_not_verified: 'days',
   open_discrepancies: 'count',
+  money_moved_after_count: 'count',
 };
 
 /**
@@ -235,4 +238,118 @@ export function channelLabel(
   if (c.channel === 'cash') return words.cash;
   if (c.isUnattributed || !c.label || c.label === 'UNATTRIBUTED') return words.unattributed;
   return c.label;
+}
+
+// ── Money moved after the count (D159) ───────────────────────────────────────
+
+/**
+ * What moved after counting began: the channels and floats to count again, and
+ * what was recorded since — the agent exchanges, reversals and rebalancings
+ * (all zero at a shop, where a sale after the count is reason enough).
+ */
+export interface MovedAfterCount {
+  channels: { key: string; label: string }[];
+  floats: { providerId: string; label: string }[];
+  exchanges: number;
+  reversals: number;
+  rebalancings: number;
+}
+
+interface Moved {
+  movedSinceCount?: boolean;
+}
+
+/** The parts of a report this reads: its warnings, and the stale marker on each channel and float. */
+export interface MovedReport {
+  warnings?: readonly { code: string; params?: Readonly<Record<string, string | number>> }[];
+  money?: { channels?: readonly (Moved & { key: string; label: string; channel?: string })[] };
+  expected?: {
+    cash?: Moved | null;
+    accounts?: readonly (Moved & { key: string; label: string })[];
+    floats?: readonly (Moved & { providerId: string; label: string })[] | null;
+  };
+}
+
+/** The parts of the day's live view this reads: each channel and float, with the stale marker. */
+export interface MovedView {
+  channels?: readonly (Moved & { channel: string; accountId: string | null; labelSnapshot: string })[];
+  floats?: readonly (Moved & { providerId: string; label: string })[] | null;
+}
+
+const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.trunc(v) : 0);
+
+function addChannel(list: MovedAfterCount['channels'], key: string, label: string): void {
+  if (!list.some((c) => c.key === key)) list.push({ key, label });
+}
+function addFloat(list: MovedAfterCount['floats'], providerId: string, label: string): void {
+  if (!list.some((f) => f.providerId === providerId)) list.push({ providerId, label });
+}
+
+/**
+ * What the report and the live view say moved since its count: each channel and
+ * float marked `movedSinceCount`, and the `money_moved_after_count` warning's
+ * counts. Null when nothing did.
+ */
+export function movedFromData(report: MovedReport | null | undefined, view?: MovedView | null): MovedAfterCount | null {
+  const out: MovedAfterCount = { channels: [], floats: [], exchanges: 0, reversals: 0, rebalancings: 0 };
+  for (const c of report?.money?.channels ?? []) if (c.movedSinceCount) addChannel(out.channels, c.key, c.label);
+  if (report?.expected?.cash?.movedSinceCount) addChannel(out.channels, 'cash:NONE', 'CASH');
+  for (const a of report?.expected?.accounts ?? []) if (a.movedSinceCount) addChannel(out.channels, a.key, a.label);
+  for (const f of report?.expected?.floats ?? []) if (f.movedSinceCount) addFloat(out.floats, f.providerId, f.label);
+  for (const c of view?.channels ?? []) if (c.movedSinceCount) addChannel(out.channels, `${c.channel}:${c.accountId ?? 'NONE'}`, c.labelSnapshot);
+  for (const f of view?.floats ?? []) if (f.movedSinceCount) addFloat(out.floats, f.providerId, f.label);
+  const warning = report?.warnings?.find((w) => w.code === 'money_moved_after_count');
+  if (warning) {
+    out.exchanges = count(warning.params?.exchanges);
+    out.reversals = count(warning.params?.reversals);
+    out.rebalancings = count(warning.params?.rebalancings);
+  }
+  return out.channels.length > 0 || out.floats.length > 0 || warning ? out : null;
+}
+
+/**
+ * What a refused close says moved (409 `money_moved_after_count`, or
+ * `report_changed` with the current report): the channels and floats it names,
+ * else the ones its report marks; the counts from its report's warning. Null
+ * when the refusal names nothing that moved after a count.
+ */
+export function movedAfterCount(body: unknown): MovedAfterCount | null {
+  const b = (body ?? {}) as { channels?: unknown; floats?: unknown; report?: MovedReport | null };
+  const out = movedFromData(b.report ?? null) ?? { channels: [], floats: [], exchanges: 0, reversals: 0, rebalancings: 0 };
+  if (Array.isArray(b.channels)) {
+    for (const c of b.channels as { key?: unknown; label?: unknown }[]) {
+      if (typeof c?.key === 'string') addChannel(out.channels, c.key, typeof c.label === 'string' ? c.label : c.key);
+    }
+  }
+  if (Array.isArray(b.floats)) {
+    for (const f of b.floats as { providerId?: unknown; label?: unknown }[]) {
+      if (typeof f?.providerId === 'string') addFloat(out.floats, f.providerId, typeof f.label === 'string' ? f.label : '');
+    }
+  }
+  return out.channels.length > 0 || out.floats.length > 0 || out.exchanges + out.reversals + out.rebalancings > 0 ? out : null;
+}
+
+/** Both, the refusal's names first; null when neither has anything. */
+export function mergeMoved(a: MovedAfterCount | null, b: MovedAfterCount | null): MovedAfterCount | null {
+  if (!a) return b;
+  if (!b) return a;
+  const out: MovedAfterCount = { channels: [...a.channels], floats: [...a.floats], exchanges: Math.max(a.exchanges, b.exchanges), reversals: Math.max(a.reversals, b.reversals), rebalancings: Math.max(a.rebalancings, b.rebalancings) };
+  for (const c of b.channels) addChannel(out.channels, c.key, c.label);
+  for (const f of b.floats) addFloat(out.floats, f.providerId, f.label);
+  return out;
+}
+
+/** Counted again: what is left to count, or null when nothing is. The counts of what moved go with the last one. */
+export function withoutRecounted(moved: MovedAfterCount | null, recounted: { channels: readonly string[]; floats: readonly string[] }): MovedAfterCount | null {
+  if (!moved) return null;
+  const channels = moved.channels.filter((c) => !recounted.channels.includes(c.key));
+  const floats = moved.floats.filter((f) => !recounted.floats.includes(f.providerId));
+  return channels.length > 0 || floats.length > 0 ? { ...moved, channels, floats } : null;
+}
+
+/** The catalogue keys of what was recorded since the count, each worded for one too; nothing at all says nothing. */
+export function movedSinceKeys(moved: Pick<MovedAfterCount, 'exchanges' | 'reversals' | 'rebalancings'>): { key: string; count: number }[] {
+  return (['exchanges', 'reversals', 'rebalancings'] as const)
+    .filter((k) => moved[k] > 0)
+    .map((k) => ({ key: moved[k] === 1 ? `closing.moved.${k}.one` : `closing.moved.${k}`, count: moved[k] }));
 }

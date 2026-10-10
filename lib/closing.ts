@@ -45,6 +45,10 @@ export interface ChannelRow {
   isSkipped: boolean;
   skipReason: string | null;
   countedAt: string | null;
+  /** Counted, and its expected figure moved since (D159): count it again; absent on an older server. */
+  movedSinceCount?: boolean;
+  /** What the channel was expected to hold at the instant it was counted. */
+  expectedAtCount?: number | null;
 }
 
 export type ClosingStatus = 'counting' | 'counted' | 'locked' | 'reopened';
@@ -144,6 +148,9 @@ export interface FloatCount {
   skipReason: string | null;
   countedAt: string | null;
   countedByName: string | null;
+  /** Counted, and money moved through the float since (D159): count it again; absent on an older server. */
+  movedSinceCount?: boolean;
+  expectedAtCount?: number | null;
 }
 
 /**

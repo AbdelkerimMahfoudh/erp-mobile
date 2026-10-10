@@ -48,7 +48,7 @@ jest.mock('../hooks/useAuth', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-import { api } from '../lib/api-client';
+import { api, ApiError } from '../lib/api-client';
 import { useQueue } from '../lib/offline/queue';
 import DailyClosingScreen from '../app/closing/index';
 
@@ -62,6 +62,10 @@ const float = (providerId: string, label: string, expected: number | null, over:
 
 let floats: FloatRow[] = [];
 let agentCash = { agentIn: 126075, agentOut: 43075 };
+/** D159: money moved after the drawer and the Bankily float were counted; each clears once counted again. */
+let moved = { money: false, cash: false, bankily: false };
+const version = () => (moved.money ? (moved.cash || moved.bankily ? 'v2' : 'v3') : 'v1');
+const movedFloats = () => floats.map((f) => (f.providerId === 'bankily' && moved.bankily ? { ...f, movedSinceCount: true } : f));
 
 const report = () => ({
   date: '2026-10-09', today: '2026-10-09', isToday: true, timezone: 'Africa/Nouakchott',
@@ -83,23 +87,23 @@ const report = () => ({
   expenses: null,
   result: { status: 'hidden' },
   expected: {
-    cash: { opening: { amount: 10000, anchorDate: '2026-10-09', anchorVerified: false, carriedDays: 0 }, in: 132475, out: 43075, expected: 99400, counted: null, difference: null, verification: 'not_counted', countedAt: null },
+    cash: { opening: { amount: 10000, anchorDate: '2026-10-09', anchorVerified: false, carriedDays: 0 }, in: 132475, out: 43075, expected: 99400, counted: null, difference: null, verification: 'not_counted', countedAt: null, ...(moved.cash ? { movedSinceCount: true } : {}) },
     accounts: [],
-    floats,
+    floats: movedFloats(),
   },
-  warnings: [],
+  warnings: moved.cash || moved.bankily ? [{ code: 'money_moved_after_count', severity: 'warning', section: 'money', params: { count: 2, exchanges: 3, reversals: 1, rebalancings: 0 } }] : [],
   close: { kind: 'first', requiresAcknowledgement: true, unverified: ['cash:NONE'], verified: [], attested: [], canClose: true },
   sections: { sales: false, expenses: false, result: false, close: true },
-  reportVersion: 'v1', liveVersion: 'v1', source: 'live', snapshot: null, generatedAt: '2026-10-09T11:33:48.666Z',
+  reportVersion: version(), liveVersion: version(), source: 'live', snapshot: null, generatedAt: '2026-10-09T11:33:48.666Z',
 });
 
 const view = () => ({
   date: '2026-10-09', businessDate: '2026-10-09', today: '2026-10-09', timezone: 'Africa/Nouakchott',
   standing: 'open', status: 'counting', isLocked: false,
   channels: [
-    { channel: 'cash', accountId: null, labelSnapshot: 'CASH', isUnattributed: false, salesIn: 6400, refundsOut: 0, supplierOut: 0, expensesOut: 0, correctionsIn: 0, correctionsOut: 0, agentIn: agentCash.agentIn, agentOut: agentCash.agentOut, openingBalance: 0, expected: 99400, countable: true, counted: null, difference: null, isSkipped: false, skipReason: null, countedAt: null, stale: false },
+    { channel: 'cash', accountId: null, labelSnapshot: 'CASH', isUnattributed: false, salesIn: 6400, refundsOut: 0, supplierOut: 0, expensesOut: 0, correctionsIn: 0, correctionsOut: 0, agentIn: agentCash.agentIn, agentOut: agentCash.agentOut, openingBalance: 0, expected: 99400, countable: true, counted: moved.money ? 99000 : null, difference: moved.money ? -400 : null, isSkipped: false, skipReason: null, countedAt: moved.money ? '2026-10-09T11:20:00.000Z' : null, stale: false, ...(moved.cash ? { movedSinceCount: true, expectedAtCount: 99000 } : {}) },
   ],
-  floats,
+  floats: movedFloats(),
   outstanding: 1, complete: false, freshCountRequired: false, stale: [], expectedCash: 99400, openingCash: 0,
   sinceLastCount: null, lastCountedAt: null, lastCountedLocalTime: null, firstClosedAt: null, closedAt: null, reopenedAt: null, reopenCount: 0,
   canReopen: false, reopenRefusal: 'not_closed', reopenChoices: [], openChoices: ['continue'], nextDate: '2026-10-10',
@@ -145,6 +149,7 @@ beforeEach(async () => {
   (api.get as jest.Mock).mockImplementation(async (path: string) => serve(path));
   floats = [float('bankily', 'Bankily', 12490), float('masrvi', 'Masrvi', null)];
   agentCash = { agentIn: 126075, agentOut: 43075 };
+  moved = { money: false, cash: false, bankily: false };
   useQueue.setState({ items: [], running: false, scope: { companyId: 'c1', branchId: 'b1', userId: 'u-owner' } });
 });
 afterEach(() => settle());
@@ -240,5 +245,104 @@ describe('the closing of an agent branch', () => {
     expect(screen.queryByTestId('closing-floats')).toBeNull();
     expect(screen.queryByTestId('closing-agent-cash')).toBeNull();
     expect(screen.queryByTestId('closing-queue')).toBeNull();
+  });
+});
+
+describe('money that moved after counting began (D159)', () => {
+  it('a refused close names the drawer and float to count again and what was recorded since, takes the person to count them, and sends the close only on the new version, under the same key', async () => {
+    // Both floats counted (Bankily at 12 490, Masrvi skipped), the drawer counted at 99 000 — then money moved.
+    floats = [
+      float('bankily', 'Bankily', 12490, { counted: 12490, difference: 0, countedAt: '2026-10-09T11:21:00.000Z', countedByName: 'Owner Boutique 2' }),
+      float('masrvi', 'Masrvi', null, { isSkipped: true, skipReason: 'not used today', countedAt: '2026-10-09T11:21:00.000Z', countedByName: 'Owner Boutique 2' }),
+    ];
+    signIn('owner', OWNER);
+    const closes: Record<string, unknown>[] = [];
+    (api.post as jest.Mock).mockImplementation(async (path: string, body: Record<string, unknown>) => {
+      if (path === '/closings') {
+        closes.push(body);
+        if (closes.length === 1) {
+          // Recorded after the counts: three exchanges and one reversal moved the drawer and the Bankily float.
+          moved = { money: true, cash: true, bankily: true };
+          throw new ApiError('Money moved after the count', 409, 'money_moved_after_count', {
+            code: 'money_moved_after_count',
+            channels: [{ key: 'cash:NONE', label: 'CASH' }],
+            floats: [{ providerId: 'bankily', label: 'Bankily' }],
+            report: report(),
+          });
+        }
+        return { closingId: 'cl-1', date: '2026-10-09', kind: 'first', replayed: false, verification: { verified: ['cash:NONE'], unverified: [], attested: [], acknowledged: false, reason: null }, report: report() };
+      }
+      if (path === '/closings/count') {
+        moved = { ...moved, cash: false };
+        return view();
+      }
+      if (path === '/closings/2026-10-09/float-counts') {
+        moved = { ...moved, bankily: false };
+        return { ...view(), float: null };
+      }
+      throw new Error(`unexpected POST ${path}`);
+    });
+    mount();
+    fireEvent.press(await screen.findByText(t('dailyReport.closeDay')));
+    fireEvent.press(await screen.findByText(t('closeDay.checked')));
+    await settle();
+    const first = screen.getAllByLabelText(t('dailyReport.closeDay'));
+    await act(async () => {
+      fireEvent.press(first[first.length - 1]);
+    });
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toEqual(expect.objectContaining({ date: '2026-10-09', reportVersion: 'v1' }));
+
+    // Said plainly: what to count again, and what was recorded since — and the count step is open for it.
+    const notice = await screen.findByTestId('closing-moved');
+    expect(within(notice).getByText(t('closing.moved.title'))).toBeTruthy();
+    expect(
+      within(notice).getByText(
+        `${t('closing.moved.recount', { names: `${t('closing.channel.cash')} · ${t('agent.positions.float', { provider: 'Bankily' })}` })} ${t('closing.moved.since', {
+          list: `${t('closing.moved.exchanges', { count: 3 })}, ${t('closing.moved.reversals.one', { count: 1 })}`,
+        })}`,
+      ),
+    ).toBeTruthy();
+    expect(await screen.findByLabelText(`${t('closing.channel.cash')}, ${t('closing.countedLabel')}`)).toBeTruthy();
+    // The popup's own row (the screen's float card shows the same marker behind it).
+    const sheetFloat = () => screen.getAllByTestId('float-count-bankily').at(-1)!;
+    expect(within(sheetFloat()).getByText(t('closing.moved.stale'))).toBeTruthy();
+    expect(screen.getAllByText(t('closing.moved.stale')).length).toBeGreaterThanOrEqual(2);
+
+    // The drawer counted again, then the float.
+    fireEvent.changeText(screen.getByLabelText(`${t('closing.channel.cash')}, ${t('closing.countedLabel')}`), '99400');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText(`${t('closing.row.save')}, ${t('closing.channel.cash')}`));
+    });
+    const field = within(sheetFloat()).getByLabelText(`${t('agent.positions.float', { provider: 'Bankily' })}, ${t('closing.float.prompt', { provider: 'Bankily' })}`);
+    fireEvent.changeText(field, '12490');
+    await act(async () => {
+      fireEvent.press(within(sheetFloat()).getByText(t('closing.row.save')));
+    });
+    await waitFor(() => expect(screen.queryByTestId('closing-moved')).toBeNull());
+
+    // Then the close again — on the new version, under the same key.
+    fireEvent.press(screen.getByText(t('closeDay.count.continue')));
+    await waitFor(() => {
+      const buttons = screen.getAllByLabelText(t('dailyReport.closeDay'));
+      expect(buttons[buttons.length - 1].props.accessibilityState?.disabled).toBe(false);
+    });
+    const again = screen.getAllByLabelText(t('dailyReport.closeDay'));
+    await act(async () => {
+      fireEvent.press(again[again.length - 1]);
+    });
+    expect(closes).toHaveLength(2);
+    expect(closes[1].reportVersion).toBe('v3');
+    expect(closes[1].clientUuid).toBe(closes[0].clientUuid);
+  });
+
+  it('a stale count says so on the closing screen too, and the report’s warning names how many counts to take again', async () => {
+    floats = [float('bankily', 'Bankily', 12490, { counted: 12490, difference: 0, countedAt: '2026-10-09T11:21:00.000Z', countedByName: 'Owner Boutique 2' }), float('masrvi', 'Masrvi', null)];
+    moved = { money: true, cash: true, bankily: true };
+    signIn('owner', OWNER);
+    mount();
+    const bankily = await screen.findByTestId('float-count-bankily');
+    expect(within(bankily).getByText(t('closing.moved.stale'))).toBeTruthy();
+    expect(screen.getByText(t('dailyReport.warning.money_moved_after_count', { count: 2 }))).toBeTruthy();
   });
 });

@@ -14,6 +14,10 @@ import {
   canSendCorrection,
   channelLabel,
   KNOWN_REFUSALS,
+  mergeMoved,
+  movedAfterCount,
+  movedFromData,
+  movedSinceKeys,
   pendingKey,
   reasonGiven,
   refusalKey,
@@ -22,6 +26,7 @@ import {
   verificationKey,
   verificationTone,
   warningKey,
+  withoutRecounted,
 } from './closing-report-view.ts';
 
 let passed = 0;
@@ -176,4 +181,64 @@ it('each action corrects the right record: a purchase row is its payment, cancel
   assert.equal(targetIdFor({ kind: 'sale', id: 'sa-2', detail: {} }, 'cancel_sale'), 'sa-2');
   assert.equal(targetIdFor({ kind: 'expense', id: 'ex-1', detail: {} }, 'reverse_expense'), 'ex-1');
 });
+// ── Money moved after the count (D159) ──
+
+it('money moved after a count is a known warning, worded for one too', () => {
+  assert.equal(warningKey('money_moved_after_count', { count: 1, exchanges: 2, reversals: 0, rebalancings: 0 }), 'dailyReport.warning.money_moved_after_count.one');
+  assert.equal(warningKey('money_moved_after_count', { count: 3 }), 'dailyReport.warning.money_moved_after_count');
+  for (const k of ['dailyReport.warning.money_moved_after_count', 'dailyReport.warning.money_moved_after_count.one']) assert.ok(hasKey(k), k);
+});
+
+it('a refused close names the channels and floats to count again, and what was recorded since', () => {
+  const body = {
+    code: 'money_moved_after_count',
+    channels: [{ key: 'cash:NONE', label: 'CASH' }],
+    floats: [{ providerId: 'bankily', label: 'Bankily' }],
+    report: { warnings: [{ code: 'money_moved_after_count', params: { count: 2, exchanges: 3, reversals: 1, rebalancings: 0 } }] },
+  };
+  assert.deepEqual(movedAfterCount(body), {
+    channels: [{ key: 'cash:NONE', label: 'CASH' }],
+    floats: [{ providerId: 'bankily', label: 'Bankily' }],
+    exchanges: 3,
+    reversals: 1,
+    rebalancings: 0,
+  });
+  // A report_changed that carries the current report: what it marks.
+  const changed = {
+    code: 'report_changed',
+    report: {
+      warnings: [],
+      money: { channels: [{ key: 'cash:NONE', label: 'CASH', movedSinceCount: true }, { key: 'account:a1', label: 'Bankily account', movedSinceCount: false }] },
+      expected: { accounts: [{ key: 'account:a2', label: 'Sedad', movedSinceCount: true }], floats: [{ providerId: 'masrvi', label: 'Masrvi', movedSinceCount: true }] },
+    },
+  };
+  const found = movedAfterCount(changed);
+  assert.deepEqual(found?.channels.map((c) => c.key), ['cash:NONE', 'account:a2']);
+  assert.deepEqual(found?.floats.map((f) => f.providerId), ['masrvi']);
+  // A report_changed with nothing moved after a count, or no body at all: nothing to count again.
+  assert.equal(movedAfterCount({ code: 'report_changed', report: { warnings: [] } }), null);
+  assert.equal(movedAfterCount(undefined), null);
+});
+
+it('the fresh figures mark what is still to count again; counted again, it leaves the list', () => {
+  const view = { channels: [{ channel: 'cash', accountId: null, labelSnapshot: 'CASH', movedSinceCount: true }], floats: [{ providerId: 'bankily', label: 'Bankily', movedSinceCount: true }] };
+  const fromView = movedFromData({ warnings: [] }, view);
+  assert.deepEqual(fromView?.channels, [{ key: 'cash:NONE', label: 'CASH' }]);
+  assert.equal(movedFromData({ warnings: [] }, { channels: [], floats: [] }), null);
+  const both = mergeMoved({ channels: [{ key: 'cash:NONE', label: 'CASH' }], floats: [], exchanges: 2, reversals: 0, rebalancings: 1 }, fromView);
+  assert.deepEqual(both?.floats.map((f) => f.providerId), ['bankily']);
+  assert.equal(both?.channels.length, 1, 'never named twice');
+  assert.deepEqual(withoutRecounted(both, { channels: ['cash:NONE'], floats: [] })?.floats.map((f) => f.providerId), ['bankily']);
+  assert.equal(withoutRecounted(both, { channels: ['cash:NONE'], floats: ['bankily'] }), null);
+  // What was recorded since, each worded for one too; nothing says nothing.
+  assert.deepEqual(movedSinceKeys({ exchanges: 3, reversals: 1, rebalancings: 0 }), [
+    { key: 'closing.moved.exchanges', count: 3 },
+    { key: 'closing.moved.reversals.one', count: 1 },
+  ]);
+  assert.deepEqual(movedSinceKeys({ exchanges: 0, reversals: 0, rebalancings: 0 }), []);
+  for (const k of ['closing.moved.title', 'closing.moved.recount', 'closing.moved.since', 'closing.moved.exchanges', 'closing.moved.exchanges.one', 'closing.moved.reversals', 'closing.moved.reversals.one', 'closing.moved.rebalancings', 'closing.moved.rebalancings.one', 'closing.moved.stale', 'closing.moved.noCount']) {
+    assert.ok(hasKey(k), k);
+  }
+});
+
 console.log(`closing-report-view: ${passed} passed`);

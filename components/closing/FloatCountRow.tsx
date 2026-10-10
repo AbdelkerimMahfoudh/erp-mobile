@@ -8,6 +8,7 @@ import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { toAgentError } from '../../lib/errors';
+import { ApiError } from '../../lib/api-client';
 import { formatMoney, formatTime } from '../../lib/format';
 import { useTranslation, type TranslationKey } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
@@ -20,13 +21,15 @@ import { toast } from '../../lib/toast';
  * floats: the amount the provider's app shows now, with why it differs when it
  * does; or a skip with its reason — never both. A difference opens a question
  * for the closing; the day stays open and every count can be changed until it
- * is closed.
+ * is closed. A count that money moved past since (D159) says *Count again* and
+ * opens for it.
  */
 export function FloatCountRow({
   float,
   date,
   viewDate,
   editable,
+  stale,
   onSaved,
 }: {
   float: FloatCount;
@@ -36,6 +39,8 @@ export function FloatCountRow({
   viewDate?: string;
   /** Counting is offered: the person counts, the day is open, the phone holds no exchange for the branch, online. */
   editable: boolean;
+  /** Money moved through the float after it was counted (D159); the float's own marker when not given. */
+  stale?: boolean;
   onSaved?: () => void;
 }) {
   const styles = useStyles();
@@ -47,7 +52,8 @@ export function FloatCountRow({
   const [amount, setAmount] = useState('');
   const [explanation, setExplanation] = useState('');
   const [skipReason, setSkipReason] = useState('');
-  const editing = editable && (state === 'not_counted' || changing);
+  const recount = stale ?? Boolean(float.movedSinceCount);
+  const editing = editable && (state === 'not_counted' || changing || recount);
   const name = t('agent.positions.float', { provider: float.label });
   const kind = differenceKind(float.difference);
   const check = floatCountCheck({ providerId: float.providerId, skip: skipping, amount, explanation, skipReason });
@@ -68,7 +74,15 @@ export function FloatCountRow({
           reset();
           onSaved?.();
         },
-        onError: (e) => toast.error(toAgentError(e).body || t('closing.count.failed')),
+        onError: (e) => {
+          // Closed meanwhile (from another phone): nothing more to count; the day is read again.
+          if (e instanceof ApiError && e.status === 409 && e.code === 'already_closed') {
+            toast.info(t('closeDay.alreadyClosed'));
+            onSaved?.();
+            return;
+          }
+          toast.error(toAgentError(e).body || t('closing.count.failed'));
+        },
       },
     );
   };
@@ -79,12 +93,16 @@ export function FloatCountRow({
         <Text variant="bodyStrong" style={styles.grow}>
           {name}
         </Text>
-        <Chip
-          label={t(`closing.float.state.${state}` as TranslationKey)}
-          tone={state === 'not_counted' ? 'warning' : state === 'skipped' ? 'neutral' : kind === 'none' ? 'success' : kind === null ? 'neutral' : 'warning'}
-          size="sm"
-          dot
-        />
+        {recount ? (
+          <Chip label={t('closing.moved.stale')} tone="warning" size="sm" dot />
+        ) : (
+          <Chip
+            label={t(`closing.float.state.${state}` as TranslationKey)}
+            tone={state === 'not_counted' ? 'warning' : state === 'skipped' ? 'neutral' : kind === 'none' ? 'success' : kind === null ? 'neutral' : 'warning'}
+            size="sm"
+            dot
+          />
+        )}
       </View>
       <View style={[AMOUNT_ROW, styles.line]}>
         <View style={AMOUNT_LABEL}>

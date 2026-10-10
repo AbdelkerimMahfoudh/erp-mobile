@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { Button, Chip, Divider, InlineNotice, MoneyField, MoneyValue, Text } from '../ui';
 import { space } from '../../lib/design/tokens';
@@ -13,7 +14,22 @@ import { toFriendlyError } from '../../lib/errors';
 import { ApiError } from '../../lib/api-client';
 import { uuidv4 } from '../../lib/utils';
 import { parseAmount } from '../../lib/price-input';
-import { canConfirmClose, channelLabel, verificationKey, verificationTone, warningKey, type Freshness } from '../../lib/closing-report-view';
+import {
+  canConfirmClose,
+  channelLabel,
+  mergeMoved,
+  movedAfterCount,
+  movedFromData,
+  movedSinceKeys,
+  verificationKey,
+  verificationTone,
+  warningKey,
+  withoutRecounted,
+  type Freshness,
+  type MovedAfterCount,
+} from '../../lib/closing-report-view';
+import { useBranch } from '../../lib/branch';
+import { qk } from '../../lib/query-keys';
 import { useCloseDay, type DailyReport } from '../../lib/closing-report';
 import { useRecordCount, type OpenClosing } from '../../lib/closing';
 import { useExchangesHeld } from '../../lib/agent';
@@ -49,6 +65,15 @@ import { FloatCountRow, floatStateWords } from './FloatCountRow';
  * word covers the channels, never a float. And while this phone still holds an
  * exchange for the branch, the day is not closed at all: the exchange happened
  * at the counter and belongs to it (D155).
+ *
+ * Money that moved after counting began (D159) — a sale, an exchange, a
+ * reversal or a rebalancing recorded after the drawer or a float was counted —
+ * is never closed as a false difference: the close is refused, the report and
+ * the live view are read again, *Money changed after counting began* names the
+ * drawer and floats to count again and what was recorded since, and the person
+ * is taken to the count step for those, each marked *Count again*. The close is
+ * sent again only with the new report version, under the same key while the
+ * popup stays open.
  */
 export interface CloseDaySheetProps {
   open: boolean;
@@ -81,6 +106,10 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   const [step, setStep] = useState<Step>('ask');
   const [values, setValues] = useState<Record<string, string>>({});
   const [changing, setChanging] = useState<Record<string, boolean>>({});
+  // What a refused close said moved after its count (D159), what has been counted again since, and the version refused.
+  const [moved, setMoved] = useState<MovedAfterCount | null>(null);
+  const [recounted, setRecounted] = useState<{ channels: string[]; floats: string[] }>({ channels: [], floats: [] });
+  const [refusedVersion, setRefusedVersion] = useState<string | null>(null);
   // Each opening starts on the question with nothing typed — reset while rendering the opening, so the last step never flashes.
   const [shownOpen, setShownOpen] = useState(open);
   if (open !== shownOpen) {
@@ -89,8 +118,13 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       setStep('ask');
       setValues({});
       setChanging({});
+      setMoved(null);
+      setRecounted({ channels: [], floats: [] });
+      setRefusedVersion(null);
     }
   }
+  const qc = useQueryClient();
+  const branchId = useBranch((s) => s.branchId);
   // A fresh key each time the popup opens; the same key for every retry while it is open.
   const clientUuid = useMemo(() => (open ? uuidv4() : ''), [open]);
   // The confirmation signs what it shows: the day is read again as it opens, and Close waits for it.
@@ -101,6 +135,11 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   }, [open, step]);
 
   const words = { cash: t('closing.channel.cash'), unattributed: t('closing.channel.unattributed') };
+  // To count again: what the refusal named and is not counted again yet, and whatever the fresh figures still mark.
+  const toRecount = mergeMoved(withoutRecounted(moved, recounted), movedFromData(report, day));
+  const staleChannel = (key: string) => toRecount?.channels.some((c) => c.key === key) ?? false;
+  const staleFloat = (providerId: string) => toRecount?.floats.some((f) => f.providerId === providerId) ?? false;
+  const recountLeft = (toRecount?.channels.length ?? 0) + (toRecount?.floats.length ?? 0);
   const cashUnanchored = report.expected.cash.opening.anchorDate === null;
   /** The countable channels, as the live view has them — the drawer first. */
   const rows = (day?.channels ?? []).filter((c) => c.countable && !c.isUnattributed);
@@ -108,7 +147,8 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   const rowKey = (c: Row) => `${c.channel}:${c.accountId ?? 'NONE'}`;
   /** What the server holds: a count made since the last reopen. */
   const hasCount = (c: Row) => c.counted !== null && !c.stale;
-  const editing = (c: Row) => !hasCount(c) || !!changing[rowKey(c)];
+  // A count money moved past is open to count again, without asking.
+  const editing = (c: Row) => !hasCount(c) || !!changing[rowKey(c)] || staleChannel(rowKey(c));
   const typed = (c: Row) => (values[rowKey(c)] ?? '').trim();
   // A drawer holds nothing below zero; an account's net movement for the day can be (docs/51 §12.4).
   const amountOf = (c: Row, v: string) => parseAmount(v, { allowNegative: c.channel === 'account' });
@@ -126,7 +166,10 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       busy: close.isPending || refreshing,
     }) &&
     floatsLeft.length === 0 &&
-    held === 0;
+    held === 0 &&
+    // Never on a count money has moved past, and never again on the version the server refused.
+    recountLeft === 0 &&
+    report.reportVersion !== refusedVersion;
   const money = (v: number) => isolateLtr(formatMoney(v));
   const params = (p?: Record<string, string | number>) =>
     Object.fromEntries(Object.entries(p ?? {}).map(([k, v]) => [k, typeof v === 'number' && k !== 'count' && k !== 'days' ? money(v) : String(v)]));
@@ -144,10 +187,20 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       {
         onSuccess: () => {
           forget(c);
+          setRecounted((r) => ({ ...r, channels: [...r.channels, rowKey(c)] }));
           // The report's version follows the counts: read it again before confirming.
           onChanged();
         },
-        onError: (e) => toast.error(toFriendlyError(e).body || t('closing.count.failed')),
+        onError: (e) => {
+          // Closed meanwhile (from another phone): nothing more to count here.
+          if (e instanceof ApiError && e.status === 409 && e.code === 'already_closed') {
+            toast.info(t('closeDay.alreadyClosed'));
+            onChanged();
+            onClose();
+            return;
+          }
+          toast.error(toFriendlyError(e).body || t('closing.count.failed'));
+        },
       },
     );
   };
@@ -158,8 +211,14 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
     setStep('ask');
   };
 
+  /** A float counted again: off the list of what money moved past, and the figures read again. */
+  const floatSaved = (providerId: string) => {
+    setRecounted((r) => ({ ...r, floats: [...r.floats, providerId] }));
+    onChanged();
+  };
+
   const confirm = async () => {
-    if (held > 0) return;
+    if (held > 0 || recountLeft > 0) return;
     try {
       const done = await close.mutateAsync({
         date: report.date,
@@ -171,8 +230,33 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
       onClose();
     } catch (e) {
       // Either way the day is read again (the close's own invalidation); the button waits for it.
-      if (e instanceof ApiError && e.status === 409 && e.code === 'report_changed') {
-        toast.error(t('closeReview.changed'));
+      if (e instanceof ApiError && e.status === 409 && (e.code === 'report_changed' || e.code === 'money_moved_after_count')) {
+        // The refusal carries the current report: shown at once, and only its version may be sent next (D159).
+        const fresh = (e.body as { report?: DailyReport } | undefined)?.report;
+        if (fresh && typeof fresh.reportVersion === 'string') qc.setQueryData(qk.dailyReport(branchId, date ?? 'today'), fresh);
+        setRefusedVersion(report.reportVersion);
+        onChanged();
+        const found = movedAfterCount(e.body);
+        if (!found) {
+          toast.error(t('closeReview.changed'));
+          return;
+        }
+        setMoved(found);
+        setRecounted({ channels: [], floats: [] });
+        toast.error(t('closing.moved.title'));
+        // Straight to the count, for whoever counts: the drawer and floats to count again are open there.
+        if (canCount && found.channels.length + found.floats.length > 0) setStep('count');
+        return;
+      }
+      if (e instanceof ApiError && e.status === 409 && e.code === 'idempotency_conflict') {
+        toast.info(t('closing.idempotencyConflict'));
+        onChanged();
+        onClose();
+        return;
+      }
+      if (e instanceof ApiError && e.status === 409 && e.code === 'refresh_required') {
+        toast.error(t('closing.refreshRequired'));
+        onChanged();
         return;
       }
       if (e instanceof ApiError && e.status === 409 && e.code === 'already_closed') {
@@ -192,6 +276,24 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   };
 
   const title = t('dailyReport.closeDay');
+  const recountNames = [
+    ...(toRecount?.channels ?? []).map((c) => (c.key.startsWith('cash:') ? words.cash : c.label)),
+    ...(toRecount?.floats ?? []).map((f) => t('agent.positions.float', { provider: f.label })),
+  ];
+  const since = toRecount ? movedSinceKeys(toRecount).map(({ key, count }) => t(key as never, { count })) : [];
+  // Money changed after counting began: what to count again, what was recorded since, and who can count it.
+  const movedNotice = toRecount ? (
+    <InlineNotice tone="warning" title={t('closing.moved.title')} testID="closing-moved">
+      {[
+        recountNames.length > 0 ? t('closing.moved.recount', { names: recountNames.join(' · ') }) : null,
+        since.length > 0 ? t('closing.moved.since', { list: since.join(', ') }) : null,
+        recountLeft > 0 && !canCount ? t('closing.moved.noCount') : null,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    </InlineNotice>
+  ) : null;
+  const staleChip = <Chip tone="warning" label={t('closing.moved.stale')} size="sm" dot />;
 
   return (
     <BottomSheet
@@ -233,10 +335,12 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
         <View style={styles.body}>
           <Text variant="heading">{t('closeDay.question')}</Text>
           {held > 0 ? <InlineNotice tone="warning">{t('closing.queue.body', { count: held })}</InlineNotice> : null}
+          {movedNotice}
         </View>
       ) : step === 'count' ? (
         // Scrolls under the keyboard and at large text, its actions after the last channel: nothing pinned takes the room.
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
+          {movedNotice}
           {rows.map((c) => {
             const key = rowKey(c);
             const account = c.channel === 'account';
@@ -252,6 +356,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
                   <Text variant="bodyStrong" style={styles.flex}>
                     {label}
                   </Text>
+                  {staleChannel(key) ? staleChip : null}
                   <MoneyValue value={c.expected} size="small" />
                 </View>
                 <Text variant="caption" tone="tertiary">
@@ -282,8 +387,8 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
                       />
                       <Button title={t('closing.row.save')} accessibilityLabel={`${t('closing.row.save')}, ${label}`} size="sm" disabled={saving || !parsed.ok} loading={saving} onPress={() => save(c)} />
                     </View>
-                    {/* Changing a saved count can be called off: the saved figure stays as it was. */}
-                    {hasCount(c) ? (
+                    {/* Changing a saved count can be called off: the saved figure stays as it was — not one money moved past. */}
+                    {hasCount(c) && !staleChannel(key) ? (
                       <View style={styles.end}>
                         <Button title={t('action.cancel')} accessibilityLabel={`${t('action.cancel')}, ${label}`} variant="tertiary" size="sm" disabled={saving} onPress={() => forget(c)} />
                       </View>
@@ -300,7 +405,15 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
                 {t('closing.floats.explain')}
               </Text>
               {floats.map((f) => (
-                <FloatCountRow key={f.providerId} float={f} date={report.date} viewDate={date} editable={canCount && held === 0 && online} onSaved={onChanged} />
+                <FloatCountRow
+                  key={f.providerId}
+                  float={f}
+                  date={report.date}
+                  viewDate={date}
+                  editable={canCount && held === 0 && online}
+                  stale={staleFloat(f.providerId)}
+                  onSaved={() => floatSaved(f.providerId)}
+                />
               ))}
             </View>
           ) : null}
@@ -325,6 +438,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.body}>
+          {movedNotice}
           <View style={styles.lines}>
             {report.sales ? <Line label={t('closeReview.sales')} value={report.sales.value} /> : null}
             <Line label={t('closeReview.received')} value={report.money.totals.in} />
@@ -351,7 +465,11 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
                   <Text variant="body" style={styles.flex}>
                     {label}
                   </Text>
-                  <Chip tone={verificationTone(shown, difference)} label={t(verificationKey(shown, account ? 'account' : 'cash') as never)} size="sm" dot />
+                  {staleChannel(key) ? (
+                    staleChip
+                  ) : (
+                    <Chip tone={verificationTone(shown, difference)} label={t(verificationKey(shown, account ? 'account' : 'cash') as never)} size="sm" dot />
+                  )}
                 </View>
               );
             })}
@@ -369,12 +487,16 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
                   <Text variant="body" style={styles.flex}>
                     {t('agent.positions.float', { provider: f.label })}
                   </Text>
-                  <Chip
-                    tone={f.counted === null && !f.isSkipped ? 'warning' : f.difference !== null && f.difference !== 0 ? 'warning' : f.isSkipped ? 'neutral' : 'success'}
-                    label={floatStateWords(f, t)}
-                    size="sm"
-                    dot
-                  />
+                  {staleFloat(f.providerId) ? (
+                    staleChip
+                  ) : (
+                    <Chip
+                      tone={f.counted === null && !f.isSkipped ? 'warning' : f.difference !== null && f.difference !== 0 ? 'warning' : f.isSkipped ? 'neutral' : 'success'}
+                      label={floatStateWords(f, t)}
+                      size="sm"
+                      dot
+                    />
+                  )}
                 </View>
               ))}
               {floatsLeft.length > 0 ? (

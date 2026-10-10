@@ -28,6 +28,10 @@ export interface ReportChannel {
   in: { todaysSales: number; olderDebts: number; correctionsIn: number; agentIn?: number; total: number };
   out: { refunds: number; stockPurchases: number; expenses: number; correctionsOut: number; agentOut?: number; total: number };
   net: number;
+  /** Counted, and its expected figure moved since (D159): count it again; absent on an older server. */
+  movedSinceCount?: boolean;
+  /** What the channel was expected to hold at the instant it was counted. */
+  expectedAtCount?: number | null;
 }
 
 export interface ReportWarning {
@@ -109,6 +113,9 @@ export interface DailyReport {
       difference: number | null;
       verification: Verification;
       countedAt: string | null;
+      /** Counted, and money moved since (D159): the count no longer proves anything until it is taken again. */
+      movedSinceCount?: boolean;
+      expectedAtCount?: number | null;
     };
     accounts: {
       key: string;
@@ -121,6 +128,8 @@ export interface DailyReport {
       difference: number | null;
       verification: Verification;
       basis: 'recorded_movement_not_balance';
+      movedSinceCount?: boolean;
+      expectedAtCount?: number | null;
     }[];
     /** The provider floats of an agent branch (D154): expected (or unknown) against counted; empty or absent for a shop. */
     floats?: FloatCount[];
@@ -171,6 +180,17 @@ export interface CloseDayBody {
   attestChecked?: boolean;
 }
 
+/**
+ * The close refused because money moved after counting began (409 `money_moved_after_count`, D159): the channels
+ * and floats to count again, and the current report. A 409 `report_changed` carries the current report too.
+ */
+export interface MoneyMovedRefusal {
+  code: 'money_moved_after_count';
+  channels?: { key: string; label: string }[];
+  floats?: { providerId: string; label: string }[];
+  report?: DailyReport;
+}
+
 export interface CloseDayResult {
   closingId: string;
   date: string;
@@ -182,8 +202,10 @@ export interface CloseDayResult {
 
 /**
  * Close the business day on the report that was reviewed. The same `clientUuid`
- * on a retry replays the close instead of failing, and the `reportVersion` makes
- * the server refuse (409 `report_changed`) if the figures moved since.
+ * on a retry replays the close instead of failing (the same key with another
+ * meaning is 409 `idempotency_conflict`), and the `reportVersion` makes the
+ * server refuse (409 `report_changed`) if the figures moved since — or 409
+ * `money_moved_after_count` when a count no longer matches the money (D159).
  */
 export function useCloseDay(date?: string) {
   const qc = useQueryClient();
