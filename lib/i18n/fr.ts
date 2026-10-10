@@ -3349,6 +3349,7 @@ export const fr: Catalogue = {
   'moneyTab.held.unknownMoved': 'Montant de départ inconnu · {amount} enregistré aujourd’hui',
   'moneyTab.expected.awaiting': 'Ouverte avec les montants reportés — en attente de la vérification du propriétaire',
   'moneyTab.expected.review': 'Vérifier les montants d’ouverture',
+  'moneyTab.expected.reviewClosed': 'La journée est clôturée : la vérification redevient possible si la journée est rouverte.',
   'moneyTab.company.title': 'Comptes de l’entreprise',
   'moneyTab.company.subtitle': 'Partagés par toutes les boutiques',
   'moneyTab.company.body': 'Ces comptes appartiennent à l’entreprise : le montant saisi est celui que voient toutes les boutiques.',

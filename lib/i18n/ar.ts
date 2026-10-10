@@ -3108,6 +3108,7 @@ export const ar: Catalogue = {
   'moneyTab.held.unknownMoved': 'المبلغ الابتدائي غير معروف · {amount} مسجَّل اليوم',
   'moneyTab.expected.awaiting': 'فُتح بالمبالغ المُرحَّلة — بانتظار مراجعة المالك',
   'moneyTab.expected.review': 'مراجعة مبالغ الافتتاح',
+  'moneyTab.expected.reviewClosed': 'اليوم مُغلق: تصبح المراجعة ممكنة مجددًا إذا أُعيد فتح اليوم.',
   'moneyTab.company.title': 'مبالغ حسابات الشركة',
   'moneyTab.company.subtitle': 'مشتركة بين جميع المتاجر',
   'moneyTab.company.body': 'هذه الحسابات ملك للشركة: المبلغ الذي تحدده هو ما تراه كل المتاجر.',

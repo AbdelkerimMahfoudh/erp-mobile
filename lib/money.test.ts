@@ -173,7 +173,7 @@ it('each line: a position or the word Unknown — never a 0 — and an account s
 });
 it('a shop opened with carried amounts says so until the Owner reviews them — and only the Owner may (docs/63)', () => {
   assert.match(card, /const awaiting = cash\?\.anchor\?\.awaitingOwnerReview === true;/);
-  assert.match(card, /\{cashUnknown \? \([\s\S]*?t\('moneyTab\.expected\.cashUnknown'\)[\s\S]*?\{canReview && dayOpen \? \([\s\S]*?t\('moneyTab\.expected\.setCash'\)[\s\S]*?onPress=\{onReview\}[\s\S]*?\) : awaiting \? \([\s\S]*?t\('moneyTab\.expected\.awaiting'\)[\s\S]*?\{canReview \? \([\s\S]*?t\('moneyTab\.expected\.review'\)[\s\S]*?onPress=\{onReview\}/);
+  assert.match(card, /\{cashUnknown \? \([\s\S]*?t\('moneyTab\.expected\.cashUnknown'\)[\s\S]*?\{canReview && dayOpen \? \([\s\S]*?t\('moneyTab\.expected\.setCash'\)[\s\S]*?onPress=\{onReview\}[\s\S]*?\) : awaiting \? \([\s\S]*?t\('moneyTab\.expected\.awaiting'\)[\s\S]*?\{canReview && dayOpen \? \([\s\S]*?t\('moneyTab\.expected\.review'\)[\s\S]*?onPress=\{onReview\}[\s\S]*?\) : canReview \? \([\s\S]*?t\('moneyTab\.expected\.reviewClosed'\)/);
   assert.match(overview, /const canAnchor = usePermission\('money\.anchor\.record'\) && access\.canWrite;/);
   assert.match(overview, /<OpeningMoneySheet\s+intent="review"\s+open=\{reviewing\}[\s\S]*?mayDecide\s+methods=\{openingMethodsOf\(held\.methods\)\}[\s\S]*?onConfirm=\{confirmReview\}/);
   assert.match(overview, /review\.mutate\(\s*\{ clientUuid: money\.clientUuid, decision: money\.decision, \.\.\.\(money\.cashAmount !== undefined \? \{ cashAmount: money\.cashAmount \} : \{\}\) \},/);

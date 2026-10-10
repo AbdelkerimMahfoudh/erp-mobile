@@ -3171,6 +3171,7 @@ export const en = {
   'moneyTab.held.unknownMoved': 'Starting amount unknown · {amount} recorded today',
   'moneyTab.expected.awaiting': 'Opened with the carried amounts — awaiting the Owner’s review',
   'moneyTab.expected.review': 'Review opening amounts',
+  'moneyTab.expected.reviewClosed': 'The day is closed: the review is possible again if the day is reopened.',
   'moneyTab.company.title': 'Company account amounts',
   'moneyTab.company.subtitle': 'Shared by every shop',
   'moneyTab.company.body': 'These accounts belong to the company: the amount you set is the one every shop sees.',

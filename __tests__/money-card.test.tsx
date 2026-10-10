@@ -116,3 +116,25 @@ describe('an unknown account that received money today', () => {
     expect(movedLine('account:s')).toBe(`المبلغ الابتدائي غير معروف · +20${nb}000${nb}MRU مسجَّل اليوم`);
   });
 });
+
+describe('an opening awaiting the Owner’s review (D159)', () => {
+  const awaiting = held([{ ...cash, anchor: { ...cash.anchor!, awaitingOwnerReview: true } } as TrackedMethod]);
+
+  it('offers the review while the day is open', () => {
+    mount(awaiting);
+    expect(screen.getByText(t('moneyTab.expected.review'))).toBeTruthy();
+  });
+
+  it('a closed day refuses the review, so it is not offered — and the card says when it will be', () => {
+    // Closed with the drawer attested, not counted: the opening is still the anchor, still awaiting its review.
+    mount(awaiting, { dayOpen: false });
+    expect(screen.queryByText(t('moneyTab.expected.review'))).toBeNull();
+    expect(screen.getByText(t('moneyTab.expected.reviewClosed'))).toBeTruthy();
+  });
+
+  it('nobody but the Owner is offered either', () => {
+    mount(awaiting, { canReview: false, dayOpen: false });
+    expect(screen.queryByText(t('moneyTab.expected.review'))).toBeNull();
+    expect(screen.queryByText(t('moneyTab.expected.reviewClosed'))).toBeNull();
+  });
+});

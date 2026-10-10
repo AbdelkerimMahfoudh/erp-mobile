@@ -162,10 +162,15 @@ export function ExpectedMoneyCard({ held, canReview, dayOpen, onReview, onSetAcc
           <Text variant="caption" tone="warning">
             {t('moneyTab.expected.awaiting')}
           </Text>
-          {canReview ? (
+          {/* A closed day refuses the review (D159): offered only while the day is open, and said so when it is not. */}
+          {canReview && dayOpen ? (
             <View style={styles.row}>
               <Button title={t('moneyTab.expected.review')} variant="secondary" size="sm" wrap onPress={onReview} />
             </View>
+          ) : canReview ? (
+            <Text variant="caption" tone="secondary">
+              {t('moneyTab.expected.reviewClosed')}
+            </Text>
           ) : null}
         </View>
       ) : null}
