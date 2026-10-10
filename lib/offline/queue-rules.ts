@@ -20,7 +20,29 @@ export type QueueState =
   | 'sending'
   | 'synced'
   | 'needs_attention'
-  | 'cancelled';
+  | 'cancelled'
+  /*
+    An agent exchange's own three (D161), beside Milestone J's: `uncertain` — an attempt may have reached the
+    server and its answer was lost, so the status lookup decides, never a blind resend; `rejected_resubmit` — not
+    recorded, and the person can fix it (send again, review, edit); `rejected_reenter` — not recorded here, and
+    someone else has to enter it (a Manager, someone allowed, the right branch). Other kinds never take them.
+  */
+  | 'uncertain'
+  | 'rejected_resubmit'
+  | 'rejected_reenter';
+
+/** Every state a stored item may be in: anything else in a file is refused as foreign, never shown as pending. */
+export const QUEUE_STATES: readonly QueueState[] = [
+  'draft',
+  'waiting_for_connection',
+  'sending',
+  'synced',
+  'needs_attention',
+  'cancelled',
+  'uncertain',
+  'rejected_resubmit',
+  'rejected_reenter',
+] as const;
 
 /**
  * Deliberately no `failed`.
@@ -58,9 +80,13 @@ export interface QueueItem {
    */
   result?: Record<string, string | number> | null;
   /**
-   * An agent exchange only: an attempt may have reached the server and been recorded — its answer was lost (a
-   * timeout, a 5xx) or its key already holds a record. From then on it is never "cancelled, nothing sent": it is
-   * checked again under the same key, or removed from the phone by a person who looked at the exchanges list.
+   * An agent exchange refused because another exchange holds its key (D161): that record as the status lookup
+   * showed it — masked, never the full number — so the person can hand both to a Manager.
+   */
+  serverRecord?: Record<string, string | number> | null;
+  /**
+   * Read only to bring an older build's file forward (D161): an agent exchange that may have been recorded became
+   * the `uncertain` state at load. Never written.
    */
   mayBeRecorded?: boolean;
 }
@@ -198,6 +224,9 @@ export function orderForReplay(items: readonly QueueItem[]): QueueItem[] {
   return [...items].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
 }
 
+/** States that hold the rest of their group back: on their way, or waiting for a person or a lookup. */
+const UNRESOLVED: readonly QueueState[] = ['sending', 'needs_attention', 'uncertain', 'rejected_resubmit', 'rejected_reenter'];
+
 /**
  * The next item to send per group, oldest first.
  *
@@ -217,7 +246,7 @@ export function nextSendable(
     if (blocked.has(group)) continue;
     // Anything unresolved in this group holds the rest of the group back,
     // whether it is mid-flight or waiting for somebody to look at it.
-    if (item.state === 'sending' || item.state === 'needs_attention') {
+    if (UNRESOLVED.includes(item.state)) {
       blocked.add(group);
       continue;
     }
@@ -230,35 +259,27 @@ export function nextSendable(
 }
 
 /**
- * Whether an exchange may now be recorded on the server, after one more failed attempt (D155).
- *
- * The server reads an exchange's key before anything else in the ledger, so a refusal from the ledger itself (a
- * newer rate, a closed store, a number it would not take) proves that nothing is recorded under the key. A refusal
- * raised in front of it — the session, a permission, the business's access, the branch's activity — proves nothing,
- * and neither does a request that never left (no network): the earlier answer stands. A lost answer (a timeout, a
- * 5xx) or a key that already holds a record means it may be recorded.
- */
-export function mayHaveRecorded(before: boolean, e: ClassifiedError): boolean {
-  if (e.code === 'idempotency_conflict') return true;
-  if (e.kind === 'timeout_uncertain' || e.kind === 'server_error') return true;
-  if (e.kind === 'no_network' || e.kind === 'api_unreachable') return before;
-  if (e.kind === 'session_expired' || e.kind === 'permission_denied' || e.kind === 'entitlement_blocked') return before;
-  if (e.code === 'activity_not_subscribed' || e.code === 'ENTITLEMENT_WRITE_BLOCKED') return before;
-  return false;
-}
-
-/**
- * Cancelling is only honest while nothing has been sent — or while every answer since proved nothing was recorded.
- * An exchange that may be recorded is never cancelled with "nothing is sent": it is checked again, or removed.
+ * Cancelling is only honest while nothing has been recorded: a draft, an item waiting to be sent (for an exchange,
+ * every answer so far proved nothing was recorded — a lost answer makes it `uncertain`), or one the server refused
+ * on its merits. An exchange that may be recorded, or must be entered elsewhere, is never "cancelled": it is
+ * checked again, or removed.
  */
 export function mayCancel(item: QueueItem): boolean {
-  if (item.mayBeRecorded) return false;
+  if (item.kind === 'agent.exchange.record') {
+    return item.state === 'draft' || item.state === 'waiting_for_connection' || item.state === 'rejected_resubmit';
+  }
   return item.state === 'draft' || item.state === 'waiting_for_connection' || item.state === 'needs_attention';
 }
 
-/** Removing an exchange that may be recorded: only once it is not on its way, by a person who checked the list. */
+/**
+ * Removing an exchange from this phone (D161): one that may be recorded (the server's list is the record of what
+ * happened), or one the server refused — never while it is on its way, never once it is finished.
+ */
 export function mayRemove(item: QueueItem): boolean {
-  return Boolean(item.mayBeRecorded) && (item.state === 'waiting_for_connection' || item.state === 'needs_attention');
+  return (
+    item.kind === 'agent.exchange.record' &&
+    (item.state === 'uncertain' || item.state === 'rejected_resubmit' || item.state === 'rejected_reenter' || item.state === 'needs_attention')
+  );
 }
 
 /**
@@ -273,6 +294,9 @@ export function toneFor(state: QueueState): 'neutral' | 'info' | 'warning' | 'su
     case 'synced':
       return 'success';
     case 'needs_attention':
+    case 'uncertain':
+    case 'rejected_resubmit':
+    case 'rejected_reenter':
       return 'warning';
     case 'sending':
     case 'waiting_for_connection':

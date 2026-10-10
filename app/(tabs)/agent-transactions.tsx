@@ -23,6 +23,7 @@ import { QueuedExchange } from '../../components/agent/QueuedExchange';
 import { useAuth } from '../../hooks/useAuth';
 import { activityAllows } from '../../lib/activity';
 import { useAgentPositions, useAgentProviders, useAgentTransactions, type AgentTransaction } from '../../lib/agent';
+import { exchangeOutcome, outcomeChip } from '../../lib/agent-counter';
 import { prepareAgain, useExchangeScope } from '../../lib/agent-queue';
 import { directionRowKey, HISTORY_PERIODS, periodRange, queuedFirst, searchFilter, type HistoryPeriod, type SearchMode } from '../../lib/agent-history';
 import { DIRECTIONS, type AgentDirection } from '../../lib/agent-rules';
@@ -45,9 +46,10 @@ import { toast } from '../../lib/toast';
  * The counter's exchanges — Transactions on an agent-only branch, Exchanges on
  * a combined one (docs/73 §5, D157).
  *
- * The exchanges this phone has not sent yet come first, each marked *Pending
- * synchronization* or *Needs your attention*, never with a time the server did
- * not give them. Then the branch's exchanges from the server, newest first,
+ * The exchanges this phone still holds come first, each with its state in
+ * words (D161) — *Pending synchronization*, *Checking whether it was recorded*,
+ * *Not recorded*, *Not recorded here* — never with a time the server did not
+ * give them. Then the branch's exchanges from the server, newest first,
  * masked: the direction in words, the provider, the amount, `•••• 1234`, who
  * recorded it and when, and whether it was reversed. Every filter — the
  * period, the provider, the direction, who recorded it, the last four digits,
@@ -313,12 +315,16 @@ function ExchangeRow({ row, onPress }: { row: AgentTransaction; onPress: () => v
   );
 }
 
-/** One exchange this phone has not sent: never a server time, never "recorded". */
+/**
+ * One exchange this phone still holds: never a server time, never "recorded" — its state in words beside its
+ * colour (D161): pending, checking whether it was recorded, not recorded, or not recorded here.
+ */
 function QueuedRow({ item, provider, onPress }: { item: QueueItem; provider: string; onPress: () => void }) {
   const styles = useStyles();
   const { t } = useTranslation();
   if (!isExchangePayload(item.payload)) return null;
-  const attention = item.state === 'needs_attention';
+  const chip = outcomeChip(exchangeOutcome(item.state));
+  const attention = chip.tone === 'warning';
   return (
     <Pressable onPress={onPress} accessibilityRole="button" testID={`queued-${item.id}`}>
       <Card variant={attention ? 'warning' : 'sunken'} style={styles.row}>
@@ -329,7 +335,7 @@ function QueuedRow({ item, provider, onPress }: { item: QueueItem; provider: str
           <MoneyValue value={item.payload.amount} size="small" />
         </View>
         <View style={styles.rowFoot}>
-          <Chip label={attention ? t('agent.outcome.attention.title') : t('agent.pending')} tone={attention ? 'warning' : 'info'} size="sm" dot />
+          <Chip label={t(chip.key as TranslationKey)} tone={chip.tone} size="sm" dot />
           <Text variant="caption" tone="tertiary">
             {t('agent.list.phoneTime', { time: isolateLtr(formatTime(item.payload.deviceRecordedAt)) })}
           </Text>

@@ -6,6 +6,18 @@ import { deleteItem, getItem, setItem } from '../storage';
 import { uuidv4 } from '../utils';
 import { AGENT_EXCHANGE_KIND, confirmationOf, containsPersonalNumber, exchangeBody, isExchangePayload } from './agent-exchange.ts';
 import { forgetSealedNumber, readSealedNumber, scopeOf, sweepNumbers, type KeyStore } from './exchange-numbers.ts';
+import {
+  exchangeStateAfterError,
+  exchangeStateWhenExhausted,
+  exchangeStatusPath,
+  lookupAnswerOf,
+  lookupsDue,
+  mayCheckAgain,
+  mayResend,
+  normaliseQueue,
+  resolveLookup,
+  serverRecordOf,
+} from './exchange-rules.ts';
 import { classifyError } from './classify.ts';
 import { mayQueue } from './policy.ts';
 import { isDurable } from './durable-storage.ts';
@@ -13,7 +25,6 @@ import { readQueue, writeQueue, type Scope } from './queue-store.ts';
 import {
   MAX_ATTEMPTS,
   mayCancel,
-  mayHaveRecorded,
   mayRemove,
   nextSendable,
   nextStateAfterError,
@@ -73,6 +84,18 @@ const PREPARE: Record<string, (item: QueueItem, scope: Scope) => Promise<Prepare
   },
 };
 
+/**
+ * How the server is asked whether an item was recorded (D161), without sending it again: only the agent exchange
+ * has a status lookup. Never gated by the branch's activity, and readable while the business is suspended, so a
+ * phone always learns the fate of its own money record.
+ */
+const LOOKUP: Record<string, (item: QueueItem) => Promise<unknown>> = {
+  [AGENT_EXCHANGE_KIND]: (item) => api.get(exchangeStatusPath(item.clientUuid)),
+};
+
+/** What one status lookup decided; `unreachable` and `skipped` decide nothing. */
+export type LookupOutcome = 'confirmed' | 'different' | 'not_recorded' | 'unreachable' | 'skipped';
+
 /** Forget what was kept outside the queue file for an item that will never be sent again — under the item's own scope. */
 async function forgetOutside(item: QueueItem): Promise<void> {
   if (item.kind === AGENT_EXCHANGE_KIND) await forgetSealedNumber(numbers, scopeOf(item), item.clientUuid);
@@ -88,6 +111,8 @@ interface QueueStoreState {
   corruptionDetected: boolean;
   /** False on web, where there is no device storage to queue into. */
   durable: boolean;
+  /** The items whose status lookup is on its way — never asked twice at once. In memory only. */
+  checking: string[];
 
   load: (scope: Scope) => void;
   /**
@@ -105,9 +130,12 @@ interface QueueStoreState {
   }) => { queued: boolean; reason?: string; id?: string };
   process: () => Promise<void>;
   cancel: (id: string) => void;
-  /** An exchange that may be recorded, taken off this phone by a person who checked the exchanges list. */
+  /** An exchange taken off this phone by a person (D161): uncertain, or refused; the server's list is the record. */
   remove: (id: string) => void;
+  /** Sent again, unchanged, under its own key — only what `mayResend` allows. */
   retry: (id: string) => void;
+  /** "Check again" on an uncertain exchange: the status lookup, at once — never a resend (D161). */
+  checkAgain: (id: string) => Promise<LookupOutcome>;
   countsFor: () => { waiting: number; needsAttention: number; drafts: number };
 }
 
@@ -118,6 +146,7 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
   lastSyncAt: null,
   corruptionDetected: false,
   durable: isDurable(),
+  checking: [],
 
   /**
    * Open the queue belonging to this user, company and branch.
@@ -127,14 +156,17 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
    * person's report.
    */
   load: (scope) => {
-    const { items, quarantined } = readQueue(scope);
-    set({ scope, items, corruptionDetected: quarantined });
+    const read = readQueue(scope);
+    // An older build's exchanges, in this build's states (D161) — written back once, never quarantined.
+    const { items, changed } = normaliseQueue(read.items);
+    if (changed) writeQueue(scope, items);
+    set({ scope, items, corruptionDetected: read.quarantined });
     // A finished exchange's number has nothing left to wait for: swept again on every opening (D161).
     void sweepNumbers(numbers, items);
   },
 
   reset: () => {
-    set({ scope: null, items: [], lastSyncAt: null, corruptionDetected: false });
+    set({ scope: null, items: [], lastSyncAt: null, corruptionDetected: false, checking: [] });
   },
 
   enqueue: ({ kind, payload, summary, clientUuid }) => {
@@ -208,13 +240,20 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
         await usePermissionStore.getState().refresh(scope.branchId);
       }
 
+      // The uncertain exchanges first: asked, never sent again blindly (D161). One the lookup finds unrecorded is
+      // ready to send in this same pass, under the same key.
+      const due = lookupsDue(get().items, scope, Date.now()).filter((i) => !get().checking.includes(i.id));
+      for (const item of due) {
+        if (!sameScope(get().scope, scope)) break;
+        await lookUp(item, scope, set, get, false);
+      }
       const ready = nextSendable(get().items, scope, Date.now());
       for (const item of ready) {
         // Signed out, or another account signed in, mid-pass: nothing more is sent under this scope.
         if (!sameScope(get().scope, scope)) break;
         await send(item, scope, set, get);
       }
-      if (ready.length > 0) set({ lastSyncAt: Date.now() });
+      if (ready.length > 0 || due.length > 0) set({ lastSyncAt: Date.now() });
     } finally {
       set({ running: false });
     }
@@ -225,7 +264,9 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
       ends.
     */
     const after = get();
-    if (after.scope && nextSendable(after.items, after.scope, Date.now()).length > 0) void after.process();
+    if (after.scope && (nextSendable(after.items, after.scope, Date.now()).length > 0 || lookupsDue(after.items, after.scope, Date.now()).length > 0)) {
+      void after.process();
+    }
   },
 
   cancel: (id) => {
@@ -255,10 +296,15 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     void forgetOutside(target);
   },
 
-  /** A person deciding to try again clears the backoff, not the history. */
+  /**
+   * A person deciding to try again clears the backoff, not the history. Never for an exchange whose terms or fields
+   * must change first, nor for one that may be recorded or must be entered elsewhere (D161).
+   */
   retry: (id) => {
     const { scope, items } = get();
     if (!scope) return;
+    const target = items.find((i) => i.id === id);
+    if (!target || !mayResend(target)) return;
     const next = items.map((i) =>
       i.id === id
         ? { ...i, state: 'waiting_for_connection' as QueueState, attempts: 0, lastAttemptAt: null }
@@ -269,11 +315,21 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
     void get().process();
   },
 
+  checkAgain: async (id) => {
+    const { scope, items, checking } = get();
+    const item = items.find((i) => i.id === id);
+    if (!scope || !item || checking.includes(id) || !mayCheckAgain(item, scope)) return 'skipped';
+    const outcome = await lookUp(item, scope, set, get, true);
+    // Not recorded: sent now, under the same key.
+    if (outcome === 'not_recorded') void get().process();
+    return outcome;
+  },
+
   countsFor: () => {
     const { items } = get();
     return {
-      waiting: items.filter((i) => i.state === 'waiting_for_connection' || i.state === 'sending').length,
-      needsAttention: items.filter((i) => i.state === 'needs_attention').length,
+      waiting: items.filter((i) => i.state === 'waiting_for_connection' || i.state === 'sending' || i.state === 'uncertain').length,
+      needsAttention: items.filter((i) => i.state === 'needs_attention' || i.state === 'rejected_resubmit' || i.state === 'rejected_reenter').length,
       drafts: items.filter((i) => i.state === 'draft').length,
     };
   },
@@ -323,6 +379,7 @@ async function send(
   const patch = (changes: Partial<QueueItem>) => patchItem(scope, item.id, changes, set, get);
 
   patch({ state: 'sending', lastAttemptAt: Date.now(), attempts: item.attempts + 1 });
+  const exchange = item.kind === AGENT_EXCHANGE_KIND;
 
   // What lives outside the file is joined now, or the item waits for a person with the reason named.
   let payload = item.payload as Record<string, unknown>;
@@ -330,7 +387,8 @@ async function send(
   if (prepare) {
     const prepared = await prepare(item, scope);
     if ('refusal' in prepared) {
-      patch({ state: 'needs_attention', lastError: prepared.refusal });
+      // Never sent: refused by the phone itself, the fix named (an exchange: enter the number again and send).
+      patch({ state: exchange ? 'rejected_resubmit' : 'needs_attention', lastError: prepared.refusal });
       return;
     }
     payload = prepared.payload;
@@ -348,11 +406,24 @@ async function send(
       exchange keeps the server's record of it — the instant and the business
       day are the server's — and its number leaves the phone.
     */
-    const result = item.kind === AGENT_EXCHANGE_KIND ? confirmationOf(answer) : null;
-    patch({ state: 'synced', lastError: null, ...(result ? { result: { ...result } } : {}) });
+    const result = exchange ? confirmationOf(answer) : null;
+    patch({ state: 'synced', lastError: null, ...(exchange ? { serverRecord: null } : {}), ...(result ? { result: { ...result } } : {}) });
     await forgetOutside(item);
   } catch (error) {
     const classified: ClassifiedError = classifyError(error, useConnectivity.getState().online);
+    if (exchange) {
+      /*
+        An exchange's outcome is one of D161's states, never "needs attention": a lost answer is uncertain (the
+        lookup decides), a refusal is rejected — to fix and send, or to enter elsewhere — and nothing rejected is
+        tried again on its own. Past the bounded attempts, an exchange that would wait again is asked about instead.
+      */
+      const next = exchangeStateAfterError(classified, item.state === 'uncertain');
+      const exhausted = item.attempts + 1 >= MAX_ATTEMPTS;
+      patch({ state: exhausted ? exchangeStateWhenExhausted(next) : next, lastError: classified });
+      // Another exchange holds this key: the lookup shows it (masked), for the person to hand to a Manager.
+      if (classified.code === 'idempotency_conflict') await attachServerRecord(item, scope, set, get);
+      return;
+    }
     const nextState = nextStateAfterError(classified);
     /*
       Attempts are bounded. Past the limit an item stops asking the network and
@@ -360,11 +431,61 @@ async function send(
       to make it pass.
     */
     const exhausted = item.attempts + 1 >= MAX_ATTEMPTS && nextState === 'waiting_for_connection';
-    patch({
-      state: exhausted ? 'needs_attention' : nextState,
-      lastError: classified,
-      // A money record remembers whether any attempt may have been recorded (D155): it decides what a person is offered.
-      ...(item.kind === AGENT_EXCHANGE_KIND ? { mayBeRecorded: mayHaveRecorded(Boolean(item.mayBeRecorded), classified) } : {}),
-    });
+    patch({ state: exhausted ? 'needs_attention' : nextState, lastError: classified });
+  }
+}
+
+/**
+ * Ask the server whether an uncertain exchange was recorded (D161) — under its own key, never by sending it again —
+ * and write down what that decides. Counted as an attempt, so the automatic lookups are bounded and back off like
+ * a resend; a person's "Check again" asks whenever they press it.
+ */
+async function lookUp(
+  item: QueueItem,
+  scope: Scope,
+  set: (partial: Partial<QueueStoreState>) => void,
+  get: () => QueueStoreState,
+  manual: boolean,
+): Promise<LookupOutcome> {
+  const ask = LOOKUP[item.kind];
+  if (!ask) return 'skipped';
+  set({ checking: [...get().checking, item.id] });
+  try {
+    patchItem(scope, item.id, { attempts: item.attempts + 1, lastAttemptAt: Date.now() }, set, get);
+    let answer;
+    try {
+      answer = lookupAnswerOf(await ask(item));
+    } catch {
+      // Unreachable, or refused: nothing is decided. It stays uncertain, with "Check again".
+      return 'unreachable';
+    }
+    if (!answer) return 'unreachable';
+    const current = get().items.find((i) => i.id === item.id) ?? item;
+    // A person removed it, or another session took over, while the server was asked: their decision stands.
+    if (!sameScope(get().scope, scope) || (current.state !== 'uncertain' && current.state !== 'needs_attention')) return 'skipped';
+    const number = answer.recorded ? await readSealedNumber(numbers, scopeOf(item), item.clientUuid) : null;
+    const resolution = resolveLookup(current, answer, number, { manual });
+    patchItem(scope, item.id, resolution.changes, set, get);
+    if (resolution.kind === 'confirmed') await forgetOutside(item);
+    return resolution.kind;
+  } finally {
+    set({ checking: get().checking.filter((id) => id !== item.id) });
+  }
+}
+
+/** The other exchange recorded under a key that refused this one, attached (masked) when the lookup can say it. */
+async function attachServerRecord(
+  item: QueueItem,
+  scope: Scope,
+  set: (partial: Partial<QueueStoreState>) => void,
+  get: () => QueueStoreState,
+): Promise<void> {
+  const ask = LOOKUP[item.kind];
+  if (!ask) return;
+  try {
+    const answer = lookupAnswerOf(await ask(item));
+    if (answer?.recorded) patchItem(scope, item.id, { serverRecord: serverRecordOf(answer.transaction) }, set, get);
+  } catch {
+    // Shown without it: the refusal and the exchange's own details still say what to do.
   }
 }

@@ -1,5 +1,5 @@
 import { ApiError } from './api-client';
-import { agentRefusal } from './agent-rules';
+import { agentRefusal, QUEUE_ONLY_REFUSALS } from './agent-rules';
 import { IncompatibleResponse } from './contract';
 import { t, type TranslationKey } from './i18n';
 
@@ -113,13 +113,13 @@ export function toFriendlyError(error: unknown): FriendlyError {
  * else is the ordinary friendly error.
  */
 export function toAgentError(error: unknown): FriendlyError {
-  const refusal = error instanceof ApiError && error.code !== 'ENTITLEMENT_WRITE_BLOCKED' ? agentRefusal(error.code) : null;
+  const refusal = error instanceof ApiError && !QUEUE_ONLY_REFUSALS.includes(error.code ?? '') ? agentRefusal(error.code) : null;
   if (!refusal || !(error instanceof ApiError)) return toFriendlyError(error);
   return {
     titleKey: 'agent.refusal.title',
     title: t('agent.refusal.title'),
     body: t(refusal.key as TranslationKey),
-    retryable: refusal.action === 'retry',
+    retryable: refusal.action === 'send_again',
     permissionDenied: false,
     status: error.status,
   };

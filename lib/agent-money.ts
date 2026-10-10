@@ -331,10 +331,11 @@ export function asksExplanation(expected: number | null, typed: string): boolean
 }
 
 /**
- * The exchanges this phone still holds for the branch — waiting to be sent, on
- * their way, or waiting for a person. While there is one, the phone does not
- * start the closing or count a float (D155): the day's figures would be closed
- * without an exchange that already happened at the counter.
+ * The exchanges this phone still holds for the branch — every state short of
+ * confirmed or removed (D161): waiting to be sent, on their way, uncertain, or
+ * refused. While there is one, the phone does not start the closing or count a
+ * float (D155): the day's figures would be closed without an exchange that
+ * already happened at the counter.
  */
 export function exchangesHeld(items: readonly QueueItem[], branchId: string | null): number {
   return pendingExchanges(items, branchId).length;

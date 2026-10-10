@@ -224,7 +224,7 @@ describe('the counter flow', () => {
     await waitFor(() => expect(mockStore.has(numberKey(SCOPE, item.clientUuid))).toBe(false));
   });
 
-  it('a refusal is said in the counter’s words, and prepared again under a new key with its number', async () => {
+  it('a refusal is said in the counter’s words — Not recorded, with Review and send — and prepared again under a new key with its number (D161)', async () => {
     (api.post as jest.Mock).mockRejectedValue(
       new ApiError('Bankily’s configuration changed since this exchange was prepared.', 409, 'stale_configuration', { expectedConfigVersionId: 'cfg-6', currentConfigVersionId: 'cfg-7' }),
     );
@@ -236,11 +236,15 @@ describe('the counter flow', () => {
     });
     expect(await screen.findByText(t('agent.refusal.stale_configuration'))).toBeTruthy();
     const refused = useQueue.getState().items[0];
-    expect(refused.state).toBe('needs_attention');
+    expect(refused.state).toBe('rejected_resubmit');
     expect(refused.lastError?.code).toBe('stale_configuration');
+    expect(screen.getByText(t('agent.refusal.title'))).toBeTruthy();
+    // Nothing rejected is sent again on its own, and never unchanged when its terms changed.
+    expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
+    expect(api.post).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.prepareAgain')));
+      fireEvent.press(screen.getByText(t('agent.action.reviewAndSend')));
     });
     // Back on the form with the same words and figures, and the number carried to the new key.
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();

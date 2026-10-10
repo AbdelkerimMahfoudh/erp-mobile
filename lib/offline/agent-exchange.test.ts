@@ -13,6 +13,7 @@ import {
   containsPersonalNumber,
   exchangeBody,
   exchangeSummary,
+  exchangesToSend,
   isExchangePayload,
   legKey,
   legacyNumberKey,
@@ -166,7 +167,7 @@ it('the server’s answer is kept as the server said it: its id, instant, busine
 
 // ── Provisional figures ────────────────────────────────────────────────────
 
-it('the branch’s pending exchanges are the ones not yet accepted, oldest first, of this branch only', () => {
+it('the branch’s held exchanges are every one not confirmed or removed, oldest first, of this branch only (D161)', () => {
   const items = [
     item({ id: 'x', createdAt: 5 }),
     item({ id: 'y', createdAt: 2, state: 'sending' }),
@@ -175,8 +176,13 @@ it('the branch’s pending exchanges are the ones not yet accepted, oldest first
     item({ id: 'v', createdAt: 1, branchId: 'b2' }),
     item({ id: 'u', createdAt: 0, kind: 'expense.submit' }),
     item({ id: 'n', createdAt: 6, state: 'needs_attention' }),
+    item({ id: 'c', createdAt: 7, state: 'uncertain' }),
+    item({ id: 'r', createdAt: 8, state: 'rejected_resubmit' }),
+    item({ id: 'e', createdAt: 9, state: 'rejected_reenter' }),
   ];
-  assert.deepEqual(pendingExchanges(items, 'b1').map((i) => i.id), ['y', 'x', 'n']);
+  assert.deepEqual(pendingExchanges(items, 'b1').map((i) => i.id), ['y', 'x', 'n', 'c', 'r', 'e']);
+  // Only the ones still to be sent are provisional: an uncertain one is the server's to count, a refused one moves nothing.
+  assert.deepEqual(exchangesToSend(items, 'b1').map((i) => i.id), ['y', 'x']);
 });
 
 it('a queued exchange moves the drawer and the float by its legs; a rate the phone no longer sees adds no commission', () => {
@@ -199,6 +205,9 @@ it('provisional = the net of the exchanges still to be sent; a refused one moves
       item({ id: 'b', clientUuid: 'b', payload: { ...payload, direction: 'cash_out_credit_in', amount: 5_000 } }),
       item({ id: 'c', clientUuid: 'c', state: 'needs_attention' }),
       item({ id: 'd', clientUuid: 'd', state: 'synced' }),
+      item({ id: 'e', clientUuid: 'e', state: 'uncertain' }),
+      item({ id: 'f', clientUuid: 'f', state: 'rejected_resubmit' }),
+      item({ id: 'g', clientUuid: 'g', state: 'rejected_reenter' }),
     ],
     'b1',
     providers,

@@ -108,7 +108,7 @@ it('carried to the key it is prepared again under, for the same person only', as
 });
 
 it('every finished exchange is swept at load, each under its own scope; nothing still to send is touched', async () => {
-  const states: QueueState[] = ['synced', 'cancelled', 'waiting_for_connection', 'sending', 'needs_attention', 'draft', 'waiting_for_connection'];
+  const states: QueueState[] = ['synced', 'cancelled', 'waiting_for_connection', 'sending', 'uncertain', 'rejected_resubmit', 'rejected_reenter'];
   const items = states.map((state, n) => item({ id: `i${n}`, clientUuid: `k${n}`, state, ...(n === 1 ? B : A) }));
   const seed: Record<string, string> = {};
   for (const i of items) {

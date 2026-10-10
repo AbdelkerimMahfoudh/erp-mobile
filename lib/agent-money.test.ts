@@ -237,8 +237,13 @@ it('the closing waits while this phone holds an exchange for the branch — sent
     queued({ id: '4', state: 'cancelled' }),
     queued({ id: '5', branchId: 'b2' }),
     queued({ id: '6', kind: 'expense.report' }),
+    queued({ id: '7', state: 'uncertain' }),
+    queued({ id: '8', state: 'rejected_resubmit' }),
+    queued({ id: '9', state: 'rejected_reenter' }),
+    queued({ id: '10', state: 'sending' }),
   ];
-  assert.equal(exchangesHeld(items, 'b1'), 2, 'one waiting to be sent and one waiting for a person: both are the day’s');
+  // Every state short of confirmed or removed is the day's (D161): waiting, on its way, uncertain, refused.
+  assert.equal(exchangesHeld(items, 'b1'), 6, 'waiting, an older build’s attention item, uncertain, both refusals and on its way');
   assert.equal(exchangesHeld(items, 'b2'), 1);
   assert.equal(exchangesHeld([], 'b1'), 0);
 });

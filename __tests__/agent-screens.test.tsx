@@ -294,27 +294,28 @@ describe('one exchange', () => {
   });
 });
 
-describe('an exchange whose answer was lost (review)', () => {
-  it('is "Not confirmed yet": checked again under the same key or removed after a look at the list — never "cancelled, nothing sent"', async () => {
+describe('an exchange whose answer was lost (D161)', () => {
+  it('is "Checking whether it was recorded": asked again under the same key or removed — never "cancelled, nothing sent"', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
-    const item = queued({ attempts: 1, lastError: { kind: 'timeout_uncertain', message: 'timeout' }, mayBeRecorded: true });
+    const item = queued({ state: 'uncertain', attempts: 1, lastError: { kind: 'timeout_uncertain', message: 'timeout' } });
     useQueue.setState({ items: [item] });
     mount(<QueuedExchange item={item} />);
-    expect(await screen.findByText(t('agent.uncertain.title'))).toBeTruthy();
+    expect(await screen.findByText(t('agent.state.uncertain'))).toBeTruthy();
     expect(screen.getByText(t('agent.outcome.uncertain.body'))).toBeTruthy();
     expect(screen.getByText(t('agent.action.checkAgain'))).toBeTruthy();
     expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
   });
 
-  it('a key that already holds a record leads to the list, never to a new confirmation', async () => {
+  it('a key that already holds another record is "Not recorded here": no new confirmation, no cancel — removed after a Manager is told', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
-    const item = queued({ state: 'needs_attention', attempts: 2, lastError: { kind: 'conflict', message: 'conflict', status: 409, code: 'idempotency_conflict' }, mayBeRecorded: true });
+    const item = queued({ state: 'rejected_reenter', attempts: 2, lastError: { kind: 'conflict', message: 'conflict', status: 409, code: 'idempotency_conflict' } });
     useQueue.setState({ items: [item] });
     mount(<QueuedExchange item={item} onPrepareAgain={() => undefined} />);
     expect(await screen.findByText(t('agent.refusal.idempotency_conflict'))).toBeTruthy();
-    expect(screen.getByText(t('agent.outcome.list'))).toBeTruthy();
-    expect(screen.queryByText(t('agent.action.prepareAgain'))).toBeNull();
-    expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
+    expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
+    for (const absent of ['agent.action.reviewAndSend', 'agent.action.editAndSend', 'agent.action.sendAgain', 'agent.action.cancel'] as const) {
+      expect(screen.queryByText(t(absent))).toBeNull();
+    }
   });
 });

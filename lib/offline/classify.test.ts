@@ -124,6 +124,15 @@ it('a malformed item is refused rather than half-read', () => {
   assert.equal(isQueueItem('nonsense'), false);
 });
 
+it('a state this build does not know is refused item by item, never shown as pending (D161)', () => {
+  for (const state of ['draft', 'waiting_for_connection', 'sending', 'synced', 'needs_attention', 'cancelled', 'uncertain', 'rejected_resubmit', 'rejected_reenter']) {
+    assert.equal(isQueueItem({ ...item, state }), true, state);
+  }
+  for (const state of ['failed', 'pending', '', null, 3]) assert.equal(isQueueItem({ ...item, state }), false, String(state));
+  // The file's version is not bumped for it: a bump would quarantine every exchange still waiting on a phone.
+  assert.equal(QUEUE_SCHEMA_VERSION, 1);
+});
+
 it('nothing carrying a credential may be queued', () => {
   // Tokens must never be persisted in a payload. Checking here means that
   // survives somebody adding a convenient field in a later milestone.

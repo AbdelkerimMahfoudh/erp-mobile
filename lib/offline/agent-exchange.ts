@@ -170,14 +170,29 @@ export function confirmationOf(response: unknown): ExchangeConfirmation | null {
   };
 }
 
-/** States in which an exchange has not reached the server: it is shown as Pending synchronization, never as recorded. */
-const UNSENT: readonly QueueItem['state'][] = ['draft', 'waiting_for_connection', 'sending', 'needs_attention'];
+/**
+ * Every state in which this phone still holds an exchange (D161): waiting, on its way, uncertain, or refused and
+ * not yet removed. Never shown as recorded, and each one holds the closing until it is confirmed or removed.
+ */
+const HELD: readonly QueueItem['state'][] = ['draft', 'waiting_for_connection', 'sending', 'needs_attention', 'uncertain', 'rejected_resubmit', 'rejected_reenter'];
+
+/** States in which an exchange is still to be sent: the only ones that move the provisional figures. */
+const TO_SEND: readonly QueueItem['state'][] = ['draft', 'waiting_for_connection', 'sending'];
 
 /** The branch's exchanges this phone still holds, oldest first: the queue's own scope is the branch. */
 export function pendingExchanges(items: readonly QueueItem[], branchId: string | null): QueueItem[] {
   return items
-    .filter((i) => i.kind === AGENT_EXCHANGE_KIND && i.branchId === branchId && UNSENT.includes(i.state))
+    .filter((i) => i.kind === AGENT_EXCHANGE_KIND && i.branchId === branchId && HELD.includes(i.state))
     .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/**
+ * The branch's exchanges still to be sent — said as Provisional beside the server's figures. An uncertain one is
+ * left out (if it was recorded the server's figures already hold it), and so is a refused one (it moves nothing
+ * until it is sent again).
+ */
+export function exchangesToSend(items: readonly QueueItem[], branchId: string | null): QueueItem[] {
+  return pendingExchanges(items, branchId).filter((i) => TO_SEND.includes(i.state));
 }
 
 /**
@@ -211,12 +226,13 @@ export function legKey(leg: Pick<Leg, 'account' | 'providerId'>): string {
  * The net each account moves by once the branch's queued exchanges post —
  * added to the server's positions and said as Provisional while it is not zero
  * (docs/73 §5.3). Only exchanges still to be sent count; one the server refused
- * moves nothing until a person sends it again.
+ * moves nothing until a person sends it again, and an uncertain one is the
+ * server's to count if it was recorded.
  */
 export function provisionalNet(items: readonly QueueItem[], branchId: string | null, providers: readonly AgentProvider[]): Record<string, number> {
   const net: Record<string, number> = {};
-  for (const item of pendingExchanges(items, branchId)) {
-    if (item.state === 'needs_attention' || !isExchangePayload(item.payload)) continue;
+  for (const item of exchangesToSend(items, branchId)) {
+    if (!isExchangePayload(item.payload)) continue;
     for (const leg of queuedLegs(item.payload, providers)) {
       const key = legKey(leg);
       net[key] = Math.round(((net[key] ?? 0) + (leg.direction === 'inflow' ? leg.amount : -leg.amount)) * 100) / 100;

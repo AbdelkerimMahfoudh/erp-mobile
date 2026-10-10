@@ -232,39 +232,72 @@ export function maskedNumber(last4: string): string {
 // ── The server's refusals, in the counter's words ───────────────────────────
 
 /**
- * What the person can do about a refused exchange:
- *  - `prepare_again` — the exchange cannot post as it was written (the rate
- *    changed, a field is wrong, the key was used): it is prepared again, read
- *    again by a person, and confirmed under a new key;
- *  - `retry` — nothing about the exchange is wrong; the moment is (the store is
- *    closed, the branch's activity or the business's access): it may be sent
+ * What fixes a refused exchange (D161) — the queue's two kinds of "not recorded":
+ *  - `send_again` — nothing about the exchange is wrong; the moment is (the
+ *    business's access, a closed store, a provider switched off): it is sent
  *    again unchanged, under the same key, once that changes;
- *  - `cancel` — nothing to do but drop it;
- *  - `check_list` — the key already holds a record: what the server recorded is
- *    in the exchanges list, and nothing is prepared again or confirmed as new.
+ *  - `review_and_send` — the provider's terms are not the ones it was prepared
+ *    with (a newer rate, a provider not set up, a provider gone): it is
+ *    prepared again, read again with the terms in force, and sent under a new key;
+ *  - `edit_and_send` — a field the server would not take (the number, the
+ *    reference, the request as written): prepared again for the person to fix;
+ *  - `reenter` — it cannot be recorded from here (another exchange holds its
+ *    key, the person may no longer record, the branch left the counter or the
+ *    person left the branch): a Manager or someone allowed enters it, and it is
+ *    removed from this phone;
+ *  - `cancel` — nothing to do but drop it.
  */
-export type RefusalAction = 'prepare_again' | 'retry' | 'cancel' | 'check_list';
+export type RefusalAction = 'send_again' | 'review_and_send' | 'edit_and_send' | 'reenter' | 'cancel';
 
 export interface AgentRefusal {
   /** The i18n key of the sentence the counter shows for it. */
   key: string;
   action: RefusalAction;
+  /**
+   * Raised in front of the ledger — before the server reads the exchange's key — so it proves nothing about an
+   * exchange that may already be recorded: the status lookup decides that one first (D161).
+   */
+  beforeKey?: boolean;
 }
 
-/** Every refusal of `POST agent/transactions` the counter names in its own words (the codes, never the English). */
+/**
+ * Every refusal of `POST agent/transactions` the counter names in its own words (the codes, never the English).
+ * `validation` is a 400 without a code, `conflict` a 409/404/410 without a known one, and
+ * `customer_number_missing` the phone's own: the number is no longer in SecureStore.
+ */
 export const AGENT_REFUSALS: Readonly<Record<string, AgentRefusal>> = {
-  idempotency_conflict: { key: 'agent.refusal.idempotency_conflict', action: 'check_list' },
-  stale_configuration: { key: 'agent.refusal.stale_configuration', action: 'prepare_again' },
-  provider_not_configured: { key: 'agent.refusal.provider_not_configured', action: 'prepare_again' },
-  provider_inactive: { key: 'agent.refusal.provider_inactive', action: 'prepare_again' },
-  customer_number_invalid: { key: 'agent.refusal.customer_number_invalid', action: 'prepare_again' },
-  reference_required: { key: 'agent.refusal.reference_required', action: 'prepare_again' },
-  customer_number_missing: { key: 'agent.refusal.customer_number_missing', action: 'prepare_again' },
-  store_closed: { key: 'agent.refusal.store_closed', action: 'retry' },
-  activity_not_subscribed: { key: 'agent.refusal.activity_not_subscribed', action: 'retry' },
-  ENTITLEMENT_WRITE_BLOCKED: { key: 'agent.refusal.entitlement', action: 'retry' },
+  idempotency_conflict: { key: 'agent.refusal.idempotency_conflict', action: 'reenter' },
+  stale_configuration: { key: 'agent.refusal.stale_configuration', action: 'review_and_send' },
+  provider_not_configured: { key: 'agent.refusal.provider_not_configured', action: 'review_and_send' },
+  conflict: { key: 'agent.refusal.conflict', action: 'review_and_send' },
+  provider_inactive: { key: 'agent.refusal.provider_inactive', action: 'send_again' },
+  customer_number_invalid: { key: 'agent.refusal.customer_number_invalid', action: 'edit_and_send' },
+  reference_required: { key: 'agent.refusal.reference_required', action: 'edit_and_send' },
+  validation: { key: 'agent.refusal.validation', action: 'edit_and_send' },
+  customer_number_missing: { key: 'agent.refusal.customer_number_missing', action: 'edit_and_send' },
+  store_closed: { key: 'agent.refusal.store_closed', action: 'send_again' },
+  ENTITLEMENT_WRITE_BLOCKED: { key: 'agent.refusal.entitlement', action: 'send_again', beforeKey: true },
+  activity_not_subscribed: { key: 'agent.refusal.activity_not_subscribed', action: 'reenter', beforeKey: true },
+  permission_denied: { key: 'agent.refusal.permission_denied', action: 'reenter', beforeKey: true },
+  branch_access_denied: { key: 'agent.refusal.branch_access_denied', action: 'reenter', beforeKey: true },
+  branch_inactive: { key: 'agent.refusal.branch_inactive', action: 'reenter', beforeKey: true },
   already_reversed: { key: 'agent.refusal.already_reversed', action: 'cancel' },
 };
+
+/**
+ * The codes the queue names for an exchange only: said in another context — a provider's settings, a float's
+ * count — they would name the wrong thing, so a screen outside the queue says them its own way.
+ */
+export const QUEUE_ONLY_REFUSALS: readonly string[] = [
+  'ENTITLEMENT_WRITE_BLOCKED',
+  'idempotency_conflict',
+  'permission_denied',
+  'branch_access_denied',
+  'branch_inactive',
+  'validation',
+  'conflict',
+  'customer_number_missing',
+];
 
 export function agentRefusal(code: string | null | undefined): AgentRefusal | null {
   return code ? (AGENT_REFUSALS[code] ?? null) : null;

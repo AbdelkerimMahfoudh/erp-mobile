@@ -1,4 +1,4 @@
-import type { QueueItem } from './queue-rules.ts';
+import { QUEUE_STATES, type QueueItem } from './queue-rules.ts';
 import { containsPersonalNumber } from './agent-exchange.ts';
 
 /**
@@ -10,7 +10,13 @@ import { containsPersonalNumber } from './agent-exchange.ts';
  * runs.
  */
 
-/** Bump when the on-disk shape changes. Older files are quarantined, not read. */
+/**
+ * Bump when the on-disk shape changes. Older files are quarantined, not read.
+ *
+ * Not bumped for D161: the agent exchange's three new states only add values, and a bump would quarantine every
+ * exchange still waiting on a phone. An older build's items are brought forward at load instead
+ * (`normaliseQueue`), and a state this build does not know is refused item by item (`isQueueItem`).
+ */
 export const QUEUE_SCHEMA_VERSION = 1;
 
 export interface QueueFile {
@@ -42,6 +48,8 @@ export function isQueueItem(v: unknown): v is QueueItem {
   if (typeof i.createdAt !== 'number' || typeof i.attempts !== 'number') return false;
   if (typeof i.payloadVersion !== 'number') return false;
   if (i.branchId !== null && typeof i.branchId !== 'string') return false;
+  // A state this build does not know would be shown as pending and counted nowhere: refused rather than guessed at.
+  if (!QUEUE_STATES.includes(i.state as QueueItem['state'])) return false;
   if (containsCredential(i.payload)) return false;
   // Nor a customer's number (D155): an exchange's number is joined from SecureStore at the moment of sending.
   if (containsPersonalNumber(i.payload)) return false;

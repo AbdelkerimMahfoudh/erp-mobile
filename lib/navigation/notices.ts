@@ -32,11 +32,15 @@ export interface SyncNotice {
  * Attention wins when both exist: the queue draining does not clear a conflict.
  */
 export function syncNotice(items: readonly QueueEntry[]): SyncNotice {
-  const attention = items.filter((i) => i.state === 'needs_attention').length;
+  // A refused exchange (D161) waits for a person as surely as a conflict does: it is never "waiting".
+  const attention = items.filter(
+    (i) => i.state === 'needs_attention' || i.state === 'rejected_resubmit' || i.state === 'rejected_reenter',
+  ).length;
   if (attention > 0) return { kind: 'attention', count: attention };
 
+  // An uncertain exchange resolves itself once the server answers its lookup: quiet, like anything waiting.
   const waiting = items.filter(
-    (i) => i.state === 'waiting_for_connection' || i.state === 'sending',
+    (i) => i.state === 'waiting_for_connection' || i.state === 'sending' || i.state === 'uncertain',
   ).length;
   if (waiting > 0) return { kind: 'waiting', count: waiting };
 

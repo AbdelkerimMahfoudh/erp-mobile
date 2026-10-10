@@ -101,25 +101,62 @@ export function counterPayload(form: CounterForm, provider: AgentProvider & { co
 }
 
 /**
- * Where a confirmed exchange stands, in the counter's words (D155):
+ * Where a confirmed exchange stands, in the counter's words — the six states
+ * of D161, and cancelled:
  *  - `pending` — on this phone, not yet accepted: *Pending synchronization*,
  *    never shown with a time the server did not give it;
- *  - `recorded` — the server accepted it, with its own instant;
- *  - `attention` — the server refused it by name; a person decides;
- *  - `cancelled` — dropped before it was sent.
+ *  - `synchronizing` — on its way;
+ *  - `confirmed` — the server accepted it, with its own instant;
+ *  - `uncertain` — an answer was lost: *Checking whether it was recorded* —
+ *    the status lookup decides, never a blind resend;
+ *  - `rejected_resubmit` — *Not recorded*, with the action that fixes it;
+ *  - `rejected_reenter` — *Not recorded here*: someone else enters it;
+ *  - `cancelled` — dropped before anything was recorded, or removed.
+ *
+ * An older build's `needs_attention` is brought into these states at load; in
+ * memory it reads as uncertain, which only the lookup resolves.
  */
-export type ExchangeOutcome = 'pending' | 'recorded' | 'attention' | 'cancelled';
+export type ExchangeOutcome = 'pending' | 'synchronizing' | 'confirmed' | 'uncertain' | 'rejected_resubmit' | 'rejected_reenter' | 'cancelled';
 
 export function exchangeOutcome(state: QueueState): ExchangeOutcome {
   switch (state) {
     case 'synced':
-      return 'recorded';
+      return 'confirmed';
+    case 'sending':
+      return 'synchronizing';
+    case 'uncertain':
     case 'needs_attention':
-      return 'attention';
+      return 'uncertain';
+    case 'rejected_resubmit':
+      return 'rejected_resubmit';
+    case 'rejected_reenter':
+      return 'rejected_reenter';
     case 'cancelled':
       return 'cancelled';
     default:
       return 'pending';
+  }
+}
+
+/**
+ * The chip a held exchange carries on every list — its state in words, beside
+ * its colour (never colour alone). Information while it waits; a warning once
+ * a person has something to do.
+ */
+export function outcomeChip(outcome: ExchangeOutcome): { key: string; tone: 'info' | 'warning' | 'success' | 'neutral' } {
+  switch (outcome) {
+    case 'confirmed':
+      return { key: 'agent.outcome.recorded.title', tone: 'success' };
+    case 'uncertain':
+      return { key: 'agent.state.uncertain', tone: 'warning' };
+    case 'rejected_resubmit':
+      return { key: 'agent.refusal.title', tone: 'warning' };
+    case 'rejected_reenter':
+      return { key: 'agent.state.rejectedHere', tone: 'warning' };
+    case 'cancelled':
+      return { key: 'agent.outcome.cancelled', tone: 'neutral' };
+    default:
+      return { key: 'agent.pending', tone: 'info' };
   }
 }
 

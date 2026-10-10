@@ -162,17 +162,31 @@ it('the customer number: the payer number’s digits, mandatory, at least four d
 
 it('every refusal the exchange route names has the counter’s own words and one honest action', () => {
   // The contract's needs-attention codes (D155): each maps to its own sentence.
+  // The D161 table: what fixes each refusal — sent again unchanged, reviewed, edited, or entered by someone else.
   const expected: Record<string, string> = {
-    // The key already holds a record: the list says what it is; nothing is confirmed as new (review).
-    idempotency_conflict: 'check_list',
-    stale_configuration: 'prepare_again',
-    provider_not_configured: 'prepare_again',
-    customer_number_invalid: 'prepare_again',
-    reference_required: 'prepare_again',
-    store_closed: 'retry',
-    activity_not_subscribed: 'retry',
-    ENTITLEMENT_WRITE_BLOCKED: 'retry',
+    idempotency_conflict: 'reenter',
+    stale_configuration: 'review_and_send',
+    provider_not_configured: 'review_and_send',
+    conflict: 'review_and_send',
+    customer_number_invalid: 'edit_and_send',
+    reference_required: 'edit_and_send',
+    validation: 'edit_and_send',
+    customer_number_missing: 'edit_and_send',
+    provider_inactive: 'send_again',
+    store_closed: 'send_again',
+    ENTITLEMENT_WRITE_BLOCKED: 'send_again',
+    activity_not_subscribed: 'reenter',
+    permission_denied: 'reenter',
+    branch_access_denied: 'reenter',
+    branch_inactive: 'reenter',
+    already_reversed: 'cancel',
   };
+  assert.deepEqual(Object.keys(AGENT_REFUSALS).sort(), Object.keys(expected).sort(), 'every refusal has its row');
+  // Raised before the server reads the key: these alone prove nothing about an exchange that may be recorded.
+  assert.deepEqual(
+    Object.entries(AGENT_REFUSALS).filter(([, r]) => r.beforeKey).map(([code]) => code).sort(),
+    ['ENTITLEMENT_WRITE_BLOCKED', 'activity_not_subscribed', 'branch_access_denied', 'branch_inactive', 'permission_denied'],
+  );
   for (const [code, action] of Object.entries(expected)) {
     assert.equal(agentRefusal(code)?.action, action, code);
     assert.match(agentRefusal(code)!.key, /^agent\.refusal\./);

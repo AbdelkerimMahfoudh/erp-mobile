@@ -13,6 +13,7 @@ import {
   counterStep,
   emptyCounterForm,
   exchangeOutcome,
+  outcomeChip,
   formProblems,
   type CounterForm,
 } from './agent-counter.ts';
@@ -91,16 +92,27 @@ it('Confirm gives the queue the version the review showed and the phone’s cloc
   assert.equal(counterPayload(form({ direction: 'cash_in_credit_out', amount: '0' }), ready, now), null);
 });
 
-it('a confirmed exchange is pending until the server accepts it, then recorded — never in between', () => {
+it('a confirmed exchange is pending until the server accepts it, then confirmed — the six states of D161, each in words', () => {
   const expected: Record<QueueState, string> = {
     draft: 'pending',
     waiting_for_connection: 'pending',
-    sending: 'pending',
-    synced: 'recorded',
-    needs_attention: 'attention',
+    sending: 'synchronizing',
+    synced: 'confirmed',
+    // An older build's item, in memory before its load: only the lookup resolves it.
+    needs_attention: 'uncertain',
+    uncertain: 'uncertain',
+    rejected_resubmit: 'rejected_resubmit',
+    rejected_reenter: 'rejected_reenter',
     cancelled: 'cancelled',
   };
   for (const [state, outcome] of Object.entries(expected)) assert.equal(exchangeOutcome(state as QueueState), outcome, state);
+  // Words beside the colour, never colour alone; green only once the server agreed; a rejected one never "pending".
+  assert.deepEqual(outcomeChip('pending'), { key: 'agent.pending', tone: 'info' });
+  assert.deepEqual(outcomeChip('synchronizing'), { key: 'agent.pending', tone: 'info' });
+  assert.deepEqual(outcomeChip('confirmed'), { key: 'agent.outcome.recorded.title', tone: 'success' });
+  assert.deepEqual(outcomeChip('uncertain'), { key: 'agent.state.uncertain', tone: 'warning' });
+  assert.deepEqual(outcomeChip('rejected_resubmit'), { key: 'agent.refusal.title', tone: 'warning' });
+  assert.deepEqual(outcomeChip('rejected_reenter'), { key: 'agent.state.rejectedHere', tone: 'warning' });
 });
 
 it('a refused exchange is prepared again under a new key, with its words and figures', () => {

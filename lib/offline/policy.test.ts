@@ -25,7 +25,6 @@ import {
   isTransient,
   MAX_ATTEMPTS,
   mayCancel,
-  mayHaveRecorded,
   mayRemove,
   nextSendable,
   nextStateAfterError,
@@ -282,7 +281,7 @@ it('but it does hold back the rest of its own group', () => {
 
 it('nothing is green until the server has agreed', () => {
   assert.equal(toneFor('synced'), 'success');
-  for (const s of ['draft', 'waiting_for_connection', 'sending', 'needs_attention'] as QueueState[]) {
+  for (const s of ['draft', 'waiting_for_connection', 'sending', 'needs_attention', 'uncertain', 'rejected_resubmit', 'rejected_reenter'] as QueueState[]) {
     assert.notEqual(toneFor(s), 'success', `${s} must not look like success`);
   }
 });
@@ -300,29 +299,27 @@ it('cancelling is offered only while nothing has been sent', () => {
   assert.equal(mayCancel(base({ state: 'synced' })), false);
 });
 
-it('an exchange whose answer was lost may be recorded: never "cancelled, nothing sent", checked again or removed (review)', () => {
-  const lost = { kind: 'timeout_uncertain' as const, message: 'timeout' };
-  const err = (kind: Parameters<typeof mayHaveRecorded>[1]['kind'], code?: string) => ({ kind, message: kind, ...(code ? { code } : {}) });
-  // A lost answer, a 5xx, a key already holding a record: it may be recorded.
-  assert.equal(mayHaveRecorded(false, lost), true);
-  assert.equal(mayHaveRecorded(false, err('server_error')), true);
-  assert.equal(mayHaveRecorded(false, err('conflict', 'idempotency_conflict')), true);
-  // A request that never left, or a refusal in front of the ledger, proves nothing: the earlier answer stands.
-  for (const e of [err('no_network'), err('api_unreachable'), err('session_expired'), err('permission_denied'), err('entitlement_blocked'), err('conflict', 'activity_not_subscribed')]) {
-    assert.equal(mayHaveRecorded(true, e), true, e.kind + (e.code ?? ''));
-    assert.equal(mayHaveRecorded(false, e), false, e.kind + (e.code ?? ''));
-  }
-  // The ledger's own refusal is read after the key: nothing is recorded under it.
-  for (const code of ['stale_configuration', 'store_closed', 'provider_not_configured', 'customer_number_invalid']) {
-    assert.equal(mayHaveRecorded(true, err('conflict', code)), false, code);
-  }
-  const uncertain = base({ kind: 'agent.exchange.record', state: 'waiting_for_connection', attempts: 1, lastError: lost, mayBeRecorded: true });
-  assert.equal(mayCancel(uncertain), false);
-  assert.equal(mayRemove(uncertain), true);
-  assert.equal(mayRemove({ ...uncertain, state: 'sending' }), false);
-  // Never sent, or every answer since proved nothing recorded: cancelling stays honest.
-  assert.equal(mayCancel(base({ kind: 'agent.exchange.record', state: 'waiting_for_connection' })), true);
-  assert.equal(mayRemove(base({ kind: 'agent.exchange.record', state: 'waiting_for_connection' })), false);
+it('an exchange is cancelled only while nothing may be recorded; removed once uncertain or refused — never on its way (D161)', () => {
+  const ex = (state: QueueState) => base({ kind: 'agent.exchange.record', state });
+  // Nothing recorded: waiting (every answer so far proved it), or refused on its merits.
+  assert.equal(mayCancel(ex('waiting_for_connection')), true);
+  assert.equal(mayCancel(ex('rejected_resubmit')), true);
+  // May be recorded, must be entered elsewhere, on its way, or finished: never "cancelled, nothing sent".
+  for (const s of ['uncertain', 'rejected_reenter', 'sending', 'synced', 'cancelled'] as QueueState[]) assert.equal(mayCancel(ex(s)), false, s);
+  // Removed from this phone by a person: uncertain or refused, never waiting, on its way or finished.
+  for (const s of ['uncertain', 'rejected_resubmit', 'rejected_reenter'] as QueueState[]) assert.equal(mayRemove(ex(s)), true, s);
+  for (const s of ['waiting_for_connection', 'sending', 'synced', 'cancelled'] as QueueState[]) assert.equal(mayRemove(ex(s)), false, s);
+  // The legacy flag decides nothing any more: the state does (it is brought forward at load).
+  assert.equal(mayCancel({ ...ex('waiting_for_connection'), mayBeRecorded: true }), true);
+  // Other kinds keep Milestone J's rules, and are never "removed".
+  assert.equal(mayRemove(base({ state: 'needs_attention' })), false);
+});
+
+it('an uncertain or refused exchange holds its own group only, and is never sent by the queue on its own', () => {
+  const ex = (id: string, state: QueueState, createdAt: number) =>
+    base({ id, kind: 'agent.exchange.record', clientUuid: `k-${id}`, state, createdAt, payload: { providerId: 'p' } });
+  const items = [ex('u', 'uncertain', 1), ex('r', 'rejected_resubmit', 2), ex('e', 'rejected_reenter', 3), ex('w', 'waiting_for_connection', 4)];
+  assert.deepEqual(nextSendable(items, { companyId: 'C1', branchId: 'B1', userId: 'U1' }, 0).map((i) => i.id), ['w']);
 });
 
 function base(over: Partial<QueueItem> = {}): QueueItem {

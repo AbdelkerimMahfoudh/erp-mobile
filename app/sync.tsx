@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, type Href } from 'expo-router';
 import { CloudOff, RefreshCw } from 'lucide-react-native';
 import {
   Button,
@@ -18,7 +18,11 @@ import { useTranslation } from '../lib/i18n';
 import { useConnectivity } from '../lib/connectivity';
 import { useQueue } from '../lib/offline/queue';
 import { mayCancel, toneFor, type QueueItem } from '../lib/offline/queue-rules';
+import { AGENT_EXCHANGE_KIND } from '../lib/offline/agent-exchange';
 import { agentRefusal } from '../lib/agent-rules';
+import { prepareAgain, useExchangeScope } from '../lib/agent-queue';
+import { QueuedExchange } from '../components/agent/QueuedExchange';
+import { toast } from '../lib/toast';
 import type { TranslationKey } from '../lib/i18n';
 
 /**
@@ -42,8 +46,9 @@ export default function SyncScreen() {
   const durable = useQueue((s) => s.durable);
   const process = useQueue((s) => s.process);
 
-  const waiting = items.filter((i) => i.state === 'waiting_for_connection' || i.state === 'sending');
-  const attention = items.filter((i) => i.state === 'needs_attention');
+  // An uncertain exchange resolves on its own once the server answers its lookup (D161); a refused one waits for a person.
+  const waiting = items.filter((i) => i.state === 'waiting_for_connection' || i.state === 'sending' || i.state === 'uncertain');
+  const attention = items.filter((i) => i.state === 'needs_attention' || i.state === 'rejected_resubmit' || i.state === 'rejected_reenter');
   const drafts = items.filter((i) => i.state === 'draft');
   const done = items.filter((i) => i.state === 'synced' || i.state === 'cancelled');
 
@@ -148,6 +153,30 @@ function Row({ label, value }: { label: string; value: number }) {
 }
 
 function QueueRow({ item }: { item: QueueItem }) {
+  // An agent exchange says where it stands, and offers what fixes it, as it does on the counter and the list (D161).
+  if (item.kind === AGENT_EXCHANGE_KIND) return <ExchangeRow item={item} />;
+  return <ReportRow item={item} />;
+}
+
+function ExchangeRow({ item }: { item: QueueItem }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const scope = useExchangeScope();
+  const onPrepareAgain = async () => {
+    if (!scope) return;
+    const done = await prepareAgain(item, scope);
+    if (done === 'prepared') router.push('/agent/new' as Href);
+    else if (done === 'busy') toast.info(t('agent.prepareAgain.busy'));
+  };
+  return (
+    <Card style={styles.card} testID={`sync-exchange-${item.id}`}>
+      <Text variant="bodyStrong">{item.summary}</Text>
+      <QueuedExchange item={item} onPrepareAgain={() => void onPrepareAgain()} />
+    </Card>
+  );
+}
+
+function ReportRow({ item }: { item: QueueItem }) {
   const { t } = useTranslation();
   const online = useConnectivity((s) => s.online);
   const cancel = useQueue((s) => s.cancel);

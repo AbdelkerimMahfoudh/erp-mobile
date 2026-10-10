@@ -52,6 +52,11 @@ it('attention outranks waiting — a draining queue never hides a conflict', () 
   assert.equal(notice.count, 1, 'the count must be the conflicts, not the whole queue');
 });
 
+it('a refused exchange waits for a person; an uncertain one resolves itself once the server answers (D161)', () => {
+  assert.deepEqual(syncNotice(q('rejected_resubmit', 'rejected_reenter', 'uncertain')), { kind: 'attention', count: 2 });
+  assert.deepEqual(syncNotice(q('uncertain', 'waiting_for_connection')), { kind: 'waiting', count: 2 });
+});
+
 it('a draft saved on the phone is not, on its own, something to interrupt for', () => {
   // Drafts are work in progress, not work stuck. They belong in the Sync
   // center, not on the landing screen.

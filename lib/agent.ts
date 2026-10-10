@@ -3,7 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClie
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { invalidateMoney } from './money-invalidation';
-import { AGENT_EXCHANGE_KIND, pendingExchanges, provisionalNet } from './offline/agent-exchange';
+import { AGENT_EXCHANGE_KIND, exchangesToSend, provisionalNet } from './offline/agent-exchange';
 import { positionRows, type PositionRow } from './agent-positions';
 import { useQueue } from './offline/queue';
 import { qk } from './query-keys';
@@ -265,7 +265,7 @@ export function useCounterPositions(options: { enabled?: boolean } = {}): {
   const providers = useAgentProviders(options);
   const items = useQueue((s) => s.items);
   const net = provisionalNet(items, branchId, providers.data?.providers ?? []);
-  const provisionalCount = pendingExchanges(items, branchId).filter((i) => i.state !== 'needs_attention').length;
+  const provisionalCount = exchangesToSend(items, branchId).length;
   const data = query.data;
   const anchors: Record<string, FloatView['anchor']> = {};
   for (const f of data?.floats ?? []) anchors[`provider:${f.providerId}`] = f.anchor;
@@ -305,14 +305,14 @@ export function useAgentReport(period: ReportPeriod, date: string | null, option
 export function useQueuedCash(providers: readonly AgentProvider[]): { count: number; cashNet: number } {
   const branchId = useBranch((s) => s.branchId);
   const items = useQueue((s) => s.items);
-  const count = pendingExchanges(items, branchId).filter((i) => i.state !== 'needs_attention').length;
+  const count = exchangesToSend(items, branchId).length;
   return { count, cashNet: provisionalNet(items, branchId, providers).cash ?? 0 };
 }
 
 /**
  * How many exchanges this phone still holds for the branch — waiting, on their
- * way or waiting for a person. While there is one, the phone does not start the
- * closing or count a float (D155).
+ * way, uncertain, or refused and not yet removed (D161). While there is one,
+ * the phone does not start the closing or count a float (D155).
  */
 export function useExchangesHeld(): number {
   const branchId = useBranch((s) => s.branchId);
