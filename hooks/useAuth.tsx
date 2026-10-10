@@ -12,6 +12,7 @@ import { usePermissionStore } from '../lib/permissions';
 import { qk } from '../lib/query-keys';
 import { clearExports } from '../lib/report-export';
 import { useSyncEngine } from '../lib/offline/use-sync';
+import { useQueue } from '../lib/offline/queue';
 import {
   clearLegacyCredential,
   deviceMeta,
@@ -157,6 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const establish = async (res: AuthResponse, namespace: string) => {
     // A new identity starts from an empty cache, whatever the last session left (an expiry signs out without signOut).
     queryClient.clear();
+    // Nor does it see the last account's queue for a moment before its own is opened (D161).
+    const held = useQueue.getState().scope;
+    if (held && (held.userId !== res.user.id || held.companyId !== res.user.companyId)) useQueue.getState().reset();
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
@@ -236,6 +240,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * — nor the previous company's providers, positions or reports — while their own read is on its way.
      */
     queryClient.clear();
+    /*
+     * And the offline queue in memory — its items and its scope (D161): the next person on a shared counter phone
+     * never sees the previous person's exchanges, and nothing more is sent under the session that ended. The file
+     * stays on the device, opened again only by the same person in the same company and branch.
+     */
+    useQueue.getState().reset();
     setUser(null);
   };
 

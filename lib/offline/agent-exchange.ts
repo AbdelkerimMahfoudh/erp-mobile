@@ -53,13 +53,28 @@ export interface Scope {
   userId: string;
 }
 
+/** One segment of a SecureStore key: letters, digits and `-` only (SecureStore also takes `.` and `_`, the separators). */
+function keySegment(value: string | null): string {
+  return (value ?? 'none').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 40);
+}
+
 /**
- * The SecureStore key of an exchange's number: its own UUID, nothing else.
- * SecureStore keys may hold letters, digits, `.`, `-` and `_`; anything else in
- * a key we did not create is dropped rather than trusted.
+ * The SecureStore key of an exchange's number (D161): the company, the branch,
+ * the person and the exchange's own UUID — so one account's key can never be
+ * read, overwritten or deleted by another's on a shared counter phone. Anything
+ * outside the characters SecureStore takes is dropped rather than trusted.
  */
-export function numberKey(clientUuid: string): string {
-  return `agent.exchange.number.${clientUuid.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 40)}`;
+export function numberKey(scope: Scope, clientUuid: string): string {
+  return `agent.exchange.number.${keySegment(scope.companyId)}.${keySegment(scope.branchId)}.${keySegment(scope.userId)}.${keySegment(clientUuid)}`;
+}
+
+/**
+ * The key an earlier build kept the number under: the exchange's UUID alone.
+ * Never written again — read once, moved under {@link numberKey} for the scope
+ * it was sealed in, and deleted.
+ */
+export function legacyNumberKey(clientUuid: string): string {
+  return `agent.exchange.number.${keySegment(clientUuid)}`;
 }
 
 /** The number, sealed with the scope it was typed in — well under SecureStore's 2 KB per value. */

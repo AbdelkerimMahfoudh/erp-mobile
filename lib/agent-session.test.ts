@@ -76,8 +76,29 @@ it('a refusal about the configuration reads the providers again before the next 
   assert.match(agent, /'agent-report', 'agent-rebalancings', 'agent-providers'\]/);
 });
 
-it('discarding a restored draft takes its number off the phone', () => {
-  assert.match(between(counter, 'const startOver = () =>', 'setForm(emptyCounterForm'), /if \(!sent\) void forgetNumber\(form\.clientUuid\);/);
+it('discarding a restored draft takes its number off the phone — under the person’s own scoped key (D161)', () => {
+  assert.match(between(counter, 'const startOver = () =>', 'setForm(emptyCounterForm'), /if \(!sent && scope\) void forgetNumber\(scope, form\.clientUuid\);/);
+});
+
+it('signing out empties the queue in memory — items and scope — before the next person signs in (D161)', () => {
+  assert.match(between(auth, 'const signOut = async', 'setUser(null)'), /useQueue\.getState\(\)\.reset\(\)/);
+});
+
+it('a different account signing in never sees the previous account’s queue, even before its own is opened (D161)', () => {
+  const establish = between(auth, 'const establish = async', 'setItem(');
+  assert.match(establish, /held\.userId !== res\.user\.id \|\| held\.companyId !== res\.user\.companyId\)\) useQueue\.getState\(\)\.reset\(\)/);
+});
+
+it('the number is read, kept and forgotten only through the scoped key, never the bare exchange key (D161)', () => {
+  const glue = code('lib/agent-queue.ts');
+  const engine = code('lib/offline/queue.ts');
+  for (const src of [glue, engine]) {
+    assert.doesNotMatch(src, /numberKey\(/, 'no direct key: the scoped helpers decide it');
+    assert.doesNotMatch(src, /legacyNumberKey\(/);
+  }
+  assert.match(engine, /readSealedNumber\(numbers, scope, item\.clientUuid\)/);
+  assert.match(engine, /forgetSealedNumber\(numbers, scopeOf\(item\), item\.clientUuid\)/);
+  assert.match(engine, /void sweepNumbers\(numbers, items\)/);
 });
 
 console.log(`agent counter on a shared phone: ${passed} passed`);

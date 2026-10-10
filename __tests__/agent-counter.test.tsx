@@ -78,6 +78,7 @@ import { numberKey } from '../lib/offline/agent-exchange';
 import NewExchangeScreen from '../app/agent/new';
 
 const NUMBER = '36123456';
+const SCOPE = { companyId: 'c1', branchId: 'b1', userId: 'u1' };
 const EMPLOYEE = ['agent.transaction.record', 'agent.transaction.view', 'agent.mistake.report', 'closing.count', 'expense.submit'] as Permission[];
 
 const providers = {
@@ -193,7 +194,7 @@ describe('the counter flow', () => {
     expect(mockQueueWrites.length).toBeGreaterThan(0);
     for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|3456|customerNumber/);
     for (const draft of mockDrafts.values()) expect(draft).not.toMatch(/3612|3456|customerNumber/);
-    expect(mockStore.has(numberKey(item.clientUuid))).toBe(false);
+    expect(mockStore.has(numberKey(SCOPE, item.clientUuid))).toBe(false);
   });
 
   it('offline, the exchange waits as Pending synchronization — kept apart in SecureStore, never shown as recorded', async () => {
@@ -210,7 +211,7 @@ describe('the counter flow', () => {
     const item = useQueue.getState().items[0];
     expect(item.state).toBe('waiting_for_connection');
     // The number is kept, sealed to this company, branch and person, under the item's key.
-    expect(JSON.parse(mockStore.get(numberKey(item.clientUuid))!)).toEqual({ companyId: 'c1', branchId: 'b1', userId: 'u1', customerNumber: NUMBER });
+    expect(JSON.parse(mockStore.get(numberKey(SCOPE, item.clientUuid))!)).toEqual({ companyId: 'c1', branchId: 'b1', userId: 'u1', customerNumber: NUMBER });
     for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|customerNumber/);
 
     // A mistake noticed before it is sent: cancelled, asked twice; nothing is sent and the number leaves the phone.
@@ -220,7 +221,7 @@ describe('the counter flow', () => {
     });
     expect(useQueue.getState().items[0].state).toBe('cancelled');
     expect(await screen.findByText(t('agent.outcome.cancelled'))).toBeTruthy();
-    await waitFor(() => expect(mockStore.has(numberKey(item.clientUuid))).toBe(false));
+    await waitFor(() => expect(mockStore.has(numberKey(SCOPE, item.clientUuid))).toBe(false));
   });
 
   it('a refusal is said in the counter’s words, and prepared again under a new key with its number', async () => {
@@ -245,7 +246,7 @@ describe('the counter flow', () => {
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();
     expect(screen.getByDisplayValue(NUMBER)).toBeTruthy();
     expect(useQueue.getState().items[0].state).toBe('cancelled');
-    expect(mockStore.has(numberKey(refused.clientUuid))).toBe(false);
+    expect(mockStore.has(numberKey(SCOPE, refused.clientUuid))).toBe(false);
   });
 
   it('the unsent form survives a restart, its number restored from SecureStore — and the draft file never holds it', async () => {

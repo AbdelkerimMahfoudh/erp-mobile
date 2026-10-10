@@ -15,6 +15,7 @@ import {
   exchangeSummary,
   isExchangePayload,
   legKey,
+  legacyNumberKey,
   numberKey,
   openNumber,
   pendingExchanges,
@@ -103,9 +104,17 @@ it('the number is sealed to its company, branch and person, and opens for nobody
   assert.equal(openNumber(JSON.stringify({ ...scope, customerNumber: '' }), scope), null);
 });
 
-it('the SecureStore key is the exchange’s own key, in the characters SecureStore takes', () => {
-  assert.equal(numberKey('11111111-1111-4111-8111-111111111111'), 'agent.exchange.number.11111111-1111-4111-8111-111111111111');
-  assert.match(numberKey('../../etc/passwd x'), /^agent\.exchange\.number\.[a-zA-Z0-9-]*$/);
+it('the SecureStore key is scoped by company, branch, person and the exchange’s own key, in the characters SecureStore takes (D161)', () => {
+  assert.equal(numberKey(scope, '11111111-1111-4111-8111-111111111111'), 'agent.exchange.number.c1.b1.u1.11111111-1111-4111-8111-111111111111');
+  assert.equal(numberKey({ ...scope, branchId: null }, 'k'), 'agent.exchange.number.c1.none.u1.k');
+  // Another person, branch or company on the same phone never shares a key for the same exchange key.
+  assert.notEqual(numberKey(scope, 'k'), numberKey({ ...scope, userId: 'u2' }, 'k'));
+  assert.notEqual(numberKey(scope, 'k'), numberKey({ ...scope, branchId: 'b2' }, 'k'));
+  assert.notEqual(numberKey(scope, 'k'), numberKey({ ...scope, companyId: 'c2' }, 'k'));
+  // A hostile id cannot reach into another segment or outside the allowed characters.
+  assert.match(numberKey({ companyId: '../c.1', branchId: 'b 1', userId: 'u_1' }, '../../etc/passwd x'), /^agent\.exchange\.number\.[a-zA-Z0-9-]*\.[a-zA-Z0-9-]*\.[a-zA-Z0-9-]*\.[a-zA-Z0-9-]*$/);
+  // The older key was the exchange's UUID alone: read once and moved, never written again.
+  assert.equal(legacyNumberKey('11111111-1111-4111-8111-111111111111'), 'agent.exchange.number.11111111-1111-4111-8111-111111111111');
 });
 
 it('a payload, a queue item or a draft that holds a customer number is refused, however deep', () => {

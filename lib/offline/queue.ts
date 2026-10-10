@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import { api } from '../api-client';
 import { useConnectivity } from '../connectivity';
 import { usePermissionStore } from '../permissions';
-import { deleteItem, getItem } from '../storage';
+import { deleteItem, getItem, setItem } from '../storage';
 import { uuidv4 } from '../utils';
-import { AGENT_EXCHANGE_KIND, confirmationOf, containsPersonalNumber, exchangeBody, isExchangePayload, numberKey, openNumber } from './agent-exchange.ts';
+import { AGENT_EXCHANGE_KIND, confirmationOf, containsPersonalNumber, exchangeBody, isExchangePayload } from './agent-exchange.ts';
+import { forgetSealedNumber, readSealedNumber, scopeOf, sweepNumbers, type KeyStore } from './exchange-numbers.ts';
 import { classifyError } from './classify.ts';
 import { mayQueue } from './policy.ts';
 import { isDurable } from './durable-storage.ts';
@@ -59,9 +60,12 @@ const ENDPOINT: Record<string, (payload: Record<string, unknown>) => { path: str
  */
 type Prepared = { payload: Record<string, unknown> } | { refusal: ClassifiedError };
 
+/** SecureStore on a device, through the app's storage wrapper. */
+const numbers: KeyStore = { getItem, setItem, deleteItem };
+
 const PREPARE: Record<string, (item: QueueItem, scope: Scope) => Promise<Prepared>> = {
   [AGENT_EXCHANGE_KIND]: async (item, scope): Promise<Prepared> => {
-    const number = openNumber(await getItem(numberKey(item.clientUuid)), scope);
+    const number = await readSealedNumber(numbers, scope, item.clientUuid);
     if (!isExchangePayload(item.payload) || number === null) {
       return { refusal: { kind: 'validation', code: 'customer_number_missing', message: 'The customer’s number is no longer on this phone.' } };
     }
@@ -69,9 +73,9 @@ const PREPARE: Record<string, (item: QueueItem, scope: Scope) => Promise<Prepare
   },
 };
 
-/** Forget what was kept outside the queue file for an item that will never be sent again. */
+/** Forget what was kept outside the queue file for an item that will never be sent again — under the item's own scope. */
 async function forgetOutside(item: QueueItem): Promise<void> {
-  if (item.kind === AGENT_EXCHANGE_KIND) await deleteItem(numberKey(item.clientUuid));
+  if (item.kind === AGENT_EXCHANGE_KIND) await forgetSealedNumber(numbers, scopeOf(item), item.clientUuid);
 }
 
 interface QueueStoreState {
@@ -86,6 +90,12 @@ interface QueueStoreState {
   durable: boolean;
 
   load: (scope: Scope) => void;
+  /**
+   * Forget the queue in memory — its items and its scope — at sign-out, or as another account signs in: the next
+   * person on a shared phone never sees the previous person's items, even for the moment before their own load.
+   * The file stays on the device, readable again only by the same person in the same company and branch.
+   */
+  reset: () => void;
   enqueue: (input: {
     kind: string;
     payload: Record<string, unknown>;
@@ -119,6 +129,12 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
   load: (scope) => {
     const { items, quarantined } = readQueue(scope);
     set({ scope, items, corruptionDetected: quarantined });
+    // A finished exchange's number has nothing left to wait for: swept again on every opening (D161).
+    void sweepNumbers(numbers, items);
+  },
+
+  reset: () => {
+    set({ scope: null, items: [], lastSyncAt: null, corruptionDetected: false });
   },
 
   enqueue: ({ kind, payload, summary, clientUuid }) => {
@@ -194,6 +210,8 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
 
       const ready = nextSendable(get().items, scope, Date.now());
       for (const item of ready) {
+        // Signed out, or another account signed in, mid-pass: nothing more is sent under this scope.
+        if (!sameScope(get().scope, scope)) break;
         await send(item, scope, set, get);
       }
       if (ready.length > 0) set({ lastSyncAt: Date.now() });
@@ -261,6 +279,34 @@ export const useQueue = create<QueueStoreState>((set, get) => ({
   },
 }));
 
+/** The same person, company and branch — compared by value, as `load` replaces the object. */
+function sameScope(a: Scope | null, b: Scope): boolean {
+  return a !== null && a.companyId === b.companyId && a.branchId === b.branchId && a.userId === b.userId;
+}
+
+/**
+ * Write one item's outcome. While its scope is the one in memory, there and to its file; once the session changed
+ * (signed out, another account signed in) while an answer was on its way, to its own file only — never into another
+ * person's list, and never by rewriting that file from a list that no longer holds it.
+ */
+function patchItem(
+  scope: Scope,
+  id: string,
+  changes: Partial<QueueItem>,
+  set: (partial: Partial<QueueStoreState>) => void,
+  get: () => QueueStoreState,
+): void {
+  if (sameScope(get().scope, scope)) {
+    const next = get().items.map((i) => (i.id === id ? { ...i, ...changes } : i));
+    set({ items: next });
+    writeQueue(scope, next);
+    return;
+  }
+  const { items, quarantined } = readQueue(scope);
+  if (quarantined || !items.some((i) => i.id === id)) return;
+  writeQueue(scope, items.map((i) => (i.id === id ? { ...i, ...changes } : i)));
+}
+
 /**
  * Send one item.
  *
@@ -274,11 +320,7 @@ async function send(
   set: (partial: Partial<QueueStoreState>) => void,
   get: () => QueueStoreState,
 ): Promise<void> {
-  const patch = (changes: Partial<QueueItem>) => {
-    const next = get().items.map((i) => (i.id === item.id ? { ...i, ...changes } : i));
-    set({ items: next });
-    writeQueue(scope, next);
-  };
+  const patch = (changes: Partial<QueueItem>) => patchItem(scope, item.id, changes, set, get);
 
   patch({ state: 'sending', lastAttemptAt: Date.now(), attempts: item.attempts + 1 });
 

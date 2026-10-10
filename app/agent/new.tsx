@@ -146,7 +146,7 @@ function NewExchangeScreen() {
 
   const startOver = () => {
     // The discarded key's number leaves the phone with it: nothing would ever reference it again (D155).
-    if (!sent) void forgetNumber(form.clientUuid);
+    if (!sent && scope) void forgetNumber(scope, form.clientUuid);
     setSentId(null);
     setDirect(null);
     setRefusal(null);

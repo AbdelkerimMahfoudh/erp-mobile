@@ -3,9 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import { useBranch } from './branch';
 import { useConnectivity } from './connectivity';
 import { againForm, COUNTER_DRAFT_FORM, COUNTER_DRAFT_VERSION, type CounterForm } from './agent-counter';
-import { AGENT_EXCHANGE_KIND, confirmationOf, exchangeBody, isExchangePayload, numberKey, openNumber, sealNumber, type ExchangeConfirmation, type ExchangePayload, type Scope } from './offline/agent-exchange';
+import { AGENT_EXCHANGE_KIND, confirmationOf, exchangeBody, isExchangePayload, type ExchangeConfirmation, type ExchangePayload, type Scope } from './offline/agent-exchange';
 import { isDurable } from './offline/durable-storage';
 import { loadDraft, saveDraft } from './offline/drafts';
+import { carrySealedNumber, forgetSealedNumber, keepSealedNumber, readSealedNumber, type KeyStore } from './offline/exchange-numbers';
 import { useQueue } from './offline/queue';
 import type { QueueItem } from './offline/queue-rules';
 import { deleteItem, getItem, setItem } from './storage';
@@ -33,21 +34,23 @@ export function useExchangeScope(): Scope | null {
   return user ? { companyId: user.companyId, branchId, userId: user.id } : null;
 }
 
-/** Keep the number typed so far under the exchange's key — on a device only; a browser keeps nothing. */
+/** SecureStore on a device, through the app's storage wrapper. */
+const numbers: KeyStore = { getItem, setItem, deleteItem };
+
+/** Keep the number typed so far under the exchange's scoped key — on a device only; a browser keeps nothing. */
 export async function keepNumber(scope: Scope, clientUuid: string, customerNumber: string): Promise<void> {
   if (!isDurable()) return;
-  if (customerNumber.trim() === '') await deleteItem(numberKey(clientUuid));
-  else await setItem(numberKey(clientUuid), sealNumber(scope, customerNumber));
+  await keepSealedNumber(numbers, scope, clientUuid, customerNumber);
 }
 
-/** The number kept for an exchange, if it was kept by this person, here. */
+/** The number kept for an exchange, if it was kept by this person, here (an older unscoped key is moved on the way). */
 export async function readNumber(scope: Scope, clientUuid: string): Promise<string | null> {
   if (!isDurable()) return null;
-  return openNumber(await getItem(numberKey(clientUuid)), scope);
+  return readSealedNumber(numbers, scope, clientUuid);
 }
 
-export async function forgetNumber(clientUuid: string): Promise<void> {
-  await deleteItem(numberKey(clientUuid));
+export async function forgetNumber(scope: Scope, clientUuid: string): Promise<void> {
+  await forgetSealedNumber(numbers, scope, clientUuid);
 }
 
 export type RecordOutcome =
@@ -80,22 +83,20 @@ export async function recordExchange(input: {
     }
   }
   // The number first, so the queue never holds an exchange whose number is not yet kept.
-  await setItem(numberKey(clientUuid), sealNumber(scope, customerNumber));
+  await keepSealedNumber(numbers, scope, clientUuid, customerNumber);
   const queue = useQueue.getState();
   const result = queue.enqueue({ kind: AGENT_EXCHANGE_KIND, payload: { ...payload }, summary, clientUuid });
   if (!result.queued || !result.id) return { kind: 'refused', error: new Error(result.reason ?? 'not_queued') };
   // The same key confirmed again — a draft restored after the exchange was already sent — is the exchange already
   // recorded: the number just kept has nothing left to wait for.
-  if (useQueue.getState().items.find((i) => i.id === result.id)?.state === 'synced') await forgetNumber(clientUuid);
+  if (useQueue.getState().items.find((i) => i.id === result.id)?.state === 'synced') await forgetNumber(scope, clientUuid);
   void queue.process();
   return { kind: 'queued', itemId: result.id };
 }
 
 /** The number of a refused exchange, carried to the key it is prepared again under. */
 export async function carryNumber(scope: Scope, from: string, to: string): Promise<string | null> {
-  const number = openNumber(await getItem(numberKey(from)), scope);
-  if (number) await setItem(numberKey(to), sealNumber(scope, number));
-  return number;
+  return carrySealedNumber(numbers, scope, from, to);
 }
 
 /**
@@ -116,7 +117,7 @@ export async function prepareAgain(item: QueueItem, scope: Scope): Promise<'prep
   await carryNumber(scope, item.clientUuid, clientUuid);
   const saved = saveDraft(COUNTER_DRAFT_FORM, scope, form, COUNTER_DRAFT_VERSION);
   if (!saved.saved) {
-    await forgetNumber(clientUuid);
+    await forgetNumber(scope, clientUuid);
     return 'unavailable';
   }
   useQueue.getState().cancel(item.id);
