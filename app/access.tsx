@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Card, Chip, Divider, ErrorState, InlineNotice, Screen, SkeletonList, Text } from '../components/ui';
-import { businessAccess, type BusinessAccess } from '../lib/access';
+import { accessEnd, businessAccess, type BusinessAccess } from '../lib/access';
 import { space } from '../lib/design/tokens';
 import { formatDate, formatDateTime } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
@@ -100,9 +100,11 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
   }
 
   if (access.mode === 'open') {
+    // The later of a running grant's end and the paid end; a grant without an end has no date.
+    const end = accessEnd(e);
     return (
       <Text variant="body">
-        {e.periodEnd ? t('access.active.until', { date: formatDate(e.periodEnd) }) : t('access.active.open')}
+        {end ? t('access.active.until', { date: formatDate(end) }) : t('access.active.open')}
       </Text>
     );
   }

@@ -9,7 +9,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { accessNotice, businessAccess, closedReason } from './access.ts';
+import { accessEnd, accessNotice, businessAccess, closedReason } from './access.ts';
 import type { Entitlement } from './entitlement.ts';
 
 const entitlement = (over: Partial<Entitlement>): Entitlement =>
@@ -110,10 +110,51 @@ describe('the closed screen’s reason', () => {
   });
 });
 
+describe('the date access runs to', () => {
+  const paid = '2026-11-01T00:00:00.000Z';
+  const grant = (status: 'none' | 'indefinite' | 'active' | 'superseded' | 'ended', until: string | null, paidUntil: string | null = null) =>
+    ({ status, until, paidUntil });
+
+  it('without a grant, is the paid period’s end — and an older server without the field reads the same', () => {
+    assert.equal(accessEnd(entitlement({})), paid);
+    assert.equal(accessEnd(entitlement({ complimentary: grant('none', null) })), paid);
+    assert.equal(accessEnd(entitlement({ periodEnd: null })), null);
+    assert.equal(accessEnd(undefined), null);
+  });
+
+  it('while a grant runs past the paid end, is the grant’s end', () => {
+    const e = entitlement({ isComplimentary: true, complimentary: grant('active', '2027-03-31T00:00:00.000Z') });
+    assert.equal(accessEnd(e), '2027-03-31T00:00:00.000Z');
+  });
+
+  it('while a grant runs but the paid period ends later, is the paid end', () => {
+    const e = entitlement({ periodEnd: '2027-06-01T00:00:00.000Z', isComplimentary: true, complimentary: grant('active', '2027-03-31T00:00:00.000Z') });
+    assert.equal(accessEnd(e), '2027-06-01T00:00:00.000Z');
+  });
+
+  it('a grant with no paid period at all is dated by the grant', () => {
+    const e = entitlement({ periodEnd: null, isComplimentary: true, complimentary: grant('active', '2027-03-31T00:00:00.000Z') });
+    assert.equal(accessEnd(e), '2027-03-31T00:00:00.000Z');
+  });
+
+  it('a grant without an end has no date', () => {
+    assert.equal(accessEnd(entitlement({ isComplimentary: true, complimentary: grant('indefinite', null) })), null);
+  });
+
+  it('a grant overtaken by a later paid period runs to that period', () => {
+    const e = entitlement({ periodEnd: '2027-06-01T00:00:00.000Z', isComplimentary: true, complimentary: grant('superseded', '2027-03-31T00:00:00.000Z', '2027-06-01T00:00:00.000Z') });
+    assert.equal(accessEnd(e), '2027-06-01T00:00:00.000Z');
+  });
+
+  it('a grant that is over leaves the paid end', () => {
+    assert.equal(accessEnd(entitlement({ complimentary: grant('ended', '2026-09-01T00:00:00.000Z') })), paid);
+  });
+});
+
 describe('nothing here derives entitlement', () => {
   it('reads no clock and does no date arithmetic', () => {
     const src = readFileSync(new URL('./access.ts', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    for (const forbidden of ['Date.now', 'new Date', 'getTime', 'daysRemaining', 'graceHoursRemaining']) {
+    for (const forbidden of ['Date.now', 'new Date', 'Date.parse', 'getTime', 'daysRemaining', 'graceHoursRemaining']) {
       assert.ok(!src.includes(forbidden), `access.ts must not use ${forbidden}`);
     }
   });

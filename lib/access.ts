@@ -78,3 +78,31 @@ export function closedReason(state: EntitlementState | undefined): ClosedReason 
   if (state === 'rejected') return 'rejected';
   return 'ended';
 }
+
+/**
+ * The date the business's access runs to, for the access screen.
+ *
+ * While a platform grant runs, the paid period's end is not the answer: the
+ * business is open until the LATER of the grant's end and the paid end, and a
+ * grant without an end has no date at all (`null` — the screen then says the
+ * access is active, without a date). A grant overtaken by a later paid period
+ * runs to that period. Only the server's own dates are compared; nothing here
+ * decides a state.
+ */
+export function accessEnd(entitlement: Entitlement | undefined): string | null {
+  if (!entitlement) return null;
+  const paid = entitlement.periodEnd;
+  const grant = entitlement.complimentary;
+  if (!grant) return paid;
+  if (grant.status === 'indefinite') return null;
+  if (grant.status === 'active') return later(paid, grant.until);
+  if (grant.status === 'superseded') return later(paid, grant.paidUntil);
+  return paid;
+}
+
+/** Both are the server's own `toISOString()` (UTC, fixed width), so text order is time order. */
+function later(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return b > a ? b : a;
+}

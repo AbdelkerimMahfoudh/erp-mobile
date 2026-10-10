@@ -53,6 +53,12 @@ export interface BranchSeat {
   overLimit: boolean;
 }
 
+export interface ComplimentaryView {
+  status: 'none' | 'indefinite' | 'active' | 'superseded' | 'ended';
+  until: string | null;
+  paidUntil: string | null;
+}
+
 export interface Entitlement {
   state: EntitlementState;
   periodEnd: string | null;
@@ -71,6 +77,12 @@ export interface Entitlement {
   isComplimentary: boolean;
   status: SubscriptionStatus;
   calculatedAt: string;
+  /**
+   * The platform grant, as the server reads it: running (`active`, with its end),
+   * without an end (`indefinite`), overtaken by a later paid period (`superseded`)
+   * or over. Absent on an older server.
+   */
+  complimentary?: ComplimentaryView;
   /** Per store, with each branch's activity (D156). Absent on an older server. */
   seatsByStore?: BranchSeat[];
 }
