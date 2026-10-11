@@ -42,8 +42,7 @@ import {
 } from '../../lib/agent-counter';
 import { carryNumber, forgetNumber, keepNumber, readNumber, recordExchange, useExchangeScope, type RecordOutcome } from '../../lib/agent-queue';
 import {
-  CUSTOMER_NUMBER_MAX_DIGITS,
-  CUSTOMER_NUMBER_MIN_DIGITS,
+  CUSTOMER_NUMBER_DIGITS,
   DIRECTIONS,
   counterProviders,
   parseCustomerNumber,
@@ -284,7 +283,7 @@ function NewExchangeScreen() {
   const numberError =
     customerNumber.trim() === '' || problems.number === undefined
       ? undefined
-      : t(`agent.number.${problems.number}`, { min: CUSTOMER_NUMBER_MIN_DIGITS, max: CUSTOMER_NUMBER_MAX_DIGITS });
+      : t(`agent.number.${problems.number}`, { digits: CUSTOMER_NUMBER_DIGITS });
   const amountError = form.amount.trim() === '' || problems.amount === undefined ? undefined : t(`agent.amount.${problems.amount}`);
 
   return (

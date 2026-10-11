@@ -1,4 +1,4 @@
-import { parsePayerNumber, PAYER_NUMBER_MAX_DIGITS } from './payer-number.ts';
+import { parsePayerNumber } from './payer-number.ts';
 
 /**
  * The money services counter, as the phone reads it (docs/73 §4–§5, D154–D157).
@@ -202,26 +202,28 @@ export function percentOfBp(rateBp: number): string {
 
 // ── The customer number ─────────────────────────────────────────────────────
 
-export const CUSTOMER_NUMBER_MIN_DIGITS = 4;
-export const CUSTOMER_NUMBER_MAX_DIGITS = PAYER_NUMBER_MAX_DIGITS;
+/** A Mauritanian number: exactly eight digits — never seven, never nine (D162). */
+export const CUSTOMER_NUMBER_DIGITS = 8;
 
 export type ParsedCustomerNumber =
   | { ok: true; value: string; last4: string }
   | { ok: false; reason: 'missing' | 'invalid' | 'too_short' | 'too_long' };
 
 /**
- * The customer number (A6, docs/73 §4.6): the payer number's digits rule — an
- * optional leading `+`, Arabic-Indic digits read as the same digits, spaces and
- * hyphens dropped, no country guessed — but mandatory, and at least four digits
- * so the masked `•••• 1234` has something to show.
+ * The customer number (A6, docs/73 §4.6; D162): read as the payer number is —
+ * Arabic-Indic digits read as the same digits, spaces and hyphens dropped — but
+ * mandatory, and exactly eight digits with no `+` or country code, the server's
+ * own rule. The sale's payer number keeps its open format (D151).
  */
 export function parseCustomerNumber(raw: string | null | undefined): ParsedCustomerNumber {
   const parsed = parsePayerNumber(raw);
   if (!parsed.ok) return { ok: false, reason: parsed.reason };
   if (parsed.value === null) return { ok: false, reason: 'missing' };
-  const digits = parsed.value.replace(/^\+/, '');
-  if (digits.length < CUSTOMER_NUMBER_MIN_DIGITS) return { ok: false, reason: 'too_short' };
-  return { ok: true, value: parsed.value, last4: digits.slice(-4) };
+  const digits = parsed.value;
+  if (digits.startsWith('+')) return { ok: false, reason: 'invalid' };
+  if (digits.length < CUSTOMER_NUMBER_DIGITS) return { ok: false, reason: 'too_short' };
+  if (digits.length > CUSTOMER_NUMBER_DIGITS) return { ok: false, reason: 'too_long' };
+  return { ok: true, value: digits, last4: digits.slice(-4) };
 }
 
 /** What a list shows of a number: its last four digits, as the server masks them. */

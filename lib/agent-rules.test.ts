@@ -146,16 +146,18 @@ it('docs/73 §4.7 event 1: receive 20 000, send Bankily credit — the float end
   assert.equal(d.commission, 200);
 });
 
-it('the customer number: the payer number’s digits, mandatory, at least four digits; no country guessed', () => {
-  assert.deepEqual(parseCustomerNumber(' +222 36 12-34-56 '), { ok: true, value: '+22236123456', last4: '3456' });
+it('the customer number: a Mauritanian number, exactly eight digits, mandatory, no + (D162)', () => {
+  assert.deepEqual(parseCustomerNumber(' 36 12-34-56 '), { ok: true, value: '36123456', last4: '3456' });
   assert.deepEqual(parseCustomerNumber('٣٦١٢٣٤٥٦'), { ok: true, value: '36123456', last4: '3456' });
-  assert.deepEqual(parseCustomerNumber('0036'), { ok: true, value: '0036', last4: '0036' });
+  assert.deepEqual(parseCustomerNumber('00000036'), { ok: true, value: '00000036', last4: '0036' });
   assert.deepEqual(parseCustomerNumber(''), { ok: false, reason: 'missing' });
   assert.deepEqual(parseCustomerNumber('   '), { ok: false, reason: 'missing' });
-  assert.deepEqual(parseCustomerNumber('123'), { ok: false, reason: 'too_short' });
-  assert.deepEqual(parseCustomerNumber('+123'), { ok: false, reason: 'too_short' });
+  assert.deepEqual(parseCustomerNumber('3612345'), { ok: false, reason: 'too_short' }, 'seven digits');
+  assert.deepEqual(parseCustomerNumber('361234567'), { ok: false, reason: 'too_long' }, 'nine digits');
+  assert.deepEqual(parseCustomerNumber('+36123456'), { ok: false, reason: 'invalid' });
+  assert.deepEqual(parseCustomerNumber('+222 36 12 34 56'), { ok: false, reason: 'invalid' });
   assert.deepEqual(parseCustomerNumber('abc'), { ok: false, reason: 'invalid' });
-  assert.deepEqual(parseCustomerNumber('36+12'), { ok: false, reason: 'invalid' });
+  assert.deepEqual(parseCustomerNumber('36+12345'), { ok: false, reason: 'invalid' });
   assert.deepEqual(parseCustomerNumber('1'.repeat(31)), { ok: false, reason: 'too_long' });
   assert.equal(maskedNumber('3456'), '•••• 3456');
 });
