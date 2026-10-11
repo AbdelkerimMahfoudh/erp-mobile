@@ -71,6 +71,9 @@ export default function DailyClosingScreen() {
     void report.refetch();
     void day.refetch();
   };
+  // Exchanges this phone still holds stop today's closing (D155). Said even while the report cannot be read — the
+  // usual moment, since the queue fills when the server cannot be reached — never an empty page instead of the reason.
+  const held = useExchangesHeld();
 
   return (
     <SafeAreaView style={styles.safe} edges={headerShown ? ['bottom'] : ['top', 'bottom']}>
@@ -81,6 +84,9 @@ export default function DailyClosingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {today ? <DateBar today={today} date={date ?? today} onPick={setDate} /> : null}
+        {date === undefined && held > 0 && (!report.data || (report.data.isToday && report.data.standing !== 'closed')) ? (
+          <QueueNotice held={held} />
+        ) : null}
         {report.isPending || day.isPending ? (
           <SkeletonList count={4} />
         ) : report.isError || !report.data ? (
@@ -97,6 +103,22 @@ export default function DailyClosingScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+/** Why the day waits: the exchanges this phone has not sent yet, and the way to them. */
+function QueueNotice({ held }: { held: number }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  return (
+    <InlineNotice
+      tone="warning"
+      title={t('closing.queue.title')}
+      testID="closing-queue"
+      action={<Button title={t('closing.queue.see')} variant="secondary" size="sm" onPress={() => router.push(TABS.agent as Href)} />}
+    >
+      {t('closing.queue.body', { count: held })}
+    </InlineNotice>
   );
 }
 
@@ -371,16 +393,6 @@ function Report({
 
       {/* ── The actions of the day ── */}
       <View style={styles.actions}>
-        {report.isToday && !closed && held > 0 ? (
-          <InlineNotice
-            tone="warning"
-            title={t('closing.queue.title')}
-            testID="closing-queue"
-            action={<Button title={t('closing.queue.see')} variant="secondary" size="sm" onPress={() => router.push(TABS.agent as Href)} />}
-          >
-            {t('closing.queue.body', { count: held })}
-          </InlineNotice>
-        ) : null}
         {showOpen ? (
           <Button title={t('closingHistory.open')} fullWidth wrap loading={opening.busy} disabled={!online || !day || opening.busy} onPress={opening.start} />
         ) : null}

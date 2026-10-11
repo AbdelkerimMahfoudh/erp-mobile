@@ -223,6 +223,20 @@ describe('the closing of an agent branch', () => {
     expect(within(screen.getByTestId('float-count-bankily')).queryByText(t('closing.row.save'))).toBeNull();
   });
 
+  it('with the server out of reach and an exchange still on the phone, the screen says why instead of standing empty (device run, 2026-10-10)', async () => {
+    signIn('owner', OWNER);
+    useQueue.setState({ items: [queued({ state: 'waiting_for_connection' })] });
+    (api.get as jest.Mock).mockImplementation(async () => {
+      throw new ApiError('Network request failed', 0, 'network');
+    });
+    mount();
+    const notice = await screen.findByTestId('closing-queue');
+    expect(within(notice).getByText(t('closing.queue.body', { count: 1 }))).toBeTruthy();
+    expect(within(notice).getByText(t('closing.queue.see'))).toBeTruthy();
+    // Once, not twice: the report never arrived, so its own copy is not there.
+    expect(screen.getAllByTestId('closing-queue')).toHaveLength(1);
+  });
+
   it('the close waits for every float: counted or skipped, never covered by the person’s word', async () => {
     signIn('owner', OWNER);
     mount();
