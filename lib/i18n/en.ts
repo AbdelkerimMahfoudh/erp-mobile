@@ -3663,6 +3663,7 @@ export const en = {
   'agent.provider.notSetUp': 'Not set up yet',
   'agent.provider.notSetUp.hint': 'The Owner must enter its rate and settlement first.',
   'agent.provider.none': 'No provider is set up yet. The Owner adds the providers and their rates.',
+  'agent.provider.kept': 'The providers as this phone last read them, {when}. The server checks the rate when the exchange is sent.',
   'agent.amount': 'Amount',
   'agent.amount.empty': 'Enter the amount.',
   'agent.amount.not_a_number': 'Enter the amount in figures.',

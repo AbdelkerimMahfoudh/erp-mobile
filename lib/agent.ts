@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
 import { useBranch } from './branch';
+import { useConnectivity } from './connectivity';
+import { classifyError } from './offline/classify';
+import { keepProviders, readKeptProviders } from './offline/kept-providers';
+import { mayUseKeptProviders } from './offline/kept-providers-rules';
 import { invalidateMoney } from './money-invalidation';
 import { AGENT_EXCHANGE_KIND, exchangesToSend, provisionalNet } from './offline/agent-exchange';
 import { positionRows, type PositionRow } from './agent-positions';
@@ -230,11 +234,32 @@ export interface FloatSet {
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
-/** The company's providers with the configuration in force — any of the nine keys may read them. */
+export interface ProvidersAnswer {
+  providers: AgentProvider[];
+  /** Set when the list is the one kept on this phone (the server out of reach); absent for the server's own answer. */
+  keptAt?: string;
+}
+
+/**
+ * The company's providers with the configuration in force — any of the nine keys may read them. Each answer is
+ * kept on the phone for its branch, and the kept one answers when the server cannot be reached, so the counter
+ * still prepares an exchange offline, after a relaunch too (D155; `offline/kept-providers-rules.ts`).
+ */
 export function useAgentProviders(options: { enabled?: boolean } = {}) {
+  const branchId = useBranch((s) => s.branchId);
   return useQuery({
     queryKey: qk.agentProviders(),
-    queryFn: () => api.get<{ providers: AgentProvider[] }>('/agent/providers'),
+    queryFn: async (): Promise<ProvidersAnswer> => {
+      try {
+        const answer = await api.get<{ providers: AgentProvider[] }>('/agent/providers');
+        if (branchId) keepProviders(branchId, answer.providers);
+        return answer;
+      } catch (error) {
+        const kept = branchId && mayUseKeptProviders(classifyError(error, useConnectivity.getState().online).kind) ? readKeptProviders(branchId) : null;
+        if (!kept) throw error;
+        return { providers: kept.providers, keptAt: kept.savedAt };
+      }
+    },
     enabled: options.enabled ?? true,
   });
 }

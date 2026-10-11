@@ -20,7 +20,7 @@ import { useBranch } from '../lib/branch';
 import { usePermissionStore, type Permission } from '../lib/permissions';
 import { useI18n, t } from '../lib/i18n';
 import { useConnectivity } from '../lib/connectivity';
-import { formatMoney } from '../lib/format';
+import { formatDate, formatMoney, formatTime } from '../lib/format';
 import * as layoutDirection from '../lib/design/layout-direction';
 
 const mockStore = new Map<string, string>();
@@ -46,6 +46,10 @@ jest.mock('../lib/offline/drafts', () => ({
     return raw ? { value: JSON.parse(raw).value, savedAt: 1 } : null;
   },
   clearDraft: (form: string) => void mockDrafts.delete(form),
+}));
+jest.mock('../lib/offline/kept-providers', () => ({
+  keepProviders: jest.fn(),
+  readKeptProviders: jest.fn(() => null),
 }));
 jest.mock('../lib/api-client', () => {
   class ApiError extends Error {
@@ -75,6 +79,7 @@ jest.mock('../hooks/useAuth', () => ({
 import { api, ApiError } from '../lib/api-client';
 import { useQueue } from '../lib/offline/queue';
 import { numberKey } from '../lib/offline/agent-exchange';
+import { keepProviders, readKeptProviders } from '../lib/offline/kept-providers';
 import NewExchangeScreen from '../app/agent/new';
 
 const NUMBER = '36123456';
@@ -131,6 +136,8 @@ beforeEach(async () => {
   useQueue.getState().load({ companyId: 'c1', branchId: 'b1', userId: 'u1' });
   (api.get as jest.Mock).mockReset();
   (api.post as jest.Mock).mockReset();
+  (keepProviders as jest.Mock).mockClear();
+  (readKeptProviders as jest.Mock).mockReset().mockReturnValue(null);
   (api.get as jest.Mock).mockImplementation(async (path: string) => {
     if (path.startsWith('/agent/providers')) return providers;
     if (path.startsWith('/entitlement')) return entitlement;
@@ -222,6 +229,48 @@ describe('the counter flow', () => {
     expect(useQueue.getState().items[0].state).toBe('cancelled');
     expect(await screen.findByText(t('agent.outcome.cancelled'))).toBeTruthy();
     await waitFor(() => expect(mockStore.has(numberKey(SCOPE, item.clientUuid))).toBe(false));
+  });
+
+  it('with no network the counter still prepares an exchange from the providers kept on the phone, says so, and queues it (device run, 2026-10-10)', async () => {
+    useConnectivity.setState({ online: false });
+    (readKeptProviders as jest.Mock).mockReturnValue({ savedAt: '2026-10-11T04:00:00.000Z', providers: providers.providers });
+    (api.get as jest.Mock).mockImplementation(async (path: string) => {
+      if (path.startsWith('/agent/providers')) throw new TypeError('Network request failed');
+      if (path.startsWith('/closings/business-day')) return { businessDate: '2026-10-09', localDate: '2026-10-09', standing: 'open', door: 'open' };
+      if (path.startsWith('/entitlement')) return entitlement;
+      return {};
+    });
+    mount();
+    await fillForm();
+    expect(readKeptProviders).toHaveBeenCalledWith('b1');
+    expect(screen.getByText(t('agent.provider.kept', { when: `${formatDate('2026-10-11T04:00:00.000Z')} ${formatTime('2026-10-11T04:00:00.000Z')}` }))).toBeTruthy();
+    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await act(async () => {
+      fireEvent.press(await screen.findByText(t('agent.review.confirm')));
+    });
+    expect(await screen.findByText(t('agent.pending'))).toBeTruthy();
+    expect(useQueue.getState().items[0].state).toBe('waiting_for_connection');
+  });
+
+  it('a refusal is never answered from the kept list: a permission taken away is the server’s word', async () => {
+    (readKeptProviders as jest.Mock).mockReturnValue({ savedAt: '2026-10-11T04:00:00.000Z', providers: providers.providers });
+    (api.get as jest.Mock).mockImplementation(async (path: string) => {
+      if (path.startsWith('/agent/providers')) throw new ApiError('Forbidden', 403, 'FORBIDDEN');
+      if (path.startsWith('/closings/business-day')) return { businessDate: '2026-10-09', localDate: '2026-10-09', standing: 'open', door: 'open' };
+      if (path.startsWith('/entitlement')) return entitlement;
+      return {};
+    });
+    mount();
+    fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
+    await waitFor(() => expect(screen.queryByText('Bankily')).toBeNull());
+    expect(readKeptProviders).not.toHaveBeenCalled();
+  });
+
+  it('each list the server sends is kept for the branch', async () => {
+    mount();
+    fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
+    await screen.findByText('Bankily');
+    expect(keepProviders).toHaveBeenCalledWith('b1', providers.providers);
   });
 
   it('a refusal is said in the counter’s words — Not recorded, with Review and send — and prepared again under a new key with its number (D161)', async () => {

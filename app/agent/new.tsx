@@ -342,9 +342,14 @@ function NewExchangeScreen() {
           {/* 2 — the provider: only one that is set up can be chosen. */}
           {form.direction ? (
             <Section title={t('agent.provider.question')} gap="sm">
+              {providersQuery.data?.keptAt ? (
+                <Text variant="caption" tone="secondary">
+                  {t('agent.provider.kept', { when: `${formatDate(providersQuery.data.keptAt)} ${formatTime(providersQuery.data.keptAt)}` })}
+                </Text>
+              ) : null}
               {providersQuery.isPending ? (
                 <SkeletonList count={3} />
-              ) : providersQuery.isError ? (
+              ) : !providersQuery.data ? (
                 <ErrorState size="inline" error={providersQuery.error} onRetry={() => void providersQuery.refetch()} />
               ) : providers.length === 0 ? (
                 <InlineNotice tone="neutral">{t('agent.provider.none')}</InlineNotice>

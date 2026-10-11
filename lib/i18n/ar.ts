@@ -3600,6 +3600,7 @@ export const ar: Catalogue = {
   'agent.provider.notSetUp': 'غير مُعدّ بعد',
   'agent.provider.notSetUp.hint': 'على المالك أولًا إدخال العمولة وطريقة التسوية.',
   'agent.provider.none': 'لا يوجد مزوّد مُعدّ بعد. يضيف المالك المزوّدين وعمولاتهم.',
+  'agent.provider.kept': 'المزوّدون كما قرأهم هذا الهاتف آخر مرة، {when}. يتحقق الخادم من العمولة عند إرسال العملية.',
   'agent.amount': 'المبلغ',
   'agent.amount.empty': 'أدخل المبلغ.',
   'agent.amount.not_a_number': 'أدخل المبلغ بالأرقام.',

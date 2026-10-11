@@ -3841,6 +3841,7 @@ export const fr: Catalogue = {
   'agent.provider.notSetUp': 'Pas encore configuré',
   'agent.provider.notSetUp.hint': 'Le propriétaire doit d’abord saisir son taux et son règlement.',
   'agent.provider.none': 'Aucun opérateur n’est encore configuré. Le propriétaire ajoute les opérateurs et leurs taux.',
+  'agent.provider.kept': 'Les opérateurs tels que ce téléphone les a lus pour la dernière fois, {when}. Le serveur vérifie le taux à l’envoi de l’opération.',
   'agent.amount': 'Montant',
   'agent.amount.empty': 'Saisissez le montant.',
   'agent.amount.not_a_number': 'Saisissez le montant en chiffres.',
