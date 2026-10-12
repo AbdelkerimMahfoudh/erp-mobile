@@ -3549,13 +3549,13 @@ export const en = {
     'We will send an account-deletion code to your verified WhatsApp number. Your account will be deleted only after you enter that code and confirm.',
   'account.delete.scopeLoginTitle': 'What will be deleted',
   'account.delete.scopeLogin':
-    'Your login, your name and your contact details. Every device signed in as you will be signed out. The business continues without you.',
+    'Your login, your name, your contact details and the sign-in identifier you were given; your sessions, devices and codes. Your name is replaced by “Deleted user” on what you recorded at the counter. Every device signed in as you is signed out, and this phone forgets your login. The business continues without you.',
   'account.delete.scopeBusinessTitle': 'What will be deleted',
   'account.delete.scopeBusiness':
-    'Your business, your login and every login in it, and the contact details of your customers and suppliers. Every device will be signed out.',
+    'Your business, your login and every login in it; the contact details of your customers, your suppliers and the people you lent to; the numbers payments came from and the numbers your money services counter served; notes, receipt photos, branch addresses and your city. Every device is signed out.',
   'account.delete.retainedTitle': 'What is kept, and why',
   'account.delete.retained':
-    'Sales, purchases, payments, closings and the audit trail are kept because the law requires business and tax records to be retained. Your name and contact details are removed from them: they refer to a "Deleted user".',
+    'Sales, purchases, payments, closings and the audit trail are kept because the law requires business and tax records to be retained; they refer to a “Deleted user”. Some copies cannot be edited: the audit trail and the subscription history are sealed and may still hold a name or contact detail written into them at the time, and backups keep their copy until they expire.',
   'account.delete.to': 'The code will go to {destination}.',
   'account.delete.password': 'Confirm with your password',
   'account.delete.send': 'Send deletion code',
@@ -3580,7 +3580,8 @@ export const en = {
   'account.delete.processing': 'Deleting… this can take a moment.',
   'account.delete.doneLogin': 'Your login has been deleted.',
   'account.delete.doneBusiness': 'Your business has been closed and every login in it deleted.',
-  'account.delete.doneBody': 'A confirmation was sent to your WhatsApp number. Records the law requires are kept without your personal details.',
+  'account.delete.doneBody':
+    'Records the law requires are kept, referring to a “Deleted user”. The sealed audit history and backups are not edited.',
   'account.delete.doneAction': 'Done',
   // ── Report PDFs (docs/66) ─────────────────────────────────────────────────
   'reportPdf.generate': 'Generate PDF',

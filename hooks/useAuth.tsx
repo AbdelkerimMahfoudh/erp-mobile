@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, clearSession } from '../lib/api-client';
-import { getItem, setItem } from '../lib/storage';
+import { deleteItem, getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
 import { useEntitlement } from '../lib/entitlement';
@@ -14,6 +14,7 @@ import { clearExports } from '../lib/report-export';
 import { useSyncEngine } from '../lib/offline/use-sync';
 import { useQueue } from '../lib/offline/queue';
 import {
+  clearCredential,
   clearLegacyCredential,
   deviceMeta,
   loadCredential,
@@ -33,6 +34,8 @@ import { entryRoute } from '../lib/navigation/entry';
  * deliberate scheme rather than a missing value.
  */
 const IDENTIFIER_SCOPE = 'id';
+/** The namespace this session's device credential is kept under: what a deletion forgets (privacy correction, 2026-10-12). */
+const SESSION_NAMESPACE_KEY = 'auth.credentialNamespace';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -49,6 +52,11 @@ interface AuthContextValue {
   /** Finish a sign-in that needed a shop picked. The password is not asked again. */
   chooseAccount: (choice: AccountChoice, accountRef: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * After the server deleted this login (or closed its business): the device credential this phone kept for it is
+   * forgotten too. The server has already revoked it; nothing on the phone should still name the deleted login.
+   */
+  forgetDeletedLogin: () => Promise<void>;
   /** Install a session issued by completing a registration. */
   adoptSession: (tokens: { accessToken: string; refreshToken: string }) => Promise<AuthUser>;
 }
@@ -164,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, res.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, res.refreshToken);
     await setItem(TOKEN_KEYS.USER, JSON.stringify(res.user));
+    await setItem(SESSION_NAMESPACE_KEY, namespace);
 
     /*
       Still remembered, but no longer to sign in with — nobody types it now.
@@ -208,6 +217,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await branch.hydrate();
     setUser(me);
     return me;
+  };
+
+  const forgetDeletedLogin = async () => {
+    const namespace = await getItem(SESSION_NAMESPACE_KEY);
+    if (namespace) await clearCredential(namespace, IDENTIFIER_SCOPE);
+    // The pre-CP3 credential keyed by the shop and the login, where one is still kept.
+    if (user) await clearCredential(user.publicStoreId, user.login);
+    await deleteItem(SESSION_NAMESPACE_KEY);
   };
 
   const signOut = async () => {
@@ -305,7 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
 
-  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut, adoptSession }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut, forgetDeletedLogin, adoptSession }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

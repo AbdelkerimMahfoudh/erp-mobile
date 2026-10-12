@@ -3727,13 +3727,13 @@ export const fr: Catalogue = {
     'Nous enverrons un code de suppression de compte à votre numéro WhatsApp vérifié. Votre compte ne sera supprimé qu’après la saisie de ce code et votre confirmation.',
   'account.delete.scopeLoginTitle': 'Ce qui sera supprimé',
   'account.delete.scopeLogin':
-    'Votre identifiant, votre nom et vos coordonnées. Tous les appareils connectés avec votre compte seront déconnectés. Le commerce continue sans vous.',
+    'Votre identifiant, votre nom, vos coordonnées et l’identifiant de connexion qui vous a été attribué ; vos sessions, appareils et codes. Votre nom est remplacé par « Utilisateur supprimé » sur ce que vous avez enregistré au comptoir. Tous les appareils connectés avec votre compte sont déconnectés, et ce téléphone oublie votre identifiant. Le commerce continue sans vous.',
   'account.delete.scopeBusinessTitle': 'Ce qui sera supprimé',
   'account.delete.scopeBusiness':
-    'Votre commerce, votre identifiant et tous ses identifiants, ainsi que les coordonnées de vos clients et fournisseurs. Tous les appareils seront déconnectés.',
+    'Votre commerce, votre identifiant et tous ses identifiants ; les coordonnées de vos clients, de vos fournisseurs et des personnes à qui vous avez prêté ; les numéros d’où venaient les paiements et ceux servis à votre comptoir de services d’argent ; les notes, les photos de reçus, les adresses des boutiques et votre ville. Tous les appareils sont déconnectés.',
   'account.delete.retainedTitle': 'Ce qui est conservé, et pourquoi',
   'account.delete.retained':
-    'Les ventes, achats, paiements, clôtures et le journal d’audit sont conservés parce que la loi impose de garder les documents commerciaux et fiscaux. Votre nom et vos coordonnées en sont retirés : ils renvoient à un « Utilisateur supprimé ».',
+    'Les ventes, achats, paiements, clôtures et le journal d’audit sont conservés parce que la loi impose de garder les documents commerciaux et fiscaux ; ils renvoient à un « Utilisateur supprimé ». Certaines copies ne peuvent pas être modifiées : le journal d’audit et l’historique de l’abonnement sont scellés et peuvent encore contenir un nom ou une coordonnée inscrits à l’époque, et les sauvegardes gardent leur copie jusqu’à leur expiration.',
   'account.delete.to': 'Le code sera envoyé au {destination}.',
   'account.delete.password': 'Confirmez avec votre mot de passe',
   'account.delete.send': 'Envoyer le code de suppression',
@@ -3758,7 +3758,8 @@ export const fr: Catalogue = {
   'account.delete.processing': 'Suppression en cours… cela peut prendre un instant.',
   'account.delete.doneLogin': 'Votre identifiant a été supprimé.',
   'account.delete.doneBusiness': 'Votre commerce a été fermé et tous ses identifiants supprimés.',
-  'account.delete.doneBody': 'Une confirmation a été envoyée à votre numéro WhatsApp. Les documents exigés par la loi sont conservés sans vos données personnelles.',
+  'account.delete.doneBody':
+    'Les documents exigés par la loi sont conservés et renvoient à un « Utilisateur supprimé ». L’historique d’audit scellé et les sauvegardes ne sont pas modifiés.',
   'account.delete.doneAction': 'Terminé',
   // ── Rapports PDF (docs/66) ────────────────────────────────────────────────
   'reportPdf.generate': 'Générer le PDF',

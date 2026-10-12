@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useLeave } from '../../components/navigation/HeaderBack';
@@ -43,7 +43,7 @@ export default function DeleteAccountScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { signOut } = useAuth();
+  const { signOut, forgetDeletedLogin } = useAuth();
   const header = <Stack.Screen options={{ headerShown: true, title: t('account.delete.title') }} />;
 
   const account = useQuery({ queryKey: qk.account, queryFn: () => api.get<AccountView>('/account') });
@@ -72,6 +72,11 @@ export default function DeleteAccountScreen() {
   const request = ownRequest ?? resumable;
   const step: Step = ownRequest ? ownStep : resumable ? (resumable.status === 'completed' ? 'done' : 'code') : ownStep;
   const resendIn = useCountdown(request?.resendAvailableAt ?? null);
+  // Deleted: the device credential this phone kept for the login goes too — the server has already revoked it.
+  useEffect(() => {
+    if (step === 'done') void forgetDeletedLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
   const leave = useLeave('/account/delete');
 
   const explain = (e: unknown): { text: string; backToStart?: boolean } => {
