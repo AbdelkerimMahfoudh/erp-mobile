@@ -25,7 +25,7 @@ import type { ReportPdfContext } from './report-pdf-html';
  *
  * On a phone the PDF is rendered on A4 and written under the app's private cache with
  * its own name, so the share sheet, Files and a chat app all show
- * `RetailERP_MainStore_Daily_2026-10-01_EN.pdf` rather than a random one. The cache is
+ * `DukanERP_MainStore_Daily_2026-10-01_EN.pdf` rather than a random one. The cache is
  * swept before each new PDF and dropped on sign-out with the spreadsheet exports
  * (`clearExports`): a report is the shop's financial data.
  *

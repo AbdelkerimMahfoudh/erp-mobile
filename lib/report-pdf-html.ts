@@ -620,11 +620,11 @@ export function fileSafeName(...names: (string | null | undefined)[]): string {
   return 'Store';
 }
 
-/** `RetailERP_MainStore_Daily_2026-10-01_EN.pdf`, `RetailERP_MainStore_Monthly_2026-10_AR.pdf`. */
+/** `DukanERP_MainStore_Daily_2026-10-01_EN.pdf`, `DukanERP_MainStore_Monthly_2026-10_AR.pdf`. */
 export function reportFileName(doc: ReportDocument, lang: ReportPdfLanguage): string {
   const store = fileSafeName(doc.identity.branch, doc.identity.company);
   const period = doc.kind === 'daily' ? `Daily_${doc.date}` : `Monthly_${doc.month}`;
-  return `RetailERP_${store}_${period}_${lang.toUpperCase()}.pdf`;
+  return `DukanERP_${store}_${period}_${lang.toUpperCase()}.pdf`;
 }
 
 /** The page for either document; its `<title>` is the file's name, which a browser offers when saving. */

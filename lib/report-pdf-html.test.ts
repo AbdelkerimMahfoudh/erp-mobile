@@ -206,7 +206,7 @@ it('daily, English: who, which business day, its state and when the PDF was made
   const html = buildReportHtml(daily(), ctx('en'));
   const text = textOf(html);
   assert.match(html, /<html lang="en" dir="ltr">/);
-  assert.match(html, /<title>RetailERP_MainStore_Daily_2026-10-01_EN<\/title>/);
+  assert.match(html, /<title>DukanERP_MainStore_Daily_2026-10-01_EN<\/title>/);
   for (const s of ['Daily report', 'Tech Plus', 'Main Store', '1 Oct 2026', 'Not closed', 'Generated 1 Oct 2026 · 19:30', 'The day is still open']) {
     assert.ok(text.includes(s), `missing "${s}"`);
   }
@@ -358,7 +358,7 @@ it('large figures keep every digit, grouped, on one line', () => {
 it('monthly, English: the month, whole, then sales, the result to the net result with rent and salaries apart', () => {
   const html = buildReportHtml(monthly(), ctx('en'));
   const text = textOf(html);
-  assert.match(html, /<title>RetailERP_MainStore_Monthly_2026-09_EN<\/title>/);
+  assert.match(html, /<title>DukanERP_MainStore_Monthly_2026-09_EN<\/title>/);
   for (const s of ['Monthly report', 'September 2026', 'Whole month · 1–30 Sep 2026', 'Generated 1 Oct 2026 · 08:15']) assert.ok(text.includes(s), `missing "${s}"`);
   assert.ok(text.includes(`Net sales ${m(150_000)} 2 sales · 3 items`));
   assert.ok(text.includes(`Cost of items sold ${MINUS}${m(113_000)}`));
@@ -497,7 +497,7 @@ it('every value somebody typed is escaped — names, labels, categories, the clo
     assert.ok(body.includes('&quot;&gt;&lt;img src=x onerror=alert(2)&gt;'));
   }
   // The file name of a hostile branch is plain letters.
-  assert.equal(reportFileName(doc, 'en'), 'RetailERP_ImgSrcXOnerrorAlert2_Daily_2026-10-01_EN.pdf');
+  assert.equal(reportFileName(doc, 'en'), 'DukanERP_ImgSrcXOnerrorAlert2_Daily_2026-10-01_EN.pdf');
 });
 
 it('no id, no WhatsApp, no payment link on the page — whatever extra field a document might carry', () => {
@@ -542,10 +542,10 @@ it('the footer never takes a page of its own: it follows the last section', () =
   assert.match(buildReportHtml(daily(), ctx('fr')), /footer \{[^}]*break-before: avoid; page-break-before: avoid; \}/);
 });
 
-it('file names: RetailERP, the store, the kind and period, the language — plain ASCII', () => {
-  assert.equal(reportFileName(daily(), 'en'), 'RetailERP_MainStore_Daily_2026-10-01_EN.pdf');
-  assert.equal(reportFileName(monthly({ month: '2026-10' }), 'ar'), 'RetailERP_MainStore_Monthly_2026-10_AR.pdf');
-  assert.equal(reportFileName(daily(), 'fr'), 'RetailERP_MainStore_Daily_2026-10-01_FR.pdf');
+it('file names: DukanERP, the store, the kind and period, the language — plain ASCII', () => {
+  assert.equal(reportFileName(daily(), 'en'), 'DukanERP_MainStore_Daily_2026-10-01_EN.pdf');
+  assert.equal(reportFileName(monthly({ month: '2026-10' }), 'ar'), 'DukanERP_MainStore_Monthly_2026-10_AR.pdf');
+  assert.equal(reportFileName(daily(), 'fr'), 'DukanERP_MainStore_Daily_2026-10-01_FR.pdf');
   assert.equal(fileSafeName('Boutique Élan / Nouakchott #2'), 'BoutiqueElanNouakchott2');
   assert.equal(fileSafeName('متجر النور', 'Tech Plus'), 'TechPlus');
   assert.equal(fileSafeName('متجر النور', 'شركة'), 'Store');

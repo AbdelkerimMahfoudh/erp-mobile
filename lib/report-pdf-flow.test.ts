@@ -107,10 +107,10 @@ it('the daily PDF: one GET of that business date, then a named file on the phone
   const outcome = await generateReportPdf({ kind: 'daily', date: '2026-10-01' }, deps({ server, written }));
   assert.equal(outcome.status, 'ready');
   assert.deepEqual(server.requests, ['GET /reports/daily?date=2026-10-01']);
-  assert.deepEqual(written, ['branch-a/RetailERP_MainStore_Daily_2026-10-01_EN.pdf:true']);
+  assert.deepEqual(written, ['branch-a/DukanERP_MainStore_Daily_2026-10-01_EN.pdf:true']);
   if (outcome.status !== 'ready') return;
-  assert.equal(outcome.report.filename, 'RetailERP_MainStore_Daily_2026-10-01_EN.pdf');
-  assert.equal(outcome.report.uri, 'file:///cache/reports/pdf/branch-a/RetailERP_MainStore_Daily_2026-10-01_EN.pdf');
+  assert.equal(outcome.report.filename, 'DukanERP_MainStore_Daily_2026-10-01_EN.pdf');
+  assert.equal(outcome.report.uri, 'file:///cache/reports/pdf/branch-a/DukanERP_MainStore_Daily_2026-10-01_EN.pdf');
   assert.match(outcome.report.html, /^<!DOCTYPE html>/);
 });
 
@@ -222,7 +222,7 @@ it('sharing: given the file only; dismissed or failed, it is a cancellation and 
   if (outcome.status !== 'ready') return;
   const shared: string[] = [];
   assert.equal(await shareGeneratedReport(outcome.report, async (uri, name) => void shared.push(`${uri}|${name}`)), 'shared');
-  assert.deepEqual(shared, [`${outcome.report.uri}|RetailERP_MainStore_Daily_2026-10-01_EN.pdf`]);
+  assert.deepEqual(shared, [`${outcome.report.uri}|DukanERP_MainStore_Daily_2026-10-01_EN.pdf`]);
   assert.equal(await shareGeneratedReport(outcome.report, async () => Promise.reject(new Error('User did not share'))), 'cancelled');
   assert.equal(await shareGeneratedReport(outcome.report, async () => Promise.reject(new Error('Unable to present'))), 'cancelled');
   assert.equal(await shareGeneratedReport({ uri: null, filename: 'x.pdf' }, async () => assert.fail('no file, no sheet')), 'cancelled');

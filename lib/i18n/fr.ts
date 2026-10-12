@@ -2030,7 +2030,8 @@ export const fr: Catalogue = {
   'devices.owner.revoke.body': 'Cet appareil sera déconnecté immédiatement.',
 
   // ── Authentication ─────────────────────────────────────────────────────────
-  'auth.title': 'Retail ERP',
+  'auth.title': 'Dukan ERP',
+  'auth.byline': 'Développé et exploité par TSX-MR',
   'auth.subtitle': 'Connectez-vous à votre boutique',
   'auth.field.identifier': 'E-mail ou numéro WhatsApp',
   'auth.field.identifier.hint': 'Saisissez votre e-mail ou votre numéro WhatsApp.',
@@ -3828,7 +3829,7 @@ export const fr: Catalogue = {
   'reportPdf.severity.info': 'Info',
   'reportPdf.severity.warning': 'À vérifier',
   'reportPdf.severity.error': 'Problème',
-  'reportPdf.footer': 'Système de gestion de magasin d’électronique — chiffres issus des registres de la boutique sur le serveur',
+  'reportPdf.footer': 'Dukan ERP, par TSX-MR — chiffres issus des registres de la boutique sur le serveur',
   'agent.credit.digital': 'numérique',
   'agent.direction.question': 'Que fait le client ?',
   'agent.direction.cash_in_credit_out': 'Recevoir des espèces → envoyer du crédit {provider}',

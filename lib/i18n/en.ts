@@ -1906,7 +1906,8 @@ export const en = {
   'devices.owner.revoke.body': 'That device will be signed out immediately.',
 
   // ── Authentication ─────────────────────────────────────────────────────────
-  'auth.title': 'Retail ERP',
+  'auth.title': 'Dukan ERP',
+  'auth.byline': 'Developed and operated by TSX-MR',
   'auth.subtitle': 'Sign in to your store',
   'auth.field.identifier': 'Email or WhatsApp number',
   'auth.field.identifier.hint': 'Enter either your email or WhatsApp number.',
@@ -3650,7 +3651,7 @@ export const en = {
   'reportPdf.severity.info': 'Note',
   'reportPdf.severity.warning': 'Check',
   'reportPdf.severity.error': 'Problem',
-  'reportPdf.footer': 'Electronics Retail Management System — figures from the shop’s records on the server',
+  'reportPdf.footer': 'Dukan ERP, by TSX-MR — figures from the shop’s records on the server',
   'agent.credit.digital': 'digital',
   'agent.direction.question': 'What is the customer doing?',
   'agent.direction.cash_in_credit_out': 'Receive cash → send {provider} credit',

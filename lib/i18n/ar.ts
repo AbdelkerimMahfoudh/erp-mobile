@@ -1880,7 +1880,8 @@ export const ar: Catalogue = {
   'devices.owner.revoke.body': 'سيتم تسجيل خروج ذلك الجهاز فورًا.',
 
   // ── تسجيل الدخول ───────────────────────────────────────────────────────────
-  'auth.title': 'نظام إدارة المتجر',
+  'auth.title': 'Dukan ERP',
+  'auth.byline': 'تطوّره TSX-MR وتشغّله',
   'auth.subtitle': 'سجّل الدخول إلى متجرك',
   'auth.field.identifier': 'البريد الإلكتروني أو رقم واتساب',
   'auth.field.identifier.hint': 'أدخل بريدك الإلكتروني أو رقم واتساب.',
@@ -3587,7 +3588,7 @@ export const ar: Catalogue = {
   'reportPdf.severity.info': 'ملاحظة',
   'reportPdf.severity.warning': 'للتحقق',
   'reportPdf.severity.error': 'مشكلة',
-  'reportPdf.footer': 'نظام إدارة متاجر الإلكترونيات — أرقام من سجلات المتجر على الخادم',
+  'reportPdf.footer': 'Dukan ERP من TSX-MR — أرقام من سجلات المتجر على الخادم',
   'agent.credit.digital': 'رقمي',
   'agent.direction.question': 'ماذا يريد العميل؟',
   'agent.direction.cash_in_credit_out': 'استلام النقد ← إرسال رصيد {provider}',

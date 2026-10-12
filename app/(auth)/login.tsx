@@ -121,6 +121,9 @@ export default function Login() {
             <Text variant="body" tone="secondary" align="center">
               {t('auth.subtitle')}
             </Text>
+            <Text variant="caption" tone="tertiary" align="center">
+              {t('auth.byline')}
+            </Text>
           </View>
 
           {choice ? (
