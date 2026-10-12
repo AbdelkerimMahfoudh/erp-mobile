@@ -54,7 +54,7 @@ const item = (over: Partial<QueueItem> = {}): QueueItem => ({
 const tx = (over: Partial<ServerExchange> = {}): ServerExchange => ({
   id: 't-1', branchId: 'b1', status: 'completed', direction: 'cash_in_credit_out', providerId: 'bankily', providerLabel: 'Bankily', amount: 10_000, commission: 200,
   customerNumberMasked: '•••• 3456', businessDate: '2026-10-10', recordedAt: '2026-10-10T09:00:02.000Z', recordedByName: 'Employee Boutique 2', configVersionId: 'cfg-7',
-  deviceRecordedAt: '2026-10-10T09:00:00.000Z', ...over,
+  deviceRecordedAt: '2026-10-10T09:00:00.000Z', commissionSource: 'legacy_rate', ...over,
 });
 
 // ── The refusal table ───────────────────────────────────────────────────────
@@ -193,6 +193,7 @@ it('the lookup’s answer is read strictly — and never keeps a full number, ev
   if (shaped?.recorded) {
     assert.equal(shaped.transaction.commission, 150);
     assert.equal(shaped.transaction.configVersionId, 'cfg-7');
+    assert.equal(shaped.transaction.commissionSource, 'legacy_rate');
     assert.equal(shaped.transaction.recordedByName, 'Manager');
   }
   // Anything else decides nothing: an older server's 404 page, a proxy, half a record.
@@ -226,6 +227,12 @@ it('recorded and different → not recorded here (idempotency_conflict), with th
     assert.equal(r.changes.serverRecord?.numberMasked, over.customerNumberMasked ?? '•••• 3456', what);
     assert.ok(!JSON.stringify(r.changes).includes('36123456'), `${what}: never the full number`);
   }
+  // D164: an exchange typed with its commission is matched on that commission too — the configuration version no longer counts.
+  const typed = item({ payload: { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 10_000, commissionAmount: 200, deviceRecordedAt: '2026-10-10T09:00:00.000Z' } });
+  assert.equal(sameExchange(typed, tx({ commissionSource: 'manual', configVersionId: null }), '36123456'), true);
+  assert.equal(sameExchange(typed, tx({ commissionSource: 'manual', configVersionId: 'cfg-9' }), '36123456'), true, 'a version on the record is no difference');
+  assert.equal(sameExchange(typed, tx({ commissionSource: 'manual', commission: 250 }), '36123456'), false, 'another commission is another exchange');
+  assert.equal(resolveLookup(typed, { recorded: true, transaction: tx({ commission: 0 }) }, '36123456', { manual: true }).kind, 'different');
   // A cent of float noise is the same amount; the masked form is compared on its last four digits only.
   assert.equal(sameExchange(item(), tx({ amount: 10_000.001 }), '+222 36 12 34 56'), true);
   assert.equal(lastFour('•••• 3456'), '3456');

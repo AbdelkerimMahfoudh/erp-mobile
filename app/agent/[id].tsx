@@ -93,12 +93,15 @@ function Detail({ tx, styles }: { tx: AgentTransaction; styles: ReturnType<typeo
   const { original, reversal } = splitLegs(tx.legs);
   const provider = tx.providerLabel;
   const decimals = [tx.amount, tx.commission.amount, ...tx.legs.map((l) => l.amount)].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
-  const where =
-    tx.commission.principalFeeMode === 'deducted'
+  // D164: a typed commission is the customer's, into the drawer. One recorded under a rate keeps how it was priced.
+  const legacy = tx.commission.source === 'legacy_rate' ? tx.commission.legacy : null;
+  const where = legacy
+    ? legacy.principalFeeMode === 'deducted'
       ? t('agent.commission.deducted', { provider })
-      : tx.commission.destination
-        ? t(`agent.commission.${tx.commission.destination}`, { provider })
-        : null;
+      : legacy.destination
+        ? t(`agent.commission.${legacy.destination}`, { provider })
+        : null
+    : t('agent.detail.commission.manualNote');
 
   return (
     <>
@@ -127,7 +130,9 @@ function Detail({ tx, styles }: { tx: AgentTransaction; styles: ReturnType<typeo
         <View style={[AMOUNT_ROW, styles.line]}>
           <View style={AMOUNT_LABEL}>
             <Text variant="body" tone="secondary">
-              {t('agent.review.commission', { rate: isolateLtr(percentOfBp(tx.commission.rateBp)) })}
+              {legacy && legacy.rateBp !== null
+                ? t('agent.detail.commission.legacy', { rate: isolateLtr(percentOfBp(legacy.rateBp)) })
+                : t('agent.review.commission')}
             </Text>
           </View>
           <MoneyValue value={tx.commission.amount} size="small" decimals={decimals} />
@@ -135,6 +140,11 @@ function Detail({ tx, styles }: { tx: AgentTransaction; styles: ReturnType<typeo
         {where ? (
           <Text variant="caption" tone="secondary">
             {where}
+          </Text>
+        ) : null}
+        {legacy ? (
+          <Text variant="caption" tone="tertiary">
+            {t('agent.detail.commission.legacyNote')}
           </Text>
         ) : null}
         <Divider />

@@ -48,9 +48,11 @@ const payload: ExchangePayload = {
   providerId: 'bankily',
   direction: 'cash_in_credit_out',
   amount: 20_000,
-  configVersionId: 'cfg-1',
+  commissionAmount: 200,
   deviceRecordedAt: '2026-10-09T10:00:00.000Z',
 };
+/** What an earlier build queued: its configuration version, and no commission. */
+const legacyPayload: ExchangePayload = { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 20_000, configVersionId: 'cfg-1', deviceRecordedAt: '2026-10-09T10:00:00.000Z' };
 const item = (over: Partial<QueueItem> = {}): QueueItem => ({
   id: 'i1',
   kind: AGENT_EXCHANGE_KIND,
@@ -75,9 +77,8 @@ const providers: AgentProvider[] = [
     label: 'Bankily',
     isActive: true,
     sortOrder: 0,
-    readyForTransactions: true,
-    missing: [],
-    config: { id: 'cfg-1', rateInBp: 100, rateOutBp: 100, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'optional', effectiveFrom: '', recordedByName: null, reason: null },
+    referenceRule: 'optional',
+    config: null,
   },
 ];
 
@@ -128,6 +129,17 @@ it('a payload, a queue item or a draft that holds a customer number is refused, 
   assert.equal(isQueueItem(item()), true);
   assert.equal(isQueueItem(item({ payload: { ...payload, customerNumber: NUMBER } })), false);
   assert.deepEqual(isWritable({ direction: 'cash_in_credit_out', customerNumber: NUMBER }), { ok: false, reason: 'forbidden_field' });
+});
+
+it('a queued exchange keeps its typed commission; one an earlier build queued still reads, to be refused and fixed (D164)', () => {
+  assert.equal(isExchangePayload(payload), true);
+  assert.equal(isExchangePayload({ ...payload, commissionAmount: 0 }), true, 'a typed zero is a commission');
+  assert.equal(isExchangePayload(legacyPayload), true, 'an earlier build’s item stays visible, never dropped');
+  for (const bad of [-1, 12.5, '200', null]) assert.equal(isExchangePayload({ ...payload, commissionAmount: bad }), false, String(bad));
+  const { configVersionId: _v, ...neither } = legacyPayload;
+  assert.equal(isExchangePayload(neither), false, 'neither a commission nor a version: not an exchange this phone made');
+  // The body sent is the payload and the number: the commission rides with it on every retry, under the same key.
+  assert.equal(exchangeBody(payload, NUMBER).commissionAmount, 200);
 });
 
 it('the number is joined only in the body that is sent', () => {
@@ -185,13 +197,13 @@ it('the branch’s held exchanges are every one not confirmed or removed, oldest
   assert.deepEqual(exchangesToSend(items, 'b1').map((i) => i.id), ['y', 'x']);
 });
 
-it('a queued exchange moves the drawer and the float by its legs; a rate the phone no longer sees adds no commission', () => {
+it('a queued exchange moves the drawer and the float by its legs, its typed commission into the drawer; an earlier build’s adds none', () => {
   assert.deepEqual(queuedLegs(payload, providers).map((l) => [legKey(l), l.direction, l.amount]), [
     ['cash', 'inflow', 20_000],
     ['provider:bankily', 'outflow', 20_000],
-    ['provider:bankily', 'inflow', 200],
+    ['cash', 'inflow', 200],
   ]);
-  const stale = queuedLegs({ ...payload, configVersionId: 'cfg-0' }, providers);
+  const stale = queuedLegs(legacyPayload, providers);
   assert.deepEqual(stale.map((l) => [legKey(l), l.direction, l.amount]), [
     ['cash', 'inflow', 20_000],
     ['provider:bankily', 'outflow', 20_000],
@@ -212,8 +224,8 @@ it('provisional = the net of the exchanges still to be sent; a refused one moves
     'b1',
     providers,
   );
-  // Cash: +20 000 − 5 000. Bankily: −20 000 + 200 + 5 000 + 50.
-  assert.deepEqual(net, { cash: 15_000, 'provider:bankily': -14_750 });
+  // Cash: +20 000 + 200 − 5 000 + 200. Bankily: −20 000 + 5 000 — the commission never on the credit (D164).
+  assert.deepEqual(net, { cash: 15_400, 'provider:bankily': -15_000 });
   assert.deepEqual(provisionalNet([], 'b1', providers), {});
 });
 

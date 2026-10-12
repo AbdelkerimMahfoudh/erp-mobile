@@ -1,16 +1,16 @@
 /// <reference types="jest" />
 /**
- * The counter flow as the phone runs it (docs/73 §5.2–5.3, D155, D157): the
- * direction as two cards in words, a provider that is not set up cannot be
- * chosen, one review with both movements and the commission, then Confirm —
+ * The counter flow as the phone runs it (docs/73 §5.2–5.3, D155, D157, D164):
+ * the direction as two cards in words, any provider switched on, the commission
+ * the customer pays typed for the exchange — never an empty field read as zero —,
+ * one review with the amount, the commission, the cash and the credit, then Confirm —
  * through the offline queue under the form's own key. The customer's number
  * reaches the server and nothing else: never the queue file, never the draft,
  * never the summary. Offline it waits as Pending synchronization; a refusal is
  * said in the counter's words and prepared again under a new key; the unsent
  * form survives a restart with its number.
  *
- * Providers and answers are the backend's real serialized shapes (captured
- * 2026-10-09); rates are the INVENTED fixtures of that capture.
+ * Providers and answers are the backend's serialized shapes (D164); figures are INVENTED.
  */
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -89,10 +89,12 @@ const EMPLOYEE = ['agent.transaction.record', 'agent.transaction.view', 'agent.m
 const providers = {
   providers: [
     {
-      id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, readyForTransactions: true, missing: [],
-      config: { id: 'cfg-7', rateInBp: 200, rateOutBp: 200, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture: rate change to 2 %' },
+      id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, referenceRule: 'optional',
+      config: { id: 'cfg-7', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture', legacy: null },
     },
-    { id: 'blank', kind: 'other', label: 'Blank Co', isActive: true, sortOrder: 0, config: null, readyForTransactions: false, missing: ['rateInBp', 'rateOutBp', 'commissionDestination', 'principalFeeMode', 'referenceRule'] },
+    // Never configured: usable at once (D164).
+    { id: 'sedad', kind: 'sedad', label: 'Sedad', isActive: true, sortOrder: 1, referenceRule: 'optional', config: null },
+    { id: 'moov', kind: 'other', label: 'Moov', isActive: false, sortOrder: 2, referenceRule: 'optional', config: null },
   ],
 };
 const entitlement = {
@@ -101,7 +103,7 @@ const entitlement = {
 };
 const recorded = (clientUuidBody: { amount: number }) => ({
   id: 't-1', branchId: 'b1', providerId: 'bankily', providerLabel: 'Bankily', direction: 'cash_in_credit_out', amount: clientUuidBody.amount, customerNumberMasked: '•••• 3456', providerReference: null,
-  commission: { amount: 200, rateBp: 200, destination: 'provider_float', principalFeeMode: 'separate', configVersionId: 'cfg-7' },
+  commission: { amount: 200, source: 'manual', legacy: null },
   legs: [], businessDate: '2026-10-09', recordedAt: '2026-10-09T11:11:02.660Z', deviceRecordedAt: null, recordedBy: { id: 'u1', name: 'Employee Boutique 2' }, status: 'completed', reversal: null, mistakes: [],
 });
 
@@ -116,11 +118,12 @@ function mount() {
   );
 }
 
-/** Direction, provider, amount and number — the whole form, as a person fills it. */
+/** Direction, provider, amount, commission and number — the whole form, as a person fills it. */
 async function fillForm() {
   fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
   fireEvent.press(await screen.findByText('Bankily'));
   fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
+  fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '200');
   fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
 }
 
@@ -151,7 +154,7 @@ beforeEach(async () => {
 afterEach(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
 
 describe('the counter flow', () => {
-  it('direction first in words, a provider not set up cannot be chosen, one review, then Confirm — the number reaches the server and nothing else', async () => {
+  it('direction first in words, any provider switched on, the commission typed, one review, then Confirm — the number and the commission reach the server, never a person', async () => {
     (api.post as jest.Mock).mockImplementation(async (_path: string, body: { amount: number }) => recorded(body));
     mount();
     // Two cards, each a whole sentence with the money arrows.
@@ -159,23 +162,30 @@ describe('the counter flow', () => {
     expect(screen.getByText('Give cash → receive digital credit')).toBeTruthy();
     fireEvent.press(screen.getByText('Receive cash → send digital credit'));
 
-    // The provider not set up says so and cannot be chosen.
-    expect(await screen.findByText(t('agent.provider.notSetUp'))).toBeTruthy();
-    fireEvent.press(screen.getByText('Blank Co'));
-    expect(screen.queryByLabelText(t('agent.amount'))).toBeNull();
+    // Every provider switched on is offered — one never configured too; one switched off is not.
+    expect(await screen.findByText('Sedad')).toBeTruthy();
+    expect(screen.queryByText('Moov')).toBeNull();
     fireEvent.press(screen.getByText('Bankily'));
     // The cards now name the provider.
     expect(await screen.findByText('Receive cash → send Bankily credit')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText(t('agent.amount')), '10000');
     fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
+    // No commission typed: no review — an empty field is never zero.
+    fireEvent.press(screen.getByText(t('agent.review.action')));
+    expect(screen.queryByText(t('agent.review.confirm'))).toBeNull();
+    // Digits only: whatever else is typed is dropped as typed.
+    fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '2a00');
+    expect(screen.getByDisplayValue('200')).toBeTruthy();
     fireEvent.press(screen.getByText(t('agent.review.action')));
 
-    // One review: both movements in words and figures, the commission and where it goes.
-    expect(await screen.findByText(t('agent.review.cashIn'))).toBeTruthy();
-    expect(screen.getByText('Bankily credit sent from your float')).toBeTruthy();
-    expect(screen.getByText('Commission (2 %)')).toBeTruthy();
-    expect(screen.getByText('Credited to your Bankily float.')).toBeTruthy();
+    // One review: the amount, the commission the customer pays, the cash received and the credit sent.
+    expect(await screen.findByText(t('agent.review.cashReceived'))).toBeTruthy();
+    expect(screen.getByText(t('agent.review.amount'))).toBeTruthy();
+    expect(screen.getByText(t('agent.review.commission'))).toBeTruthy();
+    expect(screen.getByText(t('agent.review.commissionNote', { provider: 'Bankily' }))).toBeTruthy();
+    expect(screen.getByText('Bankily credit sent to the customer')).toBeTruthy();
+    expect(screen.getByText(`+${formatMoney(10200, { decimals: 0 })}`)).toBeTruthy();
     expect(screen.getByText(NUMBER)).toBeTruthy();
 
     await act(async () => {
@@ -190,8 +200,8 @@ describe('the counter flow', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/agent/transactions');
-    expect(body).toEqual(expect.objectContaining({ providerId: 'bankily', direction: 'cash_in_credit_out', amount: 10000, customerNumber: NUMBER, configVersionId: 'cfg-7' }));
-    for (const forbidden of ['employeeId', 'userId', 'recordedBy', 'recordedById']) expect(body).not.toHaveProperty(forbidden);
+    expect(body).toEqual(expect.objectContaining({ providerId: 'bankily', direction: 'cash_in_credit_out', amount: 10000, commissionAmount: 200, customerNumber: NUMBER }));
+    for (const forbidden of ['employeeId', 'userId', 'recordedBy', 'recordedById', 'recordedByName', 'configVersionId']) expect(body).not.toHaveProperty(forbidden);
     const item = useQueue.getState().items[0];
     expect(body.clientUuid).toBe(item.clientUuid);
     expect(item.state).toBe('synced');
@@ -273,30 +283,29 @@ describe('the counter flow', () => {
     expect(keepProviders).toHaveBeenCalledWith('b1', providers.providers);
   });
 
-  it('a refusal is said in the counter’s words — Not recorded, with Review and send — and prepared again under a new key with its number (D161)', async () => {
-    (api.post as jest.Mock).mockRejectedValue(
-      new ApiError('Bankily’s configuration changed since this exchange was prepared.', 409, 'stale_configuration', { expectedConfigVersionId: 'cfg-6', currentConfigVersionId: 'cfg-7' }),
-    );
+  it('a refusal is said in the counter’s words — Not recorded, with Edit and send — and prepared again under a new key with its number and commission (D161)', async () => {
+    (api.post as jest.Mock).mockRejectedValue(new ApiError('Bankily issues a reference for every exchange.', 400, 'reference_required'));
     mount();
     await fillForm();
     fireEvent.press(screen.getByText(t('agent.review.action')));
     await act(async () => {
       fireEvent.press(await screen.findByText(t('agent.review.confirm')));
     });
-    expect(await screen.findByText(t('agent.refusal.stale_configuration'))).toBeTruthy();
+    expect(await screen.findByText(t('agent.refusal.reference_required'))).toBeTruthy();
     const refused = useQueue.getState().items[0];
     expect(refused.state).toBe('rejected_resubmit');
-    expect(refused.lastError?.code).toBe('stale_configuration');
+    expect(refused.lastError?.code).toBe('reference_required');
     expect(screen.getByText(t('agent.refusal.title'))).toBeTruthy();
     // Nothing rejected is sent again on its own, and never unchanged when its terms changed.
     expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
     expect(api.post).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.reviewAndSend')));
+      fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
     });
-    // Back on the form with the same words and figures, and the number carried to the new key.
+    // Back on the form with the same words and figures — the commission too — and the number carried to the new key.
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();
+    expect(screen.getByDisplayValue('200')).toBeTruthy();
     expect(screen.getByDisplayValue(NUMBER)).toBeTruthy();
     expect(useQueue.getState().items[0].state).toBe('cancelled');
     expect(mockStore.has(numberKey(SCOPE, refused.clientUuid))).toBe(false);
@@ -337,11 +346,14 @@ describe('the counter flow', () => {
       fireEvent.press(card);
       fireEvent.press(await screen.findByText('Bankily'));
       fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
+      // Arabic-Indic digits are the same digits.
+      fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '٢٠٠');
+      expect(screen.getByDisplayValue('200')).toBeTruthy();
       fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
       fireEvent.press(screen.getByText(t('agent.review.action')));
-      expect(await screen.findByText(t('agent.review.cashIn'))).toBeTruthy();
+      expect(await screen.findByText(t('agent.review.cashReceived'))).toBeTruthy();
       expect(screen.getByText(`\u2066${NUMBER}\u2069`)).toBeTruthy();
-      expect(screen.getByText('العمولة (\u20662\u2069%)')).toBeTruthy();
+      expect(screen.getByText('العمولة التي يدفعها الزبون')).toBeTruthy();
     } finally {
       rtl.mockRestore();
     }

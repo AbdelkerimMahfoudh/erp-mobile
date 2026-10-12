@@ -15,7 +15,7 @@ import { uuidv4 } from './utils';
 import { exchangesHeld, type ExternalCounterparty, type FloatAccountKind, type RebalancingBody } from './agent-money';
 import type { ConfigBody, ProviderKind } from './agent-providers';
 import type { ReportPeriod } from './agent-reports';
-import type { AgentDirection, AgentProvider, CommissionDestination, LegAccount, LegDirection, LegKind, PrincipalFeeMode, ProviderConfig } from './agent-rules';
+import { providerOf, type AgentDirection, type AgentProvider, type CommissionDestination, type CommissionSource, type LegAccount, type LegDirection, type LegKind, type PrincipalFeeMode, type ProviderConfig } from './agent-rules';
 
 export type { AgentProvider } from './agent-rules';
 
@@ -109,10 +109,10 @@ export interface AgentTransaction {
   providerReference: string | null;
   commission: {
     amount: number;
-    rateBp: number;
-    destination: CommissionDestination | null;
-    principalFeeMode: PrincipalFeeMode | null;
-    configVersionId: string;
+    /** `manual` — typed by the employee (D164); `legacy_rate` — what an exchange recorded under a rate stored. */
+    source: CommissionSource;
+    /** How a legacy exchange was priced, exactly as stored; null for a typed commission. */
+    legacy: { rateBp: number | null; destination: CommissionDestination | null; principalFeeMode: PrincipalFeeMode | null; configVersionId: string | null } | null;
   };
   legs: AgentLegView[];
   businessDate: string;
@@ -178,6 +178,8 @@ export interface ReportFigures {
   creditSent: number;
   creditReceived: number;
   commission: number;
+  /** Each way's count, volume and commission (D164): receiving cash, and giving cash. */
+  routes?: Record<AgentDirection, { count: number; volume: number; commission: number }>;
   reversals: ReportReversals;
 }
 
@@ -251,7 +253,8 @@ export function useAgentProviders(options: { enabled?: boolean } = {}) {
     queryKey: qk.agentProviders(),
     queryFn: async (): Promise<ProvidersAnswer> => {
       try {
-        const answer = await api.get<{ providers: AgentProvider[] }>('/agent/providers');
+        const raw = await api.get<{ providers: unknown[] }>('/agent/providers');
+        const answer = { providers: (raw.providers ?? []).map(providerOf).filter((p): p is AgentProvider => p !== null) };
         if (branchId) keepProviders(branchId, answer.providers);
         return answer;
       } catch (error) {
@@ -593,11 +596,10 @@ export function useUpdateProvider(id: string) {
 }
 
 /**
- * A new configuration version, in force from the server's instant. Append-only:
- * the version an exchange used is never edited. An exchange this phone prepared
- * under the older version is refused as stale and shown for a person to see the
- * new rate (D155). Saved again after a lost answer, it is the same version, never
- * a second identical one (D160).
+ * A new configuration version — the provider's reference rule and why (D164) —
+ * in force from the server's instant. Append-only: an earlier version, rates
+ * included, stays as history. Saved again after a lost answer, it is the same
+ * version, never a second identical one (D160).
  */
 export function useAddProviderConfig(id: string) {
   const qc = useQueryClient();
@@ -611,7 +613,7 @@ export function useAddProviderConfig(id: string) {
   );
 }
 
-/** Every version of a provider's configuration, newest first: the history behind every exchange's rate. */
+/** Every version of a provider's configuration, newest first — those written before D164 with the rates they held. */
 export function useProviderConfigs(id: string | undefined, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: qk.agentProviderConfigs(id ?? ''),

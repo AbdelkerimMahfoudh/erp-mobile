@@ -67,7 +67,7 @@ const USER = { id: 'u1', companyId: 'c1', name: 'Employee Boutique 2', login: 'e
 
 const exchange: QueueItem = {
   id: 'q1', kind: 'agent.exchange.record', clientUuid: 'k1', companyId: 'c1', branchId: 'b1', userId: 'u1', payloadVersion: 1,
-  payload: { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 5000, configVersionId: 'cfg-7', deviceRecordedAt: '2026-10-10T09:00:00.000Z' },
+  payload: { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 5000, commissionAmount: 100, deviceRecordedAt: '2026-10-10T09:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash in, credit out · 5 000 MRU · Bankily', lastError: null,
 };
 

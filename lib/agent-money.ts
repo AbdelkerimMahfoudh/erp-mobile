@@ -101,14 +101,13 @@ interface ProviderLike {
   id: string;
   label: string;
   isActive: boolean;
-  config: { commissionDestination: string | null } | null;
 }
 
 /**
  * The accounts a rebalancing may move, at this branch: the drawer; each active
  * provider's float, and any float that still holds or moved money; each
- * commission a provider holds for the branch — where the configuration keeps
- * it there, or where some is held already. Nothing else: the outside is never
+ * commission a provider still holds for the branch from before D164 (a typed
+ * commission is cash in the drawer, never held). Nothing else: the outside is never
  * a line, it is named for the difference.
  */
 export function rebalancingAccounts(
@@ -122,7 +121,6 @@ export function rebalancingAccounts(
   };
   for (const p of providers) if (p.isActive) add('provider', p.id, p.label);
   for (const f of positions?.floats ?? []) add('provider', f.providerId, f.providerLabel);
-  for (const p of providers) if (p.isActive && p.config?.commissionDestination === 'held_separately') add('commission_held', p.id, p.label);
   for (const f of positions?.commissionHeld ?? []) add('commission_held', f.providerId, f.providerLabel);
   return out;
 }

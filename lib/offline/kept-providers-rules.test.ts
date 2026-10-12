@@ -8,9 +8,12 @@ import assert from 'node:assert/strict';
 import { keptProvidersFile, mayUseKeptProviders, parseKeptProviders } from './kept-providers-rules.ts';
 import type { ErrorKind } from './queue-rules.ts';
 
-const bankily = {
+/** As this build keeps it (D164): the reference rule, no price. */
+const bankily = { id: 'p-1', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, referenceRule: 'none', config: null };
+/** As an earlier build kept it: rates at the top of the version, no rule of its own. */
+const olderBankily = {
   id: 'p-1', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, readyForTransactions: true, missing: [],
-  config: { id: 'cfg-7', rateInBp: 300, rateOutBp: 300, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'none' },
+  config: { id: 'cfg-7', rateInBp: 300, rateOutBp: 300, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'none', effectiveFrom: 'x', recordedByName: 'Owner', reason: 'r' },
 };
 
 it('the kept list answers only when the server cannot be reached — never a refusal', () => {
@@ -37,6 +40,11 @@ it('a kept list reads back whole; anything else is no list', () => {
   const text = JSON.stringify({ savedAt: '2026-10-11T04:00:00.000Z', providers: [bankily] });
   assert.deepEqual(parseKeptProviders(text), { savedAt: '2026-10-11T04:00:00.000Z', providers: [bankily] });
   assert.deepEqual(parseKeptProviders(JSON.stringify({ savedAt: 'x', providers: [] })), { savedAt: 'x', providers: [] });
+  // An earlier build's list reads in this shape: its rule kept, its rates history only — never a price at the counter.
+  const older = parseKeptProviders(JSON.stringify({ savedAt: 'y', providers: [olderBankily] }))!;
+  assert.equal(older.providers[0].referenceRule, 'none');
+  assert.equal(older.providers[0].config?.legacy?.rateInBp, 300);
+  assert.equal('readyForTransactions' in older.providers[0], false);
   for (const bad of ['', 'not json', 'null', '[]', '{"providers":[]}', '{"savedAt":"x"}', '{"savedAt":"x","providers":[{"id":1}]}']) {
     assert.equal(parseKeptProviders(bad), null, bad);
   }

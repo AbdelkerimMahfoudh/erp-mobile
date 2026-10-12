@@ -143,6 +143,8 @@ export interface ServerExchange {
   providerLabel: string;
   amount: number;
   commission: number;
+  /** `manual` (typed, D164) or `legacy_rate`; null from a server that did not say. */
+  commissionSource: string | null;
   customerNumberMasked: string;
   businessDate: string;
   recordedAt: string;
@@ -176,6 +178,7 @@ export function lookupAnswerOf(response: unknown): LookupAnswer | null {
       providerLabel: str(t.providerLabel) ?? '',
       amount: t.amount,
       commission: typeof commission === 'number' ? commission : typeof (commission as { amount?: unknown } | null)?.amount === 'number' ? (commission as { amount: number }).amount : 0,
+      commissionSource: str(t.commissionSource) ?? str((commission as { source?: unknown } | null)?.source),
       customerNumberMasked: str(t.customerNumberMasked) ?? '',
       businessDate: t.businessDate as string,
       recordedAt: t.recordedAt as string,
@@ -194,9 +197,10 @@ export function lastFour(value: string | null | undefined): string | null {
 
 /**
  * Whether the record under the key is this exchange: the same branch, provider,
- * direction and amount, the same configuration version when the exchange has
- * one, and the same last four digits as the number sealed on this phone (when
- * it is still there to compare).
+ * direction and amount, the same commission when the exchange was typed with
+ * one (D164) — an earlier build's, the same configuration version — and the
+ * same last four digits as the number sealed on this phone (when it is still
+ * there to compare).
  */
 export function sameExchange(item: QueueItem, tx: ServerExchange, localNumber: string | null): boolean {
   const p = item.payload;
@@ -204,7 +208,8 @@ export function sameExchange(item: QueueItem, tx: ServerExchange, localNumber: s
   if (tx.branchId !== null && item.branchId !== null && tx.branchId !== item.branchId) return false;
   if (tx.providerId !== p.providerId || tx.direction !== p.direction) return false;
   if (Math.abs(tx.amount - p.amount) >= 0.005) return false;
-  if (p.configVersionId && tx.configVersionId && tx.configVersionId !== p.configVersionId) return false;
+  if (typeof p.commissionAmount === 'number' && Math.abs(tx.commission - p.commissionAmount) >= 0.005) return false;
+  if (p.commissionAmount === undefined && p.configVersionId && tx.configVersionId && tx.configVersionId !== p.configVersionId) return false;
   const mine = lastFour(localNumber);
   const theirs = lastFour(tx.customerNumberMasked);
   return !(mine && theirs && mine !== theirs);

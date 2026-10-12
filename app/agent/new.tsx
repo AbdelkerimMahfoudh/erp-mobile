@@ -38,6 +38,7 @@ import {
   emptyCounterForm,
   formProblems,
   REFERENCE_MAX,
+  restoredForm,
   type CounterForm,
 } from '../../lib/agent-counter';
 import { carryNumber, forgetNumber, keepNumber, readNumber, recordExchange, useExchangeScope, type RecordOutcome } from '../../lib/agent-queue';
@@ -45,6 +46,8 @@ import {
   CUSTOMER_NUMBER_DIGITS,
   DIRECTIONS,
   counterProviders,
+  maskCommission,
+  parseCommission,
   parseCustomerNumber,
   previewExchange,
   providerChoice,
@@ -70,10 +73,11 @@ import { uuidv4 } from '../../lib/utils';
  * New exchange — the counter flow (docs/73 §5.2, D157).
  *
  * Direction first, as two large cards in words with the money arrows; then the
- * provider (one whose rate or settlement is still blank is listed as *Not set
- * up yet* and cannot be chosen); the amount; the customer's number on the
- * phone pad; the reference when the provider issues one. Then ONE review —
- * both movements, the commission and where it goes — and Confirm.
+ * provider (any one switched on: nothing is configured first, D164); the
+ * amount; the commission the customer pays, typed for this exchange — `0` when
+ * none, never left empty; the customer's number on the phone pad; the reference
+ * when the provider issues one. Then ONE review — the amount, the commission,
+ * the cash received or handed over and the credit sent or received — and Confirm.
  *
  * Confirm hands the exchange to the offline queue under the key the form was
  * opened with (D155): online it is recorded at once and shown with the
@@ -105,7 +109,7 @@ function NewExchangeScreen() {
   const item = useQueue((s) => (sentId ? s.items.find((i) => i.id === sentId) : undefined));
 
   // The unsent form survives a restart; once confirmed it is the queue's, and the form is free again.
-  const draft = useDraft(COUNTER_DRAFT_FORM, form, (v) => setForm(v), { payloadVersion: COUNTER_DRAFT_VERSION, enabled: !sent });
+  const draft = useDraft(COUNTER_DRAFT_FORM, form, (v) => setForm(restoredForm(v)), { payloadVersion: COUNTER_DRAFT_VERSION, enabled: !sent });
 
   /*
     The number lives in SecureStore under the form's key (D155). It is read back once per key — a restored draft
@@ -135,12 +139,15 @@ function NewExchangeScreen() {
   }, [customerNumber, form.clientUuid, scopeKey, sent]);
 
   const provider = providers.find((p) => p.id === form.providerId) ?? null;
-  const choice = provider ? providerChoice(provider) : null;
-  const ready = choice?.selectable ? choice.config : null;
+  const ready = provider && providerChoice(provider).selectable ? provider : null;
   const step = counterStep(form, provider);
   const problems = ready ? formProblems(form, customerNumber, ready) : {};
   const amount = parseAmount(form.amount);
-  const preview = ready && form.direction && amount.ok && amount.value > 0 && provider ? previewExchange(form.direction, amount.value, provider.id, ready) : null;
+  const commission = parseCommission(form.commission);
+  const preview =
+    ready && form.direction && amount.ok && amount.value > 0 && commission.ok && problems.commission === undefined
+      ? previewExchange(form.direction, amount.value, commission.value, ready.id)
+      : null;
   const update = (patch: Partial<CounterForm>) => setForm((f) => ({ ...f, ...patch }));
 
   const startOver = () => {
@@ -160,7 +167,7 @@ function NewExchangeScreen() {
     // Stamped once per key: a Confirm after a lost answer is the same request, answered with the record if there is one.
     const stampedAt = form.stampedAt ?? new Date().toISOString();
     if (!form.stampedAt) update({ stampedAt });
-    const payload = counterPayload(form, { ...provider, config: ready }, new Date(stampedAt));
+    const payload = counterPayload(form, ready, new Date(stampedAt));
     if (!number.ok || !payload) return;
     setBusy(true);
     setRefusal(null);
@@ -194,10 +201,10 @@ function NewExchangeScreen() {
     }
   };
 
-  /** A refusal about the provider's configuration means the phone's copy is old: it is read again before a new review. */
+  /** A refusal about the provider means the phone's copy is old: it is read again before a new review. */
   const refreshProvidersAfter = (error: unknown) => {
     const code = (error as { code?: string } | null)?.code;
-    if (code === 'stale_configuration' || code === 'provider_not_configured' || code === 'provider_inactive') {
+    if (code === 'provider_inactive' || code === 'reference_required') {
       void queryClient.invalidateQueries({ queryKey: qk.agentProviders() });
     }
   };
@@ -208,7 +215,7 @@ function NewExchangeScreen() {
     const next = againForm(item.payload, uuidv4());
     if (!next) return;
     const number = await carryNumber(scope, item.clientUuid, next.clientUuid);
-    // The review is built again from the configuration in force, never from the copy that was refused.
+    // The providers are read again first: one switched off, or a reference rule changed, shows before the review.
     await queryClient.invalidateQueries({ queryKey: qk.agentProviders() });
     useQueue.getState().cancel(item.id);
     setSentId(null);
@@ -285,6 +292,8 @@ function NewExchangeScreen() {
       ? undefined
       : t(`agent.number.${problems.number}`, { digits: CUSTOMER_NUMBER_DIGITS });
   const amountError = form.amount.trim() === '' || problems.amount === undefined ? undefined : t(`agent.amount.${problems.amount}`);
+  // An empty commission is said by the field's hint, never as an error before anything was typed; never read as zero.
+  const commissionError = problems.commission === undefined || problems.commission === 'empty' ? undefined : t(`agent.commission.${problems.commission}`);
 
   return (
     <Screen
@@ -339,7 +348,7 @@ function NewExchangeScreen() {
             ))}
           </Section>
 
-          {/* 2 — the provider: only one that is set up can be chosen. */}
+          {/* 2 — the provider: any one switched on (D164: nothing to set up first). */}
           {form.direction ? (
             <Section title={t('agent.provider.question')} gap="sm">
               {providersQuery.data?.keptAt ? (
@@ -355,23 +364,9 @@ function NewExchangeScreen() {
                 <InlineNotice tone="neutral">{t('agent.provider.none')}</InlineNotice>
               ) : (
                 <RowGroup>
-                  {providers.map((p) => {
-                    const c = providerChoice(p);
-                    return (
-                      <ListRow
-                        key={p.id}
-                        flat
-                        title={p.label}
-                        subtitle={c.selectable ? undefined : t('agent.provider.notSetUp.hint')}
-                        value={c.selectable ? undefined : t('agent.provider.notSetUp')}
-                        valueTone="secondary"
-                        selected={form.providerId === p.id}
-                        disabled={!c.selectable}
-                        chevron={false}
-                        onPress={c.selectable ? () => update({ providerId: p.id }) : undefined}
-                      />
-                    );
-                  })}
+                  {providers.map((p) => (
+                    <ListRow key={p.id} flat title={p.label} titleLines={0} selected={form.providerId === p.id} chevron={false} onPress={() => update({ providerId: p.id })} />
+                  ))}
                 </RowGroup>
               )}
             </Section>
@@ -381,6 +376,20 @@ function NewExchangeScreen() {
           {editing && ready && provider ? (
             <Section gap="md">
               <MoneyField label={t('agent.amount')} accessibilityLabel={t('agent.amount')} value={form.amount} onChangeText={(amount) => update({ amount })} error={amountError} required />
+              <TextField
+                label={t('agent.commission')}
+                accessibilityLabel={t('agent.commission')}
+                hint={form.direction === 'cash_out_credit_in' ? t('agent.commission.hint.out') : t('agent.commission.hint.in')}
+                error={commissionError}
+                value={form.commission}
+                onChangeText={(v) => update({ commission: maskCommission(v) })}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={12}
+                required
+                testID="agent-commission"
+              />
               <TextField
                 label={t('agent.number')}
                 accessibilityLabel={t('agent.number')}

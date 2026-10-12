@@ -1,4 +1,4 @@
-import { commissionOf, exchangeLegs, type AgentDirection, type AgentProvider, type Leg } from '../agent-rules.ts';
+import { exchangeLegs, type AgentDirection, type AgentProvider, type Leg } from '../agent-rules.ts';
 import type { QueueItem } from './queue-rules.ts';
 
 /**
@@ -7,8 +7,8 @@ import type { QueueItem } from './queue-rules.ts';
  * Milestone J queued only reports that settle no money. An exchange is queued
  * anyway because it is the counter's report of something that already happened
  * at the counter — the cash changed hands — and the server still decides
- * everything about it: the commission, the legs, the business day, who
- * recorded it. What this file adds to the queue's rules:
+ * everything about it but the commission the employee typed (D164): the legs,
+ * the business day, who recorded it. What this file adds to the queue's rules:
  *
  * - **the customer's number never reaches the queue file.** It is personal
  *   data, and the queue is a plain file in the app's documents. It is kept in
@@ -32,9 +32,15 @@ export interface ExchangePayload {
   providerId: string;
   direction: AgentDirection;
   amount: number;
+  /**
+   * The commission the customer pays, as typed (D164) — whole MRU, kept with the exchange through every retry, so
+   * a resend is the same request. An exchange an earlier build queued has none: the server refuses it
+   * (`commission_required`) and the person types it, under a new key.
+   */
+  commissionAmount?: number;
   providerReference?: string;
-  /** The configuration version the person saw on the review; a newer one in force is refused as stale. */
-  configVersionId: string;
+  /** An earlier build's: the configuration version its review showed. Never written now; the server ignores it. */
+  configVersionId?: string;
   /** The phone's clock at Confirm — a claim the server keeps beside its own instant, and part of the request's identity. */
   deviceRecordedAt: string;
 }
@@ -126,7 +132,9 @@ export function isExchangePayload(v: unknown): v is ExchangePayload {
     (p.direction === 'cash_in_credit_out' || p.direction === 'cash_out_credit_in') &&
     typeof p.amount === 'number' &&
     p.amount > 0 &&
-    typeof p.configVersionId === 'string' &&
+    // This build's: a typed commission, whole MRU, zero or more. An earlier build's: its configuration version instead.
+    (p.commissionAmount === undefined ? typeof p.configVersionId === 'string' : typeof p.commissionAmount === 'number' && Number.isInteger(p.commissionAmount) && p.commissionAmount >= 0) &&
+    (p.configVersionId === undefined || typeof p.configVersionId === 'string') &&
     typeof p.deviceRecordedAt === 'string' &&
     (p.providerReference === undefined || typeof p.providerReference === 'string') &&
     !containsPersonalNumber(p)
@@ -196,19 +204,14 @@ export function exchangesToSend(items: readonly QueueItem[], branchId: string | 
 }
 
 /**
- * The legs a queued exchange will post, for the provisional figures. The
- * provider's configuration is the one the exchange was confirmed with; when the
- * phone no longer holds that version, only the principal is counted — the
- * commission of a rate nobody can see is not guessed (the server will refuse
- * the exchange as stale anyway).
+ * The legs a queued exchange will post, for the provisional figures: the D164
+ * legs from its own typed commission. One an earlier build queued has no
+ * commission: only the principal is counted — a commission nobody typed is not
+ * guessed (the server will ask for it anyway).
  */
-export function queuedLegs(payload: ExchangePayload, providers: readonly AgentProvider[]): Leg[] {
-  const config = providers.find((p) => p.id === payload.providerId)?.config;
-  if (config && config.id === payload.configVersionId && config.commissionDestination && config.principalFeeMode) {
-    const rate = payload.direction === 'cash_in_credit_out' ? config.rateInBp : config.rateOutBp;
-    if (rate !== null) {
-      return exchangeLegs({ ...payload, commission: commissionOf(payload.amount, rate), commissionDestination: config.commissionDestination, principalFeeMode: config.principalFeeMode });
-    }
+export function queuedLegs(payload: ExchangePayload, _providers: readonly AgentProvider[] = []): Leg[] {
+  if (typeof payload.commissionAmount === 'number') {
+    return exchangeLegs({ direction: payload.direction, amount: payload.amount, commission: payload.commissionAmount, providerId: payload.providerId });
   }
   const cashIn = payload.direction === 'cash_in_credit_out';
   return [

@@ -151,6 +151,23 @@ function ReportBody({ report }: { report: AgentReport }) {
         <Line label={t('agent.reports.cashPaid')} value={totals.cashPaid} />
         <Line label={t('agent.reports.creditSent')} value={totals.creditSent} />
         <Line label={t('agent.reports.creditReceived')} value={totals.creditReceived} />
+        {totals.routes ? (
+          <>
+            <Divider />
+            {(['cash_in_credit_out', 'cash_out_credit_in'] as const).map((route) => (
+              <View key={route} style={styles.route} testID={`agent-report-route-${route}`}>
+                <Text variant="bodyStrong">{t(`agent.reports.route.${route}`)}</Text>
+                <Text variant="caption" tone="secondary">
+                  {t('agent.reports.route.figures', {
+                    count: String(totals.routes![route].count),
+                    volume: isolateLtr(formatMoney(totals.routes![route].volume)),
+                    commission: isolateLtr(formatMoney(totals.routes![route].commission)),
+                  })}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : null}
         <Text variant="caption" tone="tertiary">
           {t('agent.reports.countRule')}
         </Text>
@@ -351,6 +368,7 @@ const useStyles = makeStyles(() => ({
   figures: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
   figure: { flexGrow: 1, flexBasis: '40%', minWidth: 120, gap: 2 },
   line: { minHeight: 28 },
+  route: { gap: 2 },
   between: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   grow: { flex: 1, minWidth: 0 },
 }));

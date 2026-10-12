@@ -136,7 +136,7 @@ function signIn(role: string, granted: readonly Permission[]) {
 
 const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   id: 'q1', kind: 'agent.exchange.record', clientUuid: 'k1', companyId: 'c1', branchId: 'b1', userId: 'u-owner', payloadVersion: 1,
-  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, configVersionId: 'cfg-7', deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
+  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, commissionAmount: 100, deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 

@@ -60,7 +60,7 @@ it('the full number is shown only to agent.customer.reveal, whatever the cached 
 it('the phone’s claim of when is stamped once per key, so a second Confirm is the same request', () => {
   const confirm = between(counter, 'const confirm = async', 'const refreshProvidersAfter');
   assert.match(confirm, /const stampedAt = form\.stampedAt \?\? new Date\(\)\.toISOString\(\);/);
-  assert.match(confirm, /counterPayload\(form, \{ \.\.\.provider, config: ready \}, new Date\(stampedAt\)\)/);
+  assert.match(confirm, /counterPayload\(form, ready, new Date\(stampedAt\)\)/);
   assert.doesNotMatch(confirm, /counterPayload\([^)]*new Date\(\)\)/);
 });
 
@@ -70,8 +70,9 @@ it('a lost answer on the direct path is "not confirmed yet", never "not recorded
   assert.match(confirm, /t\('agent\.uncertain\.title'\)/);
 });
 
-it('a refusal about the configuration reads the providers again before the next review', () => {
-  assert.match(counter, /code === 'stale_configuration' \|\| code === 'provider_not_configured' \|\| code === 'provider_inactive'/);
+it('a refusal about the provider reads the providers again before the next review', () => {
+  assert.match(counter, /code === 'provider_inactive' \|\| code === 'reference_required'/);
+  assert.doesNotMatch(counter, /stale_configuration|provider_not_configured/);
   assert.match(between(counter, 'const prepareAgain = async', 'const title'), /invalidateQueries\(\{ queryKey: qk\.agentProviders\(\) \}\)/);
   assert.match(agent, /'agent-report', 'agent-rebalancings', 'agent-providers'\]/);
 });

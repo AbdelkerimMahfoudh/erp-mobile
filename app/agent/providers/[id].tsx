@@ -7,21 +7,9 @@ import { BottomSheet } from '../../../components/overlay';
 import { ApiError } from '../../../lib/api-client';
 import { activityAllows } from '../../../lib/activity';
 import { useAddProviderConfig, useAgentProviders, useProviderConfigs, useUpdateProvider } from '../../../lib/agent';
-import {
-  COMMISSION_DESTINATIONS,
-  CONFIG_REASON_MAX,
-  FEE_MODES,
-  REFERENCE_RULES,
-  configCheck,
-  formOf,
-  percentText,
-  providerStatus,
-  type ConfigForm,
-  type ConfigProblem,
-} from '../../../lib/agent-providers';
-import type { AgentProvider, ProviderConfig } from '../../../lib/agent-rules';
+import { CONFIG_REASON_MAX, REFERENCE_RULES, configCheck, formOf, percentText, providerStatus, type ConfigForm, type ConfigProblem } from '../../../lib/agent-providers';
+import type { AgentProvider, LegacyPricing, ProviderConfig } from '../../../lib/agent-rules';
 import { useConnectivity } from '../../../lib/connectivity';
-import { AMOUNT_LABEL, AMOUNT_ROW } from '../../../lib/design/amount-row';
 import { isolateLtr } from '../../../lib/design/direction';
 import { space } from '../../../lib/design/tokens';
 import { makeStyles } from '../../../lib/design/theme';
@@ -34,15 +22,17 @@ import { usePermission } from '../../../lib/permissions';
 import { toast } from '../../../lib/toast';
 
 /**
- * One provider and its configuration (docs/73 §1.2, §4.2) — the Owner's.
+ * One provider (docs/73 §1.2, D164) — the Owner's.
  *
- * The version in force, field by field, each blank shown as a blank — *Not set,
- * ask the provider's schedule* — never as a zero or a sample; while one is
- * blank the provider is *Not set up yet* and the counter cannot choose it.
- * A change is a new version, in force from the server's instant, with the
- * reason it exists; the versions before it stay, newest first, because every
- * recorded exchange keeps the version it used. Switching a provider off stops
- * new exchanges with it; its float and history stay.
+ * A provider has no rate: the employee types the commission the customer pays
+ * with every exchange, and the provider neither pays nor checks it. What the
+ * Owner keeps here is whether the provider asks for its own reference, and
+ * whether it is switched on. A change is a new version, in force from the
+ * server's instant, with the reason it exists; earlier versions stay, newest
+ * first — those written before D164 with the rates they held, shown as history
+ * only. Switching a provider off stops new exchanges with it; its float and
+ * history stay. Every line is a label above its value, so nothing is squeezed
+ * on a narrow phone, with large text, or right to left.
  */
 export default function AgentProviderScreen() {
   const styles = useStyles();
@@ -108,11 +98,9 @@ export default function AgentProviderScreen() {
     <Screen scroll gap="lg" onRefresh={() => void Promise.all([providers.refetch(), versions.refetch()])} refreshing={providers.isRefetching}>
       <Stack.Screen options={{ title: provider.label }} />
       <Card style={styles.card}>
-        <View style={styles.between}>
-          <Text variant="heading" style={styles.grow}>
-            {provider.label}
-          </Text>
-          <Chip label={t(`agent.providers.status.${status}` as TranslationKey)} tone={status === 'ready' ? 'success' : status === 'not_set_up' ? 'warning' : 'neutral'} dot />
+        <Text variant="heading">{provider.label}</Text>
+        <View style={styles.wrap}>
+          <Chip label={t(`agent.providers.status.${status}` as TranslationKey)} tone={status === 'active' ? 'success' : 'neutral'} dot />
         </View>
         <Text variant="caption" tone="secondary">
           {t(`agent.providers.kind.${provider.kind}` as TranslationKey)}
@@ -124,21 +112,23 @@ export default function AgentProviderScreen() {
 
       <Card style={styles.card} testID="provider-config">
         <Text variant="heading">{t('agent.config.title')}</Text>
+        <FieldLine label={t('agent.config.referenceRule')} value={t(`agent.config.referenceRule.${provider.referenceRule}` as TranslationKey)} />
+        <Text variant="body" tone="secondary">
+          {t('agent.config.commissionNote', { provider: provider.label })}
+        </Text>
         {provider.config ? (
-          <Text variant="caption" tone="tertiary">
-            {t('agent.config.since', { when: isolateLtr(formatDateTime(provider.config.effectiveFrom)), name: provider.config.recordedByName ?? '' })}
-          </Text>
-        ) : (
-          <Text variant="caption" tone="warning">
-            {t('agent.config.none')}
-          </Text>
-        )}
-        <Divider />
-        <ConfigFields config={provider.config} />
-        {provider.config?.reason ? (
-          <Text variant="caption" tone="secondary">
-            {t('agent.config.reasonShown', { reason: provider.config.reason })}
-          </Text>
+          <>
+            <Divider />
+            <Text variant="caption" tone="tertiary">
+              {t('agent.config.since', { when: isolateLtr(formatDateTime(provider.config.effectiveFrom)), name: provider.config.recordedByName ?? '' })}
+            </Text>
+            {provider.config.reason ? (
+              <Text variant="caption" tone="secondary">
+                {t('agent.config.reasonShown', { reason: provider.config.reason })}
+              </Text>
+            ) : null}
+            {provider.config.legacy ? <LegacyLines legacy={provider.config.legacy} /> : null}
+          </>
         ) : null}
       </Card>
 
@@ -177,64 +167,52 @@ export default function AgentProviderScreen() {
   );
 }
 
-/** The version in force, field by field: each value in words, each blank said as a blank. */
-function ConfigFields({ config }: { config: ProviderConfig | null }) {
-  const { t } = useTranslation();
-  const rate = (bp: number | null | undefined) => (bp === null || bp === undefined ? null : `${isolateLtr(percentText(bp))} %`);
-  const rows: [string, string | null][] = [
-    [t('agent.config.rateIn'), rate(config?.rateInBp)],
-    [t('agent.config.rateOut'), rate(config?.rateOutBp)],
-    [t('agent.config.sameRate'), config ? t(config.sameRateBothDirections ? 'agent.config.sameRate.yes' : 'agent.config.sameRate.no') : null],
-    [t('agent.config.destination'), config?.commissionDestination ? t(`agent.config.destination.${config.commissionDestination}` as TranslationKey) : null],
-    [t('agent.config.feeMode'), config?.principalFeeMode ? t(`agent.config.feeMode.${config.principalFeeMode}` as TranslationKey) : null],
-    [t('agent.config.referenceRule'), config?.referenceRule ? t(`agent.config.referenceRule.${config.referenceRule}` as TranslationKey) : null],
-  ];
-  return (
-    <>
-      {rows.map(([label, value]) => (
-        <FieldLine key={label} label={label} value={value} />
-      ))}
-    </>
-  );
-}
-
-function FieldLine({ label, value }: { label: string; value: string | null }) {
+/** A label above its value: readable at 320 px, with large text and right to left. */
+function FieldLine({ label, value }: { label: string; value: string }) {
   const styles = useStyles();
-  const { t } = useTranslation();
   return (
-    <View style={[AMOUNT_ROW, styles.line]}>
-      <View style={AMOUNT_LABEL}>
-        <Text variant="body" tone="secondary">
-          {label}
-        </Text>
-      </View>
-      {value !== null ? (
-        <Text variant="bodyStrong">{value}</Text>
-      ) : (
-        <Text variant="bodyStrong" tone="warning">
-          {t('agent.config.blank')}
-        </Text>
-      )}
+    <View style={styles.field}>
+      <Text variant="caption" tone="secondary">
+        {label}
+      </Text>
+      <Text variant="bodyStrong">{value}</Text>
     </View>
   );
 }
 
-/** One earlier version: when, by whom, why, and its rates in a line. */
-function VersionLine({ version }: { version: ProviderConfig }) {
+/** The rates a version written before D164 held, said as history: they price nothing now. */
+function LegacyLines({ legacy }: { legacy: LegacyPricing }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const rate = (bp: number | null) => (bp === null ? t('agent.config.notSet') : `${isolateLtr(percentText(bp))} %`);
   return (
+    <View style={styles.legacy}>
+      <Text variant="caption" tone="secondary">
+        {t('agent.config.legacy.title')}
+      </Text>
+      <Text variant="caption" tone="tertiary">
+        {t('agent.config.version.rates', { in: rate(legacy.rateInBp), out: rate(legacy.rateOutBp) })}
+      </Text>
+    </View>
+  );
+}
+
+/** One version: when, by whom, why, its reference rule — and, written before D164, its rates as history. */
+function VersionLine({ version }: { version: ProviderConfig }) {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  return (
     <View style={styles.version}>
       <Text variant="bodyStrong">{isolateLtr(formatDateTime(version.effectiveFrom))}</Text>
       <Text variant="caption" tone="secondary">
-        {t('agent.config.version.rates', { in: rate(version.rateInBp), out: rate(version.rateOutBp) })}
+        {t('agent.config.version.rule', { rule: t(`agent.config.referenceRule.${version.referenceRule}` as TranslationKey) })}
       </Text>
       {version.reason ? (
         <Text variant="caption" tone="secondary">
           {t('agent.config.reasonShown', { reason: version.reason })}
         </Text>
       ) : null}
+      {version.legacy ? <LegacyLines legacy={version.legacy} /> : null}
       <Text variant="caption" tone="tertiary">
         {t('agent.config.version.by', { name: version.recordedByName ?? '' })}
       </Text>
@@ -243,17 +221,15 @@ function VersionLine({ version }: { version: ProviderConfig }) {
 }
 
 /**
- * A new version of the configuration. It starts from the version in force —
- * its blanks blank — and nothing is chosen for the Owner: a field left on *Not
- * set* is sent as a blank and keeps the provider from posting. The same-rate
- * question is asked as soon as a rate is typed. Mounted afresh for each
- * opening, so a closed form never leaves a half-typed rate behind.
+ * A new version: whether the provider asks for its reference, and why. It
+ * starts from the rule in force. Mounted afresh for each opening, so a closed
+ * form never leaves a half-typed reason behind.
  */
 function ConfigSheet({ provider, onClose }: { provider: AgentProvider; onClose: () => void }) {
   const styles = useStyles();
   const { t } = useTranslation();
   const save = useAddProviderConfig(provider.id);
-  const [form, setForm] = useState<ConfigForm>(() => formOf(provider.config));
+  const [form, setForm] = useState<ConfigForm>(() => formOf(provider));
   const [tried, setTried] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const check = configCheck(form);
@@ -268,11 +244,11 @@ function ConfigSheet({ provider, onClose }: { provider: AgentProvider; onClose: 
     setTried(true);
     if (!check.ok) return;
     save.mutate(check.body, {
-      onSuccess: (done) => {
-        toast.success(done.provider.readyForTransactions ? t('agent.config.saved.ready', { provider: provider.label }) : t('agent.config.saved.notReady', { provider: provider.label }));
+      onSuccess: () => {
+        toast.success(t('agent.config.saved', { provider: provider.label }));
         onClose();
       },
-      onError: (e) => setError(e instanceof ApiError && e.code === 'config_invalid' ? t('agent.config.problem.deducted_needs_float') : toAgentError(e).body),
+      onError: (e) => setError(toAgentError(e).body),
     });
   };
 
@@ -288,61 +264,19 @@ function ConfigSheet({ provider, onClose }: { provider: AgentProvider; onClose: 
         <Text variant="body" tone="secondary">
           {t('agent.config.explain', { provider: provider.label })}
         </Text>
-
-        <Text variant="label">{t('agent.config.sameRate.question')}</Text>
-        <View style={styles.wrap}>
-          <FilterChip label={t('agent.config.sameRate.yes')} selected={form.sameRate === true} onPress={() => set({ sameRate: true })} />
-          <FilterChip label={t('agent.config.sameRate.no')} selected={form.sameRate === false} onPress={() => set({ sameRate: false })} />
+        <View style={styles.choice}>
+          <Text variant="label">{t('agent.config.referenceRule')}</Text>
+          <View style={styles.wrap}>
+            {REFERENCE_RULES.map((rule) => (
+              <FilterChip
+                key={rule}
+                label={t(`agent.config.referenceRule.${rule}` as TranslationKey)}
+                selected={form.referenceRule === rule}
+                onPress={() => set({ referenceRule: rule })}
+              />
+            ))}
+          </View>
         </View>
-        {has('same_rate_unanswered') ? (
-          <Text variant="caption" tone="warning">
-            {t('agent.config.problem.same_rate_unanswered')}
-          </Text>
-        ) : null}
-        <TextField
-          label={form.sameRate ? t('agent.config.rateBoth') : t('agent.config.rateIn')}
-          accessibilityLabel={form.sameRate ? t('agent.config.rateBoth') : t('agent.config.rateIn')}
-          hint={t('agent.config.rate.hint')}
-          value={form.rateIn}
-          onChangeText={(v) => set({ rateIn: v })}
-          keyboardType="decimal-pad"
-          placeholder={t('agent.config.notSet')}
-          error={has('rate_in_invalid') ? t('agent.config.problem.rate_invalid') : undefined}
-        />
-        {form.sameRate ? null : (
-          <TextField
-            label={t('agent.config.rateOut')}
-            accessibilityLabel={t('agent.config.rateOut')}
-            hint={t('agent.config.rate.hint')}
-            value={form.rateOut}
-            onChangeText={(v) => set({ rateOut: v })}
-            keyboardType="decimal-pad"
-            placeholder={t('agent.config.notSet')}
-            error={has('rate_out_invalid') ? t('agent.config.problem.rate_invalid') : undefined}
-          />
-        )}
-
-        <Choice
-          label={t('agent.config.destination')}
-          values={COMMISSION_DESTINATIONS}
-          value={form.destination}
-          words={(v) => t(`agent.config.destination.${v}` as TranslationKey)}
-          onChange={(destination) => set({ destination })}
-        />
-        <Choice label={t('agent.config.feeMode')} values={FEE_MODES} value={form.feeMode} words={(v) => t(`agent.config.feeMode.${v}` as TranslationKey)} onChange={(feeMode) => set({ feeMode })} />
-        {has('deducted_needs_float') || (form.feeMode === 'deducted' && form.destination !== null && form.destination !== 'provider_float') ? (
-          <Text variant="caption" tone="warning">
-            {t('agent.config.problem.deducted_needs_float')}
-          </Text>
-        ) : null}
-        <Choice
-          label={t('agent.config.referenceRule')}
-          values={REFERENCE_RULES}
-          value={form.referenceRule}
-          words={(v) => t(`agent.config.referenceRule.${v}` as TranslationKey)}
-          onChange={(referenceRule) => set({ referenceRule })}
-        />
-
         <TextField
           label={t('agent.config.reason')}
           accessibilityLabel={t('agent.config.reason')}
@@ -354,37 +288,16 @@ function ConfigSheet({ provider, onClose }: { provider: AgentProvider; onClose: 
           multiline
           error={has('reason_missing') ? t('agent.config.problem.reason_missing') : undefined}
         />
-        {check.ok && check.missing.length > 0 ? (
-          <InlineNotice tone="info">{t('agent.config.stillBlank', { fields: check.missing.map((f) => t(`agent.config.field.${f}` as TranslationKey)).join(' · ') })}</InlineNotice>
-        ) : null}
         {error ? <InlineNotice tone="warning">{error}</InlineNotice> : null}
       </ScrollView>
     </BottomSheet>
   );
 }
 
-/** One choice of the configuration: its values in words, and *Not set* — the blank, chosen as such. */
-function Choice<T extends string>({ label, values, value, words, onChange }: { label: string; values: readonly T[]; value: T | null; words: (v: T) => string; onChange: (v: T | null) => void }) {
-  const styles = useStyles();
-  const { t } = useTranslation();
-  return (
-    <View style={styles.choice}>
-      <Text variant="label">{label}</Text>
-      <View style={styles.wrap}>
-        {values.map((v) => (
-          <FilterChip key={v} label={words(v)} selected={value === v} onPress={() => onChange(v)} />
-        ))}
-        <FilterChip label={t('agent.config.notSet')} selected={value === null} onPress={() => onChange(null)} />
-      </View>
-    </View>
-  );
-}
-
 const useStyles = makeStyles(() => ({
   card: { gap: space.sm },
-  between: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  grow: { flex: 1, minWidth: 0 },
-  line: { minHeight: 32 },
+  field: { gap: 2 },
+  legacy: { gap: 2 },
   actions: { gap: space.sm },
   history: { gap: space.md },
   version: { gap: 2 },

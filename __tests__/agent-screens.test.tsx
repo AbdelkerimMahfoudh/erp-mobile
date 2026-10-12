@@ -22,6 +22,7 @@ import { ThemeProvider } from '../lib/design/theme';
 import { useBranch } from '../lib/branch';
 import { usePermissionStore, type Permission } from '../lib/permissions';
 import { useI18n, t } from '../lib/i18n';
+import { isolateLtr } from '../lib/design/direction';
 import type { QueueItem } from '../lib/offline/queue-rules';
 
 jest.mock('expo-router', () => ({
@@ -89,13 +90,14 @@ const positions = {
 };
 const providers = {
   providers: [
-    { id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, readyForTransactions: true, missing: [], config: { id: 'cfg-7', rateInBp: 200, rateOutBp: 200, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture' } },
+    { id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, referenceRule: 'optional', config: { id: 'cfg-7', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture', legacy: null } },
   ],
 };
 const report = { period: 'day', from: '2026-10-09', to: '2026-10-09', totals: { count: 13, volume: 64000, cashReceived: 51000, cashPaid: 13000, creditSent: 51000, creditReceived: 13000, commission: 740, reversals: { count: 1, volume: 15000, commission: 75 }, rebalancings: { count: 3, cashIn: 60000, cashOut: 15000, floatIn: 15000, floatOut: 10000 } } };
+/** An exchange recorded under the rate, before D164: its commission, legs and pricing exactly as stored. */
 const tx = (over: Record<string, unknown> = {}) => ({
   id: 't-1', branchId: 'b1', providerId: 'bankily', providerLabel: 'Bankily', direction: 'cash_in_credit_out', amount: 10000, customerNumberMasked: '•••• 1234', providerReference: null,
-  commission: { amount: 200, rateBp: 200, destination: 'provider_float', principalFeeMode: 'separate', configVersionId: 'cfg-7' },
+  commission: { amount: 200, source: 'legacy_rate', legacy: { rateBp: 200, destination: 'provider_float', principalFeeMode: 'separate', configVersionId: 'cfg-7' } },
   legs: [
     { account: 'cash', providerId: null, direction: 'inflow', amount: 10000, kind: 'principal' },
     { account: 'provider', providerId: 'bankily', direction: 'inflow', amount: 200, kind: 'commission' },
@@ -140,7 +142,7 @@ function signIn(role: string, granted: readonly Permission[], branchActivity: Ac
 
 const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   id: 'q1', kind: 'agent.exchange.record', clientUuid: 'k1', companyId: 'c1', branchId: 'b1', userId: 'u-emp', payloadVersion: 1,
-  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, configVersionId: 'cfg-7', deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
+  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, commissionAmount: 100, deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 
@@ -183,9 +185,9 @@ describe('Home', () => {
     mount(<HomeScreen />);
     expect(await screen.findByTestId('positions-provisional')).toBeTruthy();
     expect(screen.getByText(t('agent.today.pending', { count: 1 }))).toBeTruthy();
-    // Give cash 5 000 / receive Bankily credit at 2 %: the drawer 99 400 − 5 000; the float 12 490 + 5 000 + 100.
-    expect(within(screen.getByTestId('position-cash')).getByText(/^94\s400\sMRU$/)).toBeTruthy();
-    expect(within(screen.getByTestId('position-provider:bankily')).getByText(/^17\s590\sMRU$/)).toBeTruthy();
+    // Give cash 5 000 / receive Bankily credit, 100 commission typed (D164): the drawer 99 400 − 5 000 + 100; the float 12 490 + 5 000.
+    expect(within(screen.getByTestId('position-cash')).getByText(/^94\s500\sMRU$/)).toBeTruthy();
+    expect(within(screen.getByTestId('position-provider:bankily')).getByText(/^17\s490\sMRU$/)).toBeTruthy();
     // The unknown float stays Unknown, whatever is queued for it.
     expect(within(screen.getByTestId('position-provider:masrvi')).getByText(t('moneyTab.held.unknown'))).toBeTruthy();
     // Without the report key there is no count at all — never a zero.
@@ -249,8 +251,27 @@ describe('one exchange', () => {
     // Awaited: the action waits for the entitlement's activity, which may answer after the exchange (seen under load).
     expect(await screen.findByText(t('agent.mistake.action'))).toBeTruthy();
     expect(screen.queryByText(t('agent.reverse.action'))).toBeNull();
-    expect(screen.getByText('Commission (2 %)')).toBeTruthy();
+    // Recorded under the rate before D164: said as such, exactly as it was stored.
+    expect(screen.getByText(t('agent.detail.commission.legacy', { rate: isolateLtr('2') }))).toBeTruthy();
     expect(screen.getByText('Credited to your Bankily float.')).toBeTruthy();
+    expect(screen.getByText(t('agent.detail.commission.legacyNote'))).toBeTruthy();
+  });
+
+  it('a commission typed at the counter is said as the customer’s, with no rate (D164)', async () => {
+    signIn('store_employee', EMPLOYEE, 'money_agent');
+    detail = tx({
+      commission: { amount: 150, source: 'manual', legacy: null },
+      legs: [
+        { account: 'cash', providerId: null, direction: 'inflow', amount: 10000, kind: 'principal' },
+        { account: 'provider', providerId: 'bankily', direction: 'outflow', amount: 10000, kind: 'principal' },
+        { account: 'cash', providerId: null, direction: 'inflow', amount: 150, kind: 'commission' },
+      ],
+    });
+    mount(<ExchangeDetailScreen />);
+    expect(await screen.findByText(t('agent.review.commission'))).toBeTruthy();
+    expect(screen.getByText(t('agent.detail.commission.manualNote'))).toBeTruthy();
+    expect(screen.queryByText(t('agent.detail.commission.legacyNote'))).toBeNull();
+    expect(screen.queryByText(/%/)).toBeNull();
   });
 
   it('for a Manager the server sends the number whole, and the exchange may be reversed once', async () => {

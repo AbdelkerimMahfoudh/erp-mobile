@@ -64,7 +64,7 @@ const EMPLOYEE = ['agent.transaction.record', 'agent.transaction.view'] as Permi
 
 const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   id: 'q1', kind: 'agent.exchange.record', clientUuid: KEY, ...SCOPE, payloadVersion: 1,
-  payload: { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 10000, configVersionId: 'cfg-7', deviceRecordedAt: '2026-10-10T09:00:00.000Z' },
+  payload: { providerId: 'bankily', direction: 'cash_in_credit_out', amount: 10000, commissionAmount: 200, deviceRecordedAt: '2026-10-10T09:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash in, credit out · 10 000 MRU · Bankily', lastError: null, ...over,
 });
 const serverTx = (over: Record<string, unknown> = {}) => ({
@@ -255,19 +255,28 @@ describe('rejected — to fix and send', () => {
     expect((api.post as jest.Mock).mock.calls[0][1].clientUuid).toBe(KEY);
   });
 
-  it('a newer rate: Review and send prepares it again; an unaccepted number: Edit and send — never sent unchanged', () => {
+  it('a conflict — an earlier build’s stale rate included: Review and send prepares it again; an unaccepted number or a missing commission: Edit and send — never sent unchanged', () => {
     const prepare = jest.fn();
+    // Refused by an earlier server for a rate that changed: the code is retired (D164), read as the conflict it was.
     const view = show(queued({ state: 'rejected_resubmit', lastError: { kind: 'conflict', status: 409, code: 'stale_configuration', message: 'stale' } }), prepare);
-    expect(screen.getByText(t('agent.refusal.stale_configuration'))).toBeTruthy();
+    expect(screen.getByText(t('agent.refusal.conflict'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
     fireEvent.press(screen.getByText(t('agent.action.reviewAndSend')));
     expect(prepare).toHaveBeenCalledTimes(1);
     view.unmount();
 
+    // An exchange an earlier build queued with no commission: the server asks for it; the person types it (D164).
+    const missing = show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'commission_required', message: 'required' } }), prepare);
+    expect(screen.getByText(t('agent.refusal.commission_required'))).toBeTruthy();
+    expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
+    fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
+    expect(prepare).toHaveBeenCalledTimes(2);
+    missing.unmount();
+
     show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'customer_number_invalid', message: 'bad' } }), prepare);
     expect(screen.getByText(t('agent.refusal.customer_number_invalid'))).toBeTruthy();
     fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
-    expect(prepare).toHaveBeenCalledTimes(2);
+    expect(prepare).toHaveBeenCalledTimes(3);
     expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
   });

@@ -1,8 +1,8 @@
 /**
- * The counter's rules as the phone reads them (docs/73 §4–§5), on the cases of
- * the server's own spec (`erp-backend/src/agent/agent-rules.spec.ts`): the
- * commission, the legs of each configured settlement, the providers the counter
- * may choose, the customer number, and the refusals in the counter's words.
+ * The counter's rules as the phone reads them (docs/73 §4–§5, D164), on the
+ * cases of the server's own spec (`erp-backend/src/agent/agent-rules.spec.ts`):
+ * the commission the employee types, the legs, the review, the providers the
+ * counter may choose, the customer number, and the refusals in the counter's words.
  *
  *   node lib/agent-rules.test.ts
  */
@@ -11,19 +11,19 @@ import { readFileSync } from 'node:fs';
 import {
   AGENT_REFUSALS,
   agentRefusal,
-  commissionOf,
+  commissionRefusal,
   counterProviders,
   exchangeLegs,
+  maskCommission,
   maskedNumber,
+  parseCommission,
   parseCustomerNumber,
   percentOfBp,
   previewExchange,
   providerChoice,
-  rateFor,
+  providerOf,
   referenceField,
   type AgentProvider,
-  type ProviderConfig,
-  type ReadyConfig,
 } from './agent-rules.ts';
 
 let passed = 0;
@@ -37,43 +37,51 @@ const it = (name: string, fn: () => void) => {
   }
 };
 
-/** The fixture rates of docs/73 §4.7 — INVENTED: 1.00 % both ways, settled separately, credited to the float. */
-const config = (over: Partial<ProviderConfig> = {}): ProviderConfig => ({
-  id: 'cfg-1',
-  rateInBp: 100,
-  rateOutBp: 100,
-  sameRateBothDirections: true,
-  commissionDestination: 'provider_float',
-  principalFeeMode: 'separate',
-  referenceRule: 'optional',
-  effectiveFrom: '2026-10-09T08:00:00.000Z',
-  recordedByName: 'Owner',
-  reason: 'INVENTED fixture',
-  ...over,
-});
 const provider = (over: Partial<AgentProvider> = {}): AgentProvider => ({
   id: 'bankily',
   kind: 'bankily',
   label: 'Bankily',
   isActive: true,
   sortOrder: 0,
-  config: config(),
-  readyForTransactions: true,
-  missing: [],
+  referenceRule: 'optional',
+  config: null,
   ...over,
 });
 
-it('a provider is chosen only when the server says it is ready and nothing required is blank', () => {
-  const ready = providerChoice(provider());
-  assert.equal(ready.selectable, true);
-  // A blank is "Not set up yet" — never a zero, never a guess (docs/73 §1.2).
-  assert.deepEqual(providerChoice(provider({ config: null, readyForTransactions: false, missing: ['rateInBp'] })), { selectable: false, reason: 'not_set_up' });
-  assert.deepEqual(providerChoice(provider({ readyForTransactions: false })), { selectable: false, reason: 'not_set_up' });
-  // A half-read answer that claims ready with a blank still cannot post.
-  for (const blank of ['rateInBp', 'rateOutBp', 'commissionDestination', 'principalFeeMode', 'referenceRule'] as const) {
-    assert.deepEqual(providerChoice(provider({ config: config({ [blank]: null }) })), { selectable: false, reason: 'not_set_up' }, blank);
-  }
+it('any provider switched on can be chosen: nothing is configured before it is used (D164)', () => {
+  assert.deepEqual(providerChoice(provider()), { selectable: true, referenceRule: 'optional' });
+  assert.deepEqual(providerChoice(provider({ referenceRule: 'required' })), { selectable: true, referenceRule: 'required' });
   assert.deepEqual(providerChoice(provider({ isActive: false })), { selectable: false, reason: 'switched_off' });
+});
+
+it('a provider kept by an earlier build reads in this build’s shape: its rates become history, never a price', () => {
+  const old = {
+    id: 'b',
+    kind: 'bankily',
+    label: 'Bankily',
+    isActive: true,
+    sortOrder: 2,
+    readyForTransactions: true,
+    missing: [],
+    config: { id: 'cfg-1', rateInBp: 100, rateOutBp: 100, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'required', effectiveFrom: '2026-10-09T08:00:00.000Z', recordedByName: 'Owner', reason: 'INVENTED' },
+  };
+  const read = providerOf(old)!;
+  assert.equal(read.referenceRule, 'required');
+  assert.deepEqual(read.config?.legacy, { rateInBp: 100, rateOutBp: 100, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate' });
+  assert.equal('readyForTransactions' in read, false);
+  // The server's own shape passes through; no version is the server's default rule.
+  assert.deepEqual(providerOf({ id: 's', kind: 'sedad', label: 'Sedad', isActive: false, sortOrder: 0, referenceRule: 'none', config: null }), {
+    id: 's',
+    kind: 'sedad',
+    label: 'Sedad',
+    isActive: false,
+    sortOrder: 0,
+    referenceRule: 'none',
+    config: null,
+  });
+  assert.equal(providerOf({ id: 'x', label: 'X', isActive: true })?.referenceRule, 'optional');
+  assert.equal(providerOf({ label: 'no id' }), null);
+  assert.equal(providerOf('nonsense'), null);
 });
 
 it('the counter lists the active providers in the Owner’s order, then by name', () => {
@@ -92,58 +100,62 @@ it('the reference is asked for, offered, or not shown, by the provider’s rule'
   assert.equal(referenceField('none'), 'hidden');
 });
 
-it('commission: the whole amount at the direction’s own rate, to the cent, never brackets', () => {
-  const two = config({ rateInBp: 150, rateOutBp: 50, sameRateBothDirections: false });
-  assert.equal(rateFor('cash_in_credit_out', two), 150);
-  assert.equal(rateFor('cash_out_credit_in', two), 50);
-  assert.equal(commissionOf(20_000, 100), 200);
-  assert.equal(commissionOf(15_000, 150), 225);
-  assert.equal(commissionOf(333, 150), 5); // 4.995 → 5.00
-  assert.equal(commissionOf(1234.56, 75), 9.26);
-  // A half cent always rounds up, whatever the amount's binary form (the server's own cases, 2026-10-09 review).
-  assert.equal(commissionOf(837, 50), 4.19);
-  assert.equal(commissionOf(879, 50), 4.4);
-  assert.equal(commissionOf(0.5, 100), 0.01);
-  assert.equal(commissionOf(999_999_999_999.99, 9_999), 999_899_999_999.99);
-  assert.equal(percentOfBp(200), '2');
-  assert.equal(percentOfBp(150), '1.5');
-  assert.equal(percentOfBp(5), '0.05');
+it('the commission is typed: whole MRU, an empty field is empty — never zero — and 0 is typed for none (D164)', () => {
+  assert.deepEqual(parseCommission('200'), { ok: true, value: 200 });
+  assert.deepEqual(parseCommission(' ٢٠٠ '), { ok: true, value: 200 });
+  assert.deepEqual(parseCommission('0'), { ok: true, value: 0 });
+  assert.deepEqual(parseCommission('150.00'), { ok: true, value: 150 });
+  assert.deepEqual(parseCommission(''), { ok: false, reason: 'empty' });
+  assert.deepEqual(parseCommission('   '), { ok: false, reason: 'empty' });
+  assert.deepEqual(parseCommission('12.5'), { ok: false, reason: 'not_whole' });
+  assert.deepEqual(parseCommission('-5'), { ok: false, reason: 'negative' });
+  assert.deepEqual(parseCommission('abc'), { ok: false, reason: 'not_a_number' });
+  assert.equal(maskCommission('1a2-3.4'), '1234');
+  assert.equal(maskCommission('٣٥'), '35');
 });
 
-it('the legs of each settlement, as the server posts them (docs/73 §4.2–4.3)', () => {
+it('the server’s own check of the commission, word for word', () => {
+  for (const absent of [undefined, null, '']) assert.equal(commissionRefusal('cash_in_credit_out', 1_000, absent), 'commission_required');
+  assert.equal(commissionRefusal('cash_in_credit_out', 1_000, 0), null);
+  for (const bad of [-1, 12.5, '30', Number.NaN]) assert.equal(commissionRefusal('cash_in_credit_out', 1_000, bad), 'commission_invalid', String(bad));
+  assert.equal(commissionRefusal('cash_out_credit_in', 1_000, 1_001), 'commission_exceeds_amount');
+  assert.equal(commissionRefusal('cash_out_credit_in', 1_000, 1_000), null);
+  // Receiving cash, the customer pays it on top: no ceiling.
+  assert.equal(commissionRefusal('cash_in_credit_out', 1_000, 1_500), null);
+});
+
+it('the legs, as the server posts them (D164): the credit moves by the amount only; the commission is cash in', () => {
   const base = { amount: 20_000, commission: 200, providerId: 'p' } as const;
-  // Separate, to the float: principal on cash and float, commission in on the float.
-  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_in_credit_out', commissionDestination: 'provider_float', principalFeeMode: 'separate' }), [
+  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_in_credit_out' }), [
     { account: 'cash', providerId: null, direction: 'inflow', amount: 20_000, kind: 'principal' },
     { account: 'provider', providerId: 'p', direction: 'outflow', amount: 20_000, kind: 'principal' },
-    { account: 'provider', providerId: 'p', direction: 'inflow', amount: 200, kind: 'commission' },
+    { account: 'cash', providerId: null, direction: 'inflow', amount: 200, kind: 'commission' },
   ]);
-  // Separate, in cash: the drawer gains the commission.
-  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_out_credit_in', commissionDestination: 'cash', principalFeeMode: 'separate' })[2], { account: 'cash', providerId: null, direction: 'inflow', amount: 200, kind: 'commission' });
-  // Held by the provider: a third account.
-  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_in_credit_out', commissionDestination: 'held_separately', principalFeeMode: 'separate' })[2], { account: 'commission_held', providerId: 'p', direction: 'inflow', amount: 200, kind: 'commission' });
-  // Deducted: the float leg is netted, no commission leg.
-  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_in_credit_out', commissionDestination: 'provider_float', principalFeeMode: 'deducted' }), [
-    { account: 'cash', providerId: null, direction: 'inflow', amount: 20_000, kind: 'principal' },
-    { account: 'provider', providerId: 'p', direction: 'outflow', amount: 19_800, kind: 'principal' },
+  assert.deepEqual(exchangeLegs({ ...base, direction: 'cash_out_credit_in' }), [
+    { account: 'cash', providerId: null, direction: 'outflow', amount: 20_000, kind: 'principal' },
+    { account: 'provider', providerId: 'p', direction: 'inflow', amount: 20_000, kind: 'principal' },
+    { account: 'cash', providerId: null, direction: 'inflow', amount: 200, kind: 'commission' },
   ]);
-  assert.equal(exchangeLegs({ ...base, direction: 'cash_out_credit_in', commissionDestination: 'provider_float', principalFeeMode: 'deducted' })[1].amount, 20_200);
   // A zero commission moves nothing and is not written.
-  assert.equal(exchangeLegs({ ...base, commission: 0, direction: 'cash_in_credit_out', commissionDestination: 'cash', principalFeeMode: 'separate' }).length, 2);
+  assert.equal(exchangeLegs({ ...base, commission: 0, direction: 'cash_in_credit_out' }).length, 2);
 });
 
-it('docs/73 §4.7 event 1: receive 20 000, send Bankily credit — the float ends 200 short of the principal', () => {
-  const p = previewExchange('cash_in_credit_out', 20_000, 'bankily', config() as ReadyConfig);
+it('the review: receive 20 000 with 200 commission — the customer hands over 20 200, the credit sent is 20 000', () => {
+  const p = previewExchange('cash_in_credit_out', 20_000, 200, 'bankily');
+  assert.equal(p.amount, 20_000);
   assert.equal(p.commission, 200);
-  assert.equal(p.rateBp, 100);
-  assert.deepEqual(p.cash, { direction: 'inflow', amount: 20_000 });
-  assert.deepEqual(p.float, { direction: 'outflow', amount: 20_000 });
+  assert.deepEqual(p.cash, { direction: 'inflow', amount: 20_200 });
+  assert.deepEqual(p.credit, { direction: 'outflow', amount: 20_000 });
   const floatNet = p.legs.filter((l) => l.account === 'provider').reduce((n, l) => n + (l.direction === 'inflow' ? l.amount : -l.amount), 0);
-  assert.equal(50_000 + floatNet, 30_200);
-  // Deducted, the same float figure by one netted leg — which is why the mode is configuration, not a guess.
-  const d = previewExchange('cash_in_credit_out', 20_000, 'bankily', config({ principalFeeMode: 'deducted' }) as ReadyConfig);
-  assert.deepEqual(d.float, { direction: 'outflow', amount: 19_800 });
-  assert.equal(d.commission, 200);
+  assert.equal(50_000 + floatNet, 30_000);
+  // Giving cash: the credit received is the amount; the customer is handed the amount less the commission.
+  const out = previewExchange('cash_out_credit_in', 15_000, 150, 'sedad');
+  assert.deepEqual(out.cash, { direction: 'outflow', amount: 14_850 });
+  assert.deepEqual(out.credit, { direction: 'inflow', amount: 15_000 });
+  const drawerNet = out.legs.filter((l) => l.account === 'cash').reduce((n, l) => n + (l.direction === 'inflow' ? l.amount : -l.amount), 0);
+  assert.equal(drawerNet, -14_850);
+  // A rate is said only for a legacy exchange's history.
+  assert.equal(percentOfBp(150), '1.5');
 });
 
 it('the customer number: a Mauritanian number, exactly eight digits, mandatory, no + (D162)', () => {
@@ -167,11 +179,12 @@ it('every refusal the exchange route names has the counter’s own words and one
   // The D161 table: what fixes each refusal — sent again unchanged, reviewed, edited, or entered by someone else.
   const expected: Record<string, string> = {
     idempotency_conflict: 'reenter',
-    stale_configuration: 'review_and_send',
-    provider_not_configured: 'review_and_send',
     conflict: 'review_and_send',
     customer_number_invalid: 'edit_and_send',
     reference_required: 'edit_and_send',
+    commission_required: 'edit_and_send',
+    commission_invalid: 'edit_and_send',
+    commission_exceeds_amount: 'edit_and_send',
     validation: 'edit_and_send',
     customer_number_missing: 'edit_and_send',
     provider_inactive: 'send_again',

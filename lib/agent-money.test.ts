@@ -76,18 +76,18 @@ it('the form opens on buying float with cash: cash out, the first float in, amou
   assert.equal(startingLines(null, id).length, 1, 'no provider yet: the drawer alone');
 });
 
-it('a rebalancing moves the drawer, the floats and the held commissions of the branch — never the outside as a line', () => {
+it('a rebalancing moves the drawer, the floats and any commission still held from before D164 — never the outside as a line', () => {
   const providers = [
-    { id: 'b', label: 'Bankily', isActive: true, config: { commissionDestination: 'provider_float' } },
-    { id: 'v', label: 'Moov', isActive: true, config: { commissionDestination: 'held_separately' } },
-    { id: 'x', label: 'Blank Co', isActive: true, config: null },
-    { id: 'o', label: 'Old', isActive: false, config: { commissionDestination: 'held_separately' } },
+    { id: 'b', label: 'Bankily', isActive: true },
+    { id: 'v', label: 'Moov', isActive: true },
+    { id: 'x', label: 'Blank Co', isActive: true },
+    { id: 'o', label: 'Old', isActive: false },
   ];
   const positions = { floats: [{ providerId: 'b', providerLabel: 'Bankily' }, { providerId: 'o', providerLabel: 'Old' }], commissionHeld: [{ providerId: 'o', providerLabel: 'Old' }] };
   assert.deepEqual(
     rebalancingAccounts(providers, positions).map((c) => c.key),
-    ['cash', 'provider:b', 'provider:v', 'provider:x', 'provider:o', 'commission_held:v', 'commission_held:o'],
-    'a switched-off provider’s float stays movable while it holds money',
+    ['cash', 'provider:b', 'provider:v', 'provider:x', 'provider:o', 'commission_held:o'],
+    'a switched-off provider’s float stays movable while it holds money; a typed commission is never held, so only what the positions hold is offered',
   );
   assert.deepEqual(rebalancingAccounts([], null).map((c) => c.key), ['cash']);
 });
@@ -225,7 +225,7 @@ it('why the figures differ is asked only when both are known and they differ', (
 
 const queued = (over: Partial<QueueItem>): QueueItem => ({
   id: 'q', kind: 'agent.exchange.record', clientUuid: 'k', companyId: 'c', branchId: 'b1', userId: 'u', payloadVersion: 1,
-  payload: { providerId: 'b', direction: 'cash_in_credit_out', amount: 100, configVersionId: 'v', deviceRecordedAt: '2026-10-09T10:00:00.000Z' },
+  payload: { providerId: 'b', direction: 'cash_in_credit_out', amount: 100, commissionAmount: 2, deviceRecordedAt: '2026-10-09T10:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: '', lastError: null, ...over,
 });
 

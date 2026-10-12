@@ -6,15 +6,17 @@ import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { useTranslation } from '../../lib/i18n';
-import { percentOfBp, type AgentDirection, type ExchangePreview } from '../../lib/agent-rules';
+import type { AgentDirection, ExchangePreview } from '../../lib/agent-rules';
 
 /**
- * The one review before Confirm (docs/73 §5.2, A5): both principal movements
- * in words and figures — the drawer and the provider's float — then the
- * commission, its rate and where it goes as the provider is configured, then
- * the customer's number and the reference as typed. Every figure is the
- * configured rate applied to the amount; the server calculates it again and
- * its own is the one recorded.
+ * The one review before Confirm (docs/73 §5.2, A5, D164): the amount and the
+ * commission the employee typed, then what each side moves — the cash the
+ * customer hands over (the amount plus the commission) or is handed (the
+ * amount less the commission), and the provider's credit sent or received,
+ * which is always the amount — then the customer's number and the reference as
+ * typed. The commission is the business's, paid by the customer: the provider
+ * neither pays nor checks it, and it never changes the credit. The server
+ * records exactly these figures, with the person signed in.
  */
 export function ExchangeReview({
   direction,
@@ -32,32 +34,29 @@ export function ExchangeReview({
   const styles = useStyles();
   const { t } = useTranslation();
   const cashIn = preview.cash.direction === 'inflow';
-  const floatIn = preview.float.direction === 'inflow';
-  const decimals = [preview.cash.amount, preview.float.amount, preview.commission].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
-  const commissionWhere =
-    preview.feeMode === 'deducted'
-      ? t('agent.commission.deducted', { provider })
-      : t(`agent.commission.${preview.destination}`, { provider });
+  const creditIn = preview.credit.direction === 'inflow';
+  const decimals = [preview.amount, preview.commission, preview.cash.amount].some((v) => Math.round(v * 100) % 100 !== 0) ? 2 : 0;
   return (
     <Card style={styles.card}>
       <Text variant="heading">{t(`agent.direction.${direction}`, { provider })}</Text>
 
       <View style={styles.lines}>
-        <Line label={cashIn ? t('agent.review.cashIn') : t('agent.review.cashOut')} value={cashIn ? preview.cash.amount : -preview.cash.amount} decimals={decimals} />
-        <Line
-          label={floatIn ? t('agent.review.floatIn', { provider }) : t('agent.review.floatOut', { provider })}
-          value={floatIn ? preview.float.amount : -preview.float.amount}
-          decimals={decimals}
-        />
+        <Line label={t('agent.review.amount')} value={preview.amount} decimals={decimals} plain />
+        <Line label={t('agent.review.commission')} value={preview.commission} decimals={decimals} plain />
+        <Text variant="caption" tone="secondary">
+          {t('agent.review.commissionNote', { provider })}
+        </Text>
       </View>
 
       <Divider />
 
       <View style={styles.lines}>
-        <Line label={t('agent.review.commission', { rate: isolateLtr(percentOfBp(preview.rateBp)) })} value={preview.commission} decimals={decimals} plain />
-        <Text variant="caption" tone="secondary">
-          {commissionWhere}
-        </Text>
+        <Line label={cashIn ? t('agent.review.cashReceived') : t('agent.review.cashHanded')} value={cashIn ? preview.cash.amount : -preview.cash.amount} decimals={decimals} />
+        <Line
+          label={creditIn ? t('agent.review.creditReceived', { provider }) : t('agent.review.creditSent', { provider })}
+          value={creditIn ? preview.credit.amount : -preview.credit.amount}
+          decimals={decimals}
+        />
       </View>
 
       <Divider />
@@ -86,7 +85,7 @@ export function ExchangeReview({
   );
 }
 
-/** A movement: its words, and the amount signed the way the money goes — into the account or out of it. */
+/** A figure: its words, and — for a movement — the amount signed the way the money goes, into the account or out of it. */
 function Line({ label, value, decimals, plain }: { label: string; value: number; decimals: number; plain?: boolean }) {
   const styles = useStyles();
   return (

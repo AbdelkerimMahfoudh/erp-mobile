@@ -97,13 +97,15 @@ const positions = {
   total: null,
   unknownKeys: ['provider:masrvi', 'commission_held:moov'],
 };
-const config = (over: Record<string, unknown> = {}) => ({ id: 'cfg-7', rateInBp: 200, rateOutBp: 200, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture', ...over });
+/** A version as the server sends it (D164): the reference rule; one written before D164 keeps its rates under `legacy`. */
+const config = (over: Record<string, unknown> = {}) => ({ id: 'cfg-7', referenceRule: 'optional', effectiveFrom: '2026-10-09T11:11:02.585Z', recordedByName: 'Owner Boutique 2', reason: 'INVENTED fixture', legacy: null, ...over });
+const legacy = (over: Record<string, unknown> = {}) => ({ rateInBp: 200, rateOutBp: 200, sameRateBothDirections: true, commissionDestination: 'provider_float', principalFeeMode: 'separate', ...over });
 const providers = {
   providers: [
-    { id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, readyForTransactions: true, missing: [], config: config() },
-    { id: 'blank', kind: 'other', label: 'Blank Co', isActive: true, sortOrder: 0, readyForTransactions: false, missing: ['rateInBp', 'rateOutBp', 'commissionDestination', 'principalFeeMode', 'referenceRule'], config: null },
-    { id: 'moov', kind: 'other', label: 'Moov', isActive: false, sortOrder: 0, readyForTransactions: true, missing: [], config: config({ id: 'cfg-m', rateInBp: 100, rateOutBp: 100, commissionDestination: 'held_separately' }) },
-    { id: 'sedad', kind: 'sedad', label: 'Sedad', isActive: true, sortOrder: 0, readyForTransactions: true, missing: [], config: config({ id: 'cfg-s', rateInBp: 150, rateOutBp: 50, sameRateBothDirections: false, commissionDestination: 'cash', referenceRule: 'required' }) },
+    { id: 'bankily', kind: 'bankily', label: 'Bankily', isActive: true, sortOrder: 0, referenceRule: 'optional', config: config() },
+    { id: 'blank', kind: 'other', label: 'Blank Co', isActive: true, sortOrder: 0, referenceRule: 'optional', config: null },
+    { id: 'moov', kind: 'other', label: 'Moov', isActive: false, sortOrder: 0, referenceRule: 'optional', config: config({ id: 'cfg-m', legacy: legacy({ rateInBp: 100, rateOutBp: 100, commissionDestination: 'held_separately' }) }) },
+    { id: 'sedad', kind: 'sedad', label: 'Sedad', isActive: true, sortOrder: 0, referenceRule: 'required', config: config({ id: 'cfg-s', referenceRule: 'required', legacy: legacy({ rateInBp: 150, rateOutBp: 50, sameRateBothDirections: false, commissionDestination: 'cash' }) }) },
   ],
 };
 
@@ -136,7 +138,7 @@ function signIn(role: string, granted: readonly Permission[], branchActivity: Ac
 
 const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   id: 'q1', kind: 'agent.exchange.record', clientUuid: 'k1', companyId: 'c1', branchId: 'b1', userId: 'u-owner', payloadVersion: 1,
-  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, configVersionId: 'cfg-7', deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
+  payload: { providerId: 'bankily', direction: 'cash_out_credit_in', amount: 5000, commissionAmount: 100, deviceRecordedAt: '2026-10-09T12:00:00.000Z' },
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 
@@ -188,8 +190,8 @@ describe('Money on an agent branch', () => {
     mount(<MoneyTabScreen />);
     const card = await screen.findByTestId('money-floats');
     expect(await within(card).findByTestId('positions-provisional')).toBeTruthy();
-    // Give cash 5 000 / receive Bankily credit at 2 %: the float 12 490 + 5 000 + 100.
-    expect(within(within(card).getByTestId('position-provider:bankily')).getByText(/^17\s590\sMRU$/)).toBeTruthy();
+    // Give cash 5 000 / receive Bankily credit, 100 commission typed (D164): the float 12 490 + 5 000 — the commission is the drawer’s.
+    expect(within(within(card).getByTestId('position-provider:bankily')).getByText(/^17\s490\sMRU$/)).toBeTruthy();
   });
 
   it('a shop shows no float at all', async () => {
@@ -313,15 +315,16 @@ describe('rebalancing', () => {
 });
 
 describe('providers', () => {
-  it('each with how it stands: ready with its rates, a blank named, switched off', async () => {
+  it('each with how it stands: active with its reference rule — one never configured too — or switched off; never a rate (D164)', async () => {
     signIn('owner', OWNER, 'money_agent');
     mount(<AgentProvidersScreen />);
     expect(await screen.findByText('Blank Co')).toBeTruthy();
-    expect(screen.getByText(t('agent.providers.rate.both', { rate: isolateLtr('2') }))).toBeTruthy();
-    expect(screen.getAllByText(t('agent.providers.status.ready')).length).toBe(2);
-    expect(screen.getByText(t('agent.providers.status.not_set_up'))).toBeTruthy();
+    expect(screen.getAllByText(t('agent.providers.status.active')).length).toBe(3);
     expect(screen.getByText(t('agent.providers.status.switched_off'))).toBeTruthy();
-    expect(screen.getByText(/^Not set: rate receiving cash · rate giving cash/)).toBeTruthy();
+    expect(screen.getAllByText(t('agent.providers.reference', { rule: t('agent.config.referenceRule.optional') })).length).toBe(2);
+    expect(screen.getByText(t('agent.providers.reference', { rule: t('agent.config.referenceRule.required') }))).toBeTruthy();
+    expect(screen.queryByText(/%/)).toBeNull();
+    expect(screen.getByText(t('agent.providers.explain'))).toBeTruthy();
   });
 
   it('a Manager does not configure providers', async () => {
@@ -331,30 +334,43 @@ describe('providers', () => {
     expect(api.get).not.toHaveBeenCalledWith('/agent/providers');
   });
 
-  it('a blank is shown as a blank, and a version is sent with its blanks as blanks — never a default', async () => {
+  it('a provider never configured asks for its reference optionally; a version sends the rule and its reason — never a rate (D164)', async () => {
     signIn('owner', OWNER, 'money_agent');
     mockParams.id = 'blank';
-    (api.post as jest.Mock).mockResolvedValue({ config: config({ rateInBp: 150 }), provider: providers.providers[1] });
+    (api.post as jest.Mock).mockResolvedValue({ config: config({ referenceRule: 'required' }), provider: { ...providers.providers[1], referenceRule: 'required' } });
     mount(<AgentProviderScreen />);
     const fields = await screen.findByTestId('provider-config');
-    expect(within(fields).getAllByText(t('agent.config.blank'))).toHaveLength(6);
+    expect(within(fields).getByText(t('agent.config.referenceRule.optional'))).toBeTruthy();
+    expect(within(fields).getByText(t('agent.config.commissionNote', { provider: 'Blank Co' }))).toBeTruthy();
+    expect(within(fields).queryByText(/%/)).toBeNull();
     fireEvent.press(screen.getByText(t('agent.config.change')));
-    // Nothing is chosen for the Owner: every choice starts on Not set.
-    expect(await screen.findByText(t('agent.config.sameRate.question'))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('agent.config.rateIn'), { exact: false }), '1.5');
-    fireEvent.changeText(screen.getByLabelText(t('agent.config.reason'), { exact: false }), 'Schedule of October');
+    expect(await screen.findByText(t('agent.config.explain', { provider: 'Blank Co' }))).toBeTruthy();
+    // No rate is ever typed: no decimal field, no destination, no fee mode.
+    expect(screen.queryByText(/Rate|rate —/)).toBeNull();
+    // The chip comes first; the reason field's own Required marker follows it.
+    fireEvent.press(screen.getAllByText(t('agent.config.referenceRule.required'))[0]);
     fireEvent.press(screen.getByText(t('agent.config.save')));
-    // A rate typed: whether it is the same both ways is asked, never assumed.
-    expect(await screen.findByText(t('agent.config.problem.same_rate_unanswered'))).toBeTruthy();
+    // Every version carries its reason.
+    expect(await screen.findByText(t('agent.config.problem.reason_missing'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByText(t('agent.config.sameRate.no')));
+    fireEvent.changeText(screen.getByLabelText(t('agent.config.reason'), { exact: false }), 'Gives a reference now');
     fireEvent.press(screen.getByText(t('agent.config.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect((api.post as jest.Mock).mock.calls[0]).toEqual([
       '/agent/providers/blank/configs',
       // With its request key (D160): saved again after a lost answer, it is the same version, never a second one.
-      { clientRequestId: expect.any(String), rateInBp: 150, rateOutBp: null, sameRateBothDirections: false, commissionDestination: null, principalFeeMode: null, referenceRule: null, reason: 'Schedule of October' },
+      { clientRequestId: expect.any(String), referenceRule: 'required', reason: 'Gives a reference now' },
     ]);
+  });
+
+  it('a version written before D164 shows its rates as history only — never applied', async () => {
+    signIn('owner', OWNER, 'money_agent');
+    mockParams.id = 'sedad';
+    mount(<AgentProviderScreen />);
+    const fields = await screen.findByTestId('provider-config');
+    expect(within(fields).getByText(t('agent.config.referenceRule.required'))).toBeTruthy();
+    expect(within(fields).getByText(t('agent.config.legacy.title'))).toBeTruthy();
+    expect(within(fields).getByText(t('agent.config.version.rates', { in: `${isolateLtr('1.5')} %`, out: `${isolateLtr('0.5')} %` }))).toBeTruthy();
   });
 
   it('adding a provider sends one request key per submission: a retry after a lost answer reuses it, and a replayed answer is a success (D160)', async () => {

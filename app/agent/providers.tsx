@@ -7,10 +7,9 @@ import { BottomSheet } from '../../components/overlay';
 import { ApiError } from '../../lib/api-client';
 import { activityAllows } from '../../lib/activity';
 import { useAgentProviders, useCreateProvider } from '../../lib/agent';
-import { PROVIDER_KINDS, PROVIDER_LABEL_MAX, percentText, providersInOrder, providerStatus, suggestedLabel, type ProviderKind } from '../../lib/agent-providers';
+import { PROVIDER_KINDS, PROVIDER_LABEL_MAX, providersInOrder, providerStatus, suggestedLabel, type ProviderKind } from '../../lib/agent-providers';
 import type { AgentProvider } from '../../lib/agent-rules';
 import { useConnectivity } from '../../lib/connectivity';
-import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { useBranchActivity, useBusinessAccess } from '../../lib/entitlement';
@@ -23,11 +22,11 @@ import { toast } from '../../lib/toast';
  * The providers the company's counters exchange credit with (docs/73 §1.2,
  * §4.1) — the Owner's alone (`agent.provider.manage`).
  *
- * Each with how it stands for the counter: **Ready**, with its rates; **Not set
- * up yet**, naming what is still blank — a provider posts nothing until every
- * field of its configuration is filled from its real schedule; or **Switched
- * off**, its float and history kept. One tap opens a provider to fill in or
- * change its configuration, or to switch it off.
+ * Each with how it stands for the counter: **Active**, with whether it asks for
+ * its reference; or **Switched off**, its float and history kept. A provider
+ * has no rate (D164): the commission is typed with every exchange and paid by
+ * the customer, so a provider added is usable at once. One tap opens it to
+ * change its reference rule, or to switch it off.
  *
  * The providers are the company's; the floats are each branch's (A9).
  */
@@ -91,7 +90,7 @@ export default function AgentProvidersScreen() {
           onClose={() => setAdding(false)}
           onAdded={(p) => {
             setAdding(false);
-            // Straight to its configuration: a provider is of no use to the counter until it is filled in.
+            // Straight to it: the Owner sees whether it asks for its reference, and can change that at once.
             router.push(`/agent/providers/${p.id}` as Href);
           }}
         />
@@ -100,21 +99,14 @@ export default function AgentProvidersScreen() {
   );
 }
 
-/** One provider: its name, how it stands, and its rates — or what is still blank. */
+/** One provider: its name, how it stands, and whether it asks for its reference. */
 function ProviderRow({ provider, onPress }: { provider: AgentProvider; onPress: () => void }) {
   const { t } = useTranslation();
   const status = providerStatus(provider);
-  const c = provider.config;
   const subtitle =
     status === 'switched_off'
       ? t('agent.providers.switchedOff.body')
-      : status === 'not_set_up'
-        ? t('agent.providers.missing', { fields: provider.missing.map((f) => t(`agent.config.field.${f}` as TranslationKey)).join(' · ') })
-        : c && c.rateInBp !== null && c.rateOutBp !== null
-          ? c.sameRateBothDirections
-            ? t('agent.providers.rate.both', { rate: isolateLtr(percentText(c.rateInBp)) })
-            : t('agent.providers.rate.each', { in: isolateLtr(percentText(c.rateInBp)), out: isolateLtr(percentText(c.rateOutBp)) })
-          : undefined;
+      : t('agent.providers.reference', { rule: t(`agent.config.referenceRule.${provider.referenceRule}` as TranslationKey) });
   return (
     <ListRow
       flat
@@ -122,13 +114,13 @@ function ProviderRow({ provider, onPress }: { provider: AgentProvider; onPress: 
       titleLines={0}
       subtitle={subtitle}
       subtitleLines={0}
-      accessory={<Chip label={t(`agent.providers.status.${status}` as TranslationKey)} tone={status === 'ready' ? 'success' : status === 'not_set_up' ? 'warning' : 'neutral'} size="sm" dot />}
+      accessory={<Chip label={t(`agent.providers.status.${status}` as TranslationKey)} tone={status === 'active' ? 'success' : 'neutral'} size="sm" dot />}
       onPress={onPress}
     />
   );
 }
 
-/** A new provider: its kind and its name. It posts nothing until its configuration is complete. */
+/** A new provider: its kind and its name. Usable at the counter at once (D164). */
 function AddProviderSheet({ open, onClose, onAdded }: { open: boolean; onClose: () => void; onAdded: (provider: AgentProvider) => void }) {
   const styles = useStyles();
   const { t } = useTranslation();

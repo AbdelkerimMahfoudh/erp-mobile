@@ -1,12 +1,24 @@
 import { parseAmount } from './price-input.ts';
-import { parseCustomerNumber, providerChoice, referenceField, type AgentDirection, type AgentProvider, type ParsedCustomerNumber, type ReadyConfig } from './agent-rules.ts';
+import {
+  commissionRefusal,
+  parseCommission,
+  parseCustomerNumber,
+  providerChoice,
+  referenceField,
+  type AgentDirection,
+  type AgentProvider,
+  type ParsedCommission,
+  type ParsedCustomerNumber,
+  type ReferenceRule,
+} from './agent-rules.ts';
 import { isExchangePayload, type ExchangePayload } from './offline/agent-exchange.ts';
 import type { QueueState } from './offline/queue-rules.ts';
 
 /**
- * The counter flow's own rules (docs/73 §5.2, D157): direction first, then the
- * provider, the amount, the customer's number and — when the provider issues
- * them — the reference; then one review, then Confirm. Short enough for a
+ * The counter flow's own rules (docs/73 §5.2, D157, D164): direction first, then
+ * the provider, the amount, the commission the customer pays, the customer's
+ * number and — when the provider issues them — the reference; then one review,
+ * then Confirm. Short enough for a
  * queue at the counter; nothing typed twice.
  *
  * Pure, so the flow's states are tested without a screen:
@@ -21,6 +33,8 @@ export interface CounterForm {
   providerId: string | null;
   /** As typed, so a half-typed amount survives a restart exactly as it was. */
   amount: string;
+  /** The commission the customer pays, as typed (D164): empty until typed — never read as zero. */
+  commission: string;
   reference: string;
   /** On the review rather than the form. */
   reviewing: boolean;
@@ -35,7 +49,17 @@ export const COUNTER_DRAFT_FORM = 'agent.exchange';
 export const COUNTER_DRAFT_VERSION = 1;
 
 export function emptyCounterForm(clientUuid: string): CounterForm {
-  return { clientUuid, direction: null, providerId: null, amount: '', reference: '', reviewing: false, stampedAt: null };
+  return { clientUuid, direction: null, providerId: null, amount: '', commission: '', reference: '', reviewing: false, stampedAt: null };
+}
+
+/**
+ * A draft read back, whichever build wrote it: one an earlier build kept has no
+ * commission — it comes back empty, to be typed, and a draft left on the review
+ * goes back to the form, since nothing can be confirmed without one.
+ */
+export function restoredForm(saved: CounterForm): CounterForm {
+  const commission = typeof (saved as Partial<CounterForm>).commission === 'string' ? saved.commission : '';
+  return { ...emptyCounterForm(saved.clientUuid), ...saved, commission, reviewing: commission === '' ? false : saved.reviewing };
 }
 
 /** The step the form is on: what the person is asked next. */
@@ -49,6 +73,7 @@ export function counterStep(form: CounterForm, provider: AgentProvider | null): 
 
 export interface FormProblems {
   amount?: 'empty' | 'not_a_number' | 'zero' | 'too_precise';
+  commission?: Exclude<ParsedCommission, { ok: true }>['reason'] | 'exceeds_amount';
   number?: Exclude<ParsedCustomerNumber, { ok: true }>['reason'];
   reference?: 'required' | 'too_long';
 }
@@ -58,17 +83,26 @@ export const REFERENCE_MAX = 120;
 
 /**
  * What stops the review: an amount above zero with at most two decimals, a
+ * commission typed in whole MRU — `0` typed when the customer paid none, never
+ * an empty field — and, when cash is handed over, no more than the amount; a
  * customer number the server will accept, and a reference when the provider
  * issues one for every exchange. Each problem is said beside its own field.
  */
-export function formProblems(form: Pick<CounterForm, 'amount' | 'reference'>, customerNumber: string, config: Pick<ReadyConfig, 'referenceRule'>): FormProblems {
+export function formProblems(
+  form: Pick<CounterForm, 'amount' | 'commission' | 'reference'> & { direction?: AgentDirection | null },
+  customerNumber: string,
+  provider: { referenceRule: ReferenceRule },
+): FormProblems {
   const problems: FormProblems = {};
   const amount = parseAmount(form.amount);
   if (!amount.ok) problems.amount = amount.reason === 'negative' ? 'not_a_number' : amount.reason;
   else if (!(amount.value > 0)) problems.amount = 'zero';
+  const commission = parseCommission(form.commission ?? '');
+  if (!commission.ok) problems.commission = commission.reason;
+  else if (form.direction && amount.ok && commissionRefusal(form.direction, amount.value, commission.value) === 'commission_exceeds_amount') problems.commission = 'exceeds_amount';
   const number = parseCustomerNumber(customerNumber);
   if (!number.ok) problems.number = number.reason;
-  const field = referenceField(config.referenceRule);
+  const field = referenceField(provider.referenceRule);
   if (field !== 'hidden') {
     if (form.reference.trim().length > REFERENCE_MAX) problems.reference = 'too_long';
     else if (field === 'required' && form.reference.trim() === '') problems.reference = 'required';
@@ -82,20 +116,23 @@ export function canReview(problems: FormProblems): boolean {
 
 /**
  * What the queue is given at Confirm: the provider, the direction, the amount,
- * the reference only when the provider takes one, the configuration version the
- * review showed, and the phone's clock as a claim. Never the number, never a
- * person — the server derives who recorded it from the session (A6).
+ * the commission as typed (D164), the reference only when the provider takes
+ * one, and the phone's clock as a claim. Never the number, never a person —
+ * the server derives who recorded it from the session (A6) — and no version:
+ * the commission is typed, so there is no rate to be stale.
  */
-export function counterPayload(form: CounterForm, provider: AgentProvider & { config: ReadyConfig }, now: Date): ExchangePayload | null {
+export function counterPayload(form: CounterForm, provider: Pick<AgentProvider, 'id' | 'referenceRule'>, now: Date): ExchangePayload | null {
   const amount = parseAmount(form.amount);
-  if (!form.direction || !amount.ok || !(amount.value > 0)) return null;
+  const commission = parseCommission(form.commission ?? '');
+  if (!form.direction || !amount.ok || !(amount.value > 0) || !commission.ok) return null;
+  if (commissionRefusal(form.direction, amount.value, commission.value)) return null;
   const reference = form.reference.trim();
   return {
     providerId: provider.id,
     direction: form.direction,
     amount: amount.value,
-    ...(referenceField(provider.config.referenceRule) !== 'hidden' && reference ? { providerReference: reference } : {}),
-    configVersionId: provider.config.id,
+    commissionAmount: commission.value,
+    ...(referenceField(provider.referenceRule) !== 'hidden' && reference ? { providerReference: reference } : {}),
     deviceRecordedAt: now.toISOString(),
   };
 }
@@ -161,10 +198,11 @@ export function outcomeChip(outcome: ExchangeOutcome): { key: string; tone: 'inf
 }
 
 /**
- * A refused exchange, prepared again: its direction, provider, amount and
- * reference as a fresh form under a NEW key — a different payload under the
- * old key would be refused as a conflict — back on the form, so the person
- * reads the review again with the rate in force before confirming.
+ * A refused exchange, prepared again: its direction, provider, amount,
+ * commission and reference as a fresh form under a NEW key — a different
+ * payload under the old key would be refused as a conflict — back on the form,
+ * so the person reads the review again before confirming. One an earlier build
+ * queued without a commission comes back with the field empty, to be typed.
  */
 export function againForm(payload: unknown, clientUuid: string): CounterForm | null {
   if (!isExchangePayload(payload)) return null;
@@ -173,6 +211,7 @@ export function againForm(payload: unknown, clientUuid: string): CounterForm | n
     direction: payload.direction,
     providerId: payload.providerId,
     amount: String(payload.amount),
+    commission: typeof payload.commissionAmount === 'number' ? String(payload.commissionAmount) : '',
     reference: payload.providerReference ?? '',
   };
 }
