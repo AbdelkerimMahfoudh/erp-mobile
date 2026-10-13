@@ -2,6 +2,7 @@ import { format as formatDateFns, formatDistanceToNowStrict, isToday, isYesterda
 import { getLanguage } from './i18n';
 import { dateLocaleFor } from './date-locale';
 import { calendarDate, dayRangeShape } from './day-range';
+import { formatInZone } from './zoned-time';
 
 /**
  * Formatting — money, quantities and dates, in one place.
@@ -75,7 +76,18 @@ export function formatMonth(month: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function formatDateTime(value: string | number | Date): string {
+export interface DateTimeOptions {
+  /**
+   * Read the instant on this IANA zone's clock and name the zone after it —
+   * the business's configured zone, as the server sends it beside a free
+   * trial's dates (`lib/zoned-time.ts`). Without it, the phone's own clock, as
+   * everywhere else in the app.
+   */
+  timeZone?: string;
+}
+
+export function formatDateTime(value: string | number | Date, options: DateTimeOptions = {}): string {
+  if (options.timeZone) return formatInZone(toDate(value), options.timeZone, getLanguage());
   return formatDateFns(toDate(value), 'd MMM yyyy · HH:mm', { locale: dateLocale() });
 }
 
