@@ -237,20 +237,86 @@ it('every visible string is translated', () => {
 });
 
 
-// ── No account creation in the app (docs/21, 2026-10-05) ────────────────────
+// ── Creating a business account, in the app (restored 2026-10-13) ───────────
 
-it('the sign-in screen offers no account creation — accounts are set up by the organisation', () => {
+it('the sign-in screen offers Create a business account — a screen of this app, never a browser', () => {
   /*
-    Self-registration cannot finish today (no verification code can be sent),
-    and a business's access is acquired and administered outside the app. So the
-    screen says who sets accounts up and offers nothing else: no form, no
-    browser, no link, no console entry.
+    Somebody whose business has no account yet has somewhere to go from this
+    screen, on this phone. Staff do not sign up: the sentence beside it says
+    their account is created by the business owner.
   */
   const code = withoutComments(source(LOGIN));
+  assert.match(code, /auth\.action\.createAccount/);
+  assert.match(code, /router\.push\('\/\(auth\)\/register' as never\)/);
   assert.match(code, /auth\.accounts\.managed/);
-  // `Platform.OS` is React Native's; the console's route and keys are what must be absent.
-  assert.ok(!/\(auth\)\/register|createAccount|signup|\/platform|auth\.action\.platform/i.test(code), 'no registration, sign-up or console entry');
+  // `Platform.OS` is React Native's; a browser sign-up and the console's route and keys are what must be absent.
+  assert.ok(!/signup|\/platform|auth\.action\.platform/i.test(code), 'no browser sign-up and no console entry');
   assert.ok(!/Linking\./.test(code), 'and nothing opens a browser');
+});
+
+it('registration asks for nothing the server generates', () => {
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  for (const banned of ['storeId', 'StoreId', 'nationalId', 'personalId', 'companyId', 'branchId', 'roleId']) {
+    assert.ok(!code.includes(banned), `registration must never ask for ${banned}`);
+  }
+});
+
+it('one idempotency key per attempt, reused across retries', () => {
+  /*
+    A dropped response on a bad connection is the ordinary case in a Nouakchott
+    shop. Without a stable key the anxious second tap creates a second business
+    with the same name and no way to tell which one is yours.
+  */
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(code, /const idempotencyKey = useRef\(uuidv4\(\)\)/);
+  assert.match(code, /idempotencyKey\.current/);
+});
+
+it('and against the impatient second tap, synchronously', () => {
+  // A ref, not state: two taps can both land before React re-renders.
+  const code = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(code, /const inFlight = useRef\(false\)/);
+  assert.match(code, /if \(inFlight\.current\) return;/);
+});
+
+it('the password is cleared and never replayed for a session', () => {
+  const reg = withoutComments(source('app/(auth)/register.tsx'));
+  assert.match(reg, /password: '', passwordConfirm: ''/);
+
+  const verify = withoutComments(source('app/(auth)/verify.tsx'));
+  assert.ok(!verify.includes('password'), 'verification must not touch the password at all');
+});
+
+it('the continuation lives only in secure storage', () => {
+  const store = withoutComments(source('lib/registration-session.ts'));
+  // `lib/storage.ts` is the SecureStore wrapper; AsyncStorage is not.
+  assert.match(store, /from '\.\/storage'/);
+  assert.ok(!store.includes('AsyncStorage'), 'a credential does not belong in AsyncStorage');
+  // And it is removed rather than left lying about.
+  assert.match(store, /export async function forgetContinuation/);
+});
+
+it('verification installs the session, then goes to the closed screen, and opens nothing else', () => {
+  /*
+    The session is installed first, and no path afterwards may delete it. A
+    business created a moment ago has not started, so the closed screen is next;
+    the sign-in guard keeps it there until the server opens the business.
+  */
+  const verify = withoutComments(source('app/(auth)/verify.tsx'));
+  const adopted = verify.indexOf('await adoptSession(');
+  const next = verify.indexOf('router.replace(ACCESS_CLOSED as never)');
+  assert.ok(adopted > -1 && next > adopted, 'the session must be installed BEFORE moving on');
+  assert.ok(!/clearSession|signOut/.test(verify), 'no failure path may delete a valid session');
+  assert.ok(!/portal|Linking/.test(verify), 'nothing opens a browser');
+});
+
+it('an adopted session starts clean: no cache, no branch and no device namespace of whoever used the phone before', () => {
+  const auth = withoutComments(source(AUTH));
+  const adopt = auth.slice(auth.indexOf('const adoptSession = async'), auth.indexOf('const forgetDeletedLogin'));
+  assert.match(adopt, /queryClient\.clear\(\);\s*branch\.clear\(\);/);
+  assert.match(adopt, /useQueue\.getState\(\)\.reset\(\)/);
+  assert.match(adopt, /await deleteItem\(SESSION_NAMESPACE_KEY\);/);
+  assert.ok(!adopt.includes('branch.hydrate()'), 'a branch left by somebody else is never adopted');
 });
 
 it('no website address is configured or hardcoded in the app', () => {
@@ -321,6 +387,8 @@ it('no build wears a staging label on a user-facing screen', () => {
   for (const f of [
     'app/_layout.tsx',
     'app/(auth)/login.tsx',
+    'app/(auth)/register.tsx',
+    'app/(auth)/verify.tsx',
     'app/access-closed.tsx',
     'lib/i18n/en.ts',
     'lib/i18n/ar.ts',

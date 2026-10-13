@@ -32,6 +32,8 @@ const withoutComments = (t: string): string =>
 
 const SWITCH = 'components/ui/AuthLanguageSwitch.tsx';
 const LOGIN = 'app/(auth)/login.tsx';
+const REGISTER = 'app/(auth)/register.tsx';
+const VERIFY = 'app/(auth)/verify.tsx';
 
 const keysOf = (file: string): string[] =>
   [...source(file).matchAll(/^\s*'([^']+)':/gm)].map((m) => m[1]);
@@ -44,6 +46,22 @@ it('the login screen carries a language switcher', () => {
   assert.match(code, /import \{[^}]*AuthLanguageSwitch[^}]*\} from '\.\.\/\.\.\/components\/ui'/);
 });
 
+it('the account-creation screen carries one too', () => {
+  const code = withoutComments(source(REGISTER));
+  assert.match(code, /<AuthLanguageSwitch/);
+});
+
+it('the verification screen inherits the choice, and can still correct it', () => {
+  /*
+    Inheritance is not a prop here: `useI18n` is a module-level store, so the
+    verify screen renders in whatever language was chosen a screen earlier
+    without being told. The control is present in its compact form only so an
+    accidental selection is not a trap.
+  */
+  const code = withoutComments(source(VERIFY));
+  assert.match(code, /<AuthLanguageSwitch compact/);
+  assert.ok(!/language=\{/.test(code), 'language must not be threaded as a prop');
+});
 
 // ── What it is ────────────────────────────────────────────────────────────
 
@@ -70,7 +88,7 @@ it('shows no flags', () => {
     French flag on a screen in Nouakchott says something nobody meant to say.
   */
   const flags = /[\u{1F1E6}-\u{1F1FF}]{2}|🏳|🇫🇷|🇬🇧|🇸🇦/u;
-  for (const f of [SWITCH, LOGIN, 'lib/i18n/index.ts']) {
+  for (const f of [SWITCH, LOGIN, REGISTER, VERIFY, 'lib/i18n/index.ts']) {
     assert.ok(!flags.test(source(f)), `${f} must not use a flag for a language`);
   }
 });

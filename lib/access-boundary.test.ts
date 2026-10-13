@@ -6,11 +6,15 @@
  * Business access is acquired, paid, renewed and administered on a separate
  * website. The customer app only reads the server's business-access state and
  * shows it in neutral words. These keep it that way — in the source and in all
- * three catalogues: no platform console, no self-registration, no website or
- * payment link, no price for the app's own access, no purchase or renewal
- * wording, no payment instruction for us. A shop's OWN payment channels (cash,
- * Bankily, the accounts it configures to receive its customers' money) are the
- * shop's business, not ours, and are deliberately left alone.
+ * three catalogues: no platform console, no website or payment link, no price
+ * for the app's own access, no purchase or renewal wording, no payment
+ * instruction for us. A shop's OWN payment channels (cash, Bankily, the accounts
+ * it configures to receive its customers' money) are the shop's business, not
+ * ours, and are deliberately left alone.
+ *
+ * The owner's decision of 2026-10-13 amends it, narrowly: a business account is
+ * created in the app again — on the app's own `auth/register` routes, never the
+ * platform's, and in words that name no price, no payment and no website.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -67,13 +71,25 @@ describe('the website’s entry points are gone from the app', () => {
     }
   });
 
-  it('self-registration and the platform console are not in the customer app (2026-10-05)', () => {
-    for (const f of ['app/(auth)/register.tsx', 'app/(auth)/verify.tsx', 'lib/registration.ts', 'lib/registration-session.ts', 'app/platform', 'lib/platform-admin.ts', 'lib/platform-state.ts', 'app/subscription.tsx', 'app/subscription-blocked.tsx']) {
+  it('the platform console is not in the customer app (2026-10-05)', () => {
+    for (const f of ['app/platform', 'lib/platform-admin.ts', 'lib/platform-state.ts', 'app/subscription.tsx', 'app/subscription-blocked.tsx']) {
       assert.equal(existsSync(new URL(f, ROOT)), false, `${f} must not exist`);
     }
+    assert.doesNotMatch(strip(read('app/(auth)/login.tsx')), /\/platform|auth\.action\.platform/i, 'sign-in offers no console');
+  });
+
+  it('a business account is created in the app again (2026-10-13), through the app’s own auth/register routes only', () => {
+    for (const f of ['app/(auth)/register.tsx', 'app/(auth)/verify.tsx', 'lib/registration.ts', 'lib/registration-session.ts']) {
+      assert.equal(existsSync(new URL(f, ROOT)), true, `${f} must exist`);
+    }
     const login = strip(read('app/(auth)/login.tsx'));
-    assert.doesNotMatch(login, /\(auth\)\/register|createAccount|\/platform|auth\.action\.platform/i, 'sign-in offers no account creation and no console');
-    assert.match(login, /auth\.accounts\.managed/, 'sign-in says accounts are set up by the organisation');
+    assert.match(login, /title=\{t\('auth\.action\.createAccount'\)\}[\s\S]*?onPress=\{\(\) => router\.push\('\/\(auth\)\/register' as never\)\}/, 'sign-in offers Create a business account, a screen of this app');
+    assert.match(login, /auth\.accounts\.managed/, 'and says who creates an employee’s account');
+    // The only registration requests anywhere in the app are the three auth/register routes.
+    const registration = SOURCES.flatMap((f) =>
+      [...strip(readFileSync(f, 'utf8')).matchAll(/api\.(?:get|post|put|patch|delete)(?:<[^>]*>)?\(\s*['`]([^'`]*regist[^'`]*)['`]/g)].map((m) => m[1]),
+    );
+    assert.deepEqual([...new Set(registration)].sort(), ['/auth/register', '/auth/register/verify/confirm', '/auth/register/verify/start']);
   });
 });
 
@@ -113,24 +129,24 @@ describe('the access screens', () => {
 });
 
 describe('the words', () => {
-  it('no catalogue carries registration, console or subscription-management copy', () => {
+  it('no catalogue carries console or subscription-management copy', () => {
     for (const lang of LANGS) {
       const dict = read(`lib/i18n/${lang}.ts`);
-      assert.doesNotMatch(dict, /^\s*'(register|platform|sub|subscription|entitlement)\./m, `${lang} still carries removed copy`);
-      for (const removed of ["'sub.manage'", "'auth.signup.unconfigured'", "'auth.signup.unavailable'", "'auth.action.createAccount'", "'auth.action.platform'"]) {
+      assert.doesNotMatch(dict, /^\s*'(platform|sub|subscription|entitlement)\./m, `${lang} still carries removed copy`);
+      for (const removed of ["'sub.manage'", "'auth.signup.unconfigured'", "'auth.signup.unavailable'", "'auth.action.platform'"]) {
         assert.equal(dict.includes(removed), false, `${lang} still has ${removed}`);
       }
-      for (const needed of ["'access.managed'", "'access.mistake'", "'access.closed.rejected.body'", "'auth.accounts.managed'"]) {
+      for (const needed of ["'access.managed'", "'access.mistake'", "'access.closed.rejected.body'", "'auth.accounts.managed'", "'auth.action.createAccount'", "'register.unavailable'"]) {
         assert.equal(dict.includes(needed), true, `${lang} lacks ${needed}`);
       }
     }
   });
 
-  it('the access and sign-in copy never names a price, a payment, a way to buy or renew, or a website — in any language', () => {
+  it('the access, sign-in and sign-up copy never names a price, a payment, a way to buy or renew, or a website — in any language', () => {
     const forbidden = /\bMRU\b|أوقية|https?:|www\.|\bwebsite\b|\bsite\b|موقع|\brenew|renouvel|تجديد|\bsubscri|\babonne|اشتراك|اشترك|\bbuy\b|\bpurchase\b|\bachet|اشترِ|\bpay\b|\bpaid\b|\bpayer\b|\bpaiement\b|ادفع|الدفع|Bankily|بنكيلي|\btrial\b|essai|تجريب|\bcheckout\b|in-app|App Store|Apple/i;
     for (const lang of LANGS) {
       for (const [key, value] of entries(lang)) {
-        if (!/^(access\.|nav\.access|auth\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
+        if (!/^(access\.|nav\.access|auth\.|register\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
         assert.doesNotMatch(value, forbidden, `${lang} ${key}: ${value}`);
       }
     }

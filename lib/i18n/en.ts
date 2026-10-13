@@ -1917,7 +1917,8 @@ export const en = {
   'auth.choose.cancel': 'Start again',
   'auth.field.password': 'Password',
   'auth.action.signIn': 'Sign In',
-  'auth.accounts.managed': 'Accounts are set up by your organisation’s administrator.',
+  'auth.action.createAccount': 'Create a business account',
+  'auth.accounts.managed': 'Employee accounts are set up by your business owner.',
   // Non-enumerating: never reveals which field was wrong.
   /*
    * Names what can be wrong, never WHICH one is wrong.
@@ -2558,6 +2559,50 @@ export const en = {
   'scan.problem.sameAsPrimary': 'That is the same number as the first IMEI. Scan the other one.',
   'scan.manual.secondaryOptional': 'IMEI 2 — optional',
   'scan.a11y.close': 'Close the scanner',
+
+  // ── Creating a business account, on the phone (restored 2026-10-13) ──────
+  // Nothing here asks for a Store ID, a personal ID or any internal identifier — the server generates all of it.
+  'register.title': 'Create your account',
+  'register.subtitle': 'A few details, then we send a code to check your contact.',
+  'register.section.business': 'Your business',
+  'register.section.owner': 'You',
+  'register.section.contact': 'How you will sign in',
+  'register.section.password': 'Your password',
+  'register.field.businessName': 'Business name',
+  'register.field.businessName.hint': 'The name above your door.',
+  'register.field.branchName': 'This shop',
+  'register.field.branchName.hint': 'The first branch. You can add more later.',
+  'register.field.city': 'City',
+  'register.field.ownerName': 'Your name',
+  'register.field.email': 'Email',
+  'register.field.phone': 'WhatsApp number',
+  'register.contact.hint': 'Give an email or a WhatsApp number — either one is enough.',
+  'register.field.password': 'Password',
+  'register.field.password.hint': 'At least 8 characters.',
+  'register.field.passwordConfirm': 'Password again',
+  'register.problem.ownerName': 'Give your own name.',
+  'register.problem.businessName': 'Give your business a name.',
+  'register.problem.branchName': 'Name this shop.',
+  'register.problem.contact': 'Give an email address or a WhatsApp number — it is how you will sign in.',
+  'register.problem.email': 'That does not look like an email address.',
+  'register.problem.phone': 'That does not look like a WhatsApp number.',
+  'register.problem.password': 'Use a password of at least 8 characters.',
+  'register.problem.passwordConfirm': 'The two passwords are not the same.',
+  'register.submit': 'Continue',
+  'register.creating': 'Creating your account…',
+  'register.failed': 'We could not create the account. Nothing was saved — try again.',
+  // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
+  'register.unavailable': 'Account creation is not available right now. Nothing was saved. Please try again later.',
+  'register.back': 'Back to sign in',
+  // Verification. The code is never shown to us and never logged.
+  'register.verify.title': 'Check your contact',
+  'register.verify.sent': 'We sent a code to {destination}.',
+  'register.verify.code': 'The code',
+  'register.verify.confirm': 'Confirm',
+  'register.verify.resend': 'Send it again',
+  'register.verify.resendWait': 'You can ask again in {seconds}s',
+  'register.verify.wrong': 'That code did not match. Check it and try again.',
+  'register.verify.change': 'Use a different contact',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
   'status.approval.pending': 'Waiting for the Owner',

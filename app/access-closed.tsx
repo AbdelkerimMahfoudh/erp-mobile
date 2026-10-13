@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Redirect, useRouter, Stack } from 'expo-router';
-import { Button, Screen, Text } from '../components/ui';
+import { Button, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { closedReason } from '../lib/access';
 import { space } from '../lib/design/tokens';
@@ -60,16 +60,34 @@ export default function AccessClosed() {
   // that is not true.
   if (entitlement?.canRead) return <Redirect href="/" />;
 
+  // Opened before the server's word arrived — straight after a business account
+  // is created: wait for it, rather than guess a reason that may not be true.
+  if (!entitlement && query.isLoading) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: false }} />
+        <SkeletonList count={2} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.wrap}>
-        <Text variant="title" align="center">
-          {t(`access.closed.${reason}.title`)}
-        </Text>
-        <Text tone="secondary" align="center" style={styles.body}>
-          {t(`access.closed.${reason}.body`)}
-        </Text>
+        {entitlement ? (
+          <>
+            <Text variant="title" align="center">
+              {t(`access.closed.${reason}.title`)}
+            </Text>
+            <Text tone="secondary" align="center" style={styles.body}>
+              {t(`access.closed.${reason}.body`)}
+            </Text>
+          </>
+        ) : (
+          // Not read at all: say that, and leave Check again to ask once more.
+          <ErrorState error={query.error} size="inline" />
+        )}
         <Text variant="caption" tone="tertiary" align="center">
           {t('access.managed')}
         </Text>

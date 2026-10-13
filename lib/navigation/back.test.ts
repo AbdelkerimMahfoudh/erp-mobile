@@ -90,6 +90,10 @@ it('the routes without an arrow: /stores is an invisible redirect; branch choice
   const closed = code(read('app/access-closed.tsx'));
   assert.match(closed, /title=\{t\('access\.recheck'\)\}/);
   assert.match(closed, /title=\{t\('action\.signOut'\)\}/);
+  // Creating a business account goes back to sign-in; its code check can start over with another contact.
+  assert.ok('/register' in AUTH_ROOTS && '/verify' in AUTH_ROOTS);
+  assert.match(code(read('app/(auth)/register.tsx')), /title=\{t\('register\.back'\)\}\s*variant="secondary"\s*onPress=\{\(\) => router\.back\(\)\}/);
+  assert.match(code(read('app/(auth)/verify.tsx')), /title=\{t\('register\.verify\.change'\)\}[\s\S]*?router\.replace\('\/\(auth\)\/register' as never\);/);
 });
 
 it('every listed route exists — the map cannot rot', () => {

@@ -206,15 +206,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * The user record is then read from `/auth/me` rather than trusted from the
    * completion response, so the identity the app shows is one the server has
    * just confirmed against the stored session.
+   *
+   * A new identity starts clean, as a sign-in does (`establish`): no cache, no
+   * queue and no branch left by whoever used this phone before — a business
+   * created a moment ago has no branch chosen here yet — and no device
+   * credential namespace, because none was enrolled for this session (the next
+   * password sign-in enrols one). A deletion of the new account must never
+   * forget somebody else's device.
    */
   const adoptSession = async (tokens: { accessToken: string; refreshToken: string }) => {
+    queryClient.clear();
+    // Before the first request, so nothing is sent under another business's branch.
+    branch.clear();
     await setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.accessToken);
     await setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refreshToken);
 
     const me = await api.get<AuthUser>('/auth/me');
+    const held = useQueue.getState().scope;
+    if (held && (held.userId !== me.id || held.companyId !== me.companyId)) useQueue.getState().reset();
     await setItem(TOKEN_KEYS.USER, JSON.stringify(me));
+    await deleteItem(SESSION_NAMESPACE_KEY);
     await rememberStoreId(me.publicStoreId);
-    await branch.hydrate();
     setUser(me);
     return me;
   };

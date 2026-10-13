@@ -149,7 +149,9 @@ export const BOOTSTRAP_FILE = 'app/index.tsx';
  * until it is done — so an arrow would lead nowhere.
  */
 export const AUTH_ROOTS: Readonly<Record<string, string>> = {
-  '/login': 'Signing in — the start. The app offers no account creation: accounts are set up by the organisation.',
+  '/login': 'Signing in — the start, with Create a business account beside it.',
+  '/register': 'Creating a business account, from sign-in, with its own way back (Back to sign in).',
+  '/verify': 'The code check that finishes a business account: Confirm, ask for the code again, or use a different contact.',
   '/select-branch':
     'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
   '/access-closed':

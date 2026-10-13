@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
 import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
@@ -37,6 +38,7 @@ export default function Login() {
   const colors = useColors();
   const styles = useStyles();
   const { t } = useTranslation();
+  const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -214,11 +216,22 @@ export default function Login() {
               />
 
               {/*
-                No account creation here (docs/21, 2026-10-05). A business's
-                access is set up and administered by its organisation, outside
-                the app; a verification code cannot be sent today, and a form
-                that could not finish would be a worse answer than one honest
-                sentence. No price, no link, no call to action.
+                A clear SECONDARY action (restored 2026-10-13). Somebody whose
+                business has no account yet has somewhere to go from this screen,
+                on this phone: the form is a screen of this app, never a browser,
+                and a server that cannot send its code says so before anything
+                is saved.
+              */}
+              <Button
+                title={t('auth.action.createAccount')}
+                variant="secondary"
+                onPress={() => router.push('/(auth)/register' as never)}
+              />
+
+              {/*
+                Who does not sign up here: an employee's account is created by
+                the business owner, in Team. One honest sentence, so staff do not
+                start a second business by mistake. No price, no link.
               */}
               <Text variant="caption" tone="secondary" align="center">
                 {t('auth.accounts.managed')}
