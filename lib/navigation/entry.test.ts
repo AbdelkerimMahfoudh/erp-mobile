@@ -71,6 +71,16 @@ it('no branch yet: the branch choice, from the redirect or anywhere in the app',
   }
 });
 
+it('creating a business account is left alone while signed out; once the code check adopts its session, the closed screen holds it until the server answers', () => {
+  // The sign-up screens are routes of the (auth) group, like sign-in.
+  assert.equal(entryRoute(state({ segment: '(auth)', signedIn: false, branchChosen: false })), null);
+  // Signed in by the code check, the business's state not read yet: the closed screen it was sent to keeps it.
+  assert.equal(entryRoute(state({ segment: 'access-closed', branchChosen: false, closed: false })), null);
+  // The server says closed (not started, pending…): there it stays, from anywhere.
+  assert.equal(entryRoute(state({ segment: '(auth)', branchChosen: false, closed: true })), ACCESS_CLOSED);
+  assert.equal(entryRoute(state({ segment: 'access-closed', branchChosen: false, closed: true })), null);
+});
+
 it('the design gallery (development only) is left alone; the platform console is no longer a route of this app', () => {
   assert.equal(entryRoute(state({ segment: 'dev', signedIn: false, branchChosen: false })), null);
   assert.equal(entryRoute(state({ segment: 'platform', signedIn: false, branchChosen: false })), LOGIN, 'an old link to the console lands on sign-in');
