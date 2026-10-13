@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Card, Chip, Divider, ErrorState, InlineNotice, Screen, SkeletonList, Text } from '../components/ui';
-import { accessEnd, businessAccess, type BusinessAccess } from '../lib/access';
+import { accessEnd, businessAccess, type BusinessAccess, type TrialEnd } from '../lib/access';
 import { space } from '../lib/design/tokens';
 import { formatDate, formatDateTime } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
@@ -18,6 +18,10 @@ import { isStale, useEntitlement, type Entitlement } from '../lib/entitlement';
  * method, a way to buy, renew or extend, a website, and anything that would
  * have to be kept in step with a commercial contract the app has no business
  * knowing. Every figure comes from the server; nothing here derives a state.
+ *
+ * A free trial (0095) is said the same way: the server's exact end, on the
+ * business's own clock with that clock's name — never the phone's zone, never a
+ * zone written here — while it runs, and the moment it ended once it is over.
  */
 export default function AccessScreen() {
   const { t } = useTranslation();
@@ -91,7 +95,9 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
   if (access.mode === 'read_only') {
     return (
       <View style={styles.body}>
-        <InlineNotice tone="danger">{t('access.readOnly.body')}</InlineNotice>
+        <InlineNotice tone="danger">
+          {access.trialEnd ? t('access.trial.ended', { date: trialDate(access.trialEnd) }) : t('access.readOnly.body')}
+        </InlineNotice>
         <Text variant="caption" tone="secondary">
           {t('access.readOnly.kept')}
         </Text>
@@ -100,6 +106,15 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
   }
 
   if (access.mode === 'open') {
+    if (access.trialEnd) {
+      const date = trialDate(access.trialEnd);
+      // Heard as a trial that is running, with its end — never confused with one that has not started.
+      return (
+        <Text variant="body" accessibilityLabel={t('access.trial.active', { date })}>
+          {t('access.trial.ends', { date })}
+        </Text>
+      );
+    }
     // The later of a running grant's end and the paid end; a grant without an end has no date.
     const end = accessEnd(e);
     return (
@@ -111,6 +126,11 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
 
   // A closed business is shown its own screen before it reaches here; the state word above is the answer.
   return null;
+}
+
+/** A free trial's instant on the business's clock, with the clock's name (`formatDateTime`'s `timeZone`). */
+function trialDate(end: TrialEnd): string {
+  return formatDateTime(end.at, { timeZone: end.timeZone });
 }
 
 function toneFor(access: BusinessAccess): 'success' | 'warning' | 'danger' {

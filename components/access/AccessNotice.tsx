@@ -14,9 +14,10 @@ import { usePermission } from '../../lib/permissions';
  *
  * Mounted once at the top of Home, Partners, Money, Stock and More, so the five
  * never disagree: grace is one restrained warning carrying the server's exact
- * deadline; read-only says that reading and exports continue; an Owner over the
- * staff allowance is told so. An open shop sees nothing, and a closed one never
- * reaches a tab. Every word comes from the server's state — no price, no
+ * deadline; read-only says that reading and exports continue — after a free
+ * trial, with the moment it ended, on the business's own clock; an Owner over
+ * the staff allowance is told so. An open shop sees nothing, and a closed one
+ * never reaches a tab. Every word comes from the server's state — no price, no
  * payment, no link, no call to action; the details are one tap away.
  */
 export function AccessNotice({ style }: { style?: StyleProp<ViewStyle> }) {
@@ -30,13 +31,15 @@ export function AccessNotice({ style }: { style?: StyleProp<ViewStyle> }) {
   const message =
     kind === 'read_only'
       ? t('access.readOnly.notice')
-      : kind === 'grace'
-        ? t('access.grace.notice', { deadline: access.graceEnd ? formatDateTime(access.graceEnd) : '' })
-        : t('access.staff.over');
+      : kind === 'trial_ended'
+        ? t('access.trial.ended', { date: access.trialEnd ? formatDateTime(access.trialEnd.at, { timeZone: access.trialEnd.timeZone }) : '' })
+        : kind === 'grace'
+          ? t('access.grace.notice', { deadline: access.graceEnd ? formatDateTime(access.graceEnd) : '' })
+          : t('access.staff.over');
 
   return (
     <InlineNotice
-      tone={kind === 'read_only' ? 'danger' : 'warning'}
+      tone={kind === 'read_only' || kind === 'trial_ended' ? 'danger' : 'warning'}
       title={t('access.title')}
       icon={BadgeCheck}
       action={

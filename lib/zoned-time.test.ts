@@ -90,7 +90,7 @@ if (process.env.ZONED_TIME_CHILD) {
     assert.match(fmt, /return formatDateFns\(toDate\(value\), 'd MMM yyyy · HH:mm', \{ locale: dateLocale\(\) \}\);/);
   });
 
-  it('no zone is written anywhere in the app: the one shown is always the one the server names', () => {
+  it('the trial’s dates are shown in the zone the server names, and no zone is written anywhere in the app', () => {
     const root = fileURLToPath(new URL('..', import.meta.url));
     const sources = (dir: string): string[] =>
       readdirSync(dir).flatMap((name) => {
@@ -105,6 +105,10 @@ if (process.env.ZONED_TIME_CHILD) {
       if (f.endsWith('lib/zoned-time.ts')) continue;
       assert.doesNotMatch(text, /timeZone:\s*['"]|['"](Africa|Europe|America|Asia|Atlantic|Pacific|Etc)\/\w+['"]|['"](GMT|UTC)['"]/, `${f} writes a time zone of its own`);
     }
+    const screen = code(join(root, 'app/access.tsx'));
+    assert.match(screen, /formatDateTime\(end\.at, \{ timeZone: end\.timeZone \}\)/);
+    const notice = code(join(root, 'components/access/AccessNotice.tsx'));
+    assert.match(notice, /formatDateTime\(access\.trialEnd\.at, \{ timeZone: access\.trialEnd\.timeZone \}\)/);
   });
 
   console.log(`zoned time: ${passed} passed`);

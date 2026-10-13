@@ -197,6 +197,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       toast.success(t('account.whatsapp.done'));
       reset();
       await queryClient.invalidateQueries({ queryKey: qk.account });
+      // A verified number may be what the free trial's setup instructions were waiting for (0095): read their status again.
+      await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     } catch (e) {
       setProblem(explain(e));
     } finally {

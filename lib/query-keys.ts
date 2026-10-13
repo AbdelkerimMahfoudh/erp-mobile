@@ -121,6 +121,8 @@ export const qk = {
   loan: (id: string) => ['loan', id] as const,
   /** Company-level, not branch-level: a subscription covers the whole shop. */
   entitlement: () => ['entitlement'] as const,
+  /** The free trial's setup instructions, as the Owner is told them on the closed screen (0095). Company-level too. */
+  trialSetup: () => ['trial-setup'] as const,
   /** Recorded money per channel for a period — branch-scoped, like the closing it reads. */
   moneyMovements: (branchId: string | null, from: string, to: string) =>
     ['money-movements', branchId, from, to] as const,

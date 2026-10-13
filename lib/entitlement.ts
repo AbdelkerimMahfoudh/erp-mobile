@@ -4,6 +4,7 @@ import { branchActivity, companySells, scheduledActivity, type Activity } from '
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
+import { refusedToStaff, type TrialSetupStatus } from './trial-setup';
 
 /**
  * What the shop is entitled to (Milestone K).
@@ -23,7 +24,13 @@ export type EntitlementState =
   | 'suspended'
   | 'cancelled'
   /** Refused at registration. Not "ended": nothing was ever granted. */
-  | 'rejected';
+  | 'rejected'
+  /** Eligible for its one free trial, which has not started (0095). Closed, like `pending` — never "ended". */
+  | 'trial_available'
+  /** The free trial runs: writes, like a paid month, until the server's `trial.endsAt`. */
+  | 'trial_active'
+  /** The free trial ended and nothing paid followed: read-only, with no grace. */
+  | 'trial_expired';
 
 /** Where an administrator has put the subscription. Distinct from the state. */
 export type SubscriptionStatus =
@@ -59,6 +66,22 @@ export interface ComplimentaryView {
   paidUntil: string | null;
 }
 
+/**
+ * The one 7-day free trial, as the server tells it (0095). Rendered, never
+ * recomputed: no hours divided into days, no duration added to a date. Its
+ * instants are UTC, all three null while it is only available; `timeZone` is
+ * the business's configured zone, the one they are shown in.
+ */
+export interface TrialView {
+  status: 'available' | 'active' | 'expired';
+  durationHours: number;
+  durationDays: number;
+  claimedAt: string | null;
+  startedAt: string | null;
+  endsAt: string | null;
+  timeZone: string;
+}
+
 export interface Entitlement {
   state: EntitlementState;
   periodEnd: string | null;
@@ -85,6 +108,8 @@ export interface Entitlement {
   complimentary?: ComplimentaryView;
   /** Per store, with each branch's activity (D156). Absent on an older server. */
   seatsByStore?: BranchSeat[];
+  /** The free trial, when there is one to tell (0095). Absent on an older server. */
+  trial?: TrialView | null;
 }
 
 /** `enabled` lets the root gate ask only once there is a session to ask for. */
@@ -96,6 +121,23 @@ export function useEntitlement(enabled = true) {
     // Checked often enough that a lapse is noticed within a shift, and cached
     // long enough that it is not asked on every screen change.
     staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * The Owner's status of the free trial's setup instructions (0095), for the
+ * closed screen of a business that has not started. Display data only: the
+ * app reads it and can do nothing about it.
+ *
+ * The server answers it to the Owner alone; everybody else is refused (403),
+ * which is the closed screen's answer for staff, not a failure to try again.
+ */
+export function useTrialSetup(enabled: boolean) {
+  return useQuery({
+    queryKey: qk.trialSetup(),
+    queryFn: () => api.get<TrialSetupStatus>('/account/trial-setup'),
+    enabled,
+    retry: (failures, error) => !refusedToStaff(error) && failures < 1,
   });
 }
 

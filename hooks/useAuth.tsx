@@ -319,6 +319,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, branchId, queryClient]);
 
   /**
+   * And while there is no branch — a closed business never gets as far as
+   * choosing one — the business's access is read again on every return, so a
+   * free trial its Owner started on the website opens the app on the way back,
+   * without Check again; and the closed screen's word on the trial's setup
+   * instructions is read fresh with it.
+   */
+  useEffect(() => {
+    if (!user || branchId) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void queryClient.invalidateQueries({ queryKey: qk.entitlement() });
+        void queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
+      }
+    });
+    return () => sub.remove();
+  }, [user, branchId, queryClient]);
+
+  /**
    * The offline queue follows the session (Milestone J).
    *
    * Placed here because the queue's identity IS the session: one file per

@@ -81,6 +81,52 @@ describe('the four modes, from the server’s flags alone', () => {
   });
 });
 
+describe('the free trial’s three states (0095), from the server’s flags like every other', () => {
+  const trial = (status: 'available' | 'active' | 'expired', endsAt: string | null) => ({
+    status, durationHours: 168, durationDays: 7, claimedAt: endsAt && '2026-10-13T10:30:00.000Z', startedAt: endsAt && '2026-10-13T10:30:00.000Z', endsAt, timeZone: 'Asia/Tokyo',
+  });
+  const ENDS = '2026-10-20T10:30:00.000Z';
+
+  it('eligible and not started is closed — never read as "ended"', () => {
+    const a = businessAccess(entitlement({ state: 'trial_available', status: 'pending_activation', canRead: false, canWrite: false, trial: trial('available', null) }));
+    assert.equal(a.mode, 'closed');
+    assert.equal(a.canWrite, false);
+    assert.equal(a.trialEnd, null, 'nothing has started, so there is no end to say');
+    assert.equal(closedReason('trial_available'), 'not_started');
+  });
+
+  it('a running trial is open, and carries the server’s exact end with the business’s zone', () => {
+    const a = businessAccess(entitlement({ state: 'trial_active', status: 'pending_activation', periodEnd: null, trial: trial('active', ENDS) }));
+    assert.equal(a.mode, 'open');
+    assert.equal(a.canWrite, true);
+    assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
+    assert.equal(accessNotice(a, true), 'none', 'an open shop is told nothing on the tabs');
+  });
+
+  it('an ended trial is read-only with no grace, and the tabs say when it ended', () => {
+    const a = businessAccess(entitlement({ state: 'trial_expired', status: 'pending_activation', periodEnd: null, graceEnd: null, canWrite: false, trial: trial('expired', ENDS) }));
+    assert.equal(a.mode, 'read_only');
+    assert.equal(a.canRead, true);
+    assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
+    assert.equal(accessNotice(a, false), 'trial_ended');
+  });
+
+  it('a business paying after its trial is dated by its paid period, not by the trial', () => {
+    const a = businessAccess(entitlement({ state: 'active', trial: trial('expired', ENDS) }));
+    assert.equal(a.mode, 'open');
+    assert.equal(a.trialEnd, null);
+    assert.equal(businessAccess(entitlement({ state: 'expired', canWrite: false, trial: trial('expired', ENDS) })).trialEnd, null);
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'expired', canWrite: false, trial: trial('expired', ENDS) })), true), 'read_only');
+  });
+
+  it('an older server without the trial field, or a trial state without its instant, says no trial date', () => {
+    assert.equal(businessAccess(entitlement({ state: 'trial_active' })).trialEnd, null);
+    assert.equal(businessAccess(entitlement({ state: 'trial_expired', canWrite: false, trial: null })).trialEnd, null);
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'trial_expired', canWrite: false })), true), 'read_only');
+    assert.equal(businessAccess(undefined).trialEnd, null);
+  });
+});
+
 describe('what the tabs say', () => {
   it('an open shop is told nothing', () => {
     assert.equal(accessNotice(businessAccess(entitlement({})), true), 'none');
@@ -101,8 +147,9 @@ describe('what the tabs say', () => {
 });
 
 describe('the closed screen’s reason', () => {
-  it('names pending, suspended and refused each by its own word, and every other closed state as ended', () => {
+  it('names pending, not started, suspended and refused each by its own word, and every other closed state as ended', () => {
     assert.equal(closedReason('pending'), 'pending');
+    assert.equal(closedReason('trial_available'), 'not_started');
     assert.equal(closedReason('suspended'), 'suspended');
     assert.equal(closedReason('rejected'), 'rejected');
     assert.equal(closedReason('cancelled'), 'ended');
