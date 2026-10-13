@@ -1,17 +1,17 @@
 {
   "expo": {
     "name": "Dukan ERP",
-    "slug": "phonestore-erp",
+    "slug": "dukan-erp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "retailerp",
+    "scheme": "dukanerp",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "mr.retailerp.app"
+      "bundleIdentifier": "mr.tsxmr.dukanerp"
     },
     "android": {
-      "package": "mr.retailerp.app",
+      "package": "mr.tsxmr.dukanerp",
       "adaptiveIcon": {
         "backgroundColor": "#4f46e5"
       },
@@ -24,7 +24,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Dukan ERP does not use Face ID."
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -39,7 +44,15 @@
         "expo-camera",
         {
           "cameraPermission": "Dukan ERP uses the camera to scan IMEIs, serial numbers and barcodes so you do not have to type them.",
+          "microphonePermission": "Dukan ERP does not record sound.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Dukan ERP opens your photos only when you choose a receipt picture for an expense.",
+          "microphonePermission": "Dukan ERP does not record sound."
         }
       ],
       "expo-font",

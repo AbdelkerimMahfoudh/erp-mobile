@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// Electronics Retail Management System — indigo brand + emerald (profit) accent.
+// Dukan ERP — indigo brand + emerald (profit) accent.
 const brand = {
   50: '#eef2ff',
   100: '#e0e7ff',
