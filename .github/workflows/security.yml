@@ -3,7 +3,9 @@
 # Every push and pull request: the whole git history is scanned for secrets,
 # dependencies are audited with the lockfile, the app must type-check, lint,
 # pass its pure tests, and its release configuration must be sound — an
-# https API origin, no debug overlays, no server secret names in the bundle.
+# https API origin, no debug overlays, no server secret names in the bundle —
+# and its exported bundles must carry nothing the app may not do about the
+# free trial (`scripts/audit-bundle.js`).
 name: security
 on:
   push:
@@ -60,3 +62,10 @@ jobs:
         run: |
           EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --clear
           ! grep -rlE 'WHATSAPP_ACCESS_TOKEN|OTP_PEPPER|JWT_ACCESS_SECRET|PLATFORM_ADMIN_KEY' dist/_expo/static/js
+      # The free trial is started on the website alone (2026-10-13): the shipped web and iOS bundles must hold no
+      # claim, resend, link token, website address, QR code, web view, browser, price or payment instruction, and
+      # must hold the read-only status route and the card's title, so the scan cannot pass by scanning nothing.
+      - name: exported bundles hold no trial action, website link, QR code, web view, price or payment instruction
+        run: |
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --output-dir "$RUNNER_TEMP/export-ios"
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js dist "$RUNNER_TEMP/export-ios"
