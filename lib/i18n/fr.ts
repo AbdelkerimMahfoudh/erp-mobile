@@ -2795,6 +2795,7 @@ export const fr: Catalogue = {
   'register.failed': 'Impossible de créer le compte. Rien n’a été enregistré — réessayez.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
   'register.unavailable': 'La création de compte n’est pas disponible pour le moment. Rien n’a été enregistré. Veuillez réessayer plus tard.',
+  'register.unavailable.whatsapp': 'La vérification par WhatsApp n’est pas disponible pour le moment. Retirez le numéro WhatsApp pour continuer avec votre adresse e-mail, ou réessayez plus tard.',
   'register.back': 'Retour à la connexion',
   // Verification. The code is never shown to us and never logged.
   'register.verify.title': 'Vérifiez votre contact',

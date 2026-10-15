@@ -2554,6 +2554,7 @@ export const ar: Catalogue = {
   'register.failed': 'تعذّر إنشاء الحساب. لم يُحفظ شيء — حاول مرّة أخرى.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
   'register.unavailable': 'إنشاء الحساب غير متاح حاليًا. لم يُحفظ أي شيء. يرجى المحاولة لاحقًا.',
+  'register.unavailable.whatsapp': 'التحقق عبر واتساب غير متاح حاليًا. احذف رقم واتساب لتتابع ببريدك الإلكتروني، أو حاول لاحقًا.',
   'register.back': 'العودة إلى تسجيل الدخول',
   // Verification. The code is never shown to us and never logged.
   'register.verify.title': 'تحقّق من وسيلة التواصل',

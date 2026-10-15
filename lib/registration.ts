@@ -148,3 +148,19 @@ export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): bo
   const fields = new Set([...Object.keys(x), ...Object.keys(y)]);
   return [...fields].every((field) => x[field] === y[field]);
 }
+
+/**
+ * The words for a server that refused before saving anything because a code
+ * cannot be sent right now (503 `registration_unavailable`).
+ *
+ * Every contact given at registration must be verified, so the server names
+ * each one it cannot send a code to (`unavailableContacts`). When that is the
+ * WhatsApp number alone and an email address was given too, the person can go
+ * on with the email address by removing the number — or wait. Anything else is
+ * the plain refusal: not now, and nothing was saved.
+ */
+export function unavailableMessage(body: unknown, sent: RegistrationDraft): 'register.unavailable.whatsapp' | 'register.unavailable' {
+  const named = (body as { unavailableContacts?: unknown } | null | undefined)?.unavailableContacts;
+  const onlyWhatsApp = Array.isArray(named) && named.length === 1 && named[0] === 'phone';
+  return onlyWhatsApp && sent.email.trim() !== '' ? 'register.unavailable.whatsapp' : 'register.unavailable';
+}

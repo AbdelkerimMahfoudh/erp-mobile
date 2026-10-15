@@ -224,6 +224,27 @@ describe('the form', () => {
     expect(routerReplace).not.toHaveBeenCalled();
     expect(mockStore.has('erp.registration.continuation')).toBe(false);
   });
+
+  it('a server that cannot verify the WhatsApp number given beside an email: remove the number to go on, or try later — nothing moves on', async () => {
+    (api.post as jest.Mock).mockRejectedValue(
+      Object.assign(new ApiError('Registration cannot be completed right now: a verification code cannot be sent. Nothing was saved.', 503, 'registration_unavailable'), {
+        body: { code: 'registration_unavailable', unavailableContacts: ['phone'] },
+      }),
+    );
+    renderWith(<RegisterScreen />);
+    fillForm();
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[5], '+22212345678');
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.submit')));
+    });
+
+    expect(await screen.findByText(t('register.unavailable.whatsapp'))).toBeTruthy();
+    expect(t('register.unavailable.whatsapp')).toBe(
+      'WhatsApp verification is not available right now. Remove the WhatsApp number to continue with your email address, or try again later.',
+    );
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(screenText()).not.toMatch(UNSAID);
+  });
 });
 
 describe('the code check', () => {

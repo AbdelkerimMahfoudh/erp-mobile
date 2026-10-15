@@ -13,6 +13,7 @@ import {
   emptyRegistration,
   registrationPayload,
   sameRegistration,
+  unavailableMessage,
   validateRegistration,
   type RegistrationDraft,
   type RegistrationProblems,
@@ -115,15 +116,17 @@ export default function RegisterScreen() {
       } as never);
     } catch (e) {
       /*
-       * A server that cannot send the code refuses before anything is created
-       * (503 `registration_unavailable`), and the screen says exactly that, in
-       * the person's language: not now, and nothing was saved. Otherwise the
-       * server's own wording when it has some, because it knows things this
-       * screen does not — a taken address, a rate limit.
+       * A server that cannot send a code to every contact given refuses before
+       * anything is created (503 `registration_unavailable`), and the screen
+       * says exactly that, in the person's language: not now, and nothing was
+       * saved — or, when only the WhatsApp number cannot be verified and an
+       * email address was given too, that removing the number lets them go on
+       * (`unavailableMessage`). Otherwise the server's own wording when it has
+       * some, because it knows things this screen does not — a rate limit.
        */
       setFailure(
         e instanceof ApiError && e.code === 'registration_unavailable'
-          ? t('register.unavailable')
+          ? t(unavailableMessage(e.body, draft))
           : e instanceof ApiError && e.message
             ? e.message
             : t('register.failed'),

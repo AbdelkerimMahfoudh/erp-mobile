@@ -2617,6 +2617,8 @@ export const en = {
   'register.failed': 'We could not create the account. Nothing was saved — try again.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
   'register.unavailable': 'Account creation is not available right now. Nothing was saved. Please try again later.',
+  // Every contact given must be verified: the WhatsApp number alone cannot be, and an email address was given too.
+  'register.unavailable.whatsapp': 'WhatsApp verification is not available right now. Remove the WhatsApp number to continue with your email address, or try again later.',
   'register.back': 'Back to sign in',
   // Verification. The code is never shown to us and never logged.
   'register.verify.title': 'Check your contact',

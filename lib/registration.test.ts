@@ -11,6 +11,7 @@ import {
   emptyRegistration,
   registrationPayload,
   sameRegistration,
+  unavailableMessage,
   validateRegistration,
   type RegistrationDraft,
 } from './registration.ts';
@@ -195,7 +196,24 @@ it('the screens reach the server only on auth/register, auth/register/verify/sta
 
 it('account creation that is not available right now says so, and that nothing was saved', () => {
   const register = code('app/(auth)/register.tsx');
-  assert.match(register, /e instanceof ApiError && e\.code === 'registration_unavailable'\s*\?\s*t\('register\.unavailable'\)/);
+  assert.match(register, /e instanceof ApiError && e\.code === 'registration_unavailable'\s*\?\s*t\(unavailableMessage\(e\.body, draft\)\)/);
+});
+
+// ── a contact the server cannot verify right now (every contact given must be) ─
+
+const both = { ...withEmail, phone: '+22212345678' };
+
+it('the WhatsApp number alone cannot be verified and an email was given: remove the number to go on, or wait', () => {
+  assert.equal(unavailableMessage({ code: 'registration_unavailable', unavailableContacts: ['phone'] }, both), 'register.unavailable.whatsapp');
+});
+
+it('anything else is the plain refusal — no email to go on with, the email itself, both, or an older server that names none', () => {
+  assert.equal(unavailableMessage({ unavailableContacts: ['phone'] }, withPhone), 'register.unavailable');
+  assert.equal(unavailableMessage({ unavailableContacts: ['email'] }, both), 'register.unavailable');
+  assert.equal(unavailableMessage({ unavailableContacts: ['email', 'phone'] }, both), 'register.unavailable');
+  assert.equal(unavailableMessage({ unavailableContacts: ['phone', 'phone'] }, both), 'register.unavailable');
+  assert.equal(unavailableMessage({ code: 'registration_unavailable' }, both), 'register.unavailable');
+  assert.equal(unavailableMessage(undefined, both), 'register.unavailable');
 });
 
 console.log('\n' + passed + ' passed');
