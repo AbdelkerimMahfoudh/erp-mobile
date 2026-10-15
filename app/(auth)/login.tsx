@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
 import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
 import { looksSubmittable } from '../../lib/identifier';
+import { forgetContinuation } from '../../lib/registration-session';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -51,6 +52,14 @@ export default function Login() {
     own, so an abandoned attempt simply stops working.
   */
   const [choice, setChoice] = useState<AccountChoice | null>(null);
+
+  // Whoever is at sign-in is not in the middle of a code check: a registration left unfinished takes its
+  // continuation with it (`lib/registration-session.ts`).
+  useFocusEffect(
+    useCallback(() => {
+      void forgetContinuation();
+    }, []),
+  );
 
   const onSubmit = async () => {
     if (loading) return;

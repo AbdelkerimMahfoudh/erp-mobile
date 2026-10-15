@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { AuthLanguageSwitch, Button, TextField } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
@@ -17,7 +17,7 @@ import {
   type RegistrationDraft,
   type RegistrationProblems,
 } from '../../lib/registration';
-import { rememberContinuation } from '../../lib/registration-session';
+import { forgetContinuation, rememberContinuation } from '../../lib/registration-session';
 import type { RegistrationStarted } from '../../types/api';
 
 /**
@@ -58,6 +58,13 @@ export default function RegisterScreen() {
   const attempt = useRef<{ key: string; sent: RegistrationDraft | null }>({ key: uuidv4(), sent: null });
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
+
+  // A new registration starts here, so one left unfinished takes its continuation with it.
+  useFocusEffect(
+    useCallback(() => {
+      void forgetContinuation();
+    }, []),
+  );
 
   const set = <K extends keyof RegistrationDraft>(key: K, value: string) => {
     setDraft((d) => ({ ...d, [key]: value }));

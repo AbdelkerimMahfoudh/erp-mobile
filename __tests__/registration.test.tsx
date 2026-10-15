@@ -7,7 +7,8 @@
  * finishes on `auth/register/verify/*`, adopts the ordinary session it returns
  * — starting clean, with nothing left by whoever used this phone before — and
  * lands on the closed screen. Nothing on either screen names a trial, a price,
- * a payment or a website.
+ * a payment or a website. The continuation is kept for the code check only:
+ * sign-in and sign-up forget one left by a registration that was not finished.
  *
  * The real AuthProvider; the server, storage and the device are mocked.
  */
@@ -26,11 +27,13 @@ import { push as routerPush, replace as routerReplace } from './mocks/expo-route
 // `jest.mock` is hoisted above these imports; the factories read the `mock…` store only when called.
 const mockStore = new Map<string, string>();
 
-// Signed out on a screen of the (auth) group, where the sign-in guard leaves a person alone.
+// Signed out on a screen of the (auth) group, where the sign-in guard leaves a person alone. A screen that is shown
+// runs its focus effect, as the navigator does.
 jest.mock('expo-router', () => ({
   ...jest.requireActual('./mocks/expo-router'),
   useSegments: () => ['(auth)'],
   useLocalSearchParams: () => ({ destination: 'a•••@example.com' }),
+  useFocusEffect: (effect: () => void) => jest.requireActual('react').useEffect(effect, [effect]),
 }));
 jest.mock('../lib/storage', () => ({
   getItem: jest.fn(async (k: string) => mockStore.get(k) ?? null),
@@ -135,9 +138,21 @@ describe('the sign-in screen', () => {
     expect(screen.getByText(t('auth.accounts.managed'))).toBeTruthy();
     expect(t('auth.accounts.managed')).toBe('Employee accounts are set up by your business owner.');
   });
+
+  it('forgets a registration left unfinished: whoever is at sign-in is not in the middle of a code check', async () => {
+    mockStore.set('erp.registration.continuation', CONTINUATION);
+    renderWith(<LoginScreen />);
+    await waitFor(() => expect(mockStore.has('erp.registration.continuation')).toBe(false));
+  });
 });
 
 describe('the form', () => {
+  it('starts clean: a continuation left by an unfinished registration is forgotten', async () => {
+    mockStore.set('erp.registration.continuation', 'continuation-left-behind');
+    renderWith(<RegisterScreen />);
+    await waitFor(() => expect(mockStore.has('erp.registration.continuation')).toBe(false));
+  });
+
   it('posts to auth/register only, with no identifier the server generates, then goes to the code check', async () => {
     (api.post as jest.Mock).mockResolvedValue({
       status: 'pending_activation', created: true, publicStoreId: 'S-NEW',
