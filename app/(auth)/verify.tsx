@@ -33,7 +33,11 @@ const RESEND_SECONDS = 60;
  * An answer that does not arrive in time is not a wrong code: the request
  * reached the server, which may well have created the account, and the code
  * has then been spent. The screen says so, and offers sign-in with the
- * password the person just chose — never "That code did not match".
+ * password the person just chose, for as long as it is open — never "That
+ * code did not match" for that code: the server refuses a registration it has
+ * already finished exactly as it refuses a wrong code, so confirming the same
+ * code again cannot tell the two apart. A refusal is said in the person's own
+ * language, never in the server's English.
  */
 export default function VerifyScreen() {
   const { t, language } = useTranslation();
@@ -45,7 +49,8 @@ export default function VerifyScreen() {
   const [code, setCode] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [outcomeUnknown, setOutcomeUnknown] = useState(false);
+  /** The code whose answer was lost: the account may already exist, made with it. */
+  const [lostCode, setLostCode] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [waitSeconds, setWaitSeconds] = useState(RESEND_SECONDS);
 
@@ -94,11 +99,11 @@ export default function VerifyScreen() {
     inFlight.current = true;
     setSubmitting(true);
     setFailure(null);
-    setOutcomeUnknown(false);
+    const sent = code.trim();
     try {
       const tokens = await api.post<AuthTokens>('/auth/register/verify/confirm', {
         continuation,
-        code: code.trim(),
+        code: sent,
       });
 
       // The session is real from here on. Everything after this point may fail
@@ -111,9 +116,12 @@ export default function VerifyScreen() {
       // the server opens the business. Nothing opens a browser.
       router.replace(ACCESS_CLOSED as never);
     } catch (e) {
-      // Only the server says a code is wrong; a lost answer or no connection is not its verdict.
-      if (classifyError(e).kind === 'timeout_uncertain') setOutcomeUnknown(true);
-      else setFailure(e instanceof ApiError ? e.message || t('register.verify.wrong') : toFriendlyError(e).body);
+      // Only the server says a code is wrong; a lost answer or no connection is not its verdict. Nor is its refusal of
+      // the code whose answer was lost: the registration it made with that code is refused the same way.
+      if (classifyError(e).kind === 'timeout_uncertain') setLostCode(sent);
+      else if (e instanceof ApiError && e.status === 400) {
+        if (sent !== lostCode) setFailure(t('register.verify.wrong'));
+      } else setFailure(toFriendlyError(e).body);
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -138,7 +146,6 @@ export default function VerifyScreen() {
             onChangeText={(v) => {
               setCode(v);
               setFailure(null);
-              setOutcomeUnknown(false);
             }}
             keyboardType="number-pad"
             autoComplete="one-time-code"
@@ -152,7 +159,7 @@ export default function VerifyScreen() {
             </Text>
           ) : null}
 
-          {outcomeUnknown ? (
+          {lostCode !== null ? (
             <View style={styles.group}>
               <InlineNotice tone="warning">{t('register.verify.timeout')}</InlineNotice>
               <Button title={t('auth.action.signIn')} onPress={() => router.replace(LOGIN as never)} />

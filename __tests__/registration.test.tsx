@@ -19,7 +19,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import { useBranch } from '../lib/branch';
 import { useConnectivity } from '../lib/connectivity';
-import { t } from '../lib/i18n';
+import { getLanguage, t, useI18n } from '../lib/i18n';
 import { RequestTimeout } from '../lib/offline/classify';
 import { useQueue } from '../lib/offline/queue';
 import { push as routerPush, replace as routerReplace } from './mocks/expo-router';
@@ -298,7 +298,7 @@ describe('the code check', () => {
       return confirm();
     });
     renderWith(<VerifyScreen />);
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: 'en' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: getLanguage() }));
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.verify.confirm')));
@@ -326,9 +326,55 @@ describe('the code check', () => {
     screen.unmount();
 
     await confirmWith(() => {
-      throw new ApiError('That code did not match.', 400, 'invalid_code');
+      throw new ApiError('That code did not match.', 400);
     });
-    expect(await screen.findByText('That code did not match.')).toBeTruthy();
+    expect(await screen.findByText(t('register.verify.wrong'))).toBeTruthy();
+    expect(screen.queryByText('That code did not match.')).toBeNull();
     expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
+  });
+
+  it('after a lost answer, the same code refused is not "wrong code" — the account it made is refused the same way; another code refused is', async () => {
+    // The server finished the registration with the first code; only its answer was lost. Confirming again is refused
+    // as a wrong code would be (a spent registration and a wrong code are one 400).
+    let finished = false;
+    await confirmWith(() => {
+      if (!finished) {
+        finished = true;
+        throw new RequestTimeout();
+      }
+      throw new ApiError('That code did not match.', 400);
+    });
+    expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+    });
+    expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
+    expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+    expect(screen.queryByText('That code did not match.')).toBeNull();
+
+    // Another code: the server's refusal is said, and sign-in stays offered for the code whose answer was lost.
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '654321');
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+    });
+    expect(await screen.findByText(t('register.verify.wrong'))).toBeTruthy();
+    expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
+    expect(screen.getByText(t('auth.action.signIn'))).toBeTruthy();
+  });
+
+  it('a refused code is said in the person’s language — Arabic or French — never in the server’s English', async () => {
+    for (const language of ['ar', 'fr'] as const) {
+      await useI18n.getState().setLanguage(language);
+      await confirmWith(() => {
+        throw new ApiError('That code did not match.', 400);
+      });
+      expect(await screen.findByText(t('register.verify.wrong'))).toBeTruthy();
+      expect(t('register.verify.wrong')).not.toMatch(/did not match/);
+      expect(screen.queryByText(/That code did not match/)).toBeNull();
+      screen.unmount();
+      (api.post as jest.Mock).mockReset();
+    }
+    await useI18n.getState().setLanguage('en');
   });
 });
