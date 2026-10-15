@@ -98,7 +98,7 @@ describe('a browser, however it is reached', () => {
     }
   });
 
-  it('a page that navigates itself: location assigned, assign or replace, an href set — by any name', () => {
+  it('a page that navigates itself: location assigned, assign or replace, an href or an action set, a form sent, the page’s own navigation, a document written — by any name', () => {
     for (const code of [
       'window.location.assign(e)',
       'self.location.replace(e)',
@@ -110,8 +110,26 @@ describe('a browser, however it is reached', () => {
       'var g=location.replace.bind(location);g(e)',
       'const{assign:a}=window.location;a.call(location,e)',
       "var a=document.createElement('a');a.href=e;a.click()",
+      "var a=document.createElement('a');a.setAttribute('href',e);a.click()",
+      "var s=document.createElementNS('http://www.w3.org/2000/svg','a');s.setAttributeNS(null,'xlink:href',e)",
+      "var f=document.createElement('form');f.setAttribute('action',e);f.submit()",
+      'f.requestSubmit()',
+      'window.navigation.navigate(e)',
+      'navigation.navigate(e)',
+      'const{navigation:v}=self;v.navigate(e)',
+      "document.write('<p>'+e+'</p>')",
     ]) {
       caught('web', `;(function(e){${code}})(q);`, 'browser-opening call');
+    }
+  });
+
+  it('a page written to leave: a refresh to another address, a link in markup — however the string is built', () => {
+    for (const code of [
+      `document.body.innerHTML='<meta http-equiv="refresh" content="0;url='+e+'">'`,
+      "var m=document.createElement('meta');m.httpEquiv='refresh';m.content='0;url='+e;document.head.appendChild(m)",
+      'n.html=`<a href="${e}">open</a>`',
+    ]) {
+      caught('web', `;(function(e,n){${code}})(q);`, 'browser-opening call');
     }
   });
 

@@ -524,12 +524,13 @@ function tokenQueries(file: string): string[] {
  * What a source names, wherever it is written, that opens a browser or a web view, draws a QR code, or reaches past the
  * browser guard: a web view or a browser library, a QR component, an iframe; React Native's native modules, through
  * which `openURL` could be called without its JavaScript; a data detector, through which a phone opens a link in text
- * by itself; and — but in the guard — `openURL` in any form (called, destructured, on a namespace) and `Linking` at
+ * by itself; a page written to leave — a refresh to another address, a link in markup — such as the report's own
+ * page could carry; and — but in the guard — `openURL` in any form (called, destructured, on a namespace) and `Linking` at
  * all: the app's deep links are expo-router's, and nothing of its own needs React Native's Linking or expo-linking.
  */
 function browserNames(file: string): string[] {
   const text = strip(treeOf(file).text);
-  const names = [...text.matchAll(/WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b|\bNativeModules\b|\bTurboModuleRegistry\b|\brequireNative\w*|\bdataDetectorTypes?\b/g)];
+  const names = [...text.matchAll(/WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b|\bNativeModules\b|\bTurboModuleRegistry\b|\brequireNative\w*|\bdataDetectorTypes?\b|http-equiv|<a\s[^>]*\bhref\b/gi)];
   if (relative(file) !== GUARD) names.push(...text.matchAll(/openURL|\bLinking\b|expo-linking/g));
   return names.map(([name]) => `${relative(file)}: ${name}`);
 }
@@ -1037,6 +1038,8 @@ describe('the checks above, held to every way out that was ever found', () => {
       "import { NativeModules } from 'react-native';\nexport const go = (e: string, name: string) => NativeModules[name][e];",
       "import { Text } from 'react-native';\nexport const P = ({ e }: { e: string }) => <Text dataDetectorType=\"link\">{e}</Text>;",
       'export const P = ({ e }: { e: string }) => <iframe src={e} />;',
+      `export const page = (e: string) => '<meta http-equiv="refresh" content="0;url=' + e + '">';`,
+      'export const page = (e: string) => `<p><a class="x" href="${e}">open</a></p>`;',
     ]) {
       found(browserNames, probe(code, ''), code);
     }

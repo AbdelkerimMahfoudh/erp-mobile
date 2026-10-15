@@ -31,16 +31,19 @@
  *   `document.defaultView`, or a local name given to one of them), destructured
  *   from it, or a bare global `open(…)`; and every page navigation —
  *   `location.assign` or `.replace`, an assignment to a location or to an
- *   `href` — is traced to its module through the source map and compared with
- *   `CALL_SITES`, the libraries' own, the guard's and the report's. One more
- *   anywhere, or one gone, fails; what was found is printed beside what is
- *   pinned, so the list is changed on purpose.
+ *   `href`, an `href` or a form's `action` set by `setAttribute`, a form
+ *   sent, `document.write`, the page's own `navigation` — is traced to its
+ *   module through the source map and compared with `CALL_SITES`, the
+ *   libraries' own, the guard's and the report's. One more anywhere, or one
+ *   gone, fails; what was found is printed beside what is pinned, so the list
+ *   is changed on purpose.
  * - Strings. Every string and template literal — a template's parts joined,
  *   concatenated literals folded — is read as a path (`normalizePath`, in any
  *   letter case): no claim, resend, store or seat request, price or platform
  *   route, no setup-link token marker (`#t=`, `?t=`, a string that starts with
  *   `t=`, `account/trial`) wherever it sits, nor a query that carries a `t`
- *   (`new URLSearchParams({ t })`, `.set('t', …)`), and no address — absolute,
+ *   (`new URLSearchParams({ t })`, `.set('t', …)`), no page written to leave (a
+ *   refresh to another address, a link in markup), and no address — absolute,
  *   protocol-relative or `www.` — that is not the API's, a development host's
  *   or a library's own.
  * - Words. The decoded text is read as words (`normalizeWords`): no claim or
@@ -94,8 +97,9 @@ const LINKING_ALLOWED = new Map([[GUARD, new Set(['Linking'])]]);
  * libraries' own — expo-linking's export and its call into React Native,
  * expo-router's for an external redirect or link, React Native's and
  * react-native-web's Linking (whose web `openURL`s set `window.location`),
- * react-native-svg's `href` on an SVG element — the guard that makes `openURL`
- * refuse, and on the web build the report preview (`lib/report-pdf.ts` opens
+ * react-native-svg's `href` on an SVG element, React DOM's own (an SVG
+ * `xlinkHref` prop, and the Navigation API it restores a page's scroll
+ * through) — the guard that makes `openURL` refuse, and on the web build the report preview (`lib/report-pdf.ts` opens
  * the report's own page in a new tab) and the CSV download
  * (`lib/report-export.ts` hands the browser a `blob:` file through a link).
  * Nothing else of the app's own reaches any of them.
@@ -113,6 +117,7 @@ const CALL_SITES = {
     navigation: {
       '/lib/report-export.ts': 1,
       'node_modules/expo-linking/build/RNLinking.web.js': 1,
+      'node_modules/react-dom/cjs/react-dom-client.production.js': 10,
       'node_modules/react-native-svg/lib/module/web/utils/prepare.js': 1,
       'node_modules/react-native-web/dist/exports/Linking/index.js': 1,
     },
@@ -121,6 +126,15 @@ const CALL_SITES = {
   android: { openURL: { ...LINKING_LIBRARIES, 'node_modules/react-native/Libraries/Linking/Linking.js': 2 }, 'window.open': {}, navigation: {} },
 };
 const CALLS = ['openURL', 'window.open', 'navigation'];
+
+/** The attributes that point an element somewhere: a link's, an SVG link's, a form's and a button's target. */
+const POINTING = /^(?:xlink:)?href$|^(?:form)?action$/i;
+/**
+ * A page written to leave: a refresh to another address (`<meta http-equiv="refresh" content="0;url=…">`, or its
+ * content alone), or a link written into markup (`<a href="…">`) — wherever the string is set: `innerHTML`,
+ * `document.write`, the report's own page.
+ */
+const WRITTEN_WAY_OUT = /http-equiv\s*=\s*["']?\s*refresh|^\s*\d+\s*;\s*url\s*=|content\s*=\s*["']\s*\d+\s*;\s*url\s*=|<a\s[^>]*\bhref\s*=/i;
 
 /** The names a page's own window goes by, and the property that leads from a document to it. */
 const WINDOW = new Set(['window', 'self', 'globalThis', 'top', 'parent', 'frames']);
@@ -376,10 +390,14 @@ function readTree(program, on) {
       const text = folded(node);
       if (text !== null) on.string(text, node.start);
     } else if (isMember(node)) {
-      // Read, called or bound: `window.open`, `location.assign`, `location.replace.bind(location)`.
+      // Read, called or bound: `window.open`, `location.assign`, `location.replace.bind(location)`; the page's own
+      // navigation (`window.navigation`, or the global `navigation` no name hides); a document written over.
       const name = propertyName(node);
-      if (name === 'open' && ['window', 'document'].includes(kindOf(node.object, scope))) on.open(node.property.start);
-      else if ((name === 'assign' || name === 'replace') && kindOf(node.object, scope) === 'location') on.navigation(node.property.start);
+      const of = kindOf(node.object, scope);
+      if (name === 'open' && (of === 'window' || of === 'document')) on.open(node.property.start);
+      else if ((name === 'assign' || name === 'replace') && of === 'location') on.navigation(node.property.start);
+      else if ((name === 'navigation' && of === 'window') || ((name === 'write' || name === 'writeln') && of === 'document')) on.navigation(node.property.start);
+      else if (node.object.type === 'Identifier' && node.object.name === 'navigation' && !binding(scope, 'navigation')) on.navigation(node.object.start);
     } else if (node.type === 'VariableDeclarator') {
       if (node.id.type === 'Identifier') bind(scope, node.id.name, kindOf(node.init, scope));
       else {
@@ -396,6 +414,7 @@ function readTree(program, on) {
               continue;
             }
             if (key === 'open') on.open(p.start);
+            if (key === 'navigation' && from === 'window') on.navigation(p.start);
             const kind = key === 'location' ? 'location' : key === 'document' ? 'document' : WINDOW.has(key) || key === 'defaultView' ? 'window' : null;
             if (kind && p.value.type === 'Identifier') bind(scope, p.value.name, kind);
           }
@@ -414,6 +433,12 @@ function readTree(program, on) {
       const callee = node.callee;
       if (callee.type === 'Identifier' && callee.name === 'open' && !binding(scope, 'open')) on.open(node.start);
       if (carriesToken(node)) on.token(node.start);
+      // An element pointed somewhere by name (`a.setAttribute('href', …)`), or a form sent.
+      const method = isMember(callee) ? propertyName(callee) : null;
+      const attribute = node.arguments[method === 'setAttributeNS' ? 1 : 0];
+      if (method === 'submit' || method === 'requestSubmit' || ((method === 'setAttribute' || method === 'setAttributeNS') && attribute?.type === 'StringLiteral' && POINTING.test(attribute.value))) {
+        on.navigation(callee.property.start);
+      }
     }
     const children = [];
     for (const key in node) {
@@ -535,6 +560,7 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
           if (rules.TOKEN_MARKER.test(route)) report(p, 'setup-link token marker', `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
           for (const [check, pattern] of rules.ROUTES) if (pattern.test(route)) report(p, check, `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
           for (const m of value.matchAll(RELATIVE_ADDRESS)) if (!allowedHost(m[1].toLowerCase())) p.hosts.add(m[1].toLowerCase());
+          if (WRITTEN_WAY_OUT.test(value)) report(p, 'browser-opening call', `${rel} (${at(start)}): a page written to leave: ${JSON.stringify(value.slice(0, 120))}`);
         },
         open: (start) => count(p.calls['window.open'], at(start)),
         navigation: (start) => count(p.calls.navigation, at(start)),
