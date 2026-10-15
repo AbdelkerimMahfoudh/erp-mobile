@@ -1206,6 +1206,8 @@ export const fr: Catalogue = {
   'trialSetup.delivery.unavailable': 'Votre commerce peut bénéficier d’un essai gratuit de 7 jours, mais les instructions de configuration ne peuvent pas être envoyées pour le moment. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
   'trialSetup.delivery.failed': 'Les instructions de configuration n’ont pas pu être envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
   'trialSetup.delivery.not_sent': 'Les instructions de configuration n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+  'trialSetup.delivery.not_sent.changed': 'Les instructions de configuration ont été envoyées le {date}, mais elles ne fonctionnent plus, car les informations de votre compte ont changé depuis. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+  'trialSetup.delivery.not_sent.latest': 'Les instructions de configuration ont été envoyées à votre contact vérifié le {date}, mais les plus récentes n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
   // Where the money is (Milestone L). Profit and cash are never mixed.
   'money.title': 'Espèces et comptes',
   'nav.money': 'Espèces et comptes',

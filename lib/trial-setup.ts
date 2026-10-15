@@ -50,6 +50,12 @@ export type TrialSetupStatus =
       delivery: TrialDelivery;
       sentTo: TrialChannel[];
       lastAttemptAt: string | null;
+      /**
+       * When a provider last accepted the instructions, whatever happened since — whether or not they still work for
+       * the Owner as they are now (C17): a UTC instant, or null when none ever was. A server older than C17 does not
+       * send it.
+       */
+      lastSentAt?: string | null;
       timeZone: string;
     };
 
@@ -82,13 +88,31 @@ const WAITING: Record<TrialContact, TranslationKey> = {
 };
 
 /**
+ * Not sent, said for what it is (C17). The server says `not_sent` when nothing
+ * ever went out — and also when what went out no longer works for the Owner as
+ * they are now (their password, a contact or a verification changed since),
+ * or when the latest instructions were lost on the way while earlier ones
+ * still reach a verified contact. Instructions that were sent were sent: when
+ * the server names the day (`lastSentAt`), the line says so, and whether they
+ * still reach a verified contact (`sentTo`). A server too old to name the day
+ * keeps the first line.
+ */
+function notSentLine(status: { lastSentAt?: string | null; sentTo?: readonly TrialChannel[] }): TranslationKey {
+  if (!status.lastSentAt) return 'trialSetup.delivery.not_sent';
+  return status.sentTo?.length ? 'trialSetup.delivery.not_sent.latest' : 'trialSetup.delivery.not_sent.changed';
+}
+
+/**
  * The card's delivery line — one, or one per contact still to be verified
  * while it waits for them. Every line is a statement; none offers an action,
  * because there is nothing to do here: sending again is the website's, after
  * the Owner signs in, or support's. A word this build does not know says
- * nothing rather than something untrue.
+ * nothing rather than something untrue. A line that names the day the
+ * instructions went out takes it as `{date}`.
  */
-export function deliveryLines(status: Pick<EligibleTrialSetup, 'delivery' | 'missingContacts'>): TranslationKey[] {
+export function deliveryLines(
+  status: Pick<EligibleTrialSetup, 'delivery' | 'missingContacts' | 'lastSentAt'> & { sentTo?: readonly TrialChannel[] },
+): TranslationKey[] {
   switch (status.delivery) {
     case 'waiting_for_contact':
       return status.missingContacts.map((contact) => WAITING[contact]).filter(Boolean);
@@ -101,7 +125,7 @@ export function deliveryLines(status: Pick<EligibleTrialSetup, 'delivery' | 'mis
     case 'failed':
       return ['trialSetup.delivery.failed'];
     case 'not_sent':
-      return ['trialSetup.delivery.not_sent'];
+      return [notSentLine(status)];
     default:
       return [];
   }

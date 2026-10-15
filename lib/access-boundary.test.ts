@@ -570,8 +570,9 @@ function packagesOf(source: string): string[] {
 }
 
 /**
- * The trial's words, exactly as the owner approved them (SPEC §10; "being sent", shared contract C1), in all three
- * languages. A new key in these families, a changed sentence or a missing one fails here first.
+ * The trial's words, exactly as the owner approved them (SPEC §10; "being sent", shared contract C1; instructions sent
+ * on a day and no longer working, or sent and the latest lost, C17), in all three languages. A new key in these
+ * families, a changed sentence or a missing one fails here first.
  */
 const TRIAL_COPY: Record<string, Record<string, string>> = {
   en: {
@@ -595,6 +596,8 @@ const TRIAL_COPY: Record<string, Record<string, string>> = {
     'trialSetup.delivery.unavailable': 'Your business is eligible for a 7-day free trial, but setup instructions cannot be sent right now. Your trial has not started. Please contact Dukan ERP support.',
     'trialSetup.delivery.failed': 'The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.',
     'trialSetup.delivery.not_sent': 'The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.',
+    'trialSetup.delivery.not_sent.changed': 'The setup instructions were sent on {date}, but they no longer work because your account details have changed since. Your trial has not started. Please contact Dukan ERP support.',
+    'trialSetup.delivery.not_sent.latest': 'The setup instructions were sent to your verified contact on {date}, but the latest ones have not been sent. Your trial has not started. Please contact Dukan ERP support.',
   },
   fr: {
     'access.state.trial_available': 'Pas encore commencé',
@@ -617,6 +620,8 @@ const TRIAL_COPY: Record<string, Record<string, string>> = {
     'trialSetup.delivery.unavailable': 'Votre commerce peut bénéficier d’un essai gratuit de 7 jours, mais les instructions de configuration ne peuvent pas être envoyées pour le moment. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
     'trialSetup.delivery.failed': 'Les instructions de configuration n’ont pas pu être envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
     'trialSetup.delivery.not_sent': 'Les instructions de configuration n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+    'trialSetup.delivery.not_sent.changed': 'Les instructions de configuration ont été envoyées le {date}, mais elles ne fonctionnent plus, car les informations de votre compte ont changé depuis. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+    'trialSetup.delivery.not_sent.latest': 'Les instructions de configuration ont été envoyées à votre contact vérifié le {date}, mais les plus récentes n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
   },
   ar: {
     'access.state.trial_available': 'لم تبدأ بعد',
@@ -639,6 +644,8 @@ const TRIAL_COPY: Record<string, Record<string, string>> = {
     'trialSetup.delivery.unavailable': 'نشاطك التجاري مؤهل لفترة تجريبية مجانية مدتها 7 أيام، لكن لا يمكن إرسال تعليمات الإعداد الآن. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
     'trialSetup.delivery.failed': 'تعذّر إرسال تعليمات الإعداد. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
     'trialSetup.delivery.not_sent': 'لم تُرسل تعليمات الإعداد. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
+    'trialSetup.delivery.not_sent.changed': 'أُرسلت تعليمات الإعداد في {date}، لكنها لم تعد تعمل لأن بيانات حسابك تغيّرت منذ ذلك الحين. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
+    'trialSetup.delivery.not_sent.latest': 'أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في {date}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
   },
 };
 

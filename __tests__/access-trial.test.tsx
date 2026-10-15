@@ -7,6 +7,9 @@
  *   number of days, the verified contacts as the server masks them, and one delivery line for each of `sent`,
  *   `sending`, `waiting_for_contact`, `unavailable`, `failed` and `not_sent`. Nothing inside it is pressable, links anywhere
  *   or names a website; the screen keeps only Check again, Sign out and Delete account.
+ * - `not_sent` is told apart by when the instructions last went out (C17): never; sent on a day and no longer working;
+ *   or sent on a day to the verified contact, the latest lost — that day on the business's clock with its zone's name,
+ *   in English, French and Arabic laid out right to left.
  * - Staff, refused the Owner's status by the server (403), see the neutral "not started" words only.
  * - A running trial says when it ends and an ended one when it ended — the server's UTC instant on the business's
  *   own clock, with the clock's name. The zones are Tokyo and New York, so neither GMT nor this machine's clock is
@@ -18,7 +21,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import type { ReactTestInstance } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
-import { t } from '../lib/i18n';
+import * as layoutDirection from '../lib/design/layout-direction';
+import { t, useI18n } from '../lib/i18n';
 import type { TrialSetupStatus } from '../lib/trial-setup';
 
 jest.mock('../lib/api-client', () => {
@@ -239,6 +243,108 @@ describe('the Owner of a business that has not started', () => {
     serve(notStarted, setup({ durationDays: 9 }));
     renderScreen(<AccessClosed />);
     expect(await screen.findByText('Duration after activation: 9 days')).toBeTruthy();
+  });
+});
+
+describe('instructions that were sent, and no longer work or were followed by ones that were lost (C17)', () => {
+  const SENT_AT = '2026-10-13T10:00:00.000Z';
+  const CHANGED = 'The setup instructions were sent on 13 Oct 2026 · 19:00 (Japan Standard Time), but they no longer work because your account details have changed since. Your trial has not started. Please contact Dukan ERP support.';
+  const LATEST = 'The setup instructions were sent to your verified contact on 13 Oct 2026 · 19:00 (Japan Standard Time), but the latest ones have not been sent. Your trial has not started. Please contact Dukan ERP support.';
+  const NEVER = 'The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.';
+  const LINK = /\blinks?\b|\bliens?\b|رابط/i;
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    // The last screen is still mounted: English comes back inside act, as a person's own switch would.
+    await act(async () => {
+      await useI18n.getState().setLanguage('en');
+    });
+  });
+
+  /** The card's text, read once it shows. */
+  async function cardFor(over: Parameters<typeof setup>[0]) {
+    serve(notStarted, setup({ delivery: 'not_sent', ...over }));
+    const view = renderScreen(<AccessClosed />);
+    const card = await screen.findByTestId('trial-setup-card');
+    return { card, view };
+  }
+
+  it('never sent — and a server too old to say when — keeps the line it always had', async () => {
+    // `lastSentAt` null, and absent — as a server older than C17 answers.
+    const olderServer: Parameters<typeof setup>[0] = { sentTo: [] };
+    for (const over of [{ sentTo: [], lastSentAt: null }, olderServer]) {
+      const { card, view } = await cardFor(over);
+      expect(screen.getByText(NEVER)).toBeTruthy();
+      expect(textOf(card)).not.toMatch(/were sent|no longer work|latest/);
+      view.unmount();
+    }
+  });
+
+  it('sent, and nothing reaches the Owner as they are now: sent on that day, on the business’s clock, and no longer working', async () => {
+    const { card } = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
+    expect(screen.getByText(CHANGED)).toBeTruthy();
+    expect(screen.queryByText(NEVER)).toBeNull();
+    expect(pressables(card)).toHaveLength(0);
+    expect(textOf(card)).not.toMatch(TRIAL_ACTION);
+    expect(textOf(card)).not.toMatch(WEBSITE);
+    expect(textOf(card)).not.toMatch(LINK);
+    // The business's clock, not this machine's (unless this machine reads Tokyo's).
+    const machine = format(new Date(SENT_AT), 'HH:mm');
+    if (machine !== '19:00') expect(textOf(card)).not.toContain(` ${machine} `);
+  });
+
+  it('the zone the server names decides the hour, and is named: the same instant in New York', async () => {
+    await cardFor({ sentTo: [], lastSentAt: SENT_AT, timeZone: 'America/New_York' });
+    expect(screen.getByText(CHANGED.replace('13 Oct 2026 · 19:00 (Japan Standard Time)', '13 Oct 2026 · 06:00 (Eastern Daylight Time)'))).toBeTruthy();
+  });
+
+  it('sent and still good for the verified contact, the latest lost on the way: says both — nothing to press', async () => {
+    const { card } = await cardFor({ sentTo: ['email'], lastSentAt: SENT_AT });
+    expect(screen.getByText(LATEST)).toBeTruthy();
+    expect(screen.queryByText(NEVER)).toBeNull();
+    expect(pressables(card)).toHaveLength(0);
+    expect(textOf(card)).not.toMatch(TRIAL_ACTION);
+    expect(textOf(card)).not.toMatch(LINK);
+    // Still the screen's three general actions, and nothing is ever written.
+    const labels = screen.getAllByRole('button').map((n) => textOf(n).replace(/\s+/g, ' ').trim());
+    expect(labels).toEqual([t('access.recheck'), t('action.signOut'), t('account.delete.link')]);
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('in French, the day in French on the business’s clock', async () => {
+    await useI18n.getState().setLanguage('fr');
+    const changed = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
+    expect(
+      screen.getByText(
+        'Les instructions de configuration ont été envoyées le 13 oct. 2026 · 19:00 (heure normale du Japon), mais elles ne fonctionnent plus, car les informations de votre compte ont changé depuis. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+      ),
+    ).toBeTruthy();
+    expect(textOf(changed.card)).not.toMatch(LINK);
+    changed.view.unmount();
+
+    const latest = await cardFor({ sentTo: ['whatsapp'], lastSentAt: SENT_AT });
+    expect(
+      screen.getByText(
+        'Les instructions de configuration ont été envoyées à votre contact vérifié le 13 oct. 2026 · 19:00 (heure normale du Japon), mais les plus récentes n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+      ),
+    ).toBeTruthy();
+    expect(pressables(latest.card)).toHaveLength(0);
+  });
+
+  it('in Arabic, laid out right to left: the day reads in its own order, isolated from the sentence around it', async () => {
+    await useI18n.getState().setLanguage('ar');
+    jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
+    const day = '\u206813 أكتوبر 2026 · 19:00 (توقيت اليابان الرسمي)\u2069';
+
+    const changed = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
+    expect(screen.getByText(`أُرسلت تعليمات الإعداد في ${day}، لكنها لم تعد تعمل لأن بيانات حسابك تغيّرت منذ ذلك الحين. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
+    expect(textOf(changed.card)).not.toMatch(LINK);
+    expect(textOf(changed.card)).not.toMatch(TRIAL_ACTION);
+    changed.view.unmount();
+
+    const latest = await cardFor({ sentTo: ['email'], lastSentAt: SENT_AT });
+    expect(screen.getByText(`أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في ${day}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
+    expect(pressables(latest.card)).toHaveLength(0);
   });
 });
 

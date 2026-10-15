@@ -48,6 +48,22 @@ describe('the delivery line', () => {
     assert.deepEqual(deliveryLines({ delivery: 'sending', missingContacts: [] }), ['trialSetup.delivery.sending']);
   });
 
+  it('not sent is told apart by when the instructions last went out (C17): never, sent and no longer working, or sent and the latest lost', () => {
+    const notSent = { delivery: 'not_sent', missingContacts: [] } as const;
+    // Nothing was ever accepted — or a server too old to say when: the line it always had.
+    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [], lastSentAt: null }), ['trialSetup.delivery.not_sent']);
+    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [] }), ['trialSetup.delivery.not_sent']);
+    // Sent once, and nothing reaches the Owner's contacts as they are now: sent on that day, and no longer working.
+    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [], lastSentAt: '2026-10-13T10:00:00.000Z' }), ['trialSetup.delivery.not_sent.changed']);
+    // Sent, still good for a verified contact, and the newest ones lost on the way: sent on that day, the latest not.
+    assert.deepEqual(deliveryLines({ ...notSent, sentTo: ['email'], lastSentAt: '2026-10-13T10:00:00.000Z' }), ['trialSetup.delivery.not_sent.latest']);
+    // The other words do not change with it.
+    for (const delivery of ['sent', 'sending', 'failed', 'unavailable'] as const) {
+      assert.deepEqual(deliveryLines({ delivery, missingContacts: [], sentTo: [], lastSentAt: '2026-10-13T10:00:00.000Z' }), [`trialSetup.delivery.${delivery}`]);
+    }
+    assert.equal(deliveryTone('not_sent'), 'warning');
+  });
+
   it('a word this build does not know says nothing rather than something untrue', () => {
     assert.deepEqual(deliveryLines({ delivery: 'something_new' as never, missingContacts: [] }), []);
     assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['pigeon' as never] }), []);
@@ -102,6 +118,11 @@ describe('display only (the owner’s correction of 2026-10-13)', () => {
     assert.match(card, /t\('trialSetup\.contact', \{ masked: isolateLtr\(destination\.masked\) \}\)/);
     assert.match(card, /accessibilityLabel=\{t\('trialSetup\.status\.label'\)\}/);
     assert.match(card, /deliveryLines\(status\)\.map\(/);
+  });
+
+  it('a line that names the day the instructions went out reads it on the business’s clock, isolated in its own direction', () => {
+    assert.match(card, /const sentOn = status\.lastSentAt \? isolateAuto\(formatDateTime\(status\.lastSentAt, \{ timeZone: status\.timeZone \}\)\) : '';/);
+    assert.match(card, /\{t\(key, \{ date: sentOn \}\)\}/);
   });
 
   it('the closed screen reads the status — the only trial request in the app — and keeps only its three general actions', () => {

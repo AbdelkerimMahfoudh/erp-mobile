@@ -177,6 +177,9 @@ if (process.env.ZONED_TIME_CHILD) {
     assert.match(screen, /formatDateTime\(end\.at, \{ timeZone: end\.timeZone \}\)/);
     const notice = code(join(root, 'components/access/AccessNotice.tsx'));
     assert.match(notice, /formatDateTime\(access\.trialEnd\.at, \{ timeZone: access\.trialEnd\.timeZone \}\)/);
+    // The day the setup instructions went out (C17), on the Owner's card.
+    const card = code(join(root, 'components/access/TrialSetupCard.tsx'));
+    assert.match(card, /formatDateTime\(status\.lastSentAt, \{ timeZone: status\.timeZone \}\)/);
   });
 
   console.log(`zoned time: ${passed} passed`);

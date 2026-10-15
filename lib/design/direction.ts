@@ -97,3 +97,16 @@ export function isolateLtr(value: string): string {
   if (!layoutIsRTL()) return value;
   return `⁦${value}⁩`; // LRI … PDI
 }
+
+/**
+ * Isolate a run that is written in words — a date with its month's name and
+ * its time zone's — in the direction of its own first letter, the way the
+ * website's `<bdi>` does: an Arabic date reads right to left in its natural
+ * order, and the sentence around it keeps its own. Not for an identifier or an
+ * amount: forced left to right like those, "13 أكتوبر 2026 · 19:00 (توقيت
+ * اليابان الرسمي)" would show its parts turned around.
+ */
+export function isolateAuto(value: string): string {
+  if (!layoutIsRTL()) return value;
+  return `⁨${value}⁩`; // FSI … PDI
+}

@@ -1138,6 +1138,8 @@ export const en = {
   'trialSetup.delivery.unavailable': 'Your business is eligible for a 7-day free trial, but setup instructions cannot be sent right now. Your trial has not started. Please contact Dukan ERP support.',
   'trialSetup.delivery.failed': 'The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.',
   'trialSetup.delivery.not_sent': 'The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.',
+  'trialSetup.delivery.not_sent.changed': 'The setup instructions were sent on {date}, but they no longer work because your account details have changed since. Your trial has not started. Please contact Dukan ERP support.',
+  'trialSetup.delivery.not_sent.latest': 'The setup instructions were sent to your verified contact on {date}, but the latest ones have not been sent. Your trial has not started. Please contact Dukan ERP support.',
   // Where the money is (Milestone L). Profit and cash are never mixed.
   'money.title': 'Cash & accounts',
   'nav.money': 'Cash & accounts',
