@@ -823,6 +823,26 @@ describe('stores and staff seats (the owner, 2026-10-15)', () => {
 });
 
 describe('the words', () => {
+  it('the guard reads every key of every catalogue: each one its file writes, each value a sentence it can check', () => {
+    for (const lang of LANGS) {
+      // The catalogue as its file writes it: the exported object, every property a key written as itself — no spread,
+      // computed key or getter through which a value could arrive unseen.
+      const file = treeOf(new URL(`lib/i18n/${lang}.ts`, ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+      const declaration = nodesOf(file).find((n): n is ts.VariableDeclaration => ts.isVariableDeclaration(n) && n.name.getText(file) === lang);
+      const object = declaration?.initializer && bare(declaration.initializer);
+      assert.ok(object && ts.isObjectLiteralExpression(object), `${lang}: the catalogue is one object literal`);
+      const written = object.properties.map((p) => (ts.isPropertyAssignment(p) ? nameOf(p.name) : null));
+      assert.deepEqual(object.properties.filter((p, i) => written[i] === null).map((p) => p.getText(file).slice(0, 80)), [], `${lang}: a property not written as a key`);
+      // What the guard reads is the module itself, so a value written in any form (joined, on several lines) is read
+      // as it will show; here, every key the file writes, in its order, each a non-empty string.
+      const read = entries(lang);
+      assert.equal(read.length, written.length, `${lang}: the guard reads ${read.length} of the ${written.length} keys its file writes`);
+      assert.deepEqual(read.map(([key]) => key), written, `${lang}: the keys read are the keys written`);
+      assert.deepEqual(read.filter(([, value]) => typeof value !== 'string' || value.trim() === '').map(([key]) => key), [], `${lang}: a value that is not a sentence`);
+    }
+    assert.deepEqual(LANGS.map((lang) => entries(lang).length), LANGS.map(() => entries('en').length), 'the three catalogues hold as many keys');
+  });
+
   it('no catalogue carries console or subscription-management copy', () => {
     for (const lang of LANGS) {
       const dict = read(`lib/i18n/${lang}.ts`);
