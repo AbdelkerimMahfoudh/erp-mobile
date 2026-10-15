@@ -60,12 +60,14 @@ jobs:
         run: EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/verify-release-config.js
       - name: web export carries no server secret names
         run: |
-          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --clear
-          ! grep -rlE 'WHATSAPP_ACCESS_TOKEN|OTP_PEPPER|JWT_ACCESS_SECRET|PLATFORM_ADMIN_KEY' dist/_expo/static/js
-      # The free trial is started on the website alone (2026-10-13): the shipped web and iOS bundles must hold no
-      # claim, resend, link token, website address, QR code, web view, browser, price or payment instruction, and
-      # must hold the read-only status route and the card's title, so the scan cannot pass by scanning nothing.
-      - name: exported bundles hold no trial action, website link, QR code, web view, price or payment instruction
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --source-maps --clear --output-dir "$RUNNER_TEMP/export-web"
+          ! grep -rlE --include='*.js' 'WHATSAPP_ACCESS_TOKEN|OTP_PEPPER|JWT_ACCESS_SECRET|PLATFORM_ADMIN_KEY' "$RUNNER_TEMP/export-web/_expo/static/js"
+      # The free trial is started on the website alone (2026-10-13), and the app prices, sells and activates no store or
+      # staff seat (2026-10-15): the shipped web and iOS bundles — every module their source maps list, every string,
+      # every call that could open a browser — must hold no claim, resend, link token, website address, QR code, web
+      # view, browser, price or payment instruction, and must hold the read-only status route and the card's title, so
+      # the scan cannot pass by scanning nothing.
+      - name: exported bundles hold no trial action, website link, QR code, web view, browser, price or payment instruction
         run: |
-          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --output-dir "$RUNNER_TEMP/export-ios"
-          EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js dist "$RUNNER_TEMP/export-ios"
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --source-maps --output-dir "$RUNNER_TEMP/export-ios"
+          EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios"

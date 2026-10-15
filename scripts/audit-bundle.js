@@ -1,41 +1,67 @@
 #!/usr/bin/env node
 /**
  * Exported-bundle audit: what the app actually ships, not what its source
- * promises (docs/21, the owner's correction of 2026-10-13).
+ * promises (docs/21, the owner's correction of 2026-10-13 and decision of
+ * 2026-10-15).
  *
- *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --output-dir <web>
- *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --output-dir <ios>
+ *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform web --source-maps --output-dir <web>
+ *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --source-maps --output-dir <ios>
  *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js <web> <ios> [<android> …]
  *
  * The app may SAY what the server knows about the one 7-day free trial; it can
- * DO nothing about it. The trial is started on the Dukan ERP website alone,
- * its setup instructions are sent by the server to the Owner's verified
- * contacts, and sending them again happens on the website after sign-in or
- * through support. `lib/access-boundary.test.ts` holds the source to that;
- * this holds the exported bundles to it, after every transform, minifier and
- * dependency has had its say. Each item below is proved ABSENT by name:
+ * DO nothing about it — the trial is started on the Dukan ERP website alone,
+ * and its setup instructions are sent again there, after sign-in, or through
+ * support — and it prices, sells and activates nothing of its own access, an
+ * additional store or a paid staff seat included. `lib/access-boundary.test.ts`
+ * holds the source to that; this holds the exported bundles to it, after every
+ * transform, minifier and dependency has had its say, and it checks what is
+ * bundled rather than how it is spelled:
  *
- *   claim button text and claim routes · resend/send button text (EN/FR/AR)
- *   and resend routes · setup-link token markers · website addresses and
- *   links · QR code libraries · web view libraries · browser-opening calls ·
- *   price strings · payment-instruction strings · the platform's routes
+ * - Modules. Every bundle comes with its source map, and every module the maps
+ *   list is checked: no QR encoder (any package with "qr" in its name), no web
+ *   view and no browser library (`DENIED_PACKAGES`), and no module of the app's
+ *   own that names Linking or imports expo-linking beyond `LINKING_ALLOWED`. A
+ *   web page inside a native export (`www.bundle/`, an Expo DOM component) is
+ *   a web view, whatever it holds.
+ * - Calls. Every `openURL` — called, destructured, passed around — and every
+ *   `window.open` — called or read, on `window`, `self`, `globalThis`, `top`,
+ *   `parent` or `frames`, destructured from one of them, or a bare global
+ *   `open(…)` — is traced to its module through the source map and compared
+ *   with `CALL_SITES`, the libraries' own and the report preview's. One more
+ *   anywhere, or one gone, fails; what was found is printed beside what is
+ *   pinned, so the list is changed on purpose.
+ * - Strings. Every string and template literal — a template's parts joined,
+ *   concatenated literals folded — is read as a path (`normalizePath`, in any
+ *   letter case): no claim, resend, store or seat request, price or platform
+ *   route, no setup-link token marker (`#t=`, `?t=`, `account/trial`) wherever
+ *   it sits, and no address — absolute, protocol-relative or `www.` — that is
+ *   not the API's, a development host's or a library's own.
+ * - Words. The decoded text is read as words (`normalizeWords`): no claim or
+ *   resend wording in English, French or Arabic, no website address, no price
+ *   of the app's own access, no payment instruction; and an amount written
+ *   next to MRU or ouguiya must be one of the shop's own (`SHOP_AMOUNTS`).
+ * - Code. A QR encoder's tables and messages, a web view's native component
+ *   or iframe, a browser library's call.
  *
- * and the read-only status route (`account/trial-setup`) and the trial card's
- * title in English, French and Arabic are proved PRESENT — in every bundle
- * scanned — so the audit cannot pass by scanning nothing.
- *
- * Strings are compared after decoding `\uXXXX`, `\u{…}` and `\xXX` escapes:
- * native bundles write French and Arabic that way. Native bundles must be
- * exported with `--no-bytecode`; Hermes bytecode cannot be read as text and
- * is refused rather than skipped. Every absolute address in a bundle must
- * belong to the API origin it was exported for, a development host, or one
- * of the libraries' own documentation and asset hosts listed below; anything
- * else is reported, so a website address cannot slip in under a new name.
+ * And PRESENT in every bundle: the read-only status route `account/trial-setup`
+ * and the trial card's title in English, French and Arabic, so the audit cannot
+ * pass by scanning nothing. Native bundles must be exported with
+ * `--no-bytecode`: Hermes bytecode cannot be read and is refused, not skipped.
  *
  * Exits 1 on any finding, 0 when every check holds on every platform.
  */
 const fs = require('node:fs');
 const path = require('node:path');
+const rules = require('./boundary-rules.cjs');
+
+let parse;
+try {
+  // Metro's own parser: wherever the app can be bundled, it is installed.
+  ({ parse } = require('@babel/parser'));
+} catch {
+  console.error('scripts/audit-bundle.js needs @babel/parser, which Metro installs — run npm ci first.');
+  process.exit(2);
+}
 
 const ROOT = path.join(__dirname, '..');
 const dirs = process.argv.slice(2);
@@ -44,30 +70,69 @@ if (dirs.length === 0) {
   process.exit(2);
 }
 
-/** What must not be shipped, each by the name it is reported under. */
-const ABSENT = [
-  // The claim: only the website exposes it.
-  ['claim button text (EN)', /start (my|your|the) (7-day )?(free )?trial|claim (my|your|the) (7-day )?(free )?trial/i],
-  ['claim button text (FR)', /d[ée]marrer (mon|votre|l['’])\s?essai|r[ée]clamer (mon|votre|l['’])\s?essai/i],
-  ['claim button text (AR)', /ابدأ (فترتي|فترتك|الفترة) التجريبية/],
-  ['claim route', /trial\/claim|trial\/link|my-subscription/],
-  // Sending the instructions again: the website's, after sign-in, or support's.
-  ['resend/send button text (EN)', /\b(re)?send (the )?(setup )?instructions\b/i],
-  ['resend/send button text (FR)', /\br?envoyer (les |des )?instructions\b/i],
-  ['resend/send button text (AR)', /(إعادة إرسال|أعد إرسال|أرسل) (ال)?تعليمات|إرسال تعليمات الإعداد مرة أخرى/],
-  ['resend route', /trial\/setup\/resend|trial-setup\/resend|setup\/resend/],
-  // The one-time setup link is for the website's eyes only.
-  ['setup-link token marker', /account\/trial(?!-setup)|["'`][#?]t=/],
-  // No website: neither its address nor a configured origin for it.
-  ['website address', /tsx-mr\.(com|mr|net|org)|dukan[\w-]*\.(com|mr|net|org|app)\b|PUBLIC_SITE_ORIGIN|EXPO_PUBLIC_(SITE|PORTAL|SIGNUP|WEBSITE)_URL/i],
-  // Nothing to scan towards the website, and no page of it inside the app.
-  ['QR code library', /bad rs block|code length overflow|too big to be stored in a QR Code|react-native-qrcode|qrcode\.react|react-qr-code|QRCodeSVG|QRCodeStyling/i],
-  ['web view library', /RNCWebView|WebViewNativeComponent|requireNativeView\(\s*["']ExpoDomWebView|@expo\/dom-webview|react-native-webview\/lib/],
+/** No QR encoder, no web view and no browser may be bundled, whoever depends on it. */
+const DENIED_PACKAGES = ['react-native-webview', '@expo/dom-webview', 'expo-web-browser', 'expo-auth-session', 'react-native-inappbrowser-reborn'];
+const deniedPackage = (name) => /qr/i.test(name) || DENIED_PACKAGES.includes(name);
+
+/**
+ * The app's own modules that may name Linking, with what each may use. None:
+ * the app's deep links (the `dukanerp` scheme) are resolved by expo-router,
+ * which imports expo-linking itself, and nothing of the app's own creates,
+ * reads or opens a link. A read-only use (`createURL`, `useURL`, `parse`)
+ * would be added here, by module and by name, on purpose.
+ */
+const LINKING_ALLOWED = new Map();
+
+/**
+ * Where the bundles reach for a browser today, by module and platform: the
+ * libraries' own — expo-linking's export and its call into React Native,
+ * expo-router's for an external redirect or link, React Native's and
+ * react-native-web's Linking — and the report preview on the web build
+ * (`lib/report-pdf.ts` opens the PDF's page in a new tab). Nothing of the
+ * app's own calls them.
+ */
+const LINKING_LIBRARIES = {
+  'node_modules/expo-linking/build/Linking.js': 2,
+  'node_modules/expo-router/build/getRoutesRedirects.js': 2,
+  'node_modules/expo-router/build/global-state/router.js': 1,
+};
+const CALL_SITES = {
+  web: {
+    openURL: { ...LINKING_LIBRARIES, 'node_modules/expo-linking/build/RNLinking.web.js': 1, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
+    'window.open': { '/lib/report-pdf.ts': 1, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
+  },
+  ios: { openURL: { ...LINKING_LIBRARIES, 'node_modules/react-native/Libraries/Linking/Linking.js': 2 }, 'window.open': {} },
+  android: { openURL: { ...LINKING_LIBRARIES, 'node_modules/react-native/Libraries/Linking/Linking.js': 2 }, 'window.open': {} },
+};
+
+/** The names a page's own window goes by. */
+const WINDOW = new Set(['window', 'self', 'globalThis', 'top', 'parent', 'frames']);
+
+/**
+ * The amounts the bundles may write next to a currency: the shop's own
+ * examples, never a price of the app's access — the design gallery's unit cost
+ * and sale (`app/dev/gallery.tsx`), and the receipt stylesheet's note on
+ * keeping an amount left to right inside Arabic (`lib/receipt-html.ts`).
+ */
+const SHOP_AMOUNTS = new Set(['30 000 MRU', '24 000 MRU', '45,000 MRU', '329 000 MRU', 'MRU 000 329']);
+const AMOUNT = rules.words(/\d(?:[\d.,]|\s(?=\d))*\s?(?:MRU\b|أوقية|ouguiyas?\b)|\bMRU\s?\d(?:[\d.,]|\s(?=\d))*/gi);
+
+/** Words: read after `normalizeWords`. */
+const WORDS = [
+  ...rules.TRIAL_ACTIONS,
+  ['website address', rules.WEBSITE_ADDRESS],
+  ['price of the app’s own access', rules.ACCESS_PRICE],
+  ['payment-instruction string', rules.PAYMENT_INSTRUCTION],
+];
+/** Code: read as the decoded text writes it. */
+const CODE = [
+  [
+    'QR code library',
+    /bad rs block|code length overflow|too big to be stored in a QR Code|Bytes exceed max length|react-native-qrcode|qrcode\.react|react-qr-code|QRCodeSVG|QRCodeStyling|\b26\s*,\s*44\s*,\s*70\s*,\s*100\s*,\s*134\s*,\s*172\b|\[\s*1\s*,\s*26\s*,\s*19\s*\]\s*,\s*\[\s*1\s*,\s*26\s*,\s*16\s*\]|\[\s*6\s*,\s*18\s*\]\s*,\s*\[\s*6\s*,\s*22\s*\]\s*,\s*\[\s*6\s*,\s*26\s*\]/i,
+  ],
+  ['web view library', /RNCWebView|WebViewNativeComponent|requireNativeView(?:Manager)?\)?\s*\(\s*["'`](?:ExpoDomWebView|RNCWebView)|@expo\/dom-webview|react-native-webview\/lib|\(\s*["'`]iframe["'`]\s*[,)]|createElement\(\s*["'`]iframe["'`]/],
   ['browser-opening call', /openBrowserAsync|openAuthSessionAsync|ExpoWebBrowser|WebBrowser\.open|\bLinking\.openURL\(|(?:openURL|window\.open)\(\s*["'`]https?:/],
-  // The app prices nothing of its own and asks for no payment.
-  ['price string', /\b(100|300|500|700)\s?MRU\b|\bper month\b|\bpar mois\b|شهريًا|MRU\s?\/\s?(month|mois)/i],
-  ['payment-instruction string', /payment-instructions|platform\/quote|payment instructions|instructions de paiement|تعليمات الدفع|\bpay now\b|payer maintenant|ادفع الآن|no payment is required|aucun paiement n.est demandé|لا يلزم أي دفع/i],
-  ['platform route', /\/platform\//],
+  ['setup-link token marker', /account\/trial(?!-setup)/i],
 ];
 
 /**
@@ -83,6 +148,10 @@ const LIBRARY_HOSTS = new Set([
 const apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim();
 const API_HOST = apiOrigin ? new URL(apiOrigin).hostname : null;
 const allowedHost = (host) => LIBRARY_HOSTS.has(host) || host === API_HOST || host.endsWith('.invalid');
+const HOST = '([a-z0-9][a-z0-9-]*(?:\\.[a-z0-9-]+)*\\.[a-z]{2,}|localhost|\\d{1,3}(?:\\.\\d{1,3}){3})';
+/** Absolute and `www.` addresses anywhere; protocol-relative ones (`//host`) inside strings. */
+const ADDRESS = new RegExp(`https?://${HOST}|\\bwww\\.${HOST}`, 'gi');
+const RELATIVE_ADDRESS = new RegExp(`(?:^|[^:\\w/])//${HOST}`, 'gi');
 
 /** The card's title, as each catalogue spells it: it must be in every bundle. */
 function catalogueValue(lang, key) {
@@ -104,58 +173,275 @@ const decode = (s) =>
     .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
     .replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-
+const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const walk = (d) => fs.readdirSync(d).flatMap((n) => (fs.statSync(path.join(d, n)).isDirectory() ? walk(path.join(d, n)) : [path.join(d, n)]));
+const sample = (text, index, length = 0) => text.slice(Math.max(0, index - 60), index + length + 60).replace(/\s+/g, ' ');
 
-/** The bundles of every export, by platform (`_expo/static/js/<platform>/…`); web's prerendered pages go with web. */
+/** A module by the name it keeps wherever node_modules is: from its package on, or the app's own path. */
+const moduleName = (source) => (source.includes('node_modules/') ? source.slice(source.lastIndexOf('node_modules/')) : source);
+
+/**
+ * Which module of a bundle wrote the code at a character offset, read off its
+ * source map: one `[generated column, source]` list per generated line.
+ */
+function moduleAt(code, map) {
+  if (!map) return () => '<no source map>';
+  const B64 = new Int8Array(128);
+  [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'].forEach((c, i) => (B64[c.charCodeAt(0)] = i));
+  const lines = [];
+  let source = 0;
+  for (const line of map.mappings.split(';')) {
+    const segments = [];
+    let column = 0;
+    for (const segment of line ? line.split(',') : []) {
+      const values = [];
+      for (let i = 0, value = 0, shift = 0; i < segment.length; i++) {
+        const digit = B64[segment.charCodeAt(i)];
+        value += (digit & 31) << shift;
+        if (digit & 32) shift += 5;
+        else {
+          values.push(value & 1 ? -(value >>> 1) : value >>> 1);
+          value = 0;
+          shift = 0;
+        }
+      }
+      column += values[0];
+      if (values.length >= 4) source += values[1];
+      segments.push([column, values.length >= 4 ? source : -1]);
+    }
+    lines.push(segments);
+  }
+  const starts = [0];
+  for (let i = code.indexOf('\n'); i !== -1; i = code.indexOf('\n', i + 1)) starts.push(i + 1);
+  return (offset) => {
+    let lo = 0;
+    let hi = starts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (starts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    let found = null;
+    for (const segment of lines[lo] ?? []) {
+      if (segment[0] > offset - starts[lo]) break;
+      found = segment;
+    }
+    return found && found[1] >= 0 ? moduleName(map.sources[found[1]]) : '<unmapped>';
+  };
+}
+
+const propertyName = (node) => (node.computed ? (node.property.type === 'StringLiteral' ? node.property.value : null) : node.property.name);
+const templateText = (node) => node.quasis.map((q) => q.value.cooked ?? q.value.raw).join('\u0000');
+
+/** A `+` chain of literals read as the one string it makes; what is not a literal reads as \0. Null if nothing in it is text. */
+function folded(node) {
+  const parts = [];
+  let left = node;
+  while (left.type === 'BinaryExpression' && left.operator === '+') {
+    parts.push(left.right);
+    left = left.left;
+  }
+  parts.push(left);
+  let any = false;
+  const text = parts
+    .reverse()
+    .map((part) => {
+      const piece =
+        part.type === 'StringLiteral' ? part.value : part.type === 'TemplateLiteral' ? templateText(part) : part.type === 'BinaryExpression' && part.operator === '+' ? folded(part) : null;
+      if (piece !== null) any = true;
+      return piece ?? '\u0000';
+    })
+    .join('');
+  return any ? text : null;
+}
+
+/** `window`, `self`, … or `globalThis.window`: the page's own window. */
+const isWindow = (node) =>
+  (node.type === 'Identifier' && WINDOW.has(node.name)) || ((node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression') && WINDOW.has(propertyName(node)));
+
+/** Every string of a parsed bundle (with where it starts), and every `window.open` it reaches for. */
+function readTree(program, onString, onOpen) {
+  const stack = [[program, false]];
+  while (stack.length) {
+    const [node, inChain] = stack.pop();
+    if (node.type === 'StringLiteral') onString(node.value, node.start);
+    else if (node.type === 'TemplateLiteral') onString(templateText(node), node.start);
+    else if (node.type === 'BinaryExpression' && node.operator === '+' && !inChain) {
+      const text = folded(node);
+      if (text !== null) onString(text, node.start);
+    } else if ((node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression') && propertyName(node) === 'open' && isWindow(node.object)) onOpen(node.property.start);
+    else if (node.type === 'VariableDeclarator' && node.id.type === 'ObjectPattern' && node.init && isWindow(node.init)) {
+      for (const p of node.id.properties) if (p.type === 'ObjectProperty' && (p.key.name ?? p.key.value) === 'open') onOpen(p.start);
+    } else if ((node.type === 'CallExpression' || node.type === 'OptionalCallExpression') && node.callee.type === 'Identifier' && node.callee.name === 'open') onOpen(node.start);
+    for (const key in node) {
+      if (key === 'loc' || key === 'extra' || key.endsWith('Comments')) continue;
+      const value = node[key];
+      if (!value || typeof value !== 'object') continue;
+      if (Array.isArray(value)) {
+        for (const child of value) if (child && typeof child.type === 'string') stack.push([child, false]);
+      } else if (typeof value.type === 'string') stack.push([value, key === 'left' && node.type === 'BinaryExpression' && node.operator === '+']);
+    }
+  }
+}
+
+/** What one platform's files hold, gathered file by file. */
 const platforms = new Map();
 const problems = [];
+const platformOf = (name) => {
+  if (!platforms.has(name)) {
+    platforms.set(name, { files: 0, chars: 0, text: '', modules: new Set(), found: new Map(), calls: { openURL: new Map(), 'window.open': new Map() }, unparsed: [], hosts: new Set(), amounts: new Set() });
+  }
+  return platforms.get(name);
+};
+const report = (p, name, detail) => {
+  if (!p.found.has(name)) p.found.set(name, []);
+  p.found.get(name).push(detail);
+};
+const count = (table, module) => table.set(module, (table.get(module) ?? 0) + 1);
+
 for (const dir of dirs) {
-  for (const file of walk(path.resolve(dir))) {
-    const rel = path.relative(path.resolve(dir), file);
-    const js = rel.match(/_expo[\\/]static[\\/]js[\\/](\w+)[\\/]/);
-    if (rel.endsWith('.hbc') || (js && /\.(hbc|bundle)$/.test(rel))) problems.push(`${rel}: Hermes bytecode cannot be read — export with --no-bytecode`);
-    const platform = js ? js[1] : rel.endsWith('.html') ? 'web' : null;
-    if (!platform || !/\.(js|html)$/.test(rel)) continue;
-    const entry = platforms.get(platform) ?? { files: 0, text: '' };
-    entry.files += 1;
-    entry.text += '\n' + decode(fs.readFileSync(file, 'utf8'));
-    platforms.set(platform, entry);
+  const root = path.resolve(dir);
+  const files = walk(root);
+  const bundled = new Set(files.map((f) => path.relative(root, f).match(/^_expo[\\/]static[\\/]js[\\/](\w+)[\\/]/)?.[1]).filter(Boolean));
+  const native = [...bundled].filter((p) => p !== 'web');
+  for (const file of files) {
+    const rel = path.relative(root, file);
+    const own = rel.match(/^_expo[\\/]static[\\/]js[\\/](\w+)[\\/]/)?.[1];
+    if (rel.endsWith('.hbc') || (own && /\.(hbc|bundle)$/.test(rel))) problems.push(`${rel}: Hermes bytecode cannot be read — export with --no-bytecode`);
+    if (!/\.(js|html)$/.test(rel)) continue;
+    const name = own ?? native[0] ?? 'web';
+    const p = platformOf(name);
+    if (/^www\.bundle[\\/]/.test(rel)) report(p, 'web view library', `${rel}: a web page shipped inside the native app (an Expo DOM component renders in a web view)`);
+
+    const raw = fs.readFileSync(file, 'utf8');
+    const text = decode(raw);
+    p.files += 1;
+    p.chars += text.length;
+    p.text += '\n' + text;
+
+    const words = rules.normalizeWords(text);
+    for (const [check, pattern] of WORDS) {
+      for (const m of words.matchAll(new RegExp(pattern.source, pattern.flags.replace('g', '') + 'g'))) report(p, check, `${rel}: …${sample(words, m.index, m[0].length)}…`);
+    }
+    for (const [check, pattern] of [...CODE, ...rules.ROUTES]) {
+      for (const m of text.matchAll(new RegExp(pattern.source, pattern.flags.replace('g', '') + 'g'))) report(p, check, `${rel}: …${sample(text, m.index, m[0].length)}…`);
+    }
+    for (const m of words.matchAll(AMOUNT)) p.amounts.add(m[0].replace(/\s+/g, ' ').trim());
+    for (const m of text.matchAll(ADDRESS)) {
+      const host = (m[1] ?? `www.${m[2]}`).toLowerCase();
+      if (!allowedHost(host)) p.hosts.add(host);
+    }
+    if (!rel.endsWith('.js')) continue;
+
+    const mapFile = `${file}.map`;
+    const map = fs.existsSync(mapFile) ? JSON.parse(fs.readFileSync(mapFile, 'utf8')) : null;
+    if (!map && own) problems.push(`${rel}: no source map — export with --source-maps, so every bundled module can be checked`);
+    if (map) {
+      map.sources.forEach((source, i) => {
+        p.modules.add(source);
+        const pkg = source.match(/node_modules\/((?:@[^/]+\/)?[^/]+)\/(?!.*node_modules\/)/)?.[1];
+        if (pkg && deniedPackage(pkg)) report(p, pkg.toLowerCase().includes('qr') ? 'QR code library' : /web-?view/i.test(pkg) ? 'web view library' : 'browser-opening call', `module ${source}`);
+        if (pkg || !source.startsWith('/') || !map.sourcesContent?.[i]) return;
+        if (/qr/i.test(path.basename(source))) report(p, 'QR code library', `app module ${source}`);
+        const code = strip(map.sourcesContent[i]);
+        const used = new Set();
+        for (const m of code.matchAll(/import\s+([\s\S]*?)\s+from\s*['"]expo-linking['"]/g)) {
+          const names = m[1].match(/\{([^}]*)\}/);
+          for (const n of names ? names[1].split(',') : []) if (n.trim()) used.add(n.trim().split(/\s+as\s+/)[0]);
+          if (!names || /^[\w$]+\s*,|\*\s*as/.test(m[1].trim())) used.add('*');
+        }
+        if (/(?:require|import)\(\s*['"]expo-linking['"]\s*\)/.test(code)) used.add('*');
+        if (/\bLinking\b/.test(code)) used.add('Linking');
+        const allowed = LINKING_ALLOWED.get(source) ?? new Set();
+        const denied = [...used].filter((n) => !allowed.has(n));
+        if (denied.length) report(p, 'browser-opening call', `app module ${source} names ${denied.join(', ')} of expo-linking or react-native's Linking`);
+      });
+    }
+
+    const at = moduleAt(raw, map);
+    for (let i = raw.indexOf('openURL'); i !== -1; i = raw.indexOf('openURL', i + 1)) count(p.calls.openURL, at(i));
+    let program;
+    try {
+      program = parse(raw, { sourceType: 'script', allowReturnOutsideFunction: true }).program;
+    } catch (error) {
+      problems.push(`${name}: ${rel} cannot be parsed as JavaScript (${error.message}) — the audit cannot vouch for it`);
+      p.unparsed.push(rel);
+      continue;
+    }
+    readTree(
+      program,
+      (value, start) => {
+        const route = rules.normalizePath(value);
+        if (rules.TOKEN_MARKER.test(route)) report(p, 'setup-link token marker', `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
+        for (const [check, pattern] of rules.ROUTES) if (pattern.test(route)) report(p, check, `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
+        for (const m of value.matchAll(RELATIVE_ADDRESS)) if (!allowedHost(m[1].toLowerCase())) p.hosts.add(m[1].toLowerCase());
+      },
+      (start) => count(p.calls['window.open'], at(start)),
+    );
   }
 }
 if (platforms.size === 0) problems.push('no exported bundle found under ' + dirs.join(', '));
 
-for (const [platform, { files, text }] of platforms) {
-  console.log(`\n${platform}: ${files} files, ${text.length} characters`);
-  for (const [name, pattern] of ABSENT) {
-    const hits = [...text.matchAll(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g'))];
+const CHECKS = [...rules.TRIAL_ACTIONS.map(([n]) => n), 'claim route', 'resend route', 'store or seat request route', 'setup-link token marker', 'website address', 'QR code library', 'web view library', 'browser-opening call', 'price of the app’s own access', 'price or payment route', 'payment-instruction string', 'platform route'];
+
+const total = (table) => [...table.values()].reduce((a, b) => a + b, 0);
+for (const [platform, p] of platforms) {
+  // A call site that is not pinned — or a pin no longer met — is a browser-opening call until somebody looks.
+  // `window.open` is counted on the parsed tree: a bundle that could not be parsed leaves it unknown (and is a finding).
+  const sites = (p.unparsed.length ? ['openURL'] : ['openURL', 'window.open']).map((call) => {
+    const pinned = new Map(Object.entries(CALL_SITES[platform]?.[call] ?? {}));
+    const found = p.calls[call];
+    const modules = [...new Set([...pinned.keys(), ...found.keys()])].sort();
+    const differ = modules.filter((m) => (pinned.get(m) ?? 0) !== (found.get(m) ?? 0));
+    if (!CALL_SITES[platform]) report(p, 'browser-opening call', `${call}: no baseline is pinned for ${platform} — check each site below, then pin it in CALL_SITES`);
+    for (const m of differ) report(p, 'browser-opening call', `${call}: ${found.get(m) ?? 0} found, ${pinned.get(m) ?? 0} pinned in ${m}`);
+    return { call, pinned, found, modules, differ };
+  });
+
+  console.log(`\n${platform}: ${p.files} files, ${p.chars} characters, ${p.modules.size} bundled modules`);
+  for (const check of new Set([...CHECKS, ...p.found.keys()])) {
+    const hits = p.found.get(check) ?? [];
     if (hits.length === 0) {
-      console.log(`  absent   ${name}`);
+      console.log(`  absent   ${check}`);
       continue;
     }
-    const sample = text.slice(Math.max(0, hits[0].index - 60), hits[0].index + 80).replace(/\s+/g, ' ');
-    console.log(`  FOUND    ${name}: ${hits.length} × …${sample}…`);
-    problems.push(`${platform}: ${name}`);
+    console.log(`  FOUND    ${check}: ${hits.length} ×`);
+    for (const hit of hits.slice(0, 5)) console.log(`             ${hit}`);
+    problems.push(`${platform}: ${check}`);
   }
-  const strangers = new Set();
-  for (const m of text.matchAll(/https?:\/\/([a-z0-9][a-z0-9.-]*\.[a-z]{2,}|localhost|\d{1,3}(?:\.\d{1,3}){3})/gi)) {
-    if (!allowedHost(m[1].toLowerCase())) strangers.add(m[1].toLowerCase());
-  }
-  if (strangers.size === 0) console.log('  absent   website link (every address is the API’s, a development host or a library’s own)');
+
+  const strangers = [...p.amounts].filter((a) => !SHOP_AMOUNTS.has(a));
+  if (strangers.length === 0) console.log(`  absent   price string (every amount is one of the shop's own: ${[...p.amounts].join(' · ') || 'none'})`);
   else {
-    console.log(`  FOUND    website link: ${[...strangers].join(', ')}`);
-    problems.push(`${platform}: website link to ${[...strangers].join(', ')}`);
+    console.log(`  FOUND    price string: ${strangers.join(' · ')} (the shop's own: ${[...SHOP_AMOUNTS].join(' · ')})`);
+    problems.push(`${platform}: price string ${strangers.join(', ')}`);
   }
-  for (const [name, needle] of PRESENT) {
-    if (text.includes(needle)) console.log(`  present  ${name}`);
+  if (p.hosts.size === 0) console.log('  absent   website link (every address is the API’s, a development host or a library’s own)');
+  else {
+    console.log(`  FOUND    website link: ${[...p.hosts].join(', ')}`);
+    problems.push(`${platform}: website link to ${[...p.hosts].join(', ')}`);
+  }
+
+  if (p.unparsed.length) console.log(`  UNKNOWN  window.open call sites: ${p.unparsed.join(', ')} could not be parsed`);
+  for (const { call, pinned, found, modules, differ } of sites) {
+    console.log(`  ${differ.length || !CALL_SITES[platform] ? 'CHANGED ' : 'pinned  '} ${call} call sites: ${total(found)} found, ${total(pinned)} pinned`);
+    for (const m of modules) console.log(`             ${differ.includes(m) ? '≠' : ' '} ${found.get(m) ?? 0} found, ${pinned.get(m) ?? 0} pinned   ${m}`);
+  }
+
+  for (const [check, needle] of PRESENT) {
+    if (p.text.includes(needle)) console.log(`  present  ${check}`);
     else {
-      console.log(`  MISSING  ${name}: ${needle}`);
-      problems.push(`${platform}: ${name} is missing — the scan cannot vouch for this bundle`);
+      console.log(`  MISSING  ${check}: ${needle}`);
+      problems.push(`${platform}: ${check} is missing — the scan cannot vouch for this bundle`);
     }
   }
 }
 
 console.log('');
 for (const p of problems) console.log(`FINDING ${p}`);
-console.log(problems.length ? `FAIL: ${problems.length} findings` : `PASS: ${[...platforms.keys()].join(', ')} — no trial action, link, QR code, web view, browser, price or payment instruction`);
+console.log(
+  problems.length
+    ? `FAIL: ${problems.length} findings`
+    : `PASS: ${[...platforms.keys()].join(', ')} — no trial action, link, QR code, web view, browser, price or payment instruction`,
+);
 process.exit(problems.length ? 1 : 0);
