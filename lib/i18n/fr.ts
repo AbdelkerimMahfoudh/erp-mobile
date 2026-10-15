@@ -2805,6 +2805,7 @@ export const fr: Catalogue = {
   'register.verify.resend': 'Renvoyer le code',
   'register.verify.resendWait': 'Vous pourrez redemander dans {seconds} s',
   'register.verify.wrong': 'Ce code ne correspond pas. Vérifiez-le et réessayez.',
+  'register.verify.timeout': 'Nous n’avons pas pu confirmer à temps. Si le code était bon, votre compte est prêt — connectez-vous avec votre mot de passe.',
   'register.verify.change': 'Utiliser un autre contact',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
@@ -3770,6 +3771,7 @@ export const fr: Catalogue = {
   'account.whatsapp.code': 'Code',
   'account.whatsapp.confirm': 'Confirmer le numéro',
   'account.whatsapp.done': 'Numéro WhatsApp vérifié',
+  'account.whatsapp.timeout': 'Nous n’avons pas pu confirmer le numéro à temps. Il est affiché ci-dessous tel qu’il est maintenant : s’il est indiqué Vérifié, c’est fait.',
   'account.whatsapp.inUse': 'Une autre personne de ce commerce utilise déjà ce numéro.',
   'account.whatsapp.invalid': 'Saisissez un numéro WhatsApp, ex. 43 21 09 87 ou +222 43210987.',
   'account.whatsapp.alreadyVerified': 'Ce numéro est déjà vérifié.',

@@ -2628,6 +2628,8 @@ export const en = {
   'register.verify.resend': 'Send it again',
   'register.verify.resendWait': 'You can ask again in {seconds}s',
   'register.verify.wrong': 'That code did not match. Check it and try again.',
+  // The answer was lost, not necessarily the confirmation: never "wrong code".
+  'register.verify.timeout': 'We could not confirm in time. If the code was right, your account is ready — sign in with your password.',
   'register.verify.change': 'Use a different contact',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
@@ -3593,6 +3595,7 @@ export const en = {
   'account.whatsapp.code': 'Code',
   'account.whatsapp.confirm': 'Confirm number',
   'account.whatsapp.done': 'WhatsApp number verified',
+  'account.whatsapp.timeout': 'We could not confirm the number in time. It is shown below as it is now: if it says Verified, it worked.',
   'account.whatsapp.inUse': 'Another person in this business already uses that number.',
   'account.whatsapp.invalid': 'Enter a WhatsApp number, e.g. 43 21 09 87 or +222 43210987.',
   'account.whatsapp.alreadyVerified': 'This number is already verified.',

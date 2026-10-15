@@ -2,14 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { AuthLanguageSwitch, Button, TextField } from '../../components/ui';
+import { AuthLanguageSwitch, Button, InlineNotice, TextField } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
 import { useAuth } from '../../hooks/useAuth';
 import { api, ApiError } from '../../lib/api-client';
+import { toFriendlyError } from '../../lib/errors';
 import { useTranslation } from '../../lib/i18n';
 import { useColors } from '../../lib/design/theme';
 import { space } from '../../lib/design/tokens';
-import { ACCESS_CLOSED } from '../../lib/navigation/entry';
+import { ACCESS_CLOSED, LOGIN } from '../../lib/navigation/entry';
+import { classifyError } from '../../lib/offline/classify';
 import { forgetContinuation, readContinuation } from '../../lib/registration-session';
 import type { AuthTokens } from '../../types/api';
 
@@ -27,6 +29,11 @@ const RESEND_SECONDS = 60;
  * On success the server issues an ordinary session, the same kind a password
  * sign-in produces. The registration password is never replayed to obtain it,
  * and by this point it is no longer in memory.
+ *
+ * An answer that does not arrive in time is not a wrong code: the request
+ * reached the server, which may well have created the account, and the code
+ * has then been spent. The screen says so, and offers sign-in with the
+ * password the person just chose — never "That code did not match".
  */
 export default function VerifyScreen() {
   const { t, language } = useTranslation();
@@ -38,6 +45,7 @@ export default function VerifyScreen() {
   const [code, setCode] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [outcomeUnknown, setOutcomeUnknown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [waitSeconds, setWaitSeconds] = useState(RESEND_SECONDS);
 
@@ -86,6 +94,7 @@ export default function VerifyScreen() {
     inFlight.current = true;
     setSubmitting(true);
     setFailure(null);
+    setOutcomeUnknown(false);
     try {
       const tokens = await api.post<AuthTokens>('/auth/register/verify/confirm', {
         continuation,
@@ -102,7 +111,9 @@ export default function VerifyScreen() {
       // the server opens the business. Nothing opens a browser.
       router.replace(ACCESS_CLOSED as never);
     } catch (e) {
-      setFailure(e instanceof ApiError && e.message ? e.message : t('register.verify.wrong'));
+      // Only the server says a code is wrong; a lost answer or no connection is not its verdict.
+      if (classifyError(e).kind === 'timeout_uncertain') setOutcomeUnknown(true);
+      else setFailure(e instanceof ApiError ? e.message || t('register.verify.wrong') : toFriendlyError(e).body);
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -127,6 +138,7 @@ export default function VerifyScreen() {
             onChangeText={(v) => {
               setCode(v);
               setFailure(null);
+              setOutcomeUnknown(false);
             }}
             keyboardType="number-pad"
             autoComplete="one-time-code"
@@ -138,6 +150,13 @@ export default function VerifyScreen() {
             <Text variant="caption" tone="secondary">
               {notice}
             </Text>
+          ) : null}
+
+          {outcomeUnknown ? (
+            <View style={styles.group}>
+              <InlineNotice tone="warning">{t('register.verify.timeout')}</InlineNotice>
+              <Button title={t('auth.action.signIn')} onPress={() => router.replace(LOGIN as never)} />
+            </View>
           ) : null}
 
           <View style={styles.group}>

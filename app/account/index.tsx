@@ -20,6 +20,7 @@ import {
 import { api, ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
+import { classifyError } from '../../lib/offline/classify';
 import { getLanguage, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
@@ -114,7 +115,10 @@ export default function AccountScreen() {
  *
  * Two steps, both on the server's terms: the password again and the number
  * (a code goes to THAT number, nothing is written yet), then the code. The
- * number becomes the verified one only when the code comes back.
+ * number becomes the verified one only when the code comes back. A
+ * confirmation whose answer does not arrive in time may well have worked:
+ * the section then reads the account again and shows the number as it now
+ * is, rather than a refusal nobody gave.
  */
 function WhatsAppSection({ me }: { me: AccountView }) {
   const { t } = useTranslation();
@@ -127,6 +131,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
   const [challenge, setChallenge] = useState<PhoneVerificationStart | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  /** Said above the number after a confirmation whose answer was lost. */
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const reset = () => {
     setEditing(false);
@@ -200,7 +206,15 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       // A verified number may be what the free trial's setup instructions were waiting for (0095): read their status again.
       await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     } catch (e) {
-      setProblem(explain(e));
+      if (classifyError(e).kind === 'timeout_uncertain') {
+        // The answer was lost, not necessarily the confirmation: show the account as the server now has it.
+        reset();
+        setUnconfirmed(true);
+        await queryClient.invalidateQueries({ queryKey: qk.account });
+        await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
+      } else {
+        setProblem(explain(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -209,6 +223,7 @@ function WhatsAppSection({ me }: { me: AccountView }) {
   if (!editing) {
     return (
       <View style={styles.stack}>
+        {unconfirmed ? <InlineNotice tone="warning">{t('account.whatsapp.timeout')}</InlineNotice> : null}
         <Card style={styles.card}>
           <View style={styles.identity}>
             <Smartphone size={22} />
@@ -230,7 +245,10 @@ function WhatsAppSection({ me }: { me: AccountView }) {
         <Button
           title={me.whatsappVerified ? t('account.whatsapp.change') : t('account.whatsapp.verify')}
           variant={me.whatsappVerified ? 'secondary' : 'primary'}
-          onPress={() => setEditing(true)}
+          onPress={() => {
+            setUnconfirmed(false);
+            setEditing(true);
+          }}
         />
       </View>
     );

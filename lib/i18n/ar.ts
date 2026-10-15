@@ -2564,6 +2564,7 @@ export const ar: Catalogue = {
   'register.verify.resend': 'أرسل الرمز مرّة أخرى',
   'register.verify.resendWait': 'يمكنك الطلب مجدّدًا بعد {seconds} ثانية',
   'register.verify.wrong': 'الرمز غير مطابق. تحقّق منه وحاول مجدّدًا.',
+  'register.verify.timeout': 'تعذّر التأكيد في الوقت المحدد. إذا كان الرمز صحيحًا فحسابك جاهز — سجّل الدخول بكلمة المرور.',
   'register.verify.change': 'استخدام وسيلة تواصل أخرى',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────
@@ -3529,6 +3530,7 @@ export const ar: Catalogue = {
   'account.whatsapp.code': 'الرمز',
   'account.whatsapp.confirm': 'تأكيد الرقم',
   'account.whatsapp.done': 'تم التحقق من رقم واتساب',
+  'account.whatsapp.timeout': 'تعذّر تأكيد الرقم في الوقت المحدد. يظهر أدناه كما هو الآن: إذا ظهر «مُتحقَّق منه» فقد تم ذلك.',
   'account.whatsapp.inUse': 'شخص آخر في هذا المتجر يستخدم هذا الرقم بالفعل.',
   'account.whatsapp.invalid': 'أدخل رقم واتساب، مثال: 43 21 09 87 أو +222 43210987.',
   'account.whatsapp.alreadyVerified': 'هذا الرقم مُتحقَّق منه بالفعل.',

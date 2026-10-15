@@ -289,4 +289,46 @@ describe('the code check', () => {
     expect(paths.every((p: string) => p.startsWith('/auth/register/verify/'))).toBe(true);
     expect(screenText()).not.toMatch(UNSAID);
   });
+
+  /** The code check, up to the press on Confirm, with the server answering the confirmation by `confirm`. */
+  async function confirmWith(confirm: () => never) {
+    mockStore.set('erp.registration.continuation', CONTINUATION);
+    (api.post as jest.Mock).mockImplementation(async (path: string) => {
+      if (path === '/auth/register/verify/start') return { delivery: 'sent' };
+      return confirm();
+    });
+    renderWith(<VerifyScreen />);
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: 'en' }));
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+    });
+  }
+
+  it('an answer that does not arrive in time is never "wrong code": the account may be ready — sign in with the password', async () => {
+    await confirmWith(() => {
+      throw new RequestTimeout();
+    });
+    expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
+    expect(t('register.verify.timeout')).toBe('We could not confirm in time. If the code was right, your account is ready — sign in with your password.');
+    expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+    fireEvent.press(screen.getByText(t('auth.action.signIn')));
+    expect(routerReplace).toHaveBeenLastCalledWith('/(auth)/login');
+  });
+
+  it('no connection is not a wrong code either; a code the server refused still is', async () => {
+    await confirmWith(() => {
+      throw new TypeError('Network request failed');
+    });
+    expect(await screen.findByText(t('state.error.offline.body'))).toBeTruthy();
+    expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+    expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
+    screen.unmount();
+
+    await confirmWith(() => {
+      throw new ApiError('That code did not match.', 400, 'invalid_code');
+    });
+    expect(await screen.findByText('That code did not match.')).toBeTruthy();
+    expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
+  });
 });
