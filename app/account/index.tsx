@@ -24,6 +24,7 @@ import { classifyError } from '../../lib/offline/classify';
 import { getLanguage, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
+import { whatsAppNumber } from '../../lib/whatsapp-number';
 import type { AccountView, PhoneVerificationStart } from '../../types/api';
 
 /**
@@ -117,8 +118,9 @@ export default function AccountScreen() {
  * (a code goes to THAT number, nothing is written yet), then the code. The
  * number becomes the verified one only when the code comes back. A
  * confirmation whose answer does not arrive in time may well have worked:
- * the section then reads the account again and shows the number as it now
- * is, rather than a refusal nobody gave.
+ * the section then reads the account again, and the account decides — the
+ * number typed is now the verified one, or it was not confirmed — never a
+ * refusal nobody gave, and never a chip left for the person to interpret.
  */
 function WhatsAppSection({ me }: { me: AccountView }) {
   const { t } = useTranslation();
@@ -131,8 +133,11 @@ function WhatsAppSection({ me }: { me: AccountView }) {
   const [challenge, setChallenge] = useState<PhoneVerificationStart | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  /** Said above the number after a confirmation whose answer was lost. */
-  const [unconfirmed, setUnconfirmed] = useState(false);
+  /**
+   * A confirmation whose answer was lost and that the account, read again, did
+   * not show — the number as it was typed, and whether the account could be read.
+   */
+  const [lost, setLost] = useState<{ typed: string; outcome: 'not_confirmed' | 'unread' } | null>(null);
 
   const reset = () => {
     setEditing(false);
@@ -207,11 +212,10 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     } catch (e) {
       if (classifyError(e).kind === 'timeout_uncertain') {
-        // The answer was lost, not necessarily the confirmation: show the account as the server now has it.
+        // The answer was lost, not necessarily the confirmation: the account, read again, says which.
+        const typed = phone;
         reset();
-        setUnconfirmed(true);
-        await queryClient.invalidateQueries({ queryKey: qk.account });
-        await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
+        await settle(typed);
       } else {
         setProblem(explain(e));
       }
@@ -220,10 +224,42 @@ function WhatsAppSection({ me }: { me: AccountView }) {
     }
   };
 
+  /** Whether the account now holds the number typed, verified: the confirmation went through. */
+  const settle = async (typed: string) => {
+    let now: AccountView;
+    try {
+      now = await api.get<AccountView>('/account');
+    } catch {
+      setLost({ typed, outcome: 'unread' });
+      return;
+    }
+    queryClient.setQueryData(qk.account, now);
+    await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
+    if (now.whatsappVerified && now.phone === whatsAppNumber(typed)) {
+      setLost(null);
+      toast.success(t('account.whatsapp.done'));
+    } else {
+      setLost({ typed, outcome: 'not_confirmed' });
+    }
+  };
+
+  /** Not confirmed: the form again, with the number already typed. Not read: the account again. */
+  const tryAgain = async (attempt: { typed: string; outcome: 'not_confirmed' | 'unread' }) => {
+    if (attempt.outcome === 'not_confirmed') {
+      setLost(null);
+      setPhone(attempt.typed);
+      setEditing(true);
+      return;
+    }
+    setBusy(true);
+    await settle(attempt.typed);
+    setBusy(false);
+  };
+
   if (!editing) {
     return (
       <View style={styles.stack}>
-        {unconfirmed ? <InlineNotice tone="warning">{t('account.whatsapp.timeout')}</InlineNotice> : null}
+        {lost ? <InlineNotice tone="warning">{t(lost.outcome === 'unread' ? 'account.whatsapp.unread' : 'account.whatsapp.notConfirmed')}</InlineNotice> : null}
         <Card style={styles.card}>
           <View style={styles.identity}>
             <Smartphone size={22} />
@@ -242,14 +278,15 @@ function WhatsAppSection({ me }: { me: AccountView }) {
             {t('account.whatsapp.none')}
           </InlineNotice>
         ) : null}
-        <Button
-          title={me.whatsappVerified ? t('account.whatsapp.change') : t('account.whatsapp.verify')}
-          variant={me.whatsappVerified ? 'secondary' : 'primary'}
-          onPress={() => {
-            setUnconfirmed(false);
-            setEditing(true);
-          }}
-        />
+        {lost ? (
+          <Button title={t('action.retry')} onPress={() => void tryAgain(lost)} loading={busy} />
+        ) : (
+          <Button
+            title={me.whatsappVerified ? t('account.whatsapp.change') : t('account.whatsapp.verify')}
+            variant={me.whatsappVerified ? 'secondary' : 'primary'}
+            onPress={() => setEditing(true)}
+          />
+        )}
       </View>
     );
   }
