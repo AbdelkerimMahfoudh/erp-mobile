@@ -39,6 +39,10 @@ import ts from 'typescript';
 import { en } from './i18n/en.ts';
 import { fr } from './i18n/fr.ts';
 import { ar } from './i18n/ar.ts';
+import { BACK_PARENTS, TABS } from './navigation/back.ts';
+import { ACCESS_CLOSED, ACCESS_STATUS, APP_HOME, LOGIN, SELECT_BRANCH } from './navigation/entry.ts';
+import { internalRoute } from './navigation/internal-route.ts';
+import { HUBS, allDestinations, tabRouteOf } from './navigation/registry.ts';
 
 const rules = createRequire(import.meta.url)('../scripts/boundary-rules.cjs');
 const ROOT = new URL('..', import.meta.url);
@@ -66,13 +70,30 @@ const CATALOGUES: Record<string, Record<string, string>> = { en, fr, ar };
 const entries = (lang: string): [string, string][] => Object.entries(CATALOGUES[lang]);
 const LANGS = ['en', 'fr', 'ar'];
 
+/** A source file's syntax tree, parsed once for every check that reads it. */
+const trees = new Map<string, ts.SourceFile>();
+function treeOf(file: string): ts.SourceFile {
+  if (!trees.has(file)) trees.set(file, ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS));
+  return trees.get(file)!;
+}
+/** Every node of a tree, depth first. */
+function nodesOf(tree: ts.SourceFile): ts.Node[] {
+  const out: ts.Node[] = [];
+  const visit = (node: ts.Node) => {
+    out.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  return out;
+}
+
 /**
  * The text a source file holds, however it is written: every string literal, every template (an interpolation read
  * as the number a placeholder becomes), every run of JSX text, and literals joined with `+` read as the one string
  * they make. `module` marks a module's name — an import, never words on a screen.
  */
 function textsOf(file: string): { text: string; module: boolean }[] {
-  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const source = treeOf(file);
   const out: { text: string; module: boolean }[] = [];
   const joined = (node: ts.Node): string | null => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
@@ -108,6 +129,202 @@ function textsOf(file: string): { text: string; module: boolean }[] {
 }
 /** The app's own source, the catalogues aside: they are read key by key, against the keys a word belongs to. */
 const CODE_SOURCES = SOURCES.filter((f) => !/[\\/]lib[\\/]i18n[\\/](en|fr|ar)\.ts$/.test(f));
+
+/** A value with what does not change it taken away: `as`, `!`, `satisfies`, a type assertion, parentheses. */
+function bare(node: ts.Expression): ts.Expression {
+  let n = node;
+  while (ts.isAsExpression(n) || ts.isNonNullExpression(n) || ts.isParenthesizedExpression(n) || ts.isSatisfiesExpression(n) || ts.isTypeAssertionExpression(n)) n = n.expression;
+  return n;
+}
+/** What every `const` of that name in a file starts as — nothing when the name is ever bound another way. */
+function constantsNamed(name: string, tree: ts.SourceFile): ts.Expression[] {
+  const values: ts.Expression[] = [];
+  let other = false;
+  for (const node of nodesOf(tree)) {
+    if (!(ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isBindingElement(node)) || !ts.isIdentifier(node.name) || node.name.text !== name) continue;
+    if (ts.isVariableDeclaration(node) && node.initializer && (node.parent.flags & ts.NodeFlags.Const) !== 0) values.push(node.initializer);
+    else other = true;
+  }
+  return other ? [] : values;
+}
+
+/**
+ * The browser guard (`lib/navigation/no-browser.ts`): the one module that names `Linking` or `openURL`, to make every
+ * `openURL` refuse, and that reaches `window.open`, to let a new tab open only for a `blob:` page.
+ */
+const GUARD = 'lib/navigation/no-browser.ts';
+
+/** A path of the app's own: `/`, and no host after it (`//host`, `/\host`). */
+const PATH = /^\/(?![/\\])/;
+/** A path whose first segment is written out, so a template may go on after it. */
+const SEGMENT = /^\/[^/\\]/;
+/**
+ * The route registries a navigation may read, each by the module it must be imported from and checked below to hold
+ * only the app's own paths: the tabs and the back parents, the sign-in guard's routes, a tab hub's tab — and a
+ * server's link once `internalRoute` has kept it.
+ */
+const REGISTRIES: Record<string, string> = {
+  TABS: 'navigation/back',
+  backTarget: 'navigation/back',
+  LOGIN: 'navigation/entry',
+  SELECT_BRANCH: 'navigation/entry',
+  ACCESS_CLOSED: 'navigation/entry',
+  ACCESS_STATUS: 'navigation/entry',
+  APP_HOME: 'navigation/entry',
+  entryRoute: 'navigation/entry',
+  tabRouteOf: 'navigation/registry',
+  internalRoute: 'navigation/internal-route',
+};
+/** A screen that lists a registry's destinations (`lib/navigation/registry.ts`) and opens the one pressed: what it reads each from. */
+const REGISTRY_READS: Record<string, string[]> = {
+  'app/(tabs)/money-hub.tsx': ['child.route', 'expenses.route'],
+  'app/(tabs)/more.tsx': ['d.route'],
+  'app/hub/[id].tsx': ['child.route'],
+};
+/** Whether a name is imported, as itself, from the registry it belongs to. */
+function fromRegistry(name: string, tree: ts.SourceFile): boolean {
+  return tree.statements.some((statement) => {
+    if (!REGISTRIES[name] || !ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) return false;
+    if (!statement.moduleSpecifier.text.replace(/\.ts$/, '').endsWith(REGISTRIES[name])) return false;
+    const bindings = statement.importClause?.namedBindings;
+    return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === name && (e.propertyName?.text ?? name) === name);
+  });
+}
+/** The first segments a value can be, when each is written out: `type === 'consignment' ? 'consignments' : 'loans'`. */
+function segmentsOf(node: ts.Expression): string[] | null {
+  const n = bare(node);
+  if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return [n.text];
+  if (!ts.isConditionalExpression(n)) return null;
+  const [yes, no] = [segmentsOf(n.whenTrue), segmentsOf(n.whenFalse)];
+  return yes && no ? [...yes, ...no] : null;
+}
+/**
+ * Whether a navigation target can only be a screen of the app's own: a path written out (a literal or a template that
+ * starts with `/` and its first segment), an object whose `pathname` is one, a `const` or a choice between such, or a
+ * route a registry holds — read from its registry, never from a value the app was given.
+ */
+function leadsInside(node: ts.Expression, file: string, tree: ts.SourceFile): boolean {
+  const n = bare(node);
+  const reads = REGISTRY_READS[file] ?? [];
+  if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return PATH.test(n.text);
+  if (ts.isTemplateExpression(n)) {
+    const [first] = n.templateSpans;
+    if (n.head.text === '/') return segmentsOf(first.expression)?.every((segment) => /^[^/\\]/.test(segment)) ?? false;
+    if (n.head.text === '') return first.literal.text.startsWith('/') && reads.includes(bare(first.expression).getText(tree));
+    return SEGMENT.test(n.head.text);
+  }
+  if (ts.isConditionalExpression(n)) return leadsInside(n.whenTrue, file, tree) && leadsInside(n.whenFalse, file, tree);
+  if (ts.isObjectLiteralExpression(n)) {
+    const pathname = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(tree) === 'pathname');
+    return pathname !== undefined && leadsInside(pathname.initializer, file, tree);
+  }
+  if (ts.isIdentifier(n)) {
+    const values = constantsNamed(n.text, tree);
+    return values.length > 0 ? values.every((value) => leadsInside(value, file, tree)) : fromRegistry(n.text, tree);
+  }
+  if (ts.isPropertyAccessExpression(n)) return reads.includes(n.getText(tree)) || (ts.isIdentifier(n.expression) && n.expression.text === 'TABS' && fromRegistry('TABS', tree));
+  return ts.isCallExpression(n) && ts.isIdentifier(n.expression) && fromRegistry(n.expression.text, tree);
+}
+/**
+ * Every place a source leads somewhere that could be outside the app: a router's `push`, `replace`, `navigate`,
+ * `dismissTo` or `prefetch`, a `<Link>` or `<Redirect>`, a tab's `href` option — each whose target is not provably
+ * the app's own — and any other element given an `href` or `hrefAttrs`.
+ */
+function leadsOutside(file: string): string[] {
+  const tree = treeOf(file);
+  const rel = relative(file);
+  const nodes = nodesOf(tree);
+  const routers = new Set(
+    nodes
+      .filter((n): n is ts.VariableDeclaration => ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && !!n.initializer && ts.isCallExpression(n.initializer) && n.initializer.expression.getText(tree) === 'useRouter')
+      .map((n) => (n.name as ts.Identifier).text),
+  );
+  if (tree.statements.some((s) => ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && s.moduleSpecifier.text === 'expo-router' && /\brouter\b/.test(s.importClause?.getText(tree) ?? ''))) routers.add('router');
+  const out: string[] = [];
+  for (const node of nodes) {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) && routers.has(node.expression.expression.text)) {
+      const method = node.expression.name.text;
+      const [target] = node.arguments;
+      if (['push', 'replace', 'navigate', 'dismissTo', 'prefetch'].includes(method) && !(target && leadsInside(target, rel, tree))) out.push(`${rel}: ${node.getText(tree)}`);
+    } else if (ts.isJsxAttribute(node)) {
+      const name = node.name.getText(tree);
+      const element = node.parent.parent as ts.JsxOpeningLikeElement;
+      const tag = element.tagName.getText(tree);
+      const value = node.initializer && (ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer);
+      if (name === 'hrefAttrs' || (name === 'href' && !(['Link', 'Redirect'].includes(tag) && value && leadsInside(value, rel, tree)))) out.push(`${rel}: <${tag} ${node.getText(tree)}>`);
+    } else if (ts.isPropertyAssignment(node) && node.name.getText(tree) === 'href') {
+      const none = (v: ts.Expression): boolean => {
+        const b = bare(v);
+        return b.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(b) && b.text === 'undefined') || (ts.isConditionalExpression(b) && none(b.whenTrue) && none(b.whenFalse));
+      };
+      if (!none(node.initializer) && !leadsInside(node.initializer, rel, tree)) out.push(`${rel}: ${node.getText(tree)}`);
+    }
+  }
+  return out;
+}
+
+/** The names a page's window goes by — and its document, from which the window is one property away. */
+const WINDOWISH = new Set(['window', 'self', 'globalThis', 'top', 'parent', 'frames', 'document']);
+/** Whether an expression is the page's window or document, by name, by a property that leads to it, or by a `const` given one. */
+function windowish(node: ts.Expression, tree: ts.SourceFile): boolean {
+  const n = bare(node);
+  if (ts.isIdentifier(n)) return WINDOWISH.has(n.text) || constantsNamed(n.text, tree).some((value) => windowish(value, tree));
+  if (ts.isPropertyAccessExpression(n)) return WINDOWISH.has(n.name.text) || n.name.text === 'defaultView' || n.name.text === 'ownerDocument';
+  return false;
+}
+/**
+ * Every way a source reaches for a page's own browser: opening a window, reading or writing its location (by name,
+ * through a window or a document, destructured), `defaultView`, and an assignment to an `href`.
+ */
+function browserUses(file: string): string[] {
+  const tree = treeOf(file);
+  const out: string[] = [];
+  const member = (node: ts.Node): { object: ts.Expression; name: string } | null =>
+    ts.isPropertyAccessExpression(node) ? { object: node.expression, name: node.name.text } : ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression) ? { object: node.expression, name: node.argumentExpression.text } : null;
+  for (const node of nodesOf(tree)) {
+    const m = member(node);
+    if (m && (m.name === 'open' || m.name === 'location') && windowish(m.object, tree)) {
+      const read = m.name === 'location' && member(node.parent)?.name === 'hostname' && !(ts.isBinaryExpression(node.parent.parent) && node.parent.parent.left === node.parent);
+      out.push(read ? `reads ${node.parent.getText(tree)}` : node.getText(tree));
+    } else if (m && m.name === 'defaultView') out.push(node.getText(tree));
+    else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && member(node.left)?.name === 'href') out.push(`assigns ${node.left.getText(tree)}`);
+    else if (ts.isObjectBindingPattern(node) && ts.isVariableDeclaration(node.parent) && node.parent.initializer && windowish(node.parent.initializer, tree)) {
+      for (const e of node.elements) if (['open', 'location'].includes((e.propertyName ?? e.name).getText(tree))) out.push(`destructures ${e.getText(tree)}`);
+    } else if (ts.isIdentifier(node) && node.text === 'location' && !constantsNamed('location', tree).length && isValueUse(node)) out.push('location');
+  }
+  return out.map((use) => `${relative(file)}: ${use}`);
+}
+/** An identifier used as a value — not a property's name, a key, a declaration or an import. */
+function isValueUse(node: ts.Identifier): boolean {
+  const p = node.parent;
+  return !(
+    (ts.isPropertyAccessExpression(p) && p.name === node) ||
+    (ts.isPropertyAssignment(p) && p.name === node) ||
+    (ts.isPropertySignature(p) && p.name === node) ||
+    (ts.isBindingElement(p) && p.propertyName === node) ||
+    ts.isShorthandPropertyAssignment(p) ||
+    ((ts.isVariableDeclaration(p) || ts.isParameter(p) || ts.isFunctionDeclaration(p) || ts.isBindingElement(p)) && p.name === node) ||
+    ts.isImportSpecifier(p) ||
+    ts.isJsxAttribute(p)
+  );
+}
+/** A query that carries the setup link's `t`: `new URLSearchParams({ t })`, `[['t', …]]`, `.set('t', …)`, `.append('t', …)`. */
+function tokenQueries(file: string): string[] {
+  const tree = treeOf(file);
+  const out: string[] = [];
+  for (const node of nodesOf(tree)) {
+    if (!(ts.isCallExpression(node) || ts.isNewExpression(node)) || !node.arguments?.length) continue;
+    const callee = node.expression.getText(tree);
+    const [first] = node.arguments;
+    const named = (p: ts.ObjectLiteralElementLike) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 't';
+    const pair = (e: ts.Expression) => ts.isArrayLiteralExpression(e) && e.elements[0] !== undefined && ts.isStringLiteral(e.elements[0]) && e.elements[0].text === 't';
+    const carries =
+      (/\bURLSearchParams$/.test(callee) && ((ts.isObjectLiteralExpression(first) && first.properties.some(named)) || (ts.isArrayLiteralExpression(first) && first.elements.some(pair)))) ||
+      (/\.(set|append)$/.test(callee) && ts.isStringLiteral(first) && first.text === 't');
+    if (carries) out.push(`${relative(file)}: ${node.getText(tree)}`);
+  }
+  return out;
+}
 
 /** The only keys that may name the free trial (2026-10-13): the Owner's card, the trial's three state words, its dates. */
 const TRIAL_KEY = /^(trialSetup\.|access\.state\.trial_|access\.trial\.)/;
@@ -230,20 +447,62 @@ describe('the website’s entry points are gone from the app', () => {
     assert.deepEqual([...imported.keys()].sort(), [...PACKAGES].sort(), 'the allowlist names a package the app no longer imports: take it out');
   });
 
-  it('nothing opens a browser: no openURL in any form, no Linking at all, and window.open only for the report’s own page', () => {
+  it('nothing opens a browser: no openURL in any form, no Linking at all — but in the guard that makes every openURL refuse', () => {
     for (const f of SOURCES) {
       const text = code(f);
+      assert.doesNotMatch(text, /WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b/, `${f} draws a QR code or opens a web view or browser`);
+      if (relative(f) === GUARD) continue;
       // Called, destructured (`const { openURL } = Linking`), on a namespace or a member: every form names it.
       assert.doesNotMatch(text, /openURL/, `${f} opens a link`);
       // The app's deep links are expo-router's; nothing of the app's own needs Linking from React Native or expo-linking.
       assert.doesNotMatch(text, /\bLinking\b|expo-linking/, `${f} reaches for Linking`);
-      assert.doesNotMatch(text, /WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b/, `${f} draws a QR code or opens a web view or browser`);
     }
-    // The one window the app opens is the web build's preview of a report it has just made — a blob, never an address.
-    const browser = /\b(?:window|self|globalThis|top|parent|frames)\s*\.\s*open\b|\{[^}]*\bopen\b[^}]*\}\s*=\s*(?:window|self|globalThis)\b/g;
-    const opens = SOURCES.flatMap((f) => [...code(f).matchAll(browser)].map(() => relative(f)));
-    assert.deepEqual(opens, ['lib/report-pdf.ts']);
+    // The guard only refuses: React Native's openURL — which expo-linking and expo-router call — and, on the web, any
+    // new tab but a blob page. The root layout installs it once, at module scope, before any screen exists.
+    const guard = code(new URL(GUARD, ROOT).pathname);
+    assert.equal((guard.match(/openURL/g) ?? []).length, 1);
+    assert.match(guard, /^\s*Linking\.openURL = \(\) => Promise\.reject\(new Error\('Dukan ERP opens no address outside the app\.'\)\);$/m);
+    assert.match(guard, /^\s*window\.open = \(url, \.\.\.rest\) => \(String\(url \?\? ''\)\.startsWith\('blob:'\) \? open\(url, \.\.\.rest\) : null\);$/m);
+    assert.doesNotMatch(guard, /expo-linking|location|href|require\(/);
+    assert.match(strip(read('app/_layout.tsx')), /^import \{ refuseBrowser \} from '\.\.\/lib\/navigation\/no-browser';$[\s\S]*^refuseBrowser\(\);$/m);
+  });
+
+  it('every navigation leads to a screen of the app’s own: a path written out, or a route its registries hold', () => {
+    assert.deepEqual(SOURCES.flatMap(leadsOutside), []);
+  });
+
+  it('the route registries hold only the app’s own paths, and a server’s link is followed only when it is one', () => {
+    for (const [tab, route] of Object.entries(TABS)) assert.match(route, PATH, tab);
+    for (const route of [LOGIN, SELECT_BRANCH, ACCESS_CLOSED, ACCESS_STATUS, APP_HOME]) assert.match(route, PATH);
+    for (const [child, parent] of Object.entries(BACK_PARENTS)) assert.match(parent, PATH, child);
+    // A destination's route is continued in templates (`${expenses.route}/new`): its first segment is written out.
+    for (const d of allDestinations()) assert.match(d.route, SEGMENT, d.id);
+    for (const hub of HUBS) assert.match(tabRouteOf(hub), PATH, hub.id);
+    // The sign-in guard answers one of its own routes, or nothing.
+    const entry = treeOf(new URL('lib/navigation/entry.ts', ROOT).pathname);
+    const answers = nodesOf(entry).filter(ts.isReturnStatement).map((r) => r.expression!);
+    const routeOrNothing = (e: ts.Expression): boolean =>
+      e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && ['LOGIN', 'SELECT_BRANCH', 'ACCESS_CLOSED', 'ACCESS_STATUS', 'APP_HOME'].includes(e.text)) || (ts.isConditionalExpression(e) && routeOrNothing(e.whenTrue) && routeOrNothing(e.whenFalse));
+    assert.ok(answers.length >= 5);
+    assert.deepEqual(answers.filter((e) => !routeOrNothing(e)).map((e) => e.getText(entry)), []);
+    assert.equal(internalRoute('https://example.invalid/account/trial#t=token'), null);
+    assert.equal(internalRoute('//example.invalid'), null);
+  });
+
+  it('no page navigates itself or opens a window but the report’s preview, the CSV download and the guard', () => {
+    assert.deepEqual(SOURCES.flatMap(browserUses).sort(), [
+      // The web build's API host is the page's own: read, never written.
+      'constants/config.ts: reads (globalThis as { location?: { hostname?: string } }).location?.hostname',
+      // The guard: a new tab only for a blob page.
+      'lib/navigation/no-browser.ts: window.open',
+      'lib/navigation/no-browser.ts: window.open',
+      // The CSV the browser saves: a link to a blob made from the report already in memory.
+      'lib/report-export.ts: assigns link.href',
+      // The report's preview: a new tab on a blob made from the page already in memory.
+      'lib/report-pdf.ts: window.open',
+    ]);
     assert.match(code(new URL('lib/report-pdf.ts', ROOT).pathname), /const url = URL\.createObjectURL\(new Blob\(\[report\.html\][^)]*\)\);\s*const tab = window\.open\(url, '_blank'\);/);
+    assert.match(code(new URL('lib/report-export.ts', ROOT).pathname), /const url = URL\.createObjectURL\(blob\);\s*const link = document\.createElement\('a'\);\s*link\.href = url;/);
   });
 
   it('the app never asks the server for a price, a payment instruction, a store or a seat, or the platform’s own routes — in any spelling', () => {
@@ -254,6 +513,9 @@ describe('the website’s entry points are gone from the app', () => {
   });
 
   it('the free trial can only be read here (2026-10-13): no claim, no resend, no link token — in any letter case or spelling', () => {
+    // The token's marks in any string, however it is written, and in a query built from parts.
+    const marked = CODE_SOURCES.flatMap((f) => textsOf(f).filter(({ text, module }) => !module && rules.TOKEN_MARKER.test(rules.normalizePath(text))).map(({ text }) => `${relative(f)}: ${text}`));
+    assert.deepEqual([...marked, ...SOURCES.flatMap(tokenQueries)], []);
     for (const f of SOURCES) {
       const text = code(f);
       assert.doesNotMatch(rules.normalizePath(text), rules.TOKEN_MARKER, `${f} carries a setup-link token marker`);

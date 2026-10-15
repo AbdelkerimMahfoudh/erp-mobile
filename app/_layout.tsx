@@ -11,6 +11,7 @@ import { DialogHost, ToastHost } from '../components/overlay';
 import { OfflineBanner } from '../components/ui';
 import { headerBackFor } from '../components/navigation/HeaderBack';
 import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
+import { refuseBrowser } from '../lib/navigation/no-browser';
 import { useI18n } from '../lib/i18n';
 import { ThemeProvider, useColors, useTheme } from '../lib/design/theme';
 
@@ -32,6 +33,9 @@ const queryClient = new QueryClient({
  * worse bug than the flash this prevents.
  */
 void SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Before any screen exists: nothing in the app opens an address outside it (lib/navigation/no-browser.ts).
+refuseBrowser();
 
 export default function RootLayout() {
   return (

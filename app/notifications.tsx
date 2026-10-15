@@ -8,6 +8,7 @@ import { space } from '../lib/design/tokens';
 import { formatMoney, formatSmartDateTime } from '../lib/format';
 import { haptics } from '../lib/haptics';
 import { useTranslation } from '../lib/i18n';
+import { internalRoute } from '../lib/navigation/internal-route';
 import { qk } from '../lib/query-keys';
 import type {
   AppNotification,
@@ -53,8 +54,9 @@ export default function NotificationsScreen() {
   const open = (n: AppNotification) => {
     void haptics.tap();
     if (!n.isRead) markRead.mutate(n.id);
-    // The server decides where a notification points; the app just follows.
-    if (n.actionLink) router.push(n.actionLink as never);
+    // The server decides where a notification points, among the app's own screens: any other address opens nothing.
+    const route = internalRoute(n.actionLink);
+    if (route) router.push(route as never);
   };
 
   return (

@@ -115,8 +115,11 @@ const ROUTES = [
   ['platform route', /\/platform\//i],
 ];
 
-/** The one-time setup link's marks: its token after `#t=` or `?t=`, and the website page it opens. */
-const TOKEN_MARKER = /[#?&]t=|account\/trial(?!-setup)/i;
+/**
+ * The one-time setup link's marks: its token after `#t=` or `?t=` — or at the start of a string that becomes a
+ * fragment or a query (`u.hash = 't=' + token`) — and the website page it opens.
+ */
+const TOKEN_MARKER = /[#?&]t=|^t=|account\/trial(?!-setup)/i;
 
 /** The website, by its address or by a configured origin for it. */
 const WEBSITE_ADDRESS = /tsx[-.]mr\.(?:com|mr|net|org|app)\b|\btsx\.mr\b|dukan[\w-]*\.(?:com|mr|net|org|app)\b|PUBLIC_SITE_ORIGIN|EXPO_PUBLIC_(?:SITE|PORTAL|SIGNUP|WEBSITE)_URL/i;

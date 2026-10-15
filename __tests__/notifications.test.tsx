@@ -20,6 +20,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import { t } from '../lib/i18n';
 import { toFriendlyError } from '../lib/errors';
+import { push as routerPush } from './mocks/expo-router';
 
 jest.mock('../lib/api-client', () => {
   class ApiError extends Error {
@@ -56,7 +57,7 @@ const row = (id: string, isRead = false) => ({
 });
 
 function Harness({ children }: { children: React.ReactNode }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   return (
     <ThemeProvider>
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -156,6 +157,27 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
     );
     fireEvent.press(await screen.findByText('Transfer n1'));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/notifications/n1/read'));
+  });
+
+  it('a row opens the screen its link names; a link to an address outside the app opens nothing', async () => {
+    routerPush.mockClear();
+    (api.get as jest.Mock).mockResolvedValue({
+      rows: [
+        { ...row('n1', true), actionLink: '/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a' },
+        { ...row('n2', true), actionLink: 'https://example.invalid/account/trial#t=token' },
+        { ...row('n3', true), actionLink: '//example.invalid/start' },
+      ],
+      nextCursor: null,
+    });
+    render(
+      <Harness>
+        <NotificationsScreen />
+      </Harness>,
+    );
+    fireEvent.press(await screen.findByText('Transfer n1'));
+    fireEvent.press(screen.getByText('Transfer n2'));
+    fireEvent.press(screen.getByText('Transfer n3'));
+    expect(routerPush.mock.calls).toEqual([['/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a']]);
   });
 });
 
