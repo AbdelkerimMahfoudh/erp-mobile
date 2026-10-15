@@ -34,7 +34,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import ts from 'typescript';
 import { en } from './i18n/en.ts';
 import { fr } from './i18n/fr.ts';
@@ -76,15 +76,34 @@ function treeOf(file: string): ts.SourceFile {
   if (!trees.has(file)) trees.set(file, ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS));
   return trees.get(file)!;
 }
-/** Every node of a tree, depth first. */
+/** Every node of a tree, depth first — gathered once per tree. */
+const nodeLists = new Map<ts.SourceFile, ts.Node[]>();
 function nodesOf(tree: ts.SourceFile): ts.Node[] {
-  const out: ts.Node[] = [];
-  const visit = (node: ts.Node) => {
-    out.push(node);
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
+  let out = nodeLists.get(tree);
+  if (!out) {
+    const nodes: ts.Node[] = [];
+    const visit = (node: ts.Node) => {
+      nodes.push(node);
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+    nodeLists.set(tree, (out = nodes));
+  }
   return out;
+}
+/** Every declaration in a file, by the name it binds: a variable, a parameter, a destructured name, a function, a class or an import. */
+const declarationIndex = new Map<ts.SourceFile, Map<string, ts.Node[]>>();
+function declarationsOf(name: string, tree: ts.SourceFile): ts.Node[] {
+  let index = declarationIndex.get(tree);
+  if (!index) {
+    index = new Map();
+    for (const n of nodesOf(tree)) {
+      const declares = ts.isVariableDeclaration(n) || ts.isParameter(n) || ts.isBindingElement(n) || ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n) || ts.isImportSpecifier(n) || ts.isImportClause(n) || ts.isNamespaceImport(n);
+      if (declares && n.name !== undefined && ts.isIdentifier(n.name)) index.set(n.name.text, [...(index.get(n.name.text) ?? []), n]);
+    }
+    declarationIndex.set(tree, index);
+  }
+  return index.get(name) ?? [];
 }
 
 /**
@@ -139,13 +158,11 @@ function bare(node: ts.Expression): ts.Expression {
 /** What every `const` of that name in a file starts as — nothing when the name is ever bound another way. */
 function constantsNamed(name: string, tree: ts.SourceFile): ts.Expression[] {
   const values: ts.Expression[] = [];
-  let other = false;
-  for (const node of nodesOf(tree)) {
-    if (!(ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isBindingElement(node)) || !ts.isIdentifier(node.name) || node.name.text !== name) continue;
-    if (ts.isVariableDeclaration(node) && node.initializer && (node.parent.flags & ts.NodeFlags.Const) !== 0) values.push(node.initializer);
-    else other = true;
+  for (const node of declarationsOf(name, tree)) {
+    if (!(ts.isVariableDeclaration(node) && node.initializer && (node.parent.flags & ts.NodeFlags.Const) !== 0)) return [];
+    values.push(node.initializer);
   }
-  return other ? [] : values;
+  return values;
 }
 
 /**
@@ -175,21 +192,22 @@ const REGISTRIES: Record<string, string> = {
   tabRouteOf: 'navigation/registry',
   internalRoute: 'navigation/internal-route',
 };
-/** A screen that lists a registry's destinations (`lib/navigation/registry.ts`) and opens the one pressed: what it reads each from. */
-const REGISTRY_READS: Record<string, string[]> = {
-  'app/(tabs)/money-hub.tsx': ['child.route', 'expenses.route'],
-  'app/(tabs)/more.tsx': ['d.route'],
-  'app/hub/[id].tsx': ['child.route'],
-};
-/** Whether a name is imported, as itself, from the registry it belongs to. */
-function fromRegistry(name: string, tree: ts.SourceFile): boolean {
-  return tree.statements.some((statement) => {
-    if (!REGISTRIES[name] || !ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) return false;
-    if (!statement.moduleSpecifier.text.replace(/\.ts$/, '').endsWith(REGISTRIES[name])) return false;
-    const bindings = statement.importClause?.namedBindings;
-    return !!bindings && ts.isNamedImports(bindings) && bindings.elements.some((e) => e.name.text === name && (e.propertyName?.text ?? name) === name);
-  });
+/** Where the app's own modules are, as an import resolves them. */
+const LIB = new URL('lib', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+/**
+ * The module a name is imported from, as itself — a module of the app's own by the path it resolves to, a package by
+ * its name — when nothing else in the file is bound to that name; otherwise null.
+ */
+function importedModule(name: string, tree: ts.SourceFile): string | null {
+  const [declaration, ...others] = declarationsOf(name, tree);
+  if (!declaration || others.length > 0 || !ts.isImportSpecifier(declaration) || (declaration.propertyName ?? declaration.name).text !== name) return null;
+  const statement = declaration.parent.parent.parent;
+  if (!ts.isStringLiteral(statement.moduleSpecifier)) return null;
+  const module = statement.moduleSpecifier.text;
+  return module.startsWith('.') ? join(dirname(tree.fileName), module).replace(/\.tsx?$/, '') : module;
 }
+/** Whether a name is a registry's own: imported, as itself, from its registry's module, and bound to nothing else in the file. */
+const fromRegistry = (name: string, tree: ts.SourceFile): boolean => Object.hasOwn(REGISTRIES, name) && importedModule(name, tree) === join(LIB, REGISTRIES[name]);
 /** The first segments a value can be, when each is written out: `type === 'consignment' ? 'consignments' : 'loans'`. */
 function segmentsOf(node: ts.Expression): string[] | null {
   const n = bare(node);
@@ -198,69 +216,226 @@ function segmentsOf(node: ts.Expression): string[] | null {
   const [yes, no] = [segmentsOf(n.whenTrue), segmentsOf(n.whenFalse)];
   return yes && no ? [...yes, ...no] : null;
 }
+
+/** The registry's lists of destinations (`lib/navigation/registry.ts`), and the lookup of the hub whose children one lists. */
+const LISTS = ['allDestinations', 'hubById', 'moneyRows', 'visibleChildren', 'visibleGroups'];
+/** What hands each item of a list to a callback. */
+const ITERATORS = ['map', 'flatMap', 'find', 'filter', 'forEach', 'some', 'every'];
+/**
+ * Whether a value holds only what the registry lists, or nothing: one of its lists or one of its hubs (a hub's
+ * children only for a hub it holds), an item found in such a list, a name holding one — or a choice between them.
+ */
+function listing(node: ts.Expression, tree: ts.SourceFile, depth: number): boolean {
+  const n = bare(node);
+  if (n.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(n) && n.text === 'undefined')) return true;
+  if (ts.isConditionalExpression(n)) return listing(n.whenTrue, tree, depth) && listing(n.whenFalse, tree, depth);
+  if (ts.isIdentifier(n)) return listed(n.text, tree, depth + 1);
+  if (!ts.isCallExpression(n)) return false;
+  const callee = n.expression;
+  if (ts.isPropertyAccessExpression(callee)) return callee.name.text === 'find' && listing(callee.expression, tree, depth);
+  if (!ts.isIdentifier(callee) || !LISTS.includes(callee.text) || importedModule(callee.text, tree) !== join(LIB, 'navigation/registry')) return false;
+  return callee.text !== 'visibleChildren' || (n.arguments[0] !== undefined && listing(n.arguments[0], tree, depth));
+}
+/**
+ * Whether a name holds only what the registry lists: each of its declarations is a `const` given such a value
+ * (`const children = visibleChildren(hub, …)`, `const expenses = actions.find(…)`), or the item — whole, or a field
+ * of it — that such a list hands its callback (`children.map((child) => …)`, `groups.map(({ destinations }) => …)`).
+ */
+function listed(name: string, tree: ts.SourceFile, depth = 0): boolean {
+  const declarations = declarationsOf(name, tree);
+  return (
+    depth < 6 &&
+    declarations.length > 0 &&
+    declarations.every((declaration) => {
+      if (ts.isVariableDeclaration(declaration)) return (declaration.parent.flags & ts.NodeFlags.Const) !== 0 && declaration.initializer !== undefined && listing(declaration.initializer, tree, depth);
+      let parameter: ts.Node = declaration;
+      while (ts.isBindingElement(parameter)) parameter = parameter.parent.parent;
+      if (!ts.isParameter(parameter)) return false;
+      const callback = parameter.parent;
+      const call = callback.parent;
+      return (
+        (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) &&
+        callback.parameters[0] === parameter &&
+        ts.isCallExpression(call) &&
+        call.arguments[0] === callback &&
+        ts.isPropertyAccessExpression(call.expression) &&
+        ITERATORS.includes(call.expression.name.text) &&
+        listing(call.expression.expression, tree, depth)
+      );
+    })
+  );
+}
+/** A destination's route, read from what the registry lists: `child.route`. */
+function listedRoute(node: ts.Expression, tree: ts.SourceFile): boolean {
+  const n = bare(node);
+  return ts.isPropertyAccessExpression(n) && n.name.text === 'route' && ts.isIdentifier(n.expression) && listed(n.expression.text, tree);
+}
 /**
  * Whether a navigation target can only be a screen of the app's own: a path written out (a literal or a template that
- * starts with `/` and its first segment), an object whose `pathname` is one, a `const` or a choice between such, or a
- * route a registry holds — read from its registry, never from a value the app was given.
+ * starts with `/` and its first segment), an object whose `pathname` is one and nothing spread over it, a `const` or a
+ * choice between such, a route a registry holds — read from its registry, never from a value the app was given — or a
+ * destination's route from the registry's lists.
  */
-function leadsInside(node: ts.Expression, file: string, tree: ts.SourceFile): boolean {
+function leadsInside(node: ts.Expression, tree: ts.SourceFile): boolean {
   const n = bare(node);
-  const reads = REGISTRY_READS[file] ?? [];
   if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return PATH.test(n.text);
   if (ts.isTemplateExpression(n)) {
     const [first] = n.templateSpans;
     if (n.head.text === '/') return segmentsOf(first.expression)?.every((segment) => /^[^/\\]/.test(segment)) ?? false;
-    if (n.head.text === '') return first.literal.text.startsWith('/') && reads.includes(bare(first.expression).getText(tree));
+    if (n.head.text === '') return first.literal.text.startsWith('/') && listedRoute(first.expression, tree);
     return SEGMENT.test(n.head.text);
   }
-  if (ts.isConditionalExpression(n)) return leadsInside(n.whenTrue, file, tree) && leadsInside(n.whenFalse, file, tree);
+  if (ts.isConditionalExpression(n)) return leadsInside(n.whenTrue, tree) && leadsInside(n.whenFalse, tree);
   if (ts.isObjectLiteralExpression(n)) {
-    const pathname = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && p.name.getText(tree) === 'pathname');
-    return pathname !== undefined && leadsInside(pathname.initializer, file, tree);
+    const pathname = n.properties.find((p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && nameOf(p.name) === 'pathname');
+    return pathname !== undefined && !n.properties.some(ts.isSpreadAssignment) && leadsInside(pathname.initializer, tree);
   }
   if (ts.isIdentifier(n)) {
     const values = constantsNamed(n.text, tree);
-    return values.length > 0 ? values.every((value) => leadsInside(value, file, tree)) : fromRegistry(n.text, tree);
+    return values.length > 0 ? values.every((value) => leadsInside(value, tree)) : fromRegistry(n.text, tree);
   }
-  if (ts.isPropertyAccessExpression(n)) return reads.includes(n.getText(tree)) || (ts.isIdentifier(n.expression) && n.expression.text === 'TABS' && fromRegistry('TABS', tree));
+  if (ts.isPropertyAccessExpression(n)) return listedRoute(n, tree) || (ts.isIdentifier(n.expression) && n.expression.text === 'TABS' && fromRegistry('TABS', tree));
   return ts.isCallExpression(n) && ts.isIdentifier(n.expression) && fromRegistry(n.expression.text, tree);
 }
+/** A property's name as written: `href`, `'href'`, `['href']`; null when it is computed. */
+function nameOf(name: ts.PropertyName): string | null {
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) return name.text;
+  return ts.isComputedPropertyName(name) && ts.isStringLiteralLike(name.expression) ? name.expression.text : null;
+}
+
+/** What expo-router gives that can lead anywhere: its router, the hook that hands it out, and its two components. */
+const NAVIGATORS = ['router', 'useRouter', 'Link', 'Redirect'];
+/** A router's ways to go somewhere — each held to where it goes — and its ways to stay or only go back. */
+const GOES = ['push', 'replace', 'navigate', 'dismissTo', 'prefetch'];
+const STAYS = ['back', 'canGoBack', 'canDismiss', 'dismiss', 'dismissAll', 'setParams'];
+/** The hooks that take a list of what they depend on: a router may be named there, to be compared, never called. */
+const DEPENDENT_HOOKS = ['useEffect', 'useLayoutEffect', 'useInsertionEffect', 'useCallback', 'useMemo', 'useImperativeHandle'];
 /**
- * Every place a source leads somewhere that could be outside the app: a router's `push`, `replace`, `navigate`,
- * `dismissTo` or `prefetch`, a `<Link>` or `<Redirect>`, a tab's `href` option — each whose target is not provably
- * the app's own — and any other element given an `href` or `hrefAttrs`.
+ * The two paths inside expo-router the app imports, each for one name that goes nowhere — whether a header is shown,
+ * and a hook that keeps a screen from being left with unsaved work — in `lib/navigation/router-internals.ts` alone.
+ */
+const ROUTER_INTERNALS: Record<string, string> = {
+  'expo-router/build/react-navigation/elements/Header/HeaderShownContext': 'HeaderShownContext',
+  'expo-router/build/react-navigation/core/usePreventRemove': 'usePreventRemove',
+};
+/** The module a node imports or re-exports — by `import`, `export … from`, `import … = require`, `require()` or `import()` — or null. */
+function moduleOf(node: ts.Node): string | null {
+  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) return node.moduleSpecifier.text;
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && ts.isStringLiteral(node.moduleReference.expression)) return node.moduleReference.expression.text;
+  if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) {
+    const [first] = node.arguments;
+    return first !== undefined && ts.isStringLiteralLike(first) ? first.text : null;
+  }
+  return null;
+}
+/** An identifier read as a value in code — not a declaration, a property's name or a type. */
+function isReference(node: ts.Identifier): boolean {
+  if (!isValueUse(node)) return false;
+  for (let p: ts.Node = node.parent; !ts.isSourceFile(p); p = p.parent) if (ts.isTypeNode(p)) return false;
+  return true;
+}
+/**
+ * Every place a source could lead outside the app — each found where it is written:
+ * - expo-router reached other than by name: as a namespace or a default, a navigator under another name, `require`,
+ *   `import()`, a re-export, or a path inside the package (but the two pinned internals);
+ * - a router — `router`, or a `const` given `useRouter()` — used any way but calling one of its own methods on the
+ *   spot (destructured, aliased, handed on, read by a computed name, bound again), unless only named among a hook's
+ *   dependencies; and a `push`, `replace`, `navigate`, `dismissTo` or `prefetch` whose target is not provably the
+ *   app's own;
+ * - `useRouter()` anywhere but as a `const`'s value;
+ * - `<Link>` or `<Redirect>` anywhere but as an element, given spread props or an `href` not provably the app's own;
+ * - any other element given an `href`, `hrefAttrs` or a data detector (text whose links the phone opens by itself,
+ *   past the browser guard), and any object given an `href` that is not one of the app's own paths;
+ * - a registry, or what it lists, written to: assigned, deleted, or given to `Object.assign` and the like.
  */
 function leadsOutside(file: string): string[] {
   const tree = treeOf(file);
   const rel = relative(file);
   const nodes = nodesOf(tree);
-  const routers = new Set(
-    nodes
-      .filter((n): n is ts.VariableDeclaration => ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && !!n.initializer && ts.isCallExpression(n.initializer) && n.initializer.expression.getText(tree) === 'useRouter')
-      .map((n) => (n.name as ts.Identifier).text),
-  );
-  if (tree.statements.some((s) => ts.isImportDeclaration(s) && ts.isStringLiteral(s.moduleSpecifier) && s.moduleSpecifier.text === 'expo-router' && /\brouter\b/.test(s.importClause?.getText(tree) ?? ''))) routers.add('router');
-  const out: string[] = [];
+  const found = new Set<ts.Node>();
+
+  const navigators = new Set<string>();
   for (const node of nodes) {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.expression) && routers.has(node.expression.expression.text)) {
-      const method = node.expression.name.text;
-      const [target] = node.arguments;
-      if (['push', 'replace', 'navigate', 'dismissTo', 'prefetch'].includes(method) && !(target && leadsInside(target, rel, tree))) out.push(`${rel}: ${node.getText(tree)}`);
+    const module = moduleOf(node);
+    if (module === null || !/^expo-router(?:\/|$)/.test(module)) continue;
+    if (module !== 'expo-router') {
+      const internal = Object.hasOwn(ROUTER_INTERNALS, module) ? ROUTER_INTERNALS[module] : null;
+      const names = ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause) ? node.exportClause.elements.map((e) => [(e.propertyName ?? e.name).text, e.name.text]) : [];
+      if (!(rel === 'lib/navigation/router-internals.ts' && names.length === 1 && names[0][0] === internal && names[0][1] === internal)) found.add(node);
+      continue;
+    }
+    const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
+    if (!clause || clause.name || !clause.namedBindings || !ts.isNamedImports(clause.namedBindings)) {
+      found.add(node);
+      continue;
+    }
+    for (const e of clause.namedBindings.elements) {
+      const imported = (e.propertyName ?? e.name).text;
+      if (!NAVIGATORS.includes(imported)) continue;
+      if (imported === e.name.text) navigators.add(imported);
+      else found.add(e);
+    }
+  }
+
+  // The routers: `router` itself, and each `const` given `useRouter()` — and nothing else of their names in the file.
+  const routers = new Set(navigators.has('router') ? ['router'] : []);
+  const fromHook = (n: ts.Node): boolean =>
+    ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && (n.parent.flags & ts.NodeFlags.Const) !== 0 && n.initializer !== undefined && ts.isCallExpression(n.initializer) && n.initializer.arguments.length === 0 && ts.isIdentifier(n.initializer.expression) && n.initializer.expression.text === 'useRouter';
+  for (const node of nodes) {
+    if (!ts.isIdentifier(node) || node.text !== 'useRouter' || !navigators.has('useRouter') || !isReference(node)) continue;
+    const declaration = node.parent.parent;
+    if (ts.isCallExpression(node.parent) && node.parent.expression === node && fromHook(declaration) && (declaration as ts.VariableDeclaration).initializer === node.parent) routers.add(((declaration as ts.VariableDeclaration).name as ts.Identifier).text);
+    else found.add(node.parent);
+  }
+  for (const name of routers) for (const declaration of declarationsOf(name, tree)) if (!fromHook(declaration) && !ts.isImportSpecifier(declaration)) found.add(declaration);
+
+  for (const node of nodes) {
+    if (ts.isIdentifier(node) && isReference(node) && routers.has(node.text)) {
+      // A router is used one way: a method of its own, called on the spot — or named among a hook's dependencies.
+      const access = node.parent;
+      const call = access.parent;
+      const method = ts.isPropertyAccessExpression(access) && access.expression === node && ts.isCallExpression(call) && call.expression === access ? access.name.text : null;
+      if (method !== null && STAYS.includes(method)) continue;
+      if (method !== null && GOES.includes(method)) {
+        const [target] = (call as ts.CallExpression).arguments;
+        if (target === undefined || ts.isSpreadElement(target) || !leadsInside(target, tree)) found.add(call);
+        continue;
+      }
+      const hook = ts.isArrayLiteralExpression(access) && ts.isCallExpression(call) && call.arguments[call.arguments.length - 1] === access ? call.expression : null;
+      if (hook && DEPENDENT_HOOKS.includes(ts.isPropertyAccessExpression(hook) ? hook.name.text : hook.getText(tree))) continue;
+      found.add(method !== null ? call : access);
+    } else if (ts.isIdentifier(node) && isReference(node) && (node.text === 'Link' || node.text === 'Redirect') && navigators.has(node.text)) {
+      // Link and Redirect are elements, never values, and their props are written out — never spread.
+      const element = node.parent;
+      if (!((ts.isJsxOpeningElement(element) || ts.isJsxSelfClosingElement(element) || ts.isJsxClosingElement(element)) && element.tagName === node)) found.add(element);
+      else if (!ts.isJsxClosingElement(element) && element.attributes.properties.some(ts.isJsxSpreadAttribute)) found.add(element);
     } else if (ts.isJsxAttribute(node)) {
       const name = node.name.getText(tree);
-      const element = node.parent.parent as ts.JsxOpeningLikeElement;
-      const tag = element.tagName.getText(tree);
+      const tag = node.parent.parent.tagName.getText(tree);
       const value = node.initializer && (ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer);
-      if (name === 'hrefAttrs' || (name === 'href' && !(['Link', 'Redirect'].includes(tag) && value && leadsInside(value, rel, tree)))) out.push(`${rel}: <${tag} ${node.getText(tree)}>`);
-    } else if (ts.isPropertyAssignment(node) && node.name.getText(tree) === 'href') {
+      const link = (tag === 'Link' || tag === 'Redirect') && navigators.has(tag);
+      if (['hrefAttrs', 'dataDetectorType', 'dataDetectorTypes'].includes(name) || (name === 'href' && !(link && value && leadsInside(value, tree)))) found.add(node);
+    } else if ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) && nameOf(node.name) === 'href') {
+      const value = ts.isPropertyAssignment(node) ? node.initializer : node.name;
       const none = (v: ts.Expression): boolean => {
         const b = bare(v);
         return b.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(b) && b.text === 'undefined') || (ts.isConditionalExpression(b) && none(b.whenTrue) && none(b.whenFalse));
       };
-      if (!none(node.initializer) && !leadsInside(node.initializer, rel, tree)) out.push(`${rel}: ${node.getText(tree)}`);
+      if (!none(value) && !leadsInside(value, tree)) found.add(node);
+    } else {
+      // What the registry holds is read, never written.
+      let target: ts.Expression | undefined;
+      if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment && !ts.isIdentifier(bare(node.left))) target = node.left;
+      else if (ts.isDeleteExpression(node)) target = node.expression;
+      else if (ts.isCallExpression(node) && /^(?:Object|Reflect)\.(?:assign|defineProperty|defineProperties|set|setPrototypeOf|deleteProperty)$/.test(node.expression.getText(tree))) target = node.arguments[0];
+      if (target === undefined) continue;
+      let root = bare(target);
+      while (ts.isPropertyAccessExpression(root) || ts.isElementAccessExpression(root)) root = bare(root.expression);
+      const module = ts.isIdentifier(root) ? importedModule(root.text, tree) : null;
+      if (ts.isIdentifier(root) && ((module !== null && module.startsWith(join(LIB, 'navigation') + sep)) || listed(root.text, tree))) found.add(node);
     }
   }
-  return out;
+  return [...found].map((node) => `${rel}: ${node.getText(tree)}`);
 }
 
 /** The names a page's window goes by — and its document, from which the window is one property away. */
@@ -272,9 +447,18 @@ function windowish(node: ts.Expression, tree: ts.SourceFile): boolean {
   if (ts.isPropertyAccessExpression(n)) return WINDOWISH.has(n.name.text) || n.name.text === 'defaultView' || n.name.text === 'ownerDocument';
   return false;
 }
+/** A declaration that only says a global exists (`declare const navigation`): the name is still the page's own. */
+const ambient = (node: ts.Node): boolean => (ts.getCombinedModifierFlags(node as ts.Declaration) & ts.ModifierFlags.Ambient) !== 0;
+/** What a page's markup is written through — so a link or a refresh can be planted in it. */
+const MARKUP = ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'createContextualFragment', 'srcdoc'];
+/** What, called on an element, points it somewhere or sends a form. */
+const POINTS = ['setAttribute', 'setAttributeNS', 'submit', 'requestSubmit'];
 /**
- * Every way a source reaches for a page's own browser: opening a window, reading or writing its location (by name,
- * through a window or a document, destructured), `defaultView`, and an assignment to an `href`.
+ * Every way a source reaches for a page's own browser: opening a window (by name, by a computed name, or the page's
+ * own global `open`), reading or writing its location (by name, through a window or a document, destructured), the
+ * page's navigation (`window.navigation` or the global), `defaultView`, writing a document or a page's markup, making
+ * an element other than a download link, pointing an element somewhere (an `href` assigned, `setAttribute`) or
+ * sending a form.
  */
 function browserUses(file: string): string[] {
   const tree = treeOf(file);
@@ -283,47 +467,71 @@ function browserUses(file: string): string[] {
     ts.isPropertyAccessExpression(node) ? { object: node.expression, name: node.name.text } : ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression) ? { object: node.expression, name: node.argumentExpression.text } : null;
   for (const node of nodesOf(tree)) {
     const m = member(node);
+    const called = ts.isCallExpression(node) ? member(node.expression) : null;
     if (m && (m.name === 'open' || m.name === 'location') && windowish(m.object, tree)) {
       const read = m.name === 'location' && member(node.parent)?.name === 'hostname' && !(ts.isBinaryExpression(node.parent.parent) && node.parent.parent.left === node.parent);
       out.push(read ? `reads ${node.parent.getText(tree)}` : node.getText(tree));
-    } else if (m && m.name === 'defaultView') out.push(node.getText(tree));
+    } else if (m && (m.name === 'defaultView' || MARKUP.includes(m.name) || (['navigation', 'write', 'writeln'].includes(m.name) && windowish(m.object, tree)))) out.push(node.getText(tree));
+    else if (ts.isElementAccessExpression(node) && !ts.isStringLiteralLike(node.argumentExpression) && windowish(node.expression, tree)) out.push(node.getText(tree));
+    else if (called && POINTS.includes(called.name)) out.push(node.getText(tree));
+    else if (called && called.name === 'createElement' && windowish(called.object, tree) && !(ts.isCallExpression(node) && node.arguments[0] !== undefined && ts.isStringLiteralLike(node.arguments[0]) && node.arguments[0].text === 'a')) out.push(node.getText(tree));
     else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && member(node.left)?.name === 'href') out.push(`assigns ${node.left.getText(tree)}`);
     else if (ts.isObjectBindingPattern(node) && ts.isVariableDeclaration(node.parent) && node.parent.initializer && windowish(node.parent.initializer, tree)) {
-      for (const e of node.elements) if (['open', 'location'].includes((e.propertyName ?? e.name).getText(tree))) out.push(`destructures ${e.getText(tree)}`);
+      for (const e of node.elements) if (['open', 'location', 'navigation'].includes((e.propertyName ?? e.name).getText(tree))) out.push(`destructures ${e.getText(tree)}`);
     } else if (ts.isIdentifier(node) && node.text === 'location' && !constantsNamed('location', tree).length && isValueUse(node)) out.push('location');
+    else if (ts.isIdentifier(node) && (node.text === 'open' || node.text === 'navigation') && isValueUse(node) && !declarationsOf(node.text, tree).some((d) => !ambient(d))) out.push(`the page's own ${node.text}`);
   }
   return out.map((use) => `${relative(file)}: ${use}`);
 }
-/** An identifier used as a value — not a property's name, a key, a declaration or an import. */
+/** An identifier used as a value — not a member's or a key's name, a declaration, an import or a label; a shorthand property is one. */
 function isValueUse(node: ts.Identifier): boolean {
   const p = node.parent;
+  const named = ts.isPropertyAccessExpression(p) || ts.isPropertyAssignment(p) || ts.isPropertySignature(p) || ts.isPropertyDeclaration(p) || ts.isMethodDeclaration(p) || ts.isMethodSignature(p) || ts.isGetAccessorDeclaration(p) || ts.isSetAccessorDeclaration(p) || ts.isEnumMember(p);
+  const declared = ts.isVariableDeclaration(p) || ts.isParameter(p) || ts.isFunctionDeclaration(p) || ts.isFunctionExpression(p) || ts.isClassDeclaration(p) || ts.isClassExpression(p) || ts.isBindingElement(p);
   return !(
-    (ts.isPropertyAccessExpression(p) && p.name === node) ||
-    (ts.isPropertyAssignment(p) && p.name === node) ||
-    (ts.isPropertySignature(p) && p.name === node) ||
+    (named && p.name === node) ||
+    (declared && p.name === node) ||
     (ts.isBindingElement(p) && p.propertyName === node) ||
-    ts.isShorthandPropertyAssignment(p) ||
-    ((ts.isVariableDeclaration(p) || ts.isParameter(p) || ts.isFunctionDeclaration(p) || ts.isBindingElement(p)) && p.name === node) ||
     ts.isImportSpecifier(p) ||
-    ts.isJsxAttribute(p)
+    ts.isImportClause(p) ||
+    ts.isNamespaceImport(p) ||
+    ts.isJsxAttribute(p) ||
+    ts.isLabeledStatement(p) ||
+    ts.isBreakOrContinueStatement(p)
   );
 }
-/** A query that carries the setup link's `t`: `new URLSearchParams({ t })`, `[['t', …]]`, `.set('t', …)`, `.append('t', …)`. */
+/** A query that carries the setup link's `t`: `new URLSearchParams({ t })`, `[['t', …]]`, or a `const` given one; `.set('t', …)`, `.append('t', …)`. */
 function tokenQueries(file: string): string[] {
   const tree = treeOf(file);
   const out: string[] = [];
+  const carries = (e: ts.Expression): boolean => {
+    const n = bare(e);
+    if (ts.isObjectLiteralExpression(n)) return n.properties.some((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && nameOf(p.name) === 't');
+    if (ts.isArrayLiteralExpression(n)) return n.elements.some((pair) => ts.isArrayLiteralExpression(pair) && pair.elements[0] !== undefined && ts.isStringLiteralLike(pair.elements[0]) && pair.elements[0].text === 't');
+    return ts.isIdentifier(n) && constantsNamed(n.text, tree).some(carries);
+  };
   for (const node of nodesOf(tree)) {
     if (!(ts.isCallExpression(node) || ts.isNewExpression(node)) || !node.arguments?.length) continue;
-    const callee = node.expression.getText(tree);
+    const callee = node.expression;
+    const name = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : ts.isElementAccessExpression(callee) && ts.isStringLiteralLike(callee.argumentExpression) ? callee.argumentExpression.text : null;
     const [first] = node.arguments;
-    const named = (p: ts.ObjectLiteralElementLike) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) && p.name.text === 't';
-    const pair = (e: ts.Expression) => ts.isArrayLiteralExpression(e) && e.elements[0] !== undefined && ts.isStringLiteral(e.elements[0]) && e.elements[0].text === 't';
-    const carries =
-      (/\bURLSearchParams$/.test(callee) && ((ts.isObjectLiteralExpression(first) && first.properties.some(named)) || (ts.isArrayLiteralExpression(first) && first.elements.some(pair)))) ||
-      (/\.(set|append)$/.test(callee) && ts.isStringLiteral(first) && first.text === 't');
-    if (carries) out.push(`${relative(file)}: ${node.getText(tree)}`);
+    if ((name === 'URLSearchParams' && carries(first)) || ((name === 'set' || name === 'append') && ts.isStringLiteralLike(first) && first.text === 't')) out.push(`${relative(file)}: ${node.getText(tree)}`);
   }
   return out;
+}
+
+/**
+ * What a source names, wherever it is written, that opens a browser or a web view, draws a QR code, or reaches past the
+ * browser guard: a web view or a browser library, a QR component, an iframe; React Native's native modules, through
+ * which `openURL` could be called without its JavaScript; a data detector, through which a phone opens a link in text
+ * by itself; and — but in the guard — `openURL` in any form (called, destructured, on a namespace) and `Linking` at
+ * all: the app's deep links are expo-router's, and nothing of its own needs React Native's Linking or expo-linking.
+ */
+function browserNames(file: string): string[] {
+  const text = strip(treeOf(file).text);
+  const names = [...text.matchAll(/WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b|\bNativeModules\b|\bTurboModuleRegistry\b|\brequireNative\w*|\bdataDetectorTypes?\b/g)];
+  if (relative(file) !== GUARD) names.push(...text.matchAll(/openURL|\bLinking\b|expo-linking/g));
+  return names.map(([name]) => `${relative(file)}: ${name}`);
 }
 
 /** The only keys that may name the free trial (2026-10-13): the Owner's card, the trial's three state words, its dates. */
@@ -448,15 +656,7 @@ describe('the website’s entry points are gone from the app', () => {
   });
 
   it('nothing opens a browser: no openURL in any form, no Linking at all — but in the guard that makes every openURL refuse', () => {
-    for (const f of SOURCES) {
-      const text = code(f);
-      assert.doesNotMatch(text, /WebView|WebBrowser\.|openBrowserAsync|openAuthSessionAsync|<QRCode\b|<iframe\b/, `${f} draws a QR code or opens a web view or browser`);
-      if (relative(f) === GUARD) continue;
-      // Called, destructured (`const { openURL } = Linking`), on a namespace or a member: every form names it.
-      assert.doesNotMatch(text, /openURL/, `${f} opens a link`);
-      // The app's deep links are expo-router's; nothing of the app's own needs Linking from React Native or expo-linking.
-      assert.doesNotMatch(text, /\bLinking\b|expo-linking/, `${f} reaches for Linking`);
-    }
+    assert.deepEqual(SOURCES.flatMap(browserNames), []);
     // The guard only refuses: React Native's openURL — which expo-linking and expo-router call — and, on the web, any
     // new tab but a blob page. The root layout installs it once, at module scope, before any screen exists.
     const guard = code(new URL(GUARD, ROOT).pathname);
@@ -467,7 +667,7 @@ describe('the website’s entry points are gone from the app', () => {
     assert.match(strip(read('app/_layout.tsx')), /^import \{ refuseBrowser \} from '\.\.\/lib\/navigation\/no-browser';$[\s\S]*^refuseBrowser\(\);$/m);
   });
 
-  it('every navigation leads to a screen of the app’s own: a path written out, or a route its registries hold', () => {
+  it('every navigation leads to a screen of the app’s own — a path written out, or a route its registries hold — and expo-router is reached only by name, a router only through its own methods', () => {
     assert.deepEqual(SOURCES.flatMap(leadsOutside), []);
   });
 
@@ -698,5 +898,163 @@ describe('the words', () => {
     const scoped = (lang: string) => entries(lang).map(([key]) => key).filter((key) => TRIAL_KEY.test(key) || /^(access\.closed\.not_started|register\.|auth\.action\.createAccount)/.test(key));
     assert.ok(scoped('en').length > 50);
     for (const lang of ['fr', 'ar']) assert.deepEqual(scoped(lang), scoped('en'), `${lang} differs from English in its trial or sign-up keys`);
+  });
+});
+describe('the checks above, held to every way out that was ever found', () => {
+  // Screens written for the purpose and never saved: each is parsed as a screen of the app would be (under `app/`, so
+  // its imports reach the app's own registries) and handed to the checks as it is.
+  const HEAD = [
+    "import React from 'react';",
+    "import { Text } from 'react-native';",
+    "import { Link, Redirect, useRouter } from 'expo-router';",
+    "import { TABS } from '../lib/navigation/back';",
+    "import { internalRoute } from '../lib/navigation/internal-route';",
+    "import { hubById, moneyRows, visibleChildren, visibleGroups } from '../lib/navigation/registry';",
+    '',
+  ].join('\n');
+  let probes = 0;
+  const probe = (code: string, head = HEAD): string => {
+    const file = join(new URL('app', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1'), `zz-probe-${probes++}.tsx`);
+    trees.set(file, ts.createSourceFile(file, `${head}${code}\n`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));
+    return file;
+  };
+  const screen = (body: string) => `export function Probe({ url, host, e }: { url: string; host: string; e: unknown }) { const router = useRouter(); ${body} }`;
+  const found = (check: (file: string) => string[], file: string, what: string) => assert.notDeepEqual(check(file), [], `not found: ${what}`);
+
+  it('a navigation is found when it can lead anywhere — a value, a host, a scheme, however the router or the link is reached', () => {
+    for (const body of [
+      // The verification's: expo-router hands any external href to the browser.
+      'return <Link href={(e as { next?: string }).next as never}><Text>x</Text></Link>;',
+      'return <Text onPress={() => router.push(url as never)}>x</Text>;',
+      'return <Text onPress={() => router.replace(`${host}/start` as never)}>x</Text>;',
+      'return <Text onPress={() => router.push(`/${host}` as never)}>x</Text>;',
+      'return <Text onPress={() => router.push({ pathname: url } as never)}>x</Text>;',
+      "return <Text onPress={() => router.push({ pathname: '/sales', ...(e as object) } as never)}>x</Text>;",
+      "return <Text onPress={() => router.push('https://example.invalid' as never)}>x</Text>;",
+      "return <Text onPress={() => router.navigate('//example.invalid' as never)}>x</Text>;",
+      'return <Redirect href={url as never} />;',
+      // A router reached another way than calling one of its methods on the spot.
+      'const { push } = router; return <Text onPress={() => push(url as never)}>x</Text>;',
+      'const go = router.push; return <Text onPress={() => go(url as never)}>x</Text>;',
+      "return <Text onPress={() => router['push'](url as never)}>x</Text>;",
+      'return <Text onPress={() => router.push.call(router, url as never)}>x</Text>;',
+      'return <Text onPress={() => [url].forEach(router.push as never)}>x</Text>;',
+      'return <Text onPress={() => router.push(...([url] as [never]))}>x</Text>;',
+      'const again = router; return <Text onPress={() => again.push(url as never)}>x</Text>;',
+      'const leave = (r: typeof router) => r.push(url as never); return <Text onPress={() => leave(router)}>x</Text>;',
+      'return <Text onPress={() => useRouter().push(url as never)}>x</Text>;',
+      // A registry's name taken by a local, a registry written to, a list that is not the registry's.
+      "const LOGIN = 'https://example.invalid'; return <Text onPress={() => router.replace(LOGIN as never)}>x</Text>;",
+      'const TABS = { agent: url }; return <Text onPress={() => router.replace(TABS.agent as never)}>x</Text>;',
+      'const internalRoute = (link: string) => link; return <Text onPress={() => router.push(internalRoute(url) as never)}>x</Text>;',
+      '(TABS as unknown as Record<string, string>).agent = url; return <Text onPress={() => router.replace(TABS.agent)}>x</Text>;',
+      'Object.assign(TABS, { agent: url }); return null;',
+      'return <>{[{ route: url }].map((d) => <Text key={d.route} onPress={() => router.push(d.route as never)}>x</Text>)}</>;',
+      "return <>{visibleChildren({ children: [{ route: url }] } as never, new Set(), 'electronics').map((child) => <Text key={child.route} onPress={() => router.push(child.route as never)}>x</Text>)}</>;",
+      "return <>{moneyRows(new Set(), 'electronics').map((child) => { child.route = url; return <Text key={child.id} onPress={() => router.push(child.route as never)}>x</Text>; })}</>;",
+      // A link reached another way than as an element, or given what it was not written with.
+      'return React.createElement(Link, { href: url as never }, null);',
+      'return <Link {...({ href: url } as never)}><Text>x</Text></Link>;',
+      "return <Text {...({ href: 'https://example.invalid' } as object)}>x</Text>;",
+      "const href = url; return <Text {...({ href } as object)}>x</Text>;",
+      "const P = Text as never as React.ComponentType<{ href: string }>; return <P href=\"https://example.invalid\" />;",
+      "const P = Text as never as React.ComponentType<{ hrefAttrs: object }>; return <P hrefAttrs={{ target: '_blank' }} />;",
+      // Text whose links the phone opens by itself, past the browser guard.
+      'return <Text dataDetectorType="link">{url}</Text>;',
+    ]) {
+      found(leadsOutside, probe(screen(body)), body);
+    }
+    // expo-router reached other than by name.
+    for (const head of [
+      "import { router as nav } from 'expo-router';\n",
+      "import { useRouter as useLeave } from 'expo-router';\n",
+      "import { Link as Away } from 'expo-router';\n",
+      "import * as Router from 'expo-router';\n",
+      "import Router from 'expo-router';\n",
+      "export { router } from 'expo-router';\n",
+      "const { router } = require('expo-router');\n",
+      "import { linkTo } from 'expo-router/build/global-state/routing';\n",
+      "export { linkTo } from 'expo-router/build/global-state/routing';\n",
+    ]) {
+      found(leadsOutside, probe('export const go = 1;', head), head);
+    }
+  });
+
+  it('a navigation to a path written out, a registry’s route or a destination the registry lists is not', () => {
+    for (const body of [
+      "return <Text onPress={() => router.push('/sales')}>x</Text>;",
+      'return <Text onPress={() => router.push(`/sales/${host}`)}>x</Text>;',
+      "return <Text onPress={() => router.push(host ? '/sales/period' : '/sales')}>x</Text>;",
+      "return <Text onPress={() => router.push({ pathname: '/unit/[identifier]', params: { identifier: host } })}>x</Text>;",
+      "return <Text onPress={() => router.push(`/${host ? 'loans' : 'consignments'}/${url}`)}>x</Text>;",
+      'return <Text onPress={() => router.replace(TABS.agent)}>x</Text>;',
+      'const target = internalRoute(url); return <Text onPress={() => (target ? router.push(target) : undefined)}>x</Text>;',
+      'return <Text onPress={() => (router.canGoBack() ? router.back() : router.replace(TABS.home))}>x</Text>;',
+      'React.useEffect(() => undefined, [router]); return null;',
+      'return <Redirect href="/" />;',
+      "return <Link href=\"/sales\"><Text>x</Text></Link>;",
+      "const actions = moneyRows(new Set(), 'electronics'); const expenses = actions.find((c) => c.id === 'expenses'); return <>{actions.map((child) => <Text key={child.id} onPress={() => router.push(child.route as never)}>x</Text>)}{expenses ? <Text onPress={() => router.push(`${expenses.route}/new` as never)}>x</Text> : null}</>;",
+      "const groups = visibleGroups(new Set(), 'electronics'); return <>{groups.map(({ group, destinations }) => destinations.map((d) => <Text key={group.id + d.id} onPress={() => router.push(d.route as never)}>x</Text>))}</>;",
+      "const hub = host ? hubById(host) : undefined; if (!hub) return null; const children = visibleChildren(hub, new Set(), 'electronics'); return <>{children.map((child) => <Text key={child.id} onPress={() => router.push(child.route as never)}>x</Text>)}</>;",
+    ]) {
+      assert.deepEqual(leadsOutside(probe(screen(body))), [], body);
+    }
+  });
+
+  it('a page that navigates itself, opens a window or writes its own markup is found, however the window, its document or its location is named', () => {
+    for (const code of [
+      // The verification's.
+      'export const go = (e: string) => window.location.assign(e);',
+      "export const go = (e: string) => document.defaultView?.open(e, '_blank');",
+      'export const go = (e: string) => { const w = window; w.open(e); };',
+      // And every other way found since.
+      'export const go = (e: string) => { location.href = e; };',
+      'export const go = (e: string) => { (window as unknown as { location: string }).location = e; };',
+      'export const go = (e: string) => { const { open } = window; open(e); };',
+      "export const go = (e: string) => (globalThis as unknown as Window)['location'].replace(e);",
+      'export const go = (e: string) => { const page = { location }; page.location.assign(e); };',
+      'export const go = (e: string) => open(e);',
+      'export const go = (e: string, name: string) => (window as unknown as Record<string, (link: string) => void>)[name](e);',
+      "export const go = (e: string) => { const a = document.createElement('a'); a.href = e; a.click(); };",
+      "export const go = (e: string) => { const a = document.createElement('a'); a.setAttribute('href', e); a.click(); };",
+      "export const go = (e: string) => { const f = document.createElement('form'); f.action = e; f.submit(); };",
+      "export const go = () => document.createElement('iframe');",
+      'export const go = (e: string) => (window as unknown as { navigation: { navigate(link: string): void } }).navigation.navigate(e);',
+      'declare const navigation: { navigate(link: string): void };\nexport const go = (e: string) => navigation.navigate(e);',
+      "export const go = (e: string) => document.write('<meta http-equiv=\"refresh\" content=\"0;url=' + e + '\">');",
+      "export const go = (e: string) => { document.body.innerHTML = '<a href=\"' + e + '\">x</a>'; };",
+    ]) {
+      found(browserUses, probe(code, ''), code);
+    }
+  });
+
+  it('a browser, a web view or a way past the guard is found by its name, wherever it is written', () => {
+    for (const code of [
+      "import { Linking } from 'react-native';\nexport const go = (e: string) => Linking.openURL(e);",
+      "import { Linking } from 'react-native';\nconst { openURL } = Linking;\nexport const go = (e: string) => openURL(e);",
+      "import * as ExpoLinking from 'expo-linking';\nexport const go = (e: string) => ExpoLinking.openURL(e);",
+      "import { NativeModules } from 'react-native';\nexport const go = (e: string) => NativeModules.IntentAndroid.openURL(e);",
+      "import { NativeModules } from 'react-native';\nexport const go = (e: string, name: string) => NativeModules[name][e];",
+      "import { Text } from 'react-native';\nexport const P = ({ e }: { e: string }) => <Text dataDetectorType=\"link\">{e}</Text>;",
+      'export const P = ({ e }: { e: string }) => <iframe src={e} />;',
+    ]) {
+      found(browserNames, probe(code, ''), code);
+    }
+  });
+
+  it('a query that carries the setup link’s token is found, and so is a string that starts with it', () => {
+    for (const code of [
+      'export const link = (t: string) => new URLSearchParams({ t });',
+      "export const link = (e: string) => new URLSearchParams([['t', e]]);",
+      'export const link = (e: string) => { const query = { t: e }; return new URLSearchParams(query); };',
+      "export const link = (u: URL, e: string) => u.searchParams.set('t', e);",
+      "export const link = (u: URL, e: string) => u.searchParams['append']('t', e);",
+    ]) {
+      found(tokenQueries, probe(code, ''), code);
+    }
+    for (const code of ["export const link = (u: URL, e: string) => { u.hash = 't=' + e; };", 'export const link = (o: string, e: string) => `${o}#t=${e}`;', "export const link = (o: string, e: string) => o + '?t=' + e;"]) {
+      const marked = textsOf(probe(code, '')).filter(({ text }) => rules.TOKEN_MARKER.test(rules.normalizePath(text)));
+      assert.notDeepEqual(marked, [], code);
+    }
   });
 });

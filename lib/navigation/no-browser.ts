@@ -17,9 +17,11 @@ import { Linking, Platform } from 'react-native';
  * report preview (`lib/report-pdf.ts`); any other address is refused the way a
  * browser refuses a pop-up (`null`), whether `window.open` was reached by name,
  * through an alias or through `document.defaultView`. A page that navigates
- * itself — an anchor, `location` — cannot be refused from here; the source
- * boundary test holds every navigation target to the app's own routes and
- * bans those calls, and the bundle audit pins the libraries' own.
+ * itself — an anchor, `location`, and expo-router's external `href`, whose web
+ * `openURL` (expo-linking's own) sets `window.location` — cannot be refused
+ * from here; the source boundary test holds every navigation target to the
+ * app's own routes, reaches a router only through its own methods and bans
+ * those calls, and the bundle audit pins the libraries' own.
  *
  * `lib/access-boundary.test.ts` pins this file and its call in
  * `app/_layout.tsx`; `scripts/audit-bundle.js` refuses a bundle without it.
