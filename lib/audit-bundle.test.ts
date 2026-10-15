@@ -175,9 +175,24 @@ describe('words a screen could say', () => {
       ['Resend the setup link', 'resend/send button text (EN)'],
       ['Renvoyer le lien', 'resend/send button text (FR)'],
       ['إعادة إرسال الرابط', 'resend/send button text (AR)'],
+      ['Start now — 7 days free', 'claim button text (EN)'],
+      ['ابدأ الآن مجانًا', 'claim button text (AR)'],
     ]) {
       caught('web', say(text), check);
     }
+  });
+
+  it('the trial named in any sentence but its own — in a string, a joined string or a page rendered ahead of time', () => {
+    const named = 'trial named outside its approved sentences';
+    for (const text of ['Sign up for a free trial', 'Enable your free trial', 'Inscrivez-vous à l’essai gratuit', 'سجّل في الفترة التجريبية', 'access.trial.Start my free trial']) {
+      caught('web', `;n.x=${JSON.stringify(text)};`, named);
+    }
+    caught('ios', ";n.x='Use my free '+'trial';", named);
+    // The trial's own sentence, as the catalogue writes it, is no finding.
+    assert.deepEqual(findings(exportWith('web', `;n.x=${JSON.stringify('Free trial: active, ends {date}')};`)), []);
+    const page = exportWith('web');
+    writeFileSync(join(page, 'access.html'), '<html><body><p>Your business is eligible for a 7-day free trial</p><p>Enable your free trial</p></body></html>');
+    assert.ok(findings(page).includes(`web: ${named}`), 'a page rendered ahead of time');
   });
 
   it('a price of the app’s own access, a website, a QR encoder, a web view', () => {

@@ -31,6 +31,8 @@ describe('a claim, however it is worded', () => {
       'Start your 7 days free trial', 'Start your seven day free trial', 'Start a 1-week free trial', 'Start the {durationDays} day free trial',
       'Start free trial', 'Start your free trial now', 'Start using your free trial', 'Begin trial', 'Get started with your free trial',
       'Activate my trial', 'Claim the 7-day trial', 'Try Dukan ERP free for 7 days',
+      // Starting for free, without the trial's name.
+      'Start now — 7 days free', 'Start for free', 'Get started free', 'Sign up free', 'Enable it for free today',
     ]) {
       assertBroken(phrase, /^claim button text \(EN\)$/);
     }
@@ -50,8 +52,33 @@ describe('a claim, however it is worded', () => {
     for (const phrase of [
       'ابدأ تجربتك المجانية', 'ابدأ الفترة التجريبية', 'ابدأ فترتي التجريبية المجانية لمدة 7 أيام', 'ابدأ الآن فترتك التجريبية المجانية لمدة 7 أيام',
       'فعّل فترتك التجريبية المجانية', 'جرّب مجانًا لمدة 7 أيام', 'استفد من الفترة التجريبية المجانية',
+      // Starting for free, without the trial's name.
+      'ابدأ الآن مجانًا', 'فعّل مجانًا لمدة 7 أيام',
     ]) {
       assertBroken(phrase, /^claim button text \(AR\)$/);
+    }
+  });
+});
+
+describe('the trial named, in any wording: only its own sentences and the names the code knows it by may name it', () => {
+  it('a sentence that names the trial is found by its words, whatever its verb — in English, French or Arabic', () => {
+    for (const phrase of [
+      'Sign up for a free trial', 'Enable your free trial', 'Free trial: start now', 'Use my free trial', 'Continue to your free trial',
+      'Inscrivez-vous à l’essai gratuit', 'Utiliser mon essai gratuit', 'Essai gratuit : commencer', 'سجّل في الفترة التجريبية', 'فترة تجريبية',
+    ]) {
+      assert.match(rules.normalizeWords(phrase), rules.TRIAL_WORDS, phrase);
+    }
+    for (const phrase of ['Réessayer', 'Nombre d’essais restants', 'Une connexion est nécessaire', 'Try again', 'Retry']) {
+      assert.doesNotMatch(rules.normalizeWords(phrase), rules.TRIAL_WORDS, phrase);
+    }
+  });
+
+  it('a name the code knows it by is a whole key, its read-only route, its query key or its card’s test id — nothing longer', () => {
+    for (const name of ['access.trial.ends', 'access.state.trial_available', 'trialSetup.delivery.sent', '/account/trial-setup', 'trial-setup', 'trial-setup-card']) {
+      assert.match(name, rules.TRIAL_NAME, name);
+    }
+    for (const text of ['access.trial.Start my free trial', 'trial-setup: start your free trial', '/account/trial', 'trial']) {
+      assert.doesNotMatch(text, rules.TRIAL_NAME, text);
     }
   });
 });
@@ -61,6 +88,7 @@ describe('a resend, by what it sends again: the instructions, the link, the mess
     for (const phrase of [
       'Resend instructions', 'Send the setup instructions again', 'Send me the instructions again', 'Resend the setup link', 'Send the link again',
       'Send me a new link', 'Resend email', 'Send the message again', 'Request new instructions', 'Get the instructions again',
+      'Send again the link', 'Send again the setup instructions',
     ]) {
       assertBroken(phrase, /^resend\/send button text \(EN\)$/);
     }

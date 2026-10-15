@@ -14,6 +14,10 @@
  *   ones, Arabic without its diacritics or tatweel and with one alef,
  *   invisible direction marks dropped, and every `{placeholder}` read as the
  *   number it will become;
+ * - the trial is named only in its own sentences: in the catalogues, under its
+ *   own keys; in the source and in what ships, by those sentences, its keys
+ *   and the names the code knows it by — so a new sentence about it, in any
+ *   wording, is found wherever it is written;
  * - a claim is any of each language's verbs for starting a trial, and a resend
  *   is recognised by what it sends — the instructions — so "Send the code
  *   again", which the app does say about its own codes, is not one;
@@ -59,17 +63,31 @@ function normalizePath(text) {
 }
 
 /**
+ * The free trial, named (2026-10-13). Only its own keys may name it — the Owner's card, the trial's three state
+ * words, its dates — and outside the catalogues only the names the code knows it by: its keys, its read-only route,
+ * its query key and its card's test id. Its words: "trial"; "essai" alone, never inside "nécessaire" or "essais"
+ * (attempts); the Arabic root without its diacritics.
+ */
+const TRIAL_KEY = /^(trialSetup\.|access\.state\.trial_|access\.trial\.)/;
+const TRIAL_WORDS = words(/\btrial\b|\bessai\b|تجريب|تجرب/i);
+const TRIAL_NAME = /^(?:(?:trialSetup|access\.state\.trial_|access\.trial)[\w.]*|\/?account\/trial-setup|trial-setup(?:-card)?)$/;
+
+/**
  * What starting or re-sending the trial would say. None of it may exist anywhere in the app.
  *
  * A claim is a verb for starting, trying or getting, with the trial within five words of it — "Start (using your
- * free) trial", "Commencer (maintenant mon) essai", "ابدأ (الآن فترتك) التجريبية" — or trying for free: "Try Dukan
- * ERP free", "Commencez gratuitement", "جرّب مجانًا", "استفد من … المجانية". A resend is sending again, or anew, what
- * the setup goes out as — its instructions, its link, its message or e-mail: "Resend the setup link", "Renvoyer le
- * message", "إعادة إرسال الرابط". Never a code, which the app does send again for its own sign-in and team checks.
- * `(?:\s+[^\s.]+){0,5}?` reads "up to five words, inside one sentence".
+ * free) trial", "Commencer (maintenant mon) essai", "ابدأ (الآن فترتك) التجريبية" — or starting or trying for free:
+ * "Try Dukan ERP free", "Start now — 7 days free", "Commencez gratuitement", "جرّب مجانًا", "ابدأ الآن مجانًا",
+ * "استفد من … المجانية". A resend is sending again, or anew, what the setup goes out as — its instructions, its link,
+ * its message or e-mail: "Resend the setup link", "Renvoyer le message", "إعادة إرسال الرابط". Never a code, which the
+ * app does send again for its own sign-in and team checks. `(?:\s+[^\s.]+){0,5}?` reads "up to five words, inside
+ * one sentence".
  */
 const TRIAL_ACTIONS = [
-  ['claim button text (EN)', words(/\b(?:start|begin|activate|claim|try|get|unlock|launch|redeem)\b(?:\s+[^\s.]+){0,5}?\s+trial\b|\btry\b(?:\s+[^\s.]+){0,3}?\s+free\b/i)],
+  [
+    'claim button text (EN)',
+    words(/\b(?:start|begin|activate|claim|try|get|unlock|launch|redeem)\b(?:\s+[^\s.]+){0,5}?\s+trial\b|\b(?:start|begin|activate|claim|try|get|unlock|launch|redeem|enable|join|sign\s+up)\b[^.]{0,25}\bfree\b/i),
+  ],
   [
     'claim button text (FR)',
     words(
@@ -79,13 +97,13 @@ const TRIAL_ACTIONS = [
   [
     'claim button text (AR)',
     words(
-      /(?<![؀-ۿ])(?:ابدأ|ابدئي|ابدؤوا|فعّل|فعّلي|اطلب|اطلبي|احصل|احصلي|جرّب|جرّبي|جرّبوا)\s[^.،]{0,25}(?:تجرب|تجريب)|(?<![؀-ۿ])(?:جرّب|جرّبي|جرّبوا)\s[^.،]{0,25}مجان|(?<![؀-ۿ])(?:استفد|استفيدي|استفيدوا)\s+من\s[^.،]{0,25}(?:تجرب|تجريب|مجان)/,
+      /(?<![؀-ۿ])(?:ابدأ|ابدئي|ابدؤوا|فعّل|فعّلي|اطلب|اطلبي|احصل|احصلي|جرّب|جرّبي|جرّبوا)\s[^.،]{0,25}(?:تجرب|تجريب)|(?<![؀-ۿ])(?:جرّب|جرّبي|جرّبوا|ابدأ|ابدئي|ابدؤوا|فعّل|فعّلي|احصل|احصلي)\s[^.،]{0,25}مجان|(?<![؀-ۿ])(?:استفد|استفيدي|استفيدوا)\s+من\s[^.،]{0,25}(?:تجرب|تجريب|مجان)/,
     ),
   ],
   [
     'resend/send button text (EN)',
     words(
-      /\bre-?send\b[^.]{0,30}\b(?:instructions?|link|message|e-?mail)\b|\bsend\b[^.]{0,40}\b(?:instructions?|link|message|e-?mail)\b[^.]{0,30}\bagain\b|\bsend\b(?:\s+(?:me|us))?(?:\s+(?:the|my|your|a|an))?(?:\s+(?:new|setup))*\s+(?:instructions?|link)\b|\b(?:request|get|receive)\b(?:\s+(?:me|us))?(?:\s+(?:the|a|an|my|your))?\s+(?:new|another)\s+(?:setup\s+)?(?:instructions?|link|message|e-?mail)\b|\b(?:request|get|receive)\b[^.]{0,30}\b(?:instructions?|link)\b[^.]{0,20}\bagain\b/i,
+      /\bre-?send\b[^.]{0,30}\b(?:instructions?|link|message|e-?mail)\b|\bsend\b[^.]{0,40}\b(?:instructions?|link|message|e-?mail)\b[^.]{0,30}\bagain\b|\bsend\s+(?:it\s+|them\s+)?again\b[^.]{0,30}\b(?:instructions?|link|message|e-?mail)\b|\bsend\b(?:\s+(?:me|us))?(?:\s+(?:the|my|your|a|an))?(?:\s+(?:new|setup))*\s+(?:instructions?|link)\b|\b(?:request|get|receive)\b(?:\s+(?:me|us))?(?:\s+(?:the|a|an|my|your))?\s+(?:new|another)\s+(?:setup\s+)?(?:instructions?|link|message|e-?mail)\b|\b(?:request|get|receive)\b[^.]{0,30}\b(?:instructions?|link)\b[^.]{0,20}\bagain\b/i,
     ),
   ],
   [
@@ -138,4 +156,4 @@ const PAYMENT_INSTRUCTION = words(
   /payment instructions|instructions de paiement|تعليمات الدفع|\bpay now\b|payer maintenant|ادفع الآن|no payment is required|aucun paiement n'est demandé|لا يلزم أي دفع/i,
 );
 
-module.exports = { normalizeLetters, normalizeWords, normalizePath, words, TRIAL_ACTIONS, ROUTES, TOKEN_MARKER, WEBSITE_ADDRESS, ACCESS_PRICE, PAYMENT_INSTRUCTION };
+module.exports = { normalizeLetters, normalizeWords, normalizePath, words, TRIAL_KEY, TRIAL_WORDS, TRIAL_NAME, TRIAL_ACTIONS, ROUTES, TOKEN_MARKER, WEBSITE_ADDRESS, ACCESS_PRICE, PAYMENT_INSTRUCTION };

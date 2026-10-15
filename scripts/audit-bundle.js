@@ -50,6 +50,10 @@
  *   resend wording in English, French or Arabic, no website address, no price
  *   of the app's own access, no payment instruction; and an amount written
  *   next to MRU or ouguiya must be one of the shop's own (`SHOP_AMOUNTS`).
+ *   And the trial is named — "trial", "essai", تجريب — only in its own
+ *   sentences, as the catalogues write them under its keys, and by the names
+ *   the code knows it by: a string, or the text of a page rendered ahead of
+ *   time, that names it any other way is found, whatever its verb.
  * - Code. A QR encoder's tables and messages, a web view's native component
  *   or iframe, a browser library's call.
  *
@@ -195,6 +199,31 @@ function guardRefusal() {
   if (!m) throw new Error(`${GUARD} no longer refuses with an Error`);
   return m[1];
 }
+/**
+ * The trial's own sentences, as the three catalogues write them under its keys
+ * (`rules.TRIAL_KEY`) — each pinned to what the owner approved by
+ * `lib/access-boundary.test.ts` — read as words. A value written any other
+ * way is not read, and the bundle's copy of it is then found: the audit fails
+ * rather than passes what it cannot read.
+ */
+function trialSentences() {
+  const sentences = new Set();
+  for (const lang of ['en', 'fr', 'ar']) {
+    const src = fs.readFileSync(path.join(ROOT, 'lib', 'i18n', `${lang}.ts`), 'utf8');
+    for (const m of src.matchAll(/^\s*'([\w.]+)':\s*'((?:[^'\\]|\\.)*)',\s*$/gm)) if (rules.TRIAL_KEY.test(m[1])) sentences.add(rules.normalizeWords(m[2].replace(/\\(.)/g, '$1')));
+  }
+  return sentences;
+}
+const TRIAL_SENTENCES = trialSentences();
+/** The names the code knows the trial by (`rules.TRIAL_NAME`), wherever they sit in a page's text. */
+const TRIAL_NAMES = new RegExp(rules.TRIAL_NAME.source.replace(/^\^|\$$/g, ''), 'g');
+/** A page's text as a reader sees it: its entities decoded. */
+const pageText = (html) =>
+  html
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' })[e]);
+
 const PRESENT = [
   ['read-only status route', 'account/trial-setup'],
   ['card title (EN)', catalogueValue('en', 'trialSetup.title')],
@@ -454,7 +483,7 @@ function readTree(program, on) {
   }
 }
 
-const CHECKS = [...rules.TRIAL_ACTIONS.map(([n]) => n), 'claim route', 'resend route', 'store or seat request route', 'setup-link token marker', 'website address', 'QR code library', 'web view library', 'browser-opening call', 'price of the app’s own access', 'price or payment route', 'payment-instruction string', 'platform route'];
+const CHECKS = [...rules.TRIAL_ACTIONS.map(([n]) => n), 'trial named outside its approved sentences', 'claim route', 'resend route', 'store or seat request route', 'setup-link token marker', 'website address', 'QR code library', 'web view library', 'browser-opening call', 'price of the app’s own access', 'price or payment route', 'payment-instruction string', 'platform route'];
 const LABELS = { openURL: 'openURL', 'window.open': 'window.open', navigation: 'page navigation' };
 
 /**
@@ -506,6 +535,12 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
       p.text += '\n' + text;
 
       const words = rules.normalizeWords(text);
+      if (rel.endsWith('.html')) {
+        let rest = rules.normalizeWords(pageText(text)).replace(TRIAL_NAMES, ' ');
+        for (const sentence of TRIAL_SENTENCES) rest = rest.split(sentence).join(' ');
+        const m = rest.match(rules.TRIAL_WORDS);
+        if (m) report(p, 'trial named outside its approved sentences', `${rel}: …${sample(rest, m.index, m[0].length)}…`);
+      }
       for (const [check, pattern] of WORDS) {
         for (const m of words.matchAll(new RegExp(pattern.source, pattern.flags.replace('g', '') + 'g'))) report(p, check, `${rel}: …${sample(words, m.index, m[0].length)}…`);
       }
@@ -561,6 +596,8 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
           for (const [check, pattern] of rules.ROUTES) if (pattern.test(route)) report(p, check, `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
           for (const m of value.matchAll(RELATIVE_ADDRESS)) if (!allowedHost(m[1].toLowerCase())) p.hosts.add(m[1].toLowerCase());
           if (WRITTEN_WAY_OUT.test(value)) report(p, 'browser-opening call', `${rel} (${at(start)}): a page written to leave: ${JSON.stringify(value.slice(0, 120))}`);
+          const said = rules.normalizeWords(value);
+          if (rules.TRIAL_WORDS.test(said) && !TRIAL_SENTENCES.has(said) && !rules.TRIAL_NAME.test(value)) report(p, 'trial named outside its approved sentences', `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
         },
         open: (start) => count(p.calls['window.open'], at(start)),
         navigation: (start) => count(p.calls.navigation, at(start)),

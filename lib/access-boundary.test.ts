@@ -535,10 +535,22 @@ function browserNames(file: string): string[] {
   return names.map(([name]) => `${relative(file)}: ${name}`);
 }
 
-/** The only keys that may name the free trial (2026-10-13): the Owner's card, the trial's three state words, its dates. */
-const TRIAL_KEY = /^(trialSetup\.|access\.state\.trial_|access\.trial\.)/;
-/** The trial named: "essai" alone, never inside "nécessaire" or "essais" (attempts); Arabic without its diacritics. */
-const TRIAL_WORDS = rules.words(/\btrial\b|\bessai\b|تجريب|تجرب/i);
+/** The only keys that may name the free trial, and the trial's words (`scripts/boundary-rules.cjs`, shared with the bundle audit). */
+const { TRIAL_KEY, TRIAL_WORDS } = rules;
+/**
+ * What a source's own text says about the trial, outside the catalogues: a claim or a resend in any wording, or the
+ * trial named other than by the names the code knows it by (`rules.TRIAL_NAME`: a whole key, its read-only route, its
+ * query key, its card's test id) — words a screen could show.
+ */
+function trialWording(file: string): string[] {
+  const offending: string[] = [];
+  for (const { text, module } of textsOf(file)) {
+    const words = rules.normalizeWords(text);
+    for (const [name, pattern] of rules.TRIAL_ACTIONS as [string, RegExp][]) if (pattern.test(words)) offending.push(`${relative(file)} (${name}): ${text}`);
+    if (!module && TRIAL_WORDS.test(words) && !rules.TRIAL_NAME.test(text)) offending.push(`${relative(file)} names the trial: ${text}`);
+  }
+  return offending;
+}
 
 /**
  * The third-party packages the app's source may import — and does. A new one
@@ -856,18 +868,7 @@ describe('the words', () => {
   });
 
   it('no source says the trial’s actions or names the trial — in every string, template and JSX text outside the catalogues', () => {
-    // Outside the catalogues the trial is named only by identifiers: its keys, its read-only route, its query key and
-    // its card's test id — never by words a screen could show.
-    const TRIAL_IDENTIFIERS = ['/account/trial-setup', 'trial-setup', 'trial-setup-card'];
-    const offending: string[] = [];
-    for (const f of CODE_SOURCES) {
-      for (const { text, module } of textsOf(f)) {
-        const words = rules.normalizeWords(text);
-        for (const [name, pattern] of rules.TRIAL_ACTIONS as [string, RegExp][]) if (pattern.test(words)) offending.push(`${relative(f)} (${name}): ${text}`);
-        if (!module && TRIAL_WORDS.test(words) && !TRIAL_KEY.test(text) && !TRIAL_IDENTIFIERS.includes(text)) offending.push(`${relative(f)} names the trial: ${text}`);
-      }
-    }
-    assert.deepEqual(offending, []);
+    assert.deepEqual(CODE_SOURCES.flatMap(trialWording), []);
   });
 
   it('nowhere does the app price its own access, or ask to be paid, renewed or subscribed to', () => {
@@ -1042,6 +1043,20 @@ describe('the checks above, held to every way out that was ever found', () => {
       'export const page = (e: string) => `<p><a class="x" href="${e}">open</a></p>`;',
     ]) {
       found(browserNames, probe(code, ''), code);
+    }
+  });
+
+  it('the trial named or acted on in a source’s own text is found, however it is worded; its names are not', () => {
+    for (const code of [
+      "export const label = 'access.trial.Start my free trial';",
+      "export const label = 'Start now — 7 days free';",
+      "import { Text } from 'react-native';\nexport const P = () => <Text>Sign up for a free trial</Text>;",
+      "export const label = 'Votre essai ' + 'commence ici';",
+    ]) {
+      found(trialWording, probe(code, ''), code);
+    }
+    for (const code of ["export const key = 'access.trial.ends';", "export const route = '/account/trial-setup';", "export const id = 'trial-setup-card';"]) {
+      assert.deepEqual(trialWording(probe(code, '')), [], code);
     }
   });
 
