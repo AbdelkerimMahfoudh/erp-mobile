@@ -2,7 +2,7 @@
 #
 # Every push and pull request: the whole git history is scanned for secrets,
 # dependencies are audited with the lockfile, the app must type-check, lint,
-# pass its pure tests, and its release configuration must be sound — an
+# pass its pure and rendered tests, and its release configuration must be sound — an
 # https API origin, no debug overlays, no server secret names in the bundle —
 # and its exported bundles must carry nothing the app may not do about the
 # free trial (`scripts/audit-bundle.js`).
@@ -56,6 +56,10 @@ jobs:
       - run: npx expo lint --max-warnings 40
       - name: pure tests
         run: for f in $(find lib components -name '*.test.ts' | sort); do node "$f" || exit 1; done
+      # The rendered screens under jest-expo — what a person sees and can press: the Owner's trial card with nothing
+      # to press, the closed screen's three general actions, a sign-up that never says "wrong code" for a lost answer.
+      - name: rendered tests
+        run: npx jest --maxWorkers=2
       - name: release configuration
         run: EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/verify-release-config.js
       - name: web export carries no server secret names
