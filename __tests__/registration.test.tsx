@@ -19,6 +19,7 @@ import { ThemeProvider } from '../lib/design/theme';
 import { useBranch } from '../lib/branch';
 import { useConnectivity } from '../lib/connectivity';
 import { t } from '../lib/i18n';
+import { RequestTimeout } from '../lib/offline/classify';
 import { useQueue } from '../lib/offline/queue';
 import { push as routerPush, replace as routerReplace } from './mocks/expo-router';
 
@@ -159,6 +160,38 @@ describe('the form', () => {
     expect(mockStore.get('erp.registration.continuation')).toBe(CONTINUATION);
     expect(routerReplace).toHaveBeenCalledWith({ pathname: '/(auth)/verify', params: { destination: 'a•••@example.com' } });
     expect(screenText()).not.toMatch(UNSAID);
+  });
+
+  it('a retry after a lost answer keeps its key; corrected after the failure, it is a new attempt with a new key', async () => {
+    (api.post as jest.Mock)
+      .mockRejectedValueOnce(new RequestTimeout())
+      .mockRejectedValueOnce(new RequestTimeout())
+      .mockResolvedValueOnce({
+        status: 'pending_activation', created: true, publicStoreId: 'S-NEW',
+        verification: { destination: 'r•••@example.invalid', channel: 'email' },
+        continuation: { token: CONTINUATION, expiresAt: '2026-10-13T09:15:00.000Z', expiresInSeconds: 900 },
+        next: 'verify_contact',
+      });
+    renderWith(<RegisterScreen />);
+    fillForm();
+    // The answer is lost, and the person taps again with nothing changed: the same attempt.
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.submit')));
+      });
+    }
+    // Then they notice the address was wrong and correct it: a new attempt.
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[4], 'right@example.invalid');
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.submit')));
+    });
+
+    const [first, retry, corrected] = (api.post as jest.Mock).mock.calls.map(([, body]) => body);
+    expect(retry.idempotencyKey).toBe(first.idempotencyKey);
+    expect(corrected.idempotencyKey).not.toBe(first.idempotencyKey);
+    expect(corrected.email).toBe('right@example.invalid');
+    // The code check follows the corrected registration, not the first one.
+    expect(routerReplace).toHaveBeenLastCalledWith({ pathname: '/(auth)/verify', params: { destination: 'r•••@example.invalid' } });
   });
 
   it('a server that cannot send the code: account creation is not available right now, nothing was saved — and nothing moves on', async () => {

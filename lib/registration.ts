@@ -128,3 +128,23 @@ export function registrationPayload(
   if (draft.phone.trim()) body.phone = draft.phone.trim();
   return body;
 }
+
+/**
+ * Whether two drafts make the same registration — the fields the server
+ * receives, trimmed as it receives them.
+ *
+ * One idempotency key is one attempt. A retry of the same registration keeps
+ * its key, so the second tap after a lost answer never creates a second
+ * business. A registration edited after a failure is a new attempt with a new
+ * key: the server answers a key it has already seen with the business it made
+ * for it, whatever the body, so a corrected email would otherwise send the
+ * code to the address the person had just corrected away from. The language is
+ * not part of it — the code is sent by the code check, in the language on
+ * screen then.
+ */
+export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): boolean {
+  const x = registrationPayload(a, '', 'en');
+  const y = registrationPayload(b, '', 'en');
+  const fields = new Set([...Object.keys(x), ...Object.keys(y)]);
+  return [...fields].every((field) => x[field] === y[field]);
+}

@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import {
   emptyRegistration,
   registrationPayload,
+  sameRegistration,
   validateRegistration,
   type RegistrationDraft,
 } from './registration.ts';
@@ -141,11 +142,41 @@ it('the same key is reused on retry — that is what makes it idempotent', () =>
   assert.deepEqual(a, b);
 });
 
+// ── one key per attempt (review R5-7) ────────────────────────────────────────
+
+it('a retry of the same registration is the same attempt — stray spaces and the confirmation field included', () => {
+  assert.equal(sameRegistration(withEmail, { ...withEmail }), true);
+  assert.equal(sameRegistration(withEmail, { ...withEmail, businessName: ' Nour Electronics ', email: 'aicha@example.invalid ' }), true);
+  // The confirmation is never sent: retyping it changes nothing the server sees.
+  assert.equal(sameRegistration(withEmail, { ...withEmail, passwordConfirm: 'something else' }), true);
+});
+
+it('any field the server receives, edited after a failure, makes a new attempt', () => {
+  for (const edit of [
+    { email: 'right@example.invalid' },
+    { email: '', phone: '+22212345678' },
+    { phone: '+22212345678' },
+    { password: 'another horse' },
+    { ownerName: 'Aïcha' },
+    { businessName: 'Nour Phones' },
+    { branchName: 'Second Store' },
+    { city: 'Nouakchott' },
+  ]) {
+    assert.equal(sameRegistration(withEmail, { ...withEmail, ...edit }), false, JSON.stringify(edit));
+  }
+});
+
+it('the screen renews its key when the form changed since it was sent, and keeps it otherwise', () => {
+  const register = code('app/(auth)/register.tsx');
+  assert.match(register, /if \(attempt\.current\.sent && !sameRegistration\(attempt\.current\.sent, draft\)\) attempt\.current = \{ key: uuidv4\(\), sent: null \};\s*attempt\.current\.sent = draft;/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language\)/);
+});
+
 it('the language sent is the one the person is reading, so the code arrives in it', () => {
   assert.equal(registrationPayload(withPhone, 'k', 'ar').language, 'ar');
   const register = code('app/(auth)/register.tsx');
   assert.match(register, /const \{ t, language \} = useTranslation\(\);/);
-  assert.match(register, /registrationPayload\(draft, idempotencyKey\.current, language\)/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language\)/);
   assert.match(code('app/(auth)/verify.tsx'), /\{ continuation, language \}/);
 });
 

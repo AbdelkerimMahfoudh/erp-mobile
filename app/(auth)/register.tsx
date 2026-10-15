@@ -12,6 +12,7 @@ import { uuidv4 } from '../../lib/utils';
 import {
   emptyRegistration,
   registrationPayload,
+  sameRegistration,
   validateRegistration,
   type RegistrationDraft,
   type RegistrationProblems,
@@ -36,10 +37,12 @@ import type { RegistrationStarted } from '../../types/api';
  *
  * ## The idempotency key
  *
- * Generated **once**, when this screen mounts, and reused for every retry. A
- * dropped response on a bad connection is the ordinary case in a Nouakchott
- * shop; without a stable key the anxious second tap creates a second business
- * with the same name and no way to tell which one is yours.
+ * One per attempt, reused for every retry of it. A dropped response on a bad
+ * connection is the ordinary case in a Nouakchott shop; without a stable key
+ * the anxious second tap creates a second business with the same name and no
+ * way to tell which one is yours. A form corrected after a failure is a new
+ * attempt with a new key (`sameRegistration`): the server answers a key it has
+ * seen with the business it made for it, whatever the form now says.
  */
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
@@ -51,8 +54,8 @@ export default function RegisterScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  /** One identity for this attempt, however many times it is retried. */
-  const idempotencyKey = useRef(uuidv4());
+  /** One identity per attempt, however many times it is retried — and the form it was sent with. */
+  const attempt = useRef<{ key: string; sent: RegistrationDraft | null }>({ key: uuidv4(), sent: null });
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
 
@@ -71,13 +74,17 @@ export default function RegisterScreen() {
     setProblems(found);
     if (Object.keys(found).length > 0) return;
 
+    // Edited since it was last sent: a new attempt.
+    if (attempt.current.sent && !sameRegistration(attempt.current.sent, draft)) attempt.current = { key: uuidv4(), sent: null };
+    attempt.current.sent = draft;
+
     inFlight.current = true;
     setSubmitting(true);
     setFailure(null);
     try {
       const started = await api.post<RegistrationStarted>(
         '/auth/register',
-        registrationPayload(draft, idempotencyKey.current, language),
+        registrationPayload(draft, attempt.current.key, language),
       );
 
       /*
