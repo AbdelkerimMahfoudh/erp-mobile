@@ -1132,6 +1132,7 @@ export const en = {
   'trialSetup.startsAfterClaim': 'Starts only after you claim it',
   'trialSetup.contact': 'Verified contact: {masked}',
   'trialSetup.delivery.sent': 'We sent the instructions for completing your business setup to your verified contact.',
+  'trialSetup.delivery.sending': 'We are sending the instructions for completing your business setup to your verified contact.',
   'trialSetup.delivery.waiting.phone': 'The instructions will be sent automatically once your WhatsApp number is verified.',
   'trialSetup.delivery.waiting.email': 'The instructions will be sent automatically once your email address is verified.',
   'trialSetup.delivery.unavailable': 'Your business is eligible for a 7-day free trial, but setup instructions cannot be sent right now. Your trial has not started. Please contact Dukan ERP support.',

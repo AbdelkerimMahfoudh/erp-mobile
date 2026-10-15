@@ -44,14 +44,19 @@ describe('the delivery line', () => {
     assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['email', 'phone'] }), ['trialSetup.delivery.waiting.email', 'trialSetup.delivery.waiting.phone']);
   });
 
+  it('being sent — a link issued less than a minute ago, its outcome not recorded yet — says so in its own sentence', () => {
+    assert.deepEqual(deliveryLines({ delivery: 'sending', missingContacts: [] }), ['trialSetup.delivery.sending']);
+  });
+
   it('a word this build does not know says nothing rather than something untrue', () => {
     assert.deepEqual(deliveryLines({ delivery: 'something_new' as never, missingContacts: [] }), []);
     assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['pigeon' as never] }), []);
   });
 
-  it('sent is good news, waiting is information, anything that will not arrive is a warning', () => {
+  it('sent is good news, waiting and being sent are information, anything that will not arrive is a warning', () => {
     assert.equal(deliveryTone('sent'), 'success');
     assert.equal(deliveryTone('waiting_for_contact'), 'info');
+    assert.equal(deliveryTone('sending'), 'info');
     for (const d of ['unavailable', 'failed', 'not_sent'] as const) assert.equal(deliveryTone(d), 'warning');
   });
 });

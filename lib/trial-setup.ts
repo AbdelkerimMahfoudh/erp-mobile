@@ -24,10 +24,11 @@ export type TrialContact = 'email' | 'phone';
 export type TrialChannel = 'email' | 'whatsapp';
 /**
  * The last word on the instructions: waiting for a required contact to be
- * verified (nothing is sent before), never attempted, sent, refused by every
- * provider, or nothing able to send them at all.
+ * verified (nothing is sent before), being sent (a link was issued less than a
+ * minute ago and its outcome is not recorded yet), never attempted, sent,
+ * refused by every provider, or nothing able to send them at all.
  */
-export type TrialDelivery = 'waiting_for_contact' | 'not_sent' | 'sent' | 'failed' | 'unavailable';
+export type TrialDelivery = 'waiting_for_contact' | 'sending' | 'not_sent' | 'sent' | 'failed' | 'unavailable';
 
 /** A verified contact as the server masks it (`a•••@example.com`, `+222••••1234`) — never the raw value. */
 export interface TrialDestination {
@@ -91,6 +92,8 @@ export function deliveryLines(status: Pick<EligibleTrialSetup, 'delivery' | 'mis
   switch (status.delivery) {
     case 'waiting_for_contact':
       return status.missingContacts.map((contact) => WAITING[contact]).filter(Boolean);
+    case 'sending':
+      return ['trialSetup.delivery.sending'];
     case 'sent':
       return ['trialSetup.delivery.sent'];
     case 'unavailable':
@@ -104,9 +107,9 @@ export function deliveryLines(status: Pick<EligibleTrialSetup, 'delivery' | 'mis
   }
 }
 
-/** Sent is good news; waiting is information; anything that will not arrive asks for support. */
+/** Sent is good news; waiting and being sent are information; anything that will not arrive asks for support. */
 export function deliveryTone(delivery: TrialDelivery): 'success' | 'info' | 'warning' {
   if (delivery === 'sent') return 'success';
-  if (delivery === 'waiting_for_contact') return 'info';
+  if (delivery === 'waiting_for_contact' || delivery === 'sending') return 'info';
   return 'warning';
 }

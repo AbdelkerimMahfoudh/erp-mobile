@@ -5,7 +5,7 @@
  *
  * - The Owner of a business that has not started sees a display-only card: eligible, not started, the server's
  *   number of days, the verified contacts as the server masks them, and one delivery line for each of `sent`,
- *   `waiting_for_contact`, `unavailable`, `failed` and `not_sent`. Nothing inside it is pressable, links anywhere
+ *   `sending`, `waiting_for_contact`, `unavailable`, `failed` and `not_sent`. Nothing inside it is pressable, links anywhere
  *   or names a website; the screen keeps only Check again, Sign out and Delete account.
  * - Staff, refused the Owner's status by the server (403), see the neutral "not started" words only.
  * - A running trial says when it ends and an ended one when it ended — the server's UTC instant on the business's
@@ -210,6 +210,17 @@ describe('the Owner of a business that has not started', () => {
       screen.getByText('Your business is eligible for a 7-day free trial, but setup instructions cannot be sent right now. Your trial has not started. Please contact Dukan ERP support.'),
     ).toBeTruthy();
     expect(pressables(card)).toHaveLength(0);
+  });
+
+  it('being sent — a link issued less than a minute ago: says so, beside the verified contacts, with nothing to press', async () => {
+    serve(notStarted, setup({ delivery: 'sending', sentTo: [], lastAttemptAt: null }));
+    renderScreen(<AccessClosed />);
+    const card = await screen.findByTestId('trial-setup-card');
+    expect(screen.getByText('We are sending the instructions for completing your business setup to your verified contact.')).toBeTruthy();
+    expect(screen.getByText('Verified contact: a•••@example.com')).toBeTruthy();
+    expect(pressables(card)).toHaveLength(0);
+    expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('refused by every provider: could not be sent', async () => {

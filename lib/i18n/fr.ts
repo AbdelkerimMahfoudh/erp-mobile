@@ -1200,6 +1200,7 @@ export const fr: Catalogue = {
   'trialSetup.startsAfterClaim': 'Ne commence qu’après votre demande',
   'trialSetup.contact': 'Contact vérifié : {masked}',
   'trialSetup.delivery.sent': 'Nous avons envoyé les instructions pour finaliser la configuration de votre commerce à votre contact vérifié.',
+  'trialSetup.delivery.sending': 'Nous envoyons les instructions pour finaliser la configuration de votre commerce à votre contact vérifié.',
   'trialSetup.delivery.waiting.phone': 'Les instructions seront envoyées automatiquement dès que votre numéro WhatsApp sera vérifié.',
   'trialSetup.delivery.waiting.email': 'Les instructions seront envoyées automatiquement dès que votre adresse e-mail sera vérifiée.',
   'trialSetup.delivery.unavailable': 'Votre commerce peut bénéficier d’un essai gratuit de 7 jours, mais les instructions de configuration ne peuvent pas être envoyées pour le moment. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',

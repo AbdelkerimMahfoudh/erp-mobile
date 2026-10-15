@@ -1122,6 +1122,7 @@ export const ar: Catalogue = {
   'trialSetup.startsAfterClaim': 'لا تبدأ إلا بعد أن تطلبها',
   'trialSetup.contact': 'وسيلة الاتصال المُتحقق منها: {masked}',
   'trialSetup.delivery.sent': 'أرسلنا تعليمات إكمال إعداد نشاطك التجاري إلى وسيلة الاتصال التي تم التحقق منها.',
+  'trialSetup.delivery.sending': 'نرسل الآن تعليمات إكمال إعداد نشاطك التجاري إلى وسيلة الاتصال التي تم التحقق منها.',
   'trialSetup.delivery.waiting.phone': 'سيتم إرسال التعليمات تلقائيًا بمجرد التحقق من رقم واتساب الخاص بك.',
   'trialSetup.delivery.waiting.email': 'سيتم إرسال التعليمات تلقائيًا بمجرد التحقق من بريدك الإلكتروني.',
   'trialSetup.delivery.unavailable': 'نشاطك التجاري مؤهل لفترة تجريبية مجانية مدتها 7 أيام، لكن لا يمكن إرسال تعليمات الإعداد الآن. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.',
