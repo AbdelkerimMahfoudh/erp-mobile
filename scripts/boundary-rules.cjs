@@ -47,33 +47,58 @@ function normalizePath(text) {
   for (let pass = 0; pass < 2 && /%[0-9a-f]{2}/i.test(s); pass++) {
     s = s.replace(/%([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
   }
-  s = s.replace(/\\/g, '/').replace(/\/{2,}/g, '/');
-  for (let before = ''; before !== s; ) {
-    before = s;
-    s = s.replace(/(^|\/)\.(?:\/|$)/g, '$1').replace(/[^/.][^/]*\/\.\.(?:\/|$)/g, '');
+  // Segment by segment, so a whole source file is read in one pass: `.` goes, and `..` takes the named segment before it.
+  const kept = [];
+  for (const segment of s.replace(/\\/g, '/').replace(/\/{2,}/g, '/').split('/')) {
+    const previous = kept[kept.length - 1];
+    if (segment === '.') continue;
+    if (segment === '..' && previous && previous !== '..') kept.pop();
+    else kept.push(segment);
   }
-  return s;
+  return kept.join('/');
 }
 
-/** What starting or re-sending the trial would say. None of it may exist anywhere in the app. */
+/**
+ * What starting or re-sending the trial would say. None of it may exist anywhere in the app.
+ *
+ * A claim is a verb for starting, trying or getting, with the trial within five words of it — "Start (using your
+ * free) trial", "Commencer (maintenant mon) essai", "ابدأ (الآن فترتك) التجريبية" — or trying for free: "Try Dukan
+ * ERP free", "Commencez gratuitement", "جرّب مجانًا", "استفد من … المجانية". A resend is sending again, or anew, what
+ * the setup goes out as — its instructions, its link, its message or e-mail: "Resend the setup link", "Renvoyer le
+ * message", "إعادة إرسال الرابط". Never a code, which the app does send again for its own sign-in and team checks.
+ * `(?:\s+[^\s.]+){0,5}?` reads "up to five words, inside one sentence".
+ */
 const TRIAL_ACTIONS = [
-  ['claim button text (EN)', words(/\b(?:start|begin|activate|claim|try|get|unlock|launch|redeem)\s+(?:(?:my|your|the|a|an|this|now)\s+)?(?:(?:\d+-day|seven-day|free)\s+){0,2}trial\b/i)],
+  ['claim button text (EN)', words(/\b(?:start|begin|activate|claim|try|get|unlock|launch|redeem)\b(?:\s+[^\s.]+){0,5}?\s+trial\b|\btry\b(?:\s+[^\s.]+){0,3}?\s+free\b/i)],
   [
     'claim button text (FR)',
-    words(/\b(?:commencer|commencez|démarrer|démarrez|lancer|lancez|activer|activez|réclamer|réclamez|essayer|essayez|obtenir|obtenez|profiter|profitez|débuter|débutez)\s+(?:de\s+|du\s+)?(?:(?:mon|votre|l'|un|cet|ce|ma|sa|la)\s*)?(?:période\s+d'\s*)?essai\b/i),
+    words(
+      /\b(?:commencer|commencez|commence|démarrer|démarrez|démarre|lancer|lancez|lance|activer|activez|active|réclamer|réclamez|réclame|essayer|essayez|essaie|obtenir|obtenez|obtiens|profiter|profitez|profite|débuter|débutez|débute)\b(?:\s+[^\s.]+){0,5}?\s+(?:[^\s.']*')?essai\b|\b(?:commencer|commencez|commence|démarrer|démarrez|démarre|essayer|essayez|essaie|profiter|profitez|profite)\b[^.]{0,25}\bgratuit/i,
+    ),
   ],
-  ['claim button text (AR)', words(/(?<![؀-ۿ])(?:ابدأ|ابدئي|ابدؤوا|فعّل|فعّلي|اطلب|اطلبي|احصل|جرّب|جرّبي)\s[^.،]{0,25}(?:تجرب|تجريب)/)],
+  [
+    'claim button text (AR)',
+    words(
+      /(?<![؀-ۿ])(?:ابدأ|ابدئي|ابدؤوا|فعّل|فعّلي|اطلب|اطلبي|احصل|احصلي|جرّب|جرّبي|جرّبوا)\s[^.،]{0,25}(?:تجرب|تجريب)|(?<![؀-ۿ])(?:جرّب|جرّبي|جرّبوا)\s[^.،]{0,25}مجان|(?<![؀-ۿ])(?:استفد|استفيدي|استفيدوا)\s+من\s[^.،]{0,25}(?:تجرب|تجريب|مجان)/,
+    ),
+  ],
   [
     'resend/send button text (EN)',
-    words(/\bre-?send\b[^.]{0,30}\binstructions?\b|\bsend\b[^.]{0,40}\binstructions?\b[^.]{0,30}\bagain\b|\bsend\b(?:\s+(?:me|us))?(?:\s+(?:the|my|your))?(?:\s+setup)?\s+instructions?\b/i),
+    words(
+      /\bre-?send\b[^.]{0,30}\b(?:instructions?|link|message|e-?mail)\b|\bsend\b[^.]{0,40}\b(?:instructions?|link|message|e-?mail)\b[^.]{0,30}\bagain\b|\bsend\b(?:\s+(?:me|us))?(?:\s+(?:the|my|your|a|an))?(?:\s+(?:new|setup))*\s+(?:instructions?|link)\b|\b(?:request|get|receive)\b(?:\s+(?:me|us))?(?:\s+(?:the|a|an|my|your))?\s+(?:new|another)\s+(?:setup\s+)?(?:instructions?|link|message|e-?mail)\b|\b(?:request|get|receive)\b[^.]{0,30}\b(?:instructions?|link)\b[^.]{0,20}\bagain\b/i,
+    ),
   ],
   [
     'resend/send button text (FR)',
-    words(/\b(?:renvoyer|renvoyez|réenvoyer|réenvoyez)\b[^.]{0,30}\binstructions\b|\benvoy(?:er|ez)\s+(?:à|de)\s+nouveau\b[^.]{0,30}\binstructions\b|\binstructions\b[^.]{0,30}\s(?:à|de)\s+nouveau\b|\benvoy(?:er|ez)\s+(?:les\s+|des\s+|mes\s+|vos\s+)?instructions\b/i),
+    words(
+      /\b(?:renvoyer|renvoyez|renvoie|réenvoyer|réenvoyez)\b[^.]{0,30}\b(?:instructions|lien|message|e-?mail|courriel)\b|\b(?:envoyer|envoyez|recevoir|recevez|redemander|redemandez|obtenir|obtenez)\s+(?:à|de)\s+nouveau\b[^.]{0,30}\b(?:instructions|lien|message|e-?mail|courriel)\b|\b(?:instructions|lien|message|e-?mail|courriel)\b[^.]{0,30}\s(?:à|de)\s+nouveau\b|\benvoy(?:er|ez)(?:-moi|-nous)?\s+(?:les\s+|des\s+|mes\s+|vos\s+|le\s+|un\s+|mon\s+|votre\s+)?(?:nouveaux?\s+|nouvel\s+|nouvelles?\s+)?(?:instructions|lien)\b|\b(?:recevoir|recevez|redemander|redemandez|demander|demandez|obtenir|obtenez)\s+(?:un\s+|une\s+|de\s+|des\s+|les\s+|le\s+)?(?:nouveaux?|nouvel|nouvelles?)\s+(?:instructions|lien|message)\b/i,
+    ),
   ],
   [
     'resend/send button text (AR)',
-    words(/(?:إعادة|أعد)\s+(?:ال)?إرسال\s+(?:ال)?تعليمات|(?:إرسال|أرسل|أرسلوا)\s+(?:ال)?تعليمات[^.]{0,30}(?:مرة أخرى|مجدد|من جديد)|(?:مرة أخرى|مجدد|من جديد)[^.]{0,20}(?:ال)?تعليمات/),
+    words(
+      /(?:إعادة|أعد|أعيدي)\s+(?:ال)?إرسال\s+(?:ال)?(?:تعليمات|رابط|رسالة|بريد)|(?:إرسال|أرسل|أرسلي|أرسلوا)\s+(?:لي\s+)?(?:ال)?(?:تعليمات|رابط|رسالة)[^.]{0,30}(?:مرة أخرى|مجدد|من جديد)|(?:مرة أخرى|مجدد|من جديد)[^.]{0,20}(?:ال)?(?:تعليمات|رابط)|(?:أرسل|أرسلي|أرسلوا)\s+(?:لي\s+)?(?:ال)?رابط/,
+    ),
   ],
 ];
 
@@ -102,7 +127,7 @@ const WEBSITE_ADDRESS = /tsx[-.]mr\.(?:com|mr|net|org|app)\b|\btsx\.mr\b|dukan[\
  * rather than by amount: the shop's own amounts ("30 000 MRU") are the shop's.
  */
 const ACCESS_PRICE = words(
-  /\bper\s+(?:additional\s+|extra\s+)?(?:employee\s+|staff\s+)?(?:month|year|seat|store|place)s?\b|\/\s?(?:month|mois|year|an)\b|\bpar\s+(?:mois|an|place|siège|magasin)\b|\b(?:seat|store|access|subscription|plan)\s+(?:price|cost|fee|rate)s?\b|\b(?:prix|tarif|coût)\s+(?:d'une\s+|de\s+la\s+|du\s+|de\s+l'|par\s+)?(?:place|siège|magasin|boutique|abonnement|accès)\b|شهريًا|في الشهر|لكل (?:مقعد|متجر)|مقعد (?:موظف )?إضافي|(?:سعر|تكلفة|رسوم)\s+(?:ال)?(?:مقعد|متجر|اشتراك)|\d\s?أوقية|\d\s?ouguiyas?\b/i,
+  /\bper\s+(?:additional\s+|extra\s+)?(?:employee\s+|staff\s+)?(?:month|year|seat|store|place)s?\b|\b(?:additional|extra)\s+(?:employee\s+|staff\s+)?(?:seat|store|place)s?\s*[:=]\s*\d|\b(?:place|siège|magasin)s?\s+supplémentaires?\s*[:=]\s*\d|\/\s?(?:month|mois|year|an)\b|\bpar\s+(?:mois|an|place|siège|magasin)\b|\b(?:seat|store|access|subscription|plan)\s+(?:price|cost|fee|rate)s?\b|\b(?:prix|tarif|coût)\s+(?:d'une\s+|de\s+la\s+|du\s+|de\s+l'|par\s+)?(?:place|siège|magasin|boutique|abonnement|accès)\b|شهريًا|في الشهر|لكل (?:مقعد|متجر)|مقعد (?:موظف )?إضافي|(?:سعر|تكلفة|رسوم)\s+(?:ال)?(?:مقعد|متجر|اشتراك)|\d\s?أوقية|\d\s?ouguiyas?\b/i,
 );
 
 /** Asking to be paid: our payment instructions, in any of the three languages. */

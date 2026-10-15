@@ -35,6 +35,10 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import ts from 'typescript';
+import { en } from './i18n/en.ts';
+import { fr } from './i18n/fr.ts';
+import { ar } from './i18n/ar.ts';
 
 const rules = createRequire(import.meta.url)('../scripts/boundary-rules.cjs');
 const ROOT = new URL('..', import.meta.url);
@@ -54,18 +58,61 @@ const SOURCES = ['app', 'lib', 'hooks', 'components', 'constants'].flatMap((d) =
 const code = (f: string) => strip(readFileSync(f, 'utf8'));
 const relative = (f: string) => f.slice(new URL('.', ROOT).pathname.length);
 
-/** Every `'key': 'value'` of a catalogue, values joined across lines. */
-function entries(lang: string): [string, string][] {
-  const src = read(`lib/i18n/${lang}.ts`);
-  const out: [string, string][] = [];
-  const re = /^\s*'([^']+)':\s*((?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\s)+),\s*$/gm;
-  for (const m of src.matchAll(re)) out.push([m[1], m[2].replace(/^\s*['"]|['"]\s*$/g, '').replace(/\\(.)/g, '$1')]);
+/**
+ * Every key of a catalogue with its value, in the catalogue's order — read from the catalogue itself, so a value
+ * written in any form (on several lines, joined with `+`) is the value checked.
+ */
+const CATALOGUES: Record<string, Record<string, string>> = { en, fr, ar };
+const entries = (lang: string): [string, string][] => Object.entries(CATALOGUES[lang]);
+const LANGS = ['en', 'fr', 'ar'];
+
+/**
+ * The text a source file holds, however it is written: every string literal, every template (an interpolation read
+ * as the number a placeholder becomes), every run of JSX text, and literals joined with `+` read as the one string
+ * they make. `module` marks a module's name — an import, never words on a screen.
+ */
+function textsOf(file: string): { text: string; module: boolean }[] {
+  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const out: { text: string; module: boolean }[] = [];
+  const joined = (node: ts.Node): string | null => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+    if (ts.isTemplateExpression(node)) return node.head.text + node.templateSpans.map((span) => `7${span.literal.text}`).join('');
+    if (ts.isParenthesizedExpression(node)) return joined(node.expression);
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+      const [left, right] = [joined(node.left), joined(node.right)];
+      return left === null && right === null ? null : `${left ?? '7'}${right ?? '7'}`;
+    }
+    return null;
+  };
+  const isModuleName = (node: ts.Node): boolean => {
+    const parent = node.parent;
+    return (
+      ((ts.isImportDeclaration(parent) || ts.isExportDeclaration(parent)) && parent.moduleSpecifier === node) ||
+      ts.isExternalModuleReference(parent) ||
+      (ts.isLiteralTypeNode(parent) && ts.isImportTypeNode(parent.parent)) ||
+      (ts.isCallExpression(parent) && (parent.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(parent.expression) && parent.expression.text === 'require')))
+    );
+  };
+  const visit = (node: ts.Node) => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) out.push({ text: node.text, module: isModuleName(node) });
+    else if (ts.isTemplateExpression(node)) out.push({ text: joined(node)!, module: false });
+    else if (ts.isJsxText(node) && node.text.trim()) out.push({ text: node.text, module: false });
+    else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken && !(ts.isBinaryExpression(node.parent) && node.parent.operatorToken.kind === ts.SyntaxKind.PlusToken)) {
+      const text = joined(node);
+      if (text !== null) out.push({ text, module: false });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
   return out;
 }
-const LANGS = ['en', 'fr', 'ar'];
+/** The app's own source, the catalogues aside: they are read key by key, against the keys a word belongs to. */
+const CODE_SOURCES = SOURCES.filter((f) => !/[\\/]lib[\\/]i18n[\\/](en|fr|ar)\.ts$/.test(f));
 
 /** The only keys that may name the free trial (2026-10-13): the Owner's card, the trial's three state words, its dates. */
 const TRIAL_KEY = /^(trialSetup\.|access\.state\.trial_|access\.trial\.)/;
+/** The trial named: "essai" alone, never inside "nécessaire" or "essais" (attempts); Arabic without its diacritics. */
+const TRIAL_WORDS = rules.words(/\btrial\b|\bessai\b|تجريب|تجرب/i);
 
 /**
  * The third-party packages the app's source may import — and does. A new one
@@ -315,7 +362,7 @@ describe('the words', () => {
   });
 
   it('the access, sign-in, sign-up and trial copy never names a price, a payment, a way to buy or renew, or a website — in any language', () => {
-    const forbidden = /\bMRU\b|أوقية|https?:|www\.|\bwebsite\b|\bsite\b|موقع|\brenew|renouvel|تجديد|\bsubscri|\babonne|اشتراك|اشترك|\bbuy\b|\bpurchase\b|\bachet|اشترِ|\bpay\b|\bpaid\b|\bpayer\b|\bpaiement\b|ادفع|الدفع|Bankily|بنكيلي|\bcheckout\b|in-app|App Store|Apple|\blink\b|\blien\b|رابط|\bQR\b|\bclick\b|\bcliquez\b/i;
+    const forbidden = /\bMRU\b|أوقية|https?:|www\.|\bwebsite\b|\bsite\b|موقع|\brenew|renouvel|تجديد|\bsubscri|\babonne|اشتراك|اشترك|\bbuy\b|\bpurchase\b|\bachet|اشترِ|\bpay\b|\bpaid\b|\bpayer\b|\bpaiement\b|ادفع|الدفع|Bankily|بنكيلي|\bcheckout\b|in-app|App Store|Apple|\bQR\b|\bclick\b|\bcliquez\b/i;
     for (const lang of LANGS) {
       for (const [key, value] of entries(lang)) {
         if (!/^(access\.|nav\.access|auth\.|register\.|trialSetup\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
@@ -324,15 +371,40 @@ describe('the words', () => {
     }
   });
 
-  it('the trial is named only in its own keys — checked in every other key of every catalogue', () => {
-    // "essai" alone, never inside "nécessaire" or "essais" (attempts); Arabic without its diacritics.
-    const trialWords = rules.words(/\btrial\b|\bessai\b|تجريب|تجرب/i);
+  it('no key of any catalogue names a link — the website’s, the setup’s or any other — in any language', () => {
+    // "link" as the verb for joining a file's rows to a product: the shop's own records, not an address.
+    const LINK_VERB: Record<string, string> = { 'fileReceive.create.product': 'Create and link product' };
+    const link = rules.words(/\blinks?\b|\bliens?\b|رابط|روابط/i);
     for (const lang of LANGS) {
       const offending = entries(lang)
-        .filter(([key, value]) => !TRIAL_KEY.test(key) && trialWords.test(rules.normalizeWords(value)))
+        .filter(([key, value]) => link.test(rules.normalizeWords(value)) && !(lang === 'en' && LINK_VERB[key] === value))
+        .map(([key, value]) => `${key}: ${value}`);
+      assert.deepEqual(offending, [], `${lang} names a link:\n  ${offending.join('\n  ')}`);
+    }
+  });
+
+  it('the trial is named only in its own keys — checked in every other key of every catalogue', () => {
+    for (const lang of LANGS) {
+      const offending = entries(lang)
+        .filter(([key, value]) => !TRIAL_KEY.test(key) && TRIAL_WORDS.test(rules.normalizeWords(value)))
         .map(([key, value]) => `${key}: ${value}`);
       assert.deepEqual(offending, [], `${lang} names the trial outside its own keys:\n  ${offending.join('\n  ')}`);
     }
+  });
+
+  it('no source says the trial’s actions or names the trial — in every string, template and JSX text outside the catalogues', () => {
+    // Outside the catalogues the trial is named only by identifiers: its keys, its read-only route, its query key and
+    // its card's test id — never by words a screen could show.
+    const TRIAL_IDENTIFIERS = ['/account/trial-setup', 'trial-setup', 'trial-setup-card'];
+    const offending: string[] = [];
+    for (const f of CODE_SOURCES) {
+      for (const { text, module } of textsOf(f)) {
+        const words = rules.normalizeWords(text);
+        for (const [name, pattern] of rules.TRIAL_ACTIONS as [string, RegExp][]) if (pattern.test(words)) offending.push(`${relative(f)} (${name}): ${text}`);
+        if (!module && TRIAL_WORDS.test(words) && !TRIAL_KEY.test(text) && !TRIAL_IDENTIFIERS.includes(text)) offending.push(`${relative(f)} names the trial: ${text}`);
+      }
+    }
+    assert.deepEqual(offending, []);
   });
 
   it('nowhere does the app price its own access, or ask to be paid, renewed or subscribed to', () => {
@@ -359,7 +431,6 @@ describe('the words', () => {
     for (const lang of LANGS) {
       assert.deepEqual(Object.fromEntries(entries(lang).filter(([key]) => TRIAL_KEY.test(key))), TRIAL_COPY[lang], `${lang} trial copy`);
     }
-    const en = Object.fromEntries(entries('en'));
     assert.equal(en['access.closed.not_started.title'], 'Access has not started yet');
     assert.equal(en['access.closed.not_started.body'], 'The business owner is finishing the setup. Check again later.');
     const scoped = (lang: string) => entries(lang).map(([key]) => key).filter((key) => TRIAL_KEY.test(key) || /^(access\.closed\.not_started|register\.|auth\.action\.createAccount)/.test(key));
