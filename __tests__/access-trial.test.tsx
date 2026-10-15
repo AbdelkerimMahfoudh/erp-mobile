@@ -149,6 +149,17 @@ describe('the Owner of a business that has not started', () => {
     expect(screen.queryByText(t('access.closed.not_started.body'))).toBeNull();
   });
 
+  it('is not sent to an organisation administrator: the card names Dukan ERP support, and the organisation’s lines are left out', async () => {
+    for (const delivery of ['sent', 'unavailable', 'failed', 'not_sent'] as const) {
+      serve(notStarted, setup({ delivery, sentTo: delivery === 'sent' ? ['email'] : [] }));
+      const view = renderScreen(<AccessClosed />);
+      await screen.findByTestId('trial-setup-card');
+      expect(screen.queryByText(t('access.managed'))).toBeNull();
+      expect(screen.queryByText(t('access.mistake'))).toBeNull();
+      view.unmount();
+    }
+  });
+
   it('keeps only the screen’s three general actions — none of them about the trial — and never writes anything', async () => {
     serve(notStarted, setup({ delivery: 'sent' }));
     renderScreen(<AccessClosed />);
@@ -229,7 +240,20 @@ describe('staff of a business that has not started', () => {
     expect(screen.getByText('Access has not started yet')).toBeTruthy();
     expect(screen.queryByTestId('trial-setup-card')).toBeNull();
     expect(textOf(screen.root)).not.toMatch(/trial|instructions|verified contact/i);
+    // Staff keep the organisation's lines: their Owner is the one to ask.
+    expect(screen.getByText(t('access.managed'))).toBeTruthy();
+    expect(screen.getByText(t('access.mistake'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
+  });
+});
+
+describe('a business closed for another reason', () => {
+  it('keeps the organisation’s lines, whoever reads them', async () => {
+    serve({ ...base, state: 'pending', canRead: false, canWrite: false, trial: null }, new Error('not asked'));
+    renderScreen(<AccessClosed />);
+    expect(await screen.findByText(t('access.closed.pending.body'))).toBeTruthy();
+    expect(screen.getByText(t('access.managed'))).toBeTruthy();
+    expect(screen.getByText(t('access.mistake'))).toBeTruthy();
   });
 });
 

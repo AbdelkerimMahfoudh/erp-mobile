@@ -31,11 +31,12 @@ import { notStartedView } from '../lib/trial-setup';
  * trial itself is started on the website, never from here.
  *
  * What is deliberately absent: a price, a payment method, a way to buy or
- * renew, a website. Access is managed by the organisation; the app says so,
- * offers to check again — which is what somebody does after it is approved,
- * without reinstalling or signing out — and keeps the person's own account:
- * sign out, and delete the account. Those three are the screen's only actions,
- * whatever the state.
+ * renew, a website. Access is managed by the organisation; the app says so —
+ * to everybody but the Owner reading the trial card, which names Dukan ERP
+ * support — offers to check again — which is what somebody does after it is
+ * approved, without reinstalling or signing out — and keeps the person's own
+ * account: sign out, and delete the account. Those three are the screen's
+ * only actions, whatever the state.
  */
 export default function AccessClosed() {
   const styles = useStyles();
@@ -52,6 +53,10 @@ export default function AccessClosed() {
   const reason = closedReason(entitlement?.state);
   // Asked only while not started: the Owner's card, or the server's refusal for everybody else.
   const setup = useTrialSetup(reason === 'not_started');
+  // The Owner's card names whom to contact — Dukan ERP support — and a self-registered Owner IS the organisation:
+  // the organisation's lines are for everybody else, and are not shown while it is still unknown who is asking.
+  const notStarted = reason === 'not_started' ? notStartedView(setup) : null;
+  const organisationLines = notStarted !== 'card' && notStarted !== 'loading';
 
   const onRecheck = async () => {
     if (checking) return;
@@ -104,12 +109,16 @@ export default function AccessClosed() {
             </Text>
           </>
         )}
-        <Text variant="caption" tone="tertiary" align="center">
-          {t('access.managed')}
-        </Text>
-        <Text variant="caption" tone="tertiary" align="center">
-          {t('access.mistake')}
-        </Text>
+        {organisationLines ? (
+          <>
+            <Text variant="caption" tone="tertiary" align="center">
+              {t('access.managed')}
+            </Text>
+            <Text variant="caption" tone="tertiary" align="center">
+              {t('access.mistake')}
+            </Text>
+          </>
+        ) : null}
 
         <View style={styles.actions}>
           <Button title={t('access.recheck')} onPress={() => void onRecheck()} loading={checking} />
