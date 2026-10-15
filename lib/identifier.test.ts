@@ -265,11 +265,12 @@ it('one idempotency key per attempt, reused across retries', () => {
   /*
     A dropped response on a bad connection is the ordinary case in a Nouakchott
     shop. Without a stable key the anxious second tap creates a second business
-    with the same name and no way to tell which one is yours.
+    with the same name and no way to tell which one is yours. A form corrected
+    after a failure is a new attempt (lib/registration.test.ts holds the rule).
   */
   const code = withoutComments(source('app/(auth)/register.tsx'));
-  assert.match(code, /const idempotencyKey = useRef\(uuidv4\(\)\)/);
-  assert.match(code, /idempotencyKey\.current/);
+  assert.match(code, /const attempt = useRef<\{ key: string; sent: RegistrationDraft \| null \}>\(\{ key: uuidv4\(\), sent: null \}\)/);
+  assert.match(code, /attempt\.current\.key/);
 });
 
 it('and against the impatient second tap, synchronously', () => {
