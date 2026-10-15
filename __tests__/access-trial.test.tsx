@@ -298,6 +298,23 @@ describe('a running free trial', () => {
     renderScreen(<AccessScreen />);
     expect(await screen.findByText('Ends 20 Oct 2026 · 10:30 (Greenwich Mean Time)')).toBeTruthy();
   });
+
+  it('with paid or granted access approved to start when it ends, still says only when it ends — never that the business becomes read-only', async () => {
+    for (const kind of ['paid', 'granted'] as const) {
+      const trial = { ...running('Asia/Tokyo').trial, accessAfterTrial: { kind, startsAt: ENDS } };
+      serve({ ...running('Asia/Tokyo'), status: 'activated', trial }, new Error('not asked'));
+      const view = renderScreen(
+        <>
+          <AccessNotice />
+          <AccessScreen />
+        </>,
+      );
+      expect(await screen.findByText('Ends 20 Oct 2026 · 19:30 (Japan Standard Time)')).toBeTruthy();
+      for (const key of ['access.readOnly.body', 'access.readOnly.notice', 'access.readOnly.kept'] as const) expect(screen.queryByText(t(key))).toBeNull();
+      expect(textOf(screen.root)).not.toMatch(/read-only|read and export|ended/i);
+      view.unmount();
+    }
+  });
 });
 
 describe('an ended free trial', () => {

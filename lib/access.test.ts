@@ -103,6 +103,15 @@ describe('the free trial’s three states (0095), from the server’s flags like
     assert.equal(accessNotice(a, true), 'none', 'an open shop is told nothing on the tabs');
   });
 
+  it('paid or granted access approved during the trial starts when it ends: the trial is still open, dated by its end, and nothing is said on the tabs', () => {
+    for (const kind of ['paid', 'granted'] as const) {
+      const a = businessAccess(entitlement({ state: 'trial_active', status: 'activated', trial: { ...trial('active', ENDS), accessAfterTrial: { kind, startsAt: ENDS } } }));
+      assert.equal(a.mode, 'open');
+      assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
+      assert.equal(accessNotice(a, true), 'none');
+    }
+  });
+
   it('an ended trial is read-only with no grace, and the tabs say when it ended', () => {
     const a = businessAccess(entitlement({ state: 'trial_expired', status: 'pending_activation', periodEnd: null, graceEnd: null, canWrite: false, trial: trial('expired', ENDS) }));
     assert.equal(a.mode, 'read_only');

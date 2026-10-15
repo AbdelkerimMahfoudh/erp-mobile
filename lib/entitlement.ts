@@ -80,6 +80,15 @@ export interface TrialView {
   startedAt: string | null;
   endsAt: string | null;
   timeZone: string;
+  /**
+   * The paid period, or the platform grant, approved during the trial: it
+   * begins exactly when the trial ends (`startsAt`, UTC, equal to `endsAt`).
+   * Null when none is approved — the business then becomes read-only at the
+   * end — and while the trial is only available; absent on an older server.
+   * Nothing the app says while a trial runs speaks of what follows it, so no
+   * words depend on it.
+   */
+  accessAfterTrial?: { kind: 'paid' | 'granted'; startsAt: string } | null;
 }
 
 export interface Entitlement {
