@@ -1993,6 +1993,8 @@ export const fr: Catalogue = {
     'Saisissez le téléphone au format international, par exemple +2223XXXXXX.',
   'team.error.email': 'Cela ne ressemble pas à une adresse e-mail.',
   'team.error.phoneTaken': 'Un autre membre utilise déjà ce numéro de téléphone.',
+  'team.error.noSeat': 'Aucune place n’est libre pour cette personne pour le moment : elle ne peut donc pas utiliser l’app. Rien n’a été enregistré.',
+  'team.error.contactPassword': 'Pour modifier ceci, il faut votre propre mot de passe, et cet écran ne le demande pas. Rien n’a été enregistré.',
   'team.error.self': 'Vous ne pouvez pas couper votre propre accès.',
   'team.error.noChanges': 'Rien n’a changé.',
 

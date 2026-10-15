@@ -1875,6 +1875,8 @@ export const en = {
   'team.error.phone': 'Enter the phone in international format, e.g. +2223XXXXXX.',
   'team.error.email': 'That does not look like an email address.',
   'team.error.phoneTaken': 'Another team member already uses that phone number.',
+  'team.error.noSeat': 'No seat is free for this person right now, so they cannot use the app. Nothing was saved.',
+  'team.error.contactPassword': 'Changing this needs your own password, and this screen does not ask for it. Nothing was saved.',
   'team.error.self': 'You cannot switch off your own access.',
   'team.error.noChanges': 'Nothing changed.',
 

@@ -1851,6 +1851,8 @@ export const ar: Catalogue = {
   'team.error.phone': 'أدخل الهاتف بصيغة دولية، مثل ‎+2223XXXXXX.',
   'team.error.email': 'هذا لا يبدو كبريد إلكتروني صحيح.',
   'team.error.phoneTaken': 'عضو آخر يستخدم هذا الرقم بالفعل.',
+  'team.error.noSeat': 'لا يوجد مقعد متاح لهذا الشخص الآن، لذا لا يمكنه استخدام التطبيق. لم يُحفظ أي شيء.',
+  'team.error.contactPassword': 'تغيير هذا يتطلب كلمة المرور الخاصة بك، وهذه الشاشة لا تطلبها. لم يُحفظ أي شيء.',
   'team.error.self': 'لا يمكنك إيقاف وصولك الخاص.',
   'team.error.noChanges': 'لم يتغيّر شيء.',
 

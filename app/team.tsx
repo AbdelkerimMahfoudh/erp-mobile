@@ -21,7 +21,7 @@ import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { toFriendlyError } from '../lib/errors';
-import { useTranslation } from '../lib/i18n';
+import { useTranslation, type TranslationKey } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
 import { useAuth } from '../hooks/useAuth';
 import { qk } from '../lib/query-keys';
@@ -167,6 +167,34 @@ export default function TeamScreen() {
   );
 }
 
+/** The controls of the edit sheet a refusal can stand beside. */
+type EditRefusal = Partial<Record<'phone' | 'email' | 'active', TranslationKey>>;
+
+/**
+ * What a refused save says, and beside which control — decided by the
+ * server's code and by what this save changed, never by its English:
+ *  - 409 `SEAT_LIMIT_REACHED`: the person was being let back in and no seat
+ *    is free for them right now, store by store — whether or not a seat
+ *    bought during a free trial waits for its end. Beside "Can use the app",
+ *    in neutral words: no price, no payment, nothing to buy;
+ *  - 403 `password_confirmation_required`: a phone number or an email
+ *    changed, which the server accepts only with the Owner's own password,
+ *    and this sheet does not ask for it. Beside each contact that changed;
+ *  - any other 409 while only the phone changed: another member already uses
+ *    that number.
+ * Anything else keeps the friendly error.
+ */
+function editRefusal(error: unknown, body: Record<string, unknown>): EditRefusal | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.status === 409 && error.code === 'SEAT_LIMIT_REACHED') return { active: 'team.error.noSeat' };
+  const contacts = (['phone', 'email'] as const).filter((field) => field in body);
+  if (error.status === 403 && error.code === 'password_confirmation_required' && contacts.length > 0) {
+    return Object.fromEntries(contacts.map((field) => [field, 'team.error.contactPassword'])) as EditRefusal;
+  }
+  if (error.status === 409 && contacts.length === 1 && contacts[0] === 'phone') return { phone: 'team.error.phoneTaken' };
+  return null;
+}
+
 /**
  * Edit one team member. Saves on its own rather than through a page-level draft:
  * it is one row, and its own Save keeps a duplicate-phone rejection scoped to
@@ -189,7 +217,7 @@ function EditSheet({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; phone?: string; email?: string; active?: string }>({});
 
   useEffect(() => {
     if (!user) return;
@@ -212,9 +240,14 @@ function EditSheet({
       toast.success(t('team.saved'));
       onClose();
     },
-    onError: (error) => {
-      if (error instanceof ApiError && error.status === 409) {
-        setErrors({ phone: t('team.error.phoneTaken') });
+    onError: (error, body) => {
+      const refused = editRefusal(error, body);
+      if (refused) {
+        setErrors({
+          phone: refused.phone && t(refused.phone),
+          email: refused.email && t(refused.email),
+          active: refused.active && t(refused.active),
+        });
         return;
       }
       toast.error(toFriendlyError(error).body);
@@ -325,14 +358,21 @@ function EditSheet({
             <>
               {/* No toggle for yourself — you cannot lock yourself out. */}
               {isSelf ? null : (
-                <Toggle
-                  label={t('team.field.active')}
-                  hint={t('team.field.activeHint')}
-                  onLabel={t('settings.toggle.on')}
-                  offLabel={t('settings.toggle.off')}
-                  value={isActive}
-                  onValueChange={setIsActive}
-                />
+                <View style={styles.block}>
+                  <Toggle
+                    label={t('team.field.active')}
+                    hint={t('team.field.activeHint')}
+                    onLabel={t('settings.toggle.on')}
+                    offLabel={t('settings.toggle.off')}
+                    value={isActive}
+                    onValueChange={setIsActive}
+                  />
+                  {errors.active ? (
+                    <Text variant="caption" tone="warning">
+                      {errors.active}
+                    </Text>
+                  ) : null}
+                </View>
               )}
 
               <PriceEditDelegation user={user} />
@@ -552,5 +592,6 @@ const styles = StyleSheet.create({
   sheet: { gap: space.base },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   readValue: { marginTop: space.xs },
+  block: { gap: space.xs },
   delegation: { gap: space.sm },
 });

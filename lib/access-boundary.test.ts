@@ -819,9 +819,10 @@ describe('stores and staff seats (the owner, 2026-10-15)', () => {
     assert.deepEqual([...new Set(writes)].sort(), [
       'delete path', "post '/users'", 'post `/users/${user.id}/cancel-invitation`', 'post `/users/${user.id}/resend-verification`', 'put path', 'patch `/users/${user!.id}`',
     ].sort());
+    // What the team is told about seats: creating a member, a member waiting, a refusal (no seat free), staff over the limit.
     for (const lang of LANGS) {
       for (const [key, value] of entries(lang)) {
-        if (!/^(team\.create\.|team\.pending\.|access\.staff\.)/.test(key)) continue;
+        if (!/^(team\.create\.|team\.pending\.|team\.error\.|access\.staff\.)/.test(key)) continue;
         assert.doesNotMatch(rules.normalizeWords(value), rules.ACCESS_PRICE, `${lang} ${key} prices a seat: ${value}`);
         assert.doesNotMatch(value, /\bMRU\b|أوقية|\bpay\b|\bpaid\b|\bpayer\b|\bpaiement\b|ادفع|الدفع|\bbuy\b|\bpurchase\b|\bachet|اشترِ|\bwebsite\b|\bsite\b|موقع|https?:|www\./i, `${lang} ${key}: ${value}`);
       }
