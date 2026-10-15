@@ -8,6 +8,10 @@
  * zone written in the app. The checks run again in child processes set to five zones — UTC, New York (UTC−4),
  * Tokyo (UTC+9), Kiritimati (UTC+14) and Pago Pago (UTC−11) — and every one must read the same words. The zones
  * shown are deliberately not GMT: Mauritania keeping GMT today must not be what makes these pass.
+ *
+ * An iPhone's Hermes is not this Node: it may have no `formatToParts`, or one that cuts the zone's name at its first
+ * space ("Greenwich"). The last checks swap `Intl.DateTimeFormat` for devices like that, and the whole name must still
+ * come out in English, French and Arabic.
  */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -77,10 +81,74 @@ if (process.env.ZONED_TIME_CHILD) {
   });
 
   it('French and Arabic read the same clock, in their own words, with Latin digits', () => {
-    assert.match(one.french, /^20 oct\. 2026 · 19:30 \(.+\)$/);
-    assert.match(one.arabic, /^20 أكتوبر 2026 · 19:30 \(.+\)$/);
-    assert.notEqual(one.french, one.tokyo, 'the zone is named in French');
+    assert.equal(one.french, '20 oct. 2026 · 19:30 (heure normale du Japon)');
+    assert.equal(one.arabic, '20 أكتوبر 2026 · 19:30 (توقيت اليابان الرسمي)');
     assert.doesNotMatch(one.arabic, /[٠-٩]/, 'no Arabic-Indic digit, as everywhere in the app');
+  });
+
+  /** Runs `fn` on a device whose `Intl.DateTimeFormat` is `Device`, then puts this machine's back. */
+  const on = (Device: typeof Intl.DateTimeFormat, fn: () => void) => {
+    const real = Intl.DateTimeFormat;
+    Intl.DateTimeFormat = Device;
+    try {
+      fn();
+    } finally {
+      Intl.DateTimeFormat = real;
+    }
+  };
+  const Real = Intl.DateTimeFormat;
+  /** No `formatToParts` at all — Hermes does not list it among the Intl methods it supports. */
+  class WithoutParts extends Real {}
+  Object.defineProperty(WithoutParts.prototype, 'formatToParts', { value: undefined });
+  /** A `formatToParts` that cuts a part at every character that is not a letter or a digit, as Hermes does on iOS. */
+  class CutParts extends Real {
+    formatToParts(date?: Date | number) {
+      return super.formatToParts(date).map((p) => (p.type === 'timeZoneName' ? { ...p, value: p.value.split(/[^\p{L}\p{M}\p{N}]/u)[0] } : p));
+    }
+  }
+  /** A language that writes the zone's name before the date. */
+  class NameFirst extends Real {
+    get format() {
+      const options = this.resolvedOptions();
+      const write = super.format;
+      if (!options.timeZoneName) return write;
+      return (date?: Date | number) => {
+        const name = super.formatToParts(date).find((p) => p.type === 'timeZoneName')?.value;
+        return `${name} ${new Real(options.locale, { timeZone: options.timeZone }).format(date)}`;
+      };
+    }
+  }
+
+  it('the devices below are what they stand for: no formatToParts, a name cut to "Greenwich", the name first', () => {
+    on(WithoutParts, () => assert.equal(new Intl.DateTimeFormat('en').formatToParts, undefined));
+    on(CutParts, () => {
+      const parts = new Intl.DateTimeFormat('en', { timeZone: 'Africa/Nouakchott', timeZoneName: 'long' }).formatToParts(ENDS);
+      assert.equal(parts.find((p) => p.type === 'timeZoneName')?.value, 'Greenwich');
+    });
+    on(NameFirst, () => assert.equal(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Tokyo', timeZoneName: 'long' }).format(ENDS), 'Japan Standard Time 10/20/2026'));
+  });
+
+  for (const [device, Device] of [
+    ['without formatToParts', WithoutParts],
+    ['whose formatToParts cuts the name at its first space', CutParts],
+    ['that writes the name before the date', NameFirst],
+  ] as const) {
+    it(`a device ${device} still shows the zone’s whole name, in English, French and Arabic`, () => {
+      on(Device, () => {
+        assert.equal(formatInZone(ENDS, 'Asia/Tokyo', 'en'), '20 Oct 2026 · 19:30 (Japan Standard Time)');
+        assert.equal(formatInZone(ENDS, 'Asia/Tokyo', 'fr'), '20 oct. 2026 · 19:30 (heure normale du Japon)');
+        assert.equal(formatInZone(ENDS, 'Asia/Tokyo', 'ar'), '20 أكتوبر 2026 · 19:30 (توقيت اليابان الرسمي)');
+        assert.equal(formatInZone(ENDS, 'Africa/Nouakchott', 'en'), '20 Oct 2026 · 10:30 (Greenwich Mean Time)');
+        assert.equal(formatInZone(ENDS, 'Africa/Nouakchott', 'fr'), '20 oct. 2026 · 10:30 (heure moyenne de Greenwich)');
+        assert.equal(formatInZone(ENDS, 'Africa/Nouakchott', 'ar'), '20 أكتوبر 2026 · 10:30 (توقيت غرينتش)');
+        assert.equal(formatInZone(new Date('2026-10-25T00:30:00.000Z'), 'Europe/Paris', 'en'), '25 Oct 2026 · 02:30 (Central European Summer Time)');
+      });
+    });
+  }
+
+  it('the zone’s name is read off `format` alone — the app never asks for formatToParts', () => {
+    const source = readFileSync(new URL('./zoned-time.ts', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.doesNotMatch(source, /formatToParts/);
   });
 
   it('formatDateTime takes the zone as an option and hands it over with the active language', () => {

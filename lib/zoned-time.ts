@@ -18,6 +18,11 @@ import { dateLocaleFor } from './date-locale.ts';
  * the zone's name follows it so nobody has to guess which clock it means. No
  * arithmetic on the instant. Pure — no React — so a plain node test can run it
  * on phones set to several zones.
+ *
+ * Only `Intl.DateTimeFormat.format` is used, never `formatToParts`: Hermes
+ * lists `format` as supported and not `formatToParts`, and its iPhone
+ * implementation cuts the parts at every character that is not a letter or a
+ * digit — "Greenwich Mean Time" would come out as "Greenwich".
  */
 
 interface WallClock {
@@ -40,7 +45,8 @@ function intlLocale(language: string): string {
 /** What a clock in `timeZone` shows at `instant`, or null when this device cannot read that zone. */
 function wallClock(instant: Date, timeZone: string, language: string): WallClock | null {
   try {
-    const parts = new Intl.DateTimeFormat('en-US', {
+    // "10/20/2026, 19:30": US English writes the month, the day, the year, the hour and the minute, in that order.
+    const reading = new Intl.DateTimeFormat('en-US', {
       timeZone,
       year: 'numeric',
       month: 'numeric',
@@ -48,16 +54,38 @@ function wallClock(instant: Date, timeZone: string, language: string): WallClock
       hour: 'numeric',
       minute: 'numeric',
       hourCycle: 'h23',
-    }).formatToParts(instant);
-    const field = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
-    const zoneName = new Intl.DateTimeFormat(intlLocale(language), { timeZone, timeZoneName: 'long' })
-      .formatToParts(instant)
-      .find((p) => p.type === 'timeZoneName')?.value;
-    const clock = { year: field('year'), month: field('month'), day: field('day'), hour: field('hour'), minute: field('minute'), zoneName: zoneName ?? timeZone };
-    return [clock.year, clock.month, clock.day, clock.hour, clock.minute].every(Number.isFinite) ? clock : null;
+    }).format(instant);
+    const fields = (reading.match(/\d+/g) ?? []).map(Number);
+    if (fields.length !== 5) return null;
+    const [month, day, year, hour, minute] = fields;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return null;
+    return { year, month, day, hour, minute, zoneName: zoneNameOf(instant, timeZone, language) ?? timeZone };
   } catch {
     return null;
   }
+}
+
+/** What separates a zone's name from the date it is written with: spaces, commas and right-to-left marks. */
+const SEPARATORS = /^[\s,،؜‎‏]+|[\s,،؜‎‏]+$/g;
+
+/**
+ * The zone's own name in the reader's language: the instant written with the
+ * name, less the same instant written without it. The date comes before the
+ * name in some languages and could come after it in others, and Arabic puts
+ * direction marks around it; what is left once the date and its separators
+ * are taken away is the whole name — "Greenwich Mean Time", "heure normale du
+ * Japon", "توقيت اليابان الرسمي". Null when the two do not line up.
+ */
+function zoneNameOf(instant: Date, timeZone: string, language: string): string | null {
+  const locale = intlLocale(language);
+  const named = new Intl.DateTimeFormat(locale, { timeZone, timeZoneName: 'long' }).format(instant);
+  const date = new Intl.DateTimeFormat(locale, { timeZone }).format(instant);
+  const name = named.startsWith(date)
+    ? named.slice(date.length)
+    : named.endsWith(date)
+      ? named.slice(0, named.length - date.length)
+      : '';
+  return name.replace(SEPARATORS, '') || null;
 }
 
 const two = (n: number) => String(n).padStart(2, '0');
