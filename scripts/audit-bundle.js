@@ -375,17 +375,26 @@ function readTree(program, on) {
     else if (node.type === 'BinaryExpression' && node.operator === '+' && !inChain) {
       const text = folded(node);
       if (text !== null) on.string(text, node.start);
-    } else if (isMember(node) && propertyName(node) === 'open' && ['window', 'document'].includes(kindOf(node.object, scope))) on.open(node.property.start);
-    else if (node.type === 'VariableDeclarator') {
+    } else if (isMember(node)) {
+      // Read, called or bound: `window.open`, `location.assign`, `location.replace.bind(location)`.
+      const name = propertyName(node);
+      if (name === 'open' && ['window', 'document'].includes(kindOf(node.object, scope))) on.open(node.property.start);
+      else if ((name === 'assign' || name === 'replace') && kindOf(node.object, scope) === 'location') on.navigation(node.property.start);
+    } else if (node.type === 'VariableDeclarator') {
       if (node.id.type === 'Identifier') bind(scope, node.id.name, kindOf(node.init, scope));
       else {
         for (const name of boundNames(node.id)) bind(scope, name, null);
-        // `const { open, location: l, document: d } = window`: what is taken out of a window keeps what it is.
+        // `const { open, location: l, document: d } = window`, `const { assign } = location`: what is taken out of a
+        // window, a document or a location keeps what it is.
         const from = kindOf(node.init, scope);
-        if (node.id.type === 'ObjectPattern' && (from === 'window' || from === 'document')) {
+        if (node.id.type === 'ObjectPattern' && from) {
           for (const p of node.id.properties) {
             if (p.type !== 'ObjectProperty') continue;
             const key = keyName(p);
+            if (from === 'location') {
+              if (key === 'assign' || key === 'replace') on.navigation(p.start);
+              continue;
+            }
             if (key === 'open') on.open(p.start);
             const kind = key === 'location' ? 'location' : key === 'document' ? 'document' : WINDOW.has(key) || key === 'defaultView' ? 'window' : null;
             if (kind && p.value.type === 'Identifier') bind(scope, p.value.name, kind);
@@ -403,8 +412,7 @@ function readTree(program, on) {
       }
     } else if (isCall(node) || node.type === 'NewExpression') {
       const callee = node.callee;
-      if (isMember(callee) && ['assign', 'replace'].includes(propertyName(callee)) && kindOf(callee.object, scope) === 'location') on.navigation(callee.property.start);
-      else if (callee.type === 'Identifier' && callee.name === 'open' && !binding(scope, 'open')) on.open(node.start);
+      if (callee.type === 'Identifier' && callee.name === 'open' && !binding(scope, 'open')) on.open(node.start);
       if (carriesToken(node)) on.token(node.start);
     }
     const children = [];

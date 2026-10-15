@@ -107,6 +107,8 @@ describe('a browser, however it is reached', () => {
       'document.location=e',
       'const{location:l}=window;l.assign(e)',
       'var l=document.defaultView.location;l.replace(e)',
+      'var g=location.replace.bind(location);g(e)',
+      'const{assign:a}=window.location;a.call(location,e)',
       "var a=document.createElement('a');a.href=e;a.click()",
     ]) {
       caught('web', `;(function(e){${code}})(q);`, 'browser-opening call');
