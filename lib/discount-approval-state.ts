@@ -211,6 +211,8 @@ export type SaleRefusal =
   | 'approval_unit_transferred'
   | 'approval_cost_changed'
   | 'acknowledgement_rejected'
+  // A discount that takes a line below its cost (2026-10-16, BE4-01): removed, or the final price approved instead.
+  | 'discount_below_cost'
   // The money taken now (2026-09-27): a fifth method, one place twice, more than the total, a balance nobody owes.
   | 'too_many_payment_methods'
   | 'duplicate_payment_destination'
@@ -229,6 +231,7 @@ const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
   'approval_unit_transferred',
   'approval_cost_changed',
   'acknowledgement_rejected',
+  'discount_below_cost',
   'too_many_payment_methods',
   'duplicate_payment_destination',
   'overpayment',

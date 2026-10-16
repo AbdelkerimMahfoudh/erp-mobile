@@ -2673,6 +2673,7 @@ export const ar: Catalogue = {
   'approvals.lapsed': 'انتهى وقت هذا الطلب.',
   'approvals.notFound': 'لم يعد هذا الطلب موجودًا.',
   'sell.approval.priceChanged': 'تغيّر السعر المحدَّد. اطلب مجدّدًا بالسعر الذي تريده.',
+  'sell.discountBelowCost': 'هذا الخصم يجعل البيع بأقل من التكلفة. أزِله، أو اطلب من المالك الموافقة على السعر النهائي.',
   'sell.approval.alreadyUsed': 'استُخدمت هذه الموافقة في عملية أخرى.',
   'sell.approval.expired': 'انتهت صلاحية الموافقة. اطلب مجدّدًا إن كان الزبون ما زال هنا.',
   'sell.approval.waiting': 'بانتظار المالك. لم يُبَع شيء بعد.',

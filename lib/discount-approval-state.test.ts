@@ -193,6 +193,7 @@ it('recognises every code the sale flow acts on', () => {
     'approval_unit_transferred',
     'approval_cost_changed',
     'acknowledgement_rejected',
+    'discount_below_cost',
     'too_many_payment_methods',
     'duplicate_payment_destination',
     'overpayment',

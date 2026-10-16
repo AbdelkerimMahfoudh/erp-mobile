@@ -562,6 +562,9 @@ function SellScreen() {
           case 'approval_cost_changed':
             toast.warning(t('approval.void.costChanged'));
             return;
+          case 'discount_below_cost':
+            toast.warning(t('sell.discountBelowCost'));
+            return;
           case 'acknowledgement_rejected':
             /*
              * Not slowness. A confirmation that belongs to another person,

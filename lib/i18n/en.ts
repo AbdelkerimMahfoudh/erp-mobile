@@ -2740,6 +2740,7 @@ export const en = {
   'approvals.lapsed': 'This request has run out of time.',
   'approvals.notFound': 'That request no longer exists.',
   'sell.approval.priceChanged': 'The set price changed. Ask again for the price you want.',
+  'sell.discountBelowCost': 'This discount would sell below cost. Remove it, or ask the Owner to approve the final price.',
   'sell.approval.alreadyUsed': 'That approval was already used for another sale.',
   'sell.approval.expired': 'That approval expired. Ask again if the customer is still here.',
   'sell.approval.waiting': 'Waiting for the Owner. Nothing has been sold yet.',
