@@ -76,6 +76,13 @@ describe('the bundle the audit is held against', () => {
     assert.deepEqual(findings(exportWith('ios')), []);
   });
 
+  it('allows the legal pages’ origin it was built with — that exact origin, and no other address of the website', () => {
+    const legal = (injected: string) => auditor.audit([exportWith('ios', injected)], 'https://example.invalid', 'https://www.dukan-erp.mr').problems;
+    assert.deepEqual(legal(';var o="https://www.dukan-erp.mr";'), []);
+    assert.ok(legal(';var o="https://shop.dukan-erp.mr";').includes('ios: website address'), 'another host of the website is still found');
+    assert.ok(findings(exportWith('ios', ';var o="https://www.dukan-erp.mr";')).includes('ios: website address'), 'without the origin it is a website address');
+  });
+
   it('fails without the browser guard', () => {
     const problems = findings(exportWith('ios', '', auditor.GUARD));
     assert.ok(problems.includes('ios: browser-opening call'), problems.join('; '));

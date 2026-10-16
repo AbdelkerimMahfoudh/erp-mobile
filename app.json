@@ -17,6 +17,11 @@
       },
       "permissions": [
         "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -27,7 +32,7 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Dukan ERP does not use Face ID."
+          "faceIDPermission": false
         }
       ],
       [
@@ -44,7 +49,7 @@
         "expo-camera",
         {
           "cameraPermission": "Dukan ERP uses the camera to scan IMEIs, serial numbers and barcodes so you do not have to type them.",
-          "microphonePermission": "Dukan ERP does not record sound.",
+          "microphonePermission": false,
           "recordAudioAndroid": false
         }
       ],
@@ -52,7 +57,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Dukan ERP opens your photos only when you choose a receipt picture for an expense.",
-          "microphonePermission": "Dukan ERP does not record sound."
+          "microphonePermission": false
         }
       ],
       "expo-font",
@@ -68,6 +73,10 @@
       "eas": {
         "projectId": "834d8b25-2737-46e8-b911-3eac6d85c2fb"
       }
+    },
+    "locales": {
+      "fr": "./locales/fr.json",
+      "ar": "./locales/ar.json"
     }
   }
 }

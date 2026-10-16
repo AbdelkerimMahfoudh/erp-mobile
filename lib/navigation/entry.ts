@@ -48,7 +48,8 @@ export function entryRoute(s: EntryState): string | null {
   if (s.segment === 'dev') return null;
 
   if (!s.signedIn && !inAuth) return LOGIN;
-  if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen) return SELECT_BRANCH;
+  // Their own account needs no branch: a login assigned to none can still verify a number or delete itself there.
+  if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen && !onAccount) return SELECT_BRANCH;
   // The splash at the root, sign-in and the branch choice all move on once there is a session and a branch.
   if (s.signedIn && s.branchChosen && (inAuth || onSelectBranch || s.segment === undefined)) return APP_HOME;
   // A screen whose only purpose is a business write is not opened for a read-only

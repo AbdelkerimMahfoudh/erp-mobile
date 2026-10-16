@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Redirect, useRouter, Stack } from 'expo-router';
 import { TrialSetupCard } from '../components/access';
+import { LegalPageButtons } from '../components/legal/LegalPages';
 import { Button, ErrorState, Screen, SkeletonList, SkeletonText, Text } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { closedReason } from '../lib/access';
@@ -131,6 +132,8 @@ export default function AccessClosed() {
           */}
           <Button title={t('account.delete.link')} variant="tertiary" onPress={() => router.push('/account/delete' as never)} />
         </View>
+        {/* Pages to read, never a way to the business's access: outside the trial card, which stays display-only. */}
+        <LegalPageButtons />
       </View>
     </Screen>
   );

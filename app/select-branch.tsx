@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { LogOut, Store, Warehouse } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { CircleUserRound, LogOut, Store, Warehouse } from 'lucide-react-native';
+import { LegalPageButtons } from '../components/legal/LegalPages';
 import {
   Button,
   EmptyState,
@@ -34,6 +36,7 @@ export default function SelectBranch() {
   const { t } = useTranslation();
   const { setBranch } = useBranch();
   const { signOut, user } = useAuth();
+  const router = useRouter();
 
   const query = useQuery({
     queryKey: qk.branches,
@@ -64,14 +67,25 @@ export default function SelectBranch() {
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : !query.data || query.data.length === 0 ? (
         /**
-         * Assigned to nothing. Signing out is the only action that helps — the
-         * fix is an owner assigning them a branch, which they cannot do here.
+         * Assigned to nothing. The fix is an owner assigning them a branch,
+         * which they cannot do here; signing out is one way on, and their own
+         * account is the other — verifying a number and deleting the account
+         * are rights no branch is needed for (docs/64, App Review 5.1.1(v)).
          */
-        <EmptyState
-          icon={Store}
-          title={t('branch.select.none.title')}
-          body={t('branch.select.none.body')}
-        />
+        <View style={styles.list}>
+          <EmptyState
+            icon={Store}
+            title={t('branch.select.none.title')}
+            body={t('branch.select.none.body')}
+          />
+          <Button
+            title={t('nav.account')}
+            variant="secondary"
+            icon={CircleUserRound}
+            onPress={() => router.push('/account' as never)}
+          />
+          <LegalPageButtons />
+        </View>
       ) : (
         <View style={styles.list}>
           {query.data.map((branch) => (

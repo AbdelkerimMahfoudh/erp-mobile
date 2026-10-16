@@ -54,6 +54,16 @@ if (profile === 'production' || profile === 'preview') {
     problems.push(`EXPO_PUBLIC_API_ORIGIN names a development host: "${origin}"`);
   }
   if (env.EXPO_PUBLIC_API_HOST) problems.push('EXPO_PUBLIC_API_HOST is a development override and must not be set for a release');
+
+  // 1b. Where the privacy policy, the terms, support and account deletion are read (lib/legal-links.ts): the same rule.
+  const legal = (env.EXPO_PUBLIC_LEGAL_ORIGIN ?? '').trim().replace(/\/+$/, '');
+  if (!legal) {
+    problems.push('EXPO_PUBLIC_LEGAL_ORIGIN is not set for this build. Without it the app shows no privacy policy, terms, support or account-deletion page.');
+  } else if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(legal)) {
+    problems.push(`EXPO_PUBLIC_LEGAL_ORIGIN must be an https:// origin with no path; got "${legal}"`);
+  } else if (/localhost|127\.0\.0\.1|\b10\.\d|\b192\.168\.|\b172\.(1[6-9]|2\d|3[01])\./.test(legal)) {
+    problems.push(`EXPO_PUBLIC_LEGAL_ORIGIN names a development host: "${legal}"`);
+  }
 }
 
 // 2. Debug overlays and staging labels never reach the store.

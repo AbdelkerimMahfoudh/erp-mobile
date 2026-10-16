@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Store } from 'lucide-react-native';
+import { LegalPageButtons } from '../../components/legal/LegalPages';
 import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
@@ -256,6 +257,13 @@ export default function Login() {
                 being unable to start the task.
               */}
               <AuthLanguageSwitch />
+
+              {/*
+                What the app does with a person's information, the terms, where to
+                get help and how deletion works — readable before signing in, in the
+                phone's own browser. Pages to read: none leads to a price or a sign-up.
+              */}
+              <LegalPageButtons />
             </View>
           )}
         </View>

@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "يستخدم Dukan ERP الكاميرا لمسح أرقام IMEI والأرقام التسلسلية والرموز الشريطية حتى لا تضطر إلى كتابتها.",
+    "NSPhotoLibraryUsageDescription": "لا يفتح Dukan ERP صورك إلا عندما تختار صورة إيصال لمصروف."
+  }
+}

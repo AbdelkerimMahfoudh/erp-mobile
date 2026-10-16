@@ -760,11 +760,18 @@ describe('the website’s entry points are gone from the app', () => {
 
   it('nothing opens a browser: no openURL in any form, no Linking at all — but in the guard that makes every openURL refuse', () => {
     assert.deepEqual(SOURCES.flatMap(browserNames), []);
-    // The guard only refuses: React Native's openURL — which expo-linking and expo-router call — and, on the web, any
-    // new tab but a blob page. The root layout installs it once, at module scope, before any screen exists.
+    // The guard refuses: React Native's openURL — which expo-linking and expo-router call — and, on the web, any new
+    // tab but a blob page. The root layout installs it once, at module scope, before any screen exists. It keeps the
+    // phone's own opener first, and reaches it only for an exact legal page (the owner's brief of 2026-10-16).
     const guard = code(new URL(GUARD, ROOT).pathname);
-    assert.equal((guard.match(/openURL/g) ?? []).length, 1);
-    assert.match(guard, /^\s*Linking\.openURL = \(\) => Promise\.reject\(new Error\('Dukan ERP opens no address outside the app\.'\)\);$/m);
+    assert.equal((guard.match(/openURL/g) ?? []).length, 2);
+    assert.match(guard, /^\s*const phone = Linking\.openURL\.bind\(Linking\);\n\s*Linking\.openURL = \(\) => Promise\.reject\(new Error\('Dukan ERP opens no address outside the app\.'\)\);$/m);
+    assert.match(guard, /^\s*legalOpener \?\?= tab \?\? phone;$/m);
+    // The kept opener is called once, with the address built here from a page and a language — never one passed in.
+    assert.deepEqual([...guard.matchAll(/legalOpener\(([^)]*)\)/g)].map(([, arg]) => arg), ['url']);
+    assert.match(guard, /^export function openLegalPage\(page: LegalPage, language: Language\): Promise<unknown> \{\n\s*const url = LEGAL_ORIGIN \? legalPageUrl\(LEGAL_ORIGIN, page, language\) : '';\n\s*if \(!legalOpener \|\| !isLegalPageUrl\(LEGAL_ORIGIN, url\)\) return Promise\.reject/m);
+    // Only the legal pages' component opens one.
+    assert.deepEqual(SOURCES.filter((f) => relative(f) !== GUARD && /\bopenLegalPage\b/.test(code(f))).map(relative), ['components/legal/LegalPages.tsx']);
     assert.match(guard, /^\s*window\.open = \(url, \.\.\.rest\) => \(String\(url \?\? ''\)\.startsWith\('blob:'\) \? open\(url, \.\.\.rest\) : null\);$/m);
     assert.doesNotMatch(guard, /expo-linking|location|href|require\(/);
     assert.match(strip(read('app/_layout.tsx')), /^import \{ refuseBrowser \} from '\.\.\/lib\/navigation\/no-browser';$[\s\S]*^refuseBrowser\(\);$/m);
@@ -947,11 +954,11 @@ describe('the words', () => {
     }
   });
 
-  it('the access, sign-in, sign-up and trial copy never names a price, a payment, a way to buy or renew, or a website — in any language', () => {
+  it('the access, sign-in, sign-up, trial and legal-page copy never names a price, a payment, a way to buy or renew, or a website — in any language', () => {
     const forbidden = /\bMRU\b|أوقية|https?:|www\.|\bwebsite\b|\bsite\b|موقع|\brenew|renouvel|تجديد|\bsubscri|\babonne|اشتراك|اشترك|\bbuy\b|\bpurchase\b|\bachet|اشترِ|\bpay\b|\bpaid\b|\bpayer\b|\bpaiement\b|ادفع|الدفع|Bankily|بنكيلي|\bcheckout\b|in-app|App Store|Apple|\bQR\b|\bclick\b|\bcliquez\b/i;
     for (const lang of LANGS) {
       for (const [key, value] of entries(lang)) {
-        if (!/^(access\.|nav\.access|auth\.|register\.|trialSetup\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
+        if (!/^(access\.|nav\.access|auth\.|register\.|trialSetup\.|legal\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
         assert.doesNotMatch(value, forbidden, `${lang} ${key}: ${value}`);
       }
     }

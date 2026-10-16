@@ -1,10 +1,14 @@
 import { Linking, Platform } from 'react-native';
+import { LEGAL_ORIGIN } from '../../constants/config';
+import type { Language } from '../i18n';
+import { isLegalPageUrl, legalPageUrl, type LegalPage } from '../legal-links';
 
 /**
  * Nothing in the app opens an address outside it (docs/21: the App Store
  * boundary of 2026-10-05; the owner's correction of 2026-10-13 — no website
- * link, no browser). The root layout installs this once, at startup, before
- * any screen exists.
+ * link, no browser) but the four legal pages (the owner's brief of
+ * 2026-10-16), which `openLegalPage` opens in the phone's own browser. The
+ * root layout installs this once, at startup, before any screen exists.
  *
  * On a phone every way out reaches one `openURL`: React Native's `Linking` —
  * expo-linking's `openURL` calls it, and expo-router calls that for an
@@ -23,14 +27,38 @@ import { Linking, Platform } from 'react-native';
  * app's own routes, reaches a router only through its own methods and bans
  * those calls, and the bundle audit pins the libraries' own.
  *
+ * The phone's own opener is kept here, before it is replaced, and reached only
+ * by `openLegalPage`, which opens nothing but an exact address
+ * `lib/legal-links.ts` builds on the configured origin: never a server's value,
+ * never a page with a price, an application or a sign-in.
+ *
  * `lib/access-boundary.test.ts` pins this file and its call in
  * `app/_layout.tsx`; `scripts/audit-bundle.js` refuses a bundle without it.
  */
+let legalOpener: ((url: string) => Promise<unknown>) | null = null;
+
 export function refuseBrowser(): void {
+  const phone = Linking.openURL.bind(Linking);
   Linking.openURL = () => Promise.reject(new Error('Dukan ERP opens no address outside the app.'));
+  let tab: ((url: string) => Promise<unknown>) | null = null;
   // The web export renders its pages once in Node, where there is no window to guard.
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const open = window.open.bind(window);
     window.open = (url, ...rest) => (String(url ?? '').startsWith('blob:') ? open(url, ...rest) : null);
+    tab = (url) => Promise.resolve(open(url, '_blank', 'noopener,noreferrer'));
   }
+  // Kept from the first install only: a second one would keep the refusal.
+  legalOpener ??= tab ?? phone;
+}
+
+/** Whether this build has a legal page to open: false when no origin is configured. */
+export function legalPagesAvailable(): boolean {
+  return LEGAL_ORIGIN !== null;
+}
+
+/** Open one legal page, in the person's language, in the phone's own browser — and nothing else. */
+export function openLegalPage(page: LegalPage, language: Language): Promise<unknown> {
+  const url = LEGAL_ORIGIN ? legalPageUrl(LEGAL_ORIGIN, page, language) : '';
+  if (!legalOpener || !isLegalPageUrl(LEGAL_ORIGIN, url)) return Promise.reject(new Error('Dukan ERP opens no address outside the app.'));
+  return legalOpener(url);
 }

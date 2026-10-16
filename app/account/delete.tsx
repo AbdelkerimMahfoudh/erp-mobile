@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useLeave } from '../../components/navigation/HeaderBack';
@@ -14,6 +14,7 @@ import {
   Text,
   TextField,
 } from '../../components/ui';
+import { LegalPageRows } from '../../components/legal/LegalPages';
 import { useAuth } from '../../hooks/useAuth';
 import { api, ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
@@ -55,6 +56,8 @@ export default function DeleteAccountScreen() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Reads of the deletion's state that got no answer in a row (`poll`). */
+  const pollMisses = useRef(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -188,15 +191,22 @@ export default function DeleteAccountScreen() {
   const poll = async () => {
     try {
       const state = await api.get<{ request: DeletionRequestView | null }>('/account/deletion');
+      pollMisses.current = 0;
       if (state.request) {
         setRequest(state.request);
         if (state.request.status === 'completed') setStep('done');
         else if (state.request.status === 'failed') fail(new ApiError(state.request.failure ?? '', 503, 'deletion_failed'));
         else if (state.request.status !== 'awaiting_code') setTimeout(() => void poll(), 1500);
       }
-    } catch {
-      // The session ends the moment the deletion completes; a 401 here means it did.
-      setStep('done');
+    } catch (e) {
+      // The session ends the moment the deletion completes; only a 401 here means it did. Anything else — no
+      // connection, a timeout, a server error — says nothing about the deletion, so it is asked again, and after a
+      // few tries said as it is rather than reported as done.
+      if (e instanceof ApiError && e.status === 401) setStep('done');
+      else if (pollMisses.current < 4) {
+        pollMisses.current += 1;
+        setTimeout(() => void poll(), 3000);
+      } else fail(e);
     }
   };
 
@@ -358,6 +368,8 @@ export default function DeleteAccountScreen() {
         </>
       )}
       <Button title={t('account.delete.keep')} variant="tertiary" onPress={leave} />
+
+      <LegalPageRows pages={['accountDeletion', 'privacy', 'support']} />
     </Screen>
   );
 }

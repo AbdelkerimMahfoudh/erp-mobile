@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { legalOrigin } from '../lib/legal-links';
 import { releaseOriginRefusal, type OriginRefusal } from '../lib/release-origin';
 
 /**
@@ -68,12 +69,19 @@ export function isStagingBuild(): boolean {
 }
 
 /*
- * No website address lives here any more. Registration happens in the app,
- * and a shop's subscription is activated and extended by the platform's
- * administrators — the app shows the server's state and says whom to contact.
- * The control website is a separate product and is not included from here
- * (docs/21, 2026-09-22).
+ * No website address lives here but the one the legal pages are read on.
+ * Registration happens in the app, and a shop's subscription is activated and
+ * extended by the platform's administrators — the app shows the server's state
+ * and says whom to contact. The control website is a separate product and is
+ * not included from here (docs/21, 2026-09-22).
  */
+
+/**
+ * Where the privacy policy, the terms, support and account deletion are read (`lib/legal-links.ts`; docs/21, the
+ * owner's brief of 2026-10-16): `EXPO_PUBLIC_LEGAL_ORIGIN`, https only — a release is also held to the API's rule —
+ * or null, and then the app shows no page to open.
+ */
+export const LEGAL_ORIGIN: string | null = legalOrigin(process.env.EXPO_PUBLIC_LEGAL_ORIGIN, !__DEV__ && Platform.OS !== 'web');
 
 export const TOKEN_KEYS = {
   ACCESS_TOKEN: 'erp.accessToken',

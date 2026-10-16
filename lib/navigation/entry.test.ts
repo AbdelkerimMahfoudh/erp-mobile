@@ -49,6 +49,9 @@ it('the business closed (pending, suspended, cancelled, refused): the access scr
   }
   assert.equal(entryRoute(state({ segment: 'access-closed', closed: true })), null, 'and it stays there, with Check again and Sign out');
   assert.equal(entryRoute(state({ segment: 'account', closed: true })), null, 'the person’s own account stays reachable');
+  // A login assigned to no branch still reaches its own account: verifying a number and deleting it need no branch.
+  assert.equal(entryRoute(state({ segment: 'account', branchChosen: false })), null, 'the account of a login without a branch stays reachable');
+  assert.equal(entryRoute(state({ segment: '(tabs)', branchChosen: false })), SELECT_BRANCH, 'the rest of the app still needs a branch');
 });
 
 it('a read-only business (the period and its grace are over) keeps every read and is sent off a screen that only writes', () => {

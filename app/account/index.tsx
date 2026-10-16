@@ -17,6 +17,7 @@ import {
   Text,
   TextField,
 } from '../../components/ui';
+import { LegalPageRows } from '../../components/legal/LegalPages';
 import { api, ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
@@ -107,6 +108,8 @@ export default function AccountScreen() {
           {t('account.delete.rowHint')}
         </Text>
       </Section>
+
+      <LegalPageRows />
     </Screen>
   );
 }

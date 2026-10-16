@@ -57,7 +57,7 @@ function hook(env: Record<string, string>): { status: number | null; out: string
   return { status: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
-it('every EAS build of a release profile runs the release check, and fails without an https origin', () => {
+it('every EAS build of a release profile runs the release check, and fails without its https origins', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(typeof pkg.scripts['eas-build-post-install'], 'string', 'package.json has the EAS build hook');
 
@@ -66,7 +66,13 @@ it('every EAS build of a release profile runs the release check, and fails witho
   assert.match(missing.out, /EXPO_PUBLIC_API_ORIGIN is not set/);
   assert.equal(hook({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_ORIGIN: 'http://api.dukan.mr' }).status, 1);
   assert.equal(hook({ EAS_BUILD_PROFILE: 'preview', EXPO_PUBLIC_API_ORIGIN: 'http://192.168.1.20:3010' }).status, 1);
-  const sound = hook({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_ORIGIN: 'https://api.dukan.mr' });
+  // The legal pages' origin is held to the same rule (lib/legal-links.ts): a release cannot be built without it.
+  const noLegal = hook({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_ORIGIN: 'https://api.dukan.mr' });
+  assert.equal(noLegal.status, 1, noLegal.out);
+  assert.match(noLegal.out, /EXPO_PUBLIC_LEGAL_ORIGIN is not set/);
+  assert.equal(hook({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_ORIGIN: 'https://api.dukan.mr', EXPO_PUBLIC_LEGAL_ORIGIN: 'http://www.dukan.mr' }).status, 1);
+  assert.equal(hook({ EAS_BUILD_PROFILE: 'preview', EXPO_PUBLIC_API_ORIGIN: 'https://api.dukan.mr', EXPO_PUBLIC_LEGAL_ORIGIN: 'https://localhost:5173' }).status, 1);
+  const sound = hook({ EAS_BUILD_PROFILE: 'production', EXPO_PUBLIC_API_ORIGIN: 'https://api.dukan.mr', EXPO_PUBLIC_LEGAL_ORIGIN: 'https://www.dukan.mr' });
   assert.equal(sound.status, 0, sound.out);
   // A development build keeps its development defaults: not checked.
   assert.equal(hook({ EAS_BUILD_PROFILE: 'development' }).status, 0);

@@ -8,6 +8,8 @@
  *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --source-maps --output-dir <ios>
  *   EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js <web> <ios> [<android> …]
  *
+ * (each with `EXPO_PUBLIC_LEGAL_ORIGIN` set as the release sets it: its origin is the one website address allowed)
+ *
  * The app may SAY what the server knows about the one 7-day free trial; it can
  * DO nothing about it — the trial is started on the Dukan ERP website alone,
  * and its setup instructions are sent again there, after sign-in, or through
@@ -109,7 +111,8 @@ const LINKING_ALLOWED = new Map([[GUARD, new Set(['Linking'])]]);
  * react-native-web's Linking (whose web `openURL`s set `window.location`),
  * react-native-svg's `href` on an SVG element, React DOM's own (an SVG
  * `xlinkHref` prop, and the Navigation API it restores a page's scroll
- * through) — the guard that makes `openURL` refuse, and on the web build the report preview (`lib/report-pdf.ts` opens
+ * through) — the guard that makes `openURL` refuse (twice: it keeps the phone's own opener, for the four legal pages
+ * alone, then refuses), and on the web build the report preview (`lib/report-pdf.ts` opens
  * the report's own page in a new tab) and the CSV download
  * (`lib/report-export.ts` hands the browser a `blob:` file through a link: the
  * link made, and pointed at the file). Nothing else of the app's own reaches
@@ -119,7 +122,7 @@ const LINKING_LIBRARIES = {
   'node_modules/expo-linking/build/Linking.js': 2,
   'node_modules/expo-router/build/getRoutesRedirects.js': 2,
   'node_modules/expo-router/build/global-state/router.js': 1,
-  [GUARD]: 1,
+  [GUARD]: 2,
 };
 const CALL_SITES = {
   web: {
@@ -524,10 +527,14 @@ const LABELS = { openURL: 'openURL', 'window.open': 'window.open', navigation: '
  * every finding. `apiOrigin` is the API the bundles were built for: its host
  * is the app's own.
  */
-function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim()) {
+function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim(), legalOrigin = (process.env.EXPO_PUBLIC_LEGAL_ORIGIN ?? '').trim().replace(/\/+$/, '')) {
   if (!parse) throw new Error('scripts/audit-bundle.js needs @babel/parser, which Metro installs — run npm ci first.');
   const API_HOST = apiOrigin ? new URL(apiOrigin).hostname : null;
-  const allowedHost = (host) => LIBRARY_HOSTS.has(host) || host === API_HOST || host.endsWith('.invalid');
+  // The website the four legal pages are read on (lib/legal-links.ts): its exact origin, and no other address of it.
+  const LEGAL_HOST = legalOrigin ? new URL(legalOrigin).hostname : null;
+  const allowedHost = (host) => LIBRARY_HOSTS.has(host) || host === API_HOST || host === LEGAL_HOST || host.endsWith('.invalid');
+  /** The text read as words, with the legal pages' origin taken out: the one website address the app may hold. */
+  const spoken = (text) => (legalOrigin ? text.split(legalOrigin).join(' ') : text);
 
   /** What one platform's files hold, gathered file by file. */
   const platforms = new Map();
@@ -567,7 +574,7 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
       p.chars += text.length;
       p.text += '\n' + text;
 
-      const words = rules.normalizeWords(text);
+      const words = rules.normalizeWords(spoken(text));
       if (rel.endsWith('.html')) {
         let rest = rules.normalizeWords(pageText(text)).replace(TRIAL_NAMES, ' ');
         for (const sentence of TRIAL_SENTENCES) rest = rest.split(sentence).join(' ');

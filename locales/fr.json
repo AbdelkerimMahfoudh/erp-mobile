@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Dukan ERP utilise l’appareil photo pour scanner les IMEI, les numéros de série et les codes-barres, pour que vous n’ayez pas à les saisir.",
+    "NSPhotoLibraryUsageDescription": "Dukan ERP n’ouvre vos photos que lorsque vous choisissez la photo d’un reçu pour une dépense."
+  }
+}

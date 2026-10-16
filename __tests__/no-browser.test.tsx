@@ -59,3 +59,57 @@ it('on the web build a new tab opens only for the app’s own blob page', () => 
     Platform.OS = os;
   }
 });
+
+describe('the legal pages (the owner’s brief of 2026-10-16)', () => {
+  const ORIGIN = 'https://www.company-domain.mr';
+  const load = (origin: string | undefined) => {
+    const saved = process.env.EXPO_PUBLIC_LEGAL_ORIGIN;
+    if (origin === undefined) delete process.env.EXPO_PUBLIC_LEGAL_ORIGIN;
+    else process.env.EXPO_PUBLIC_LEGAL_ORIGIN = origin;
+    let guard!: typeof import('../lib/navigation/no-browser');
+    let linking!: typeof import('react-native').Linking;
+    jest.isolateModules(() => {
+      linking = require('react-native').Linking;
+      guard = require('../lib/navigation/no-browser');
+    });
+    if (saved === undefined) delete process.env.EXPO_PUBLIC_LEGAL_ORIGIN;
+    else process.env.EXPO_PUBLIC_LEGAL_ORIGIN = saved;
+    return { guard, linking };
+  };
+
+  it('open in the phone’s own browser at their exact in-app address — and every other address stays refused', async () => {
+    const { guard, linking } = load(ORIGIN);
+    const phone = jest.fn(async (_url: string) => true);
+    linking.openURL = phone;
+    guard.refuseBrowser();
+    await guard.openLegalPage('privacy', 'en');
+    await guard.openLegalPage('terms', 'fr');
+    await guard.openLegalPage('support', 'ar');
+    await guard.openLegalPage('accountDeletion', 'en');
+    expect(phone.mock.calls.map(([url]) => url)).toEqual([
+      `${ORIGIN}/in-app/privacy`,
+      `${ORIGIN}/fr/in-app/terms`,
+      `${ORIGIN}/ar/in-app/support`,
+      `${ORIGIN}/in-app/account-deletion`,
+    ]);
+    await expect(linking.openURL(`${ORIGIN}/in-app/privacy`)).rejects.toThrow('Dukan ERP opens no address outside the app.');
+    await expect(guard.openLegalPage('apply' as never, 'en')).rejects.toThrow('Dukan ERP opens no address outside the app.');
+    expect(phone).toHaveBeenCalledTimes(4);
+    // A second install keeps the phone's opener, not the refusal.
+    guard.refuseBrowser();
+    await guard.openLegalPage('privacy', 'en');
+    expect(phone).toHaveBeenCalledTimes(5);
+  });
+
+  it('open nothing, and show nothing to open, when the build has no https origin for them', async () => {
+    for (const origin of [undefined, 'http://www.company-domain.mr', 'https://www.company-domain.mr/privacy']) {
+      const { guard, linking } = load(origin);
+      const phone = jest.fn(async (_url: string) => true);
+      linking.openURL = phone;
+      guard.refuseBrowser();
+      expect(guard.legalPagesAvailable()).toBe(false);
+      await expect(guard.openLegalPage('privacy', 'en')).rejects.toThrow('Dukan ERP opens no address outside the app.');
+      expect(phone).not.toHaveBeenCalled();
+    }
+  });
+});
