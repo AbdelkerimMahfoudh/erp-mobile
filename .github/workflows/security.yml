@@ -39,7 +39,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm audit --omit=dev --audit-level=high
+      # No critical advisory anywhere in the production tree. A high one fails the build when its package ships in the
+      # app: the build-and-test job classifies each against the exported bundles (scripts/audit-shipped-deps.js).
+      - run: npm audit --omit=dev --audit-level=critical
       - name: development dependencies (report only)
         run: npm audit --audit-level=high || true
   build-and-test:
@@ -52,8 +54,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx tsc --noEmit -p tsconfig.json || true # one known TS 6 side-effect-import error on global.css (docs/48 §10)
+      - run: npx tsc --noEmit -p tsconfig.json
       - run: npx expo lint --max-warnings 40
+      # Two pure tests hold the app's bundled Storage and Colour lists to the server's own source, and fail when either
+      # side moves: they read the backend beside this checkout, as on a developer's machine. The repository is public.
+      - name: the backend beside this checkout
+        run: git clone --depth 1 --branch reports-export https://github.com/AbdelkerimMahfoudh/erp-backend.git ../erp-backend
       - name: pure tests
         run: for f in $(find lib components -name '*.test.ts' | sort); do node "$f" || exit 1; done
       # The rendered screens under jest-expo — what a person sees and can press: the Owner's trial card with nothing
@@ -75,3 +81,8 @@ jobs:
         run: |
           EXPO_PUBLIC_API_ORIGIN=https://example.invalid npx expo export --platform ios --no-bytecode --source-maps --output-dir "$RUNNER_TEMP/export-ios"
           EXPO_PUBLIC_API_ORIGIN=https://example.invalid node scripts/audit-bundle.js "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios"
+      # Every high or critical advisory, against the modules the two bundles actually contain (docs/48 §7.3).
+      - name: no package with a high or critical advisory ships in the app
+        run: |
+          npm audit --omit=dev --json > "$RUNNER_TEMP/audit.json" || true
+          node scripts/audit-shipped-deps.js "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios"
