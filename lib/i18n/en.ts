@@ -4131,4 +4131,6 @@ export const en = {
   'closing.moved.stale': 'Count again',
   'closing.idempotencyConflict': 'This day was already closed from this screen with other choices. It was read again.',
   'closing.refreshRequired': 'The day changed while you were closing it, so it was read again. Check it, then close.',
+  'release.originRefused.title': 'This version of the app cannot connect',
+  'release.originRefused.body': 'It was built without its secure server address, so nothing can be signed in or sent from it. Ask whoever installed it for the right version.',
 } as const;

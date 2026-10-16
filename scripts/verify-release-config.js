@@ -4,8 +4,13 @@
  *
  *   EXPO_PUBLIC_API_ORIGIN=https://api.example.com node scripts/verify-release-config.js
  *   node scripts/verify-release-config.js --profile preview   # the internal build
+ *   node scripts/verify-release-config.js --eas               # on the EAS build worker
  *
- * Run before `eas build --profile production` and in CI. It refuses a release
+ * Run before `eas build --profile production` and in CI — and by every EAS build itself, as the
+ * `eas-build-post-install` hook in package.json: there the profile is the one being built
+ * (`EAS_BUILD_PROFILE`), the environment is the one EAS compiles into the bundle, and a refusal fails the
+ * build, so a release can no longer be made without its https origin by forgetting to run this (review
+ * MO1-04). A development build is not checked. It refuses a release
  * that would talk to the API in clear text, ship a debug overlay, or carry a
  * server secret's name into the bundle — each a mistake that is invisible on
  * the phone and catastrophic in the store.
@@ -20,7 +25,12 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 const args = process.argv.slice(2);
-const profile = args[args.indexOf('--profile') + 1] || 'production';
+const onEas = args.includes('--eas');
+const profile = onEas ? process.env.EAS_BUILD_PROFILE || '' : args[args.indexOf('--profile') + 1] || 'production';
+if (onEas && profile !== 'production' && profile !== 'preview') {
+  console.log(`release configuration not checked for the "${profile}" build profile`);
+  process.exit(0);
+}
 const problems = [];
 const notes = [];
 
@@ -36,7 +46,7 @@ const origin = (env.EXPO_PUBLIC_API_ORIGIN ?? '').trim();
 if (profile === 'production' || profile === 'preview') {
   if (!origin) {
     problems.push(
-      'EXPO_PUBLIC_API_ORIGIN is not set for this build. Without it the app falls back to http://<host>:3010 — a development address.',
+      'EXPO_PUBLIC_API_ORIGIN is not set for this build. Without it a release build has no server: it refuses to start rather than fall back to http://<host>:3010.',
     );
   } else if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) {
     problems.push(`EXPO_PUBLIC_API_ORIGIN must be an https:// origin with no path; got "${origin}"`);

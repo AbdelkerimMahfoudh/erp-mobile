@@ -4305,4 +4305,6 @@ export const fr: Catalogue = {
   'closing.moved.stale': 'À recompter',
   'closing.idempotencyConflict': 'Cette journée a déjà été clôturée depuis cet écran avec d’autres choix. Elle a été relue.',
   'closing.refreshRequired': 'La journée a changé pendant la clôture : elle a été relue. Vérifiez-la, puis clôturez.',
+  'release.originRefused.title': 'Cette version de l’application ne peut pas se connecter',
+  'release.originRefused.body': 'Elle a été construite sans l’adresse sécurisée de son serveur : on ne peut ni s’y connecter ni rien envoyer. Demandez la bonne version à la personne qui l’a installée.',
 };

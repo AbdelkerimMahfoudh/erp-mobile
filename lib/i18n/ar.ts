@@ -4064,4 +4064,6 @@ export const ar: Catalogue = {
   'closing.moved.stale': 'أعِد العدّ',
   'closing.idempotencyConflict': 'أُقفل هذا اليوم من هذه الشاشة باختيارات أخرى. أُعيدت قراءته.',
   'closing.refreshRequired': 'تغيّر اليوم أثناء إقفاله، فأُعيدت قراءته. راجعه ثم أقفله.',
+  'release.originRefused.title': 'لا يمكن لهذه النسخة من التطبيق الاتصال',
+  'release.originRefused.body': 'صُنعت دون العنوان الآمن لخادمها، فلا يمكن تسجيل الدخول منها ولا إرسال أي شيء. اطلب النسخة الصحيحة ممن ثبّتها.',
 };

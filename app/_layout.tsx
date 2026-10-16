@@ -6,13 +6,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, ThemeProvider as NavigationThemeProvider, DefaultTheme } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { CloudOff } from 'lucide-react-native';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
-import { OfflineBanner } from '../components/ui';
+import { EmptyState, OfflineBanner } from '../components/ui';
+import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
 import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
 import { refuseBrowser } from '../lib/navigation/no-browser';
-import { useI18n } from '../lib/i18n';
+import { useI18n, useTranslation } from '../lib/i18n';
 import { ThemeProvider, useColors, useTheme } from '../lib/design/theme';
 
 const queryClient = new QueryClient({
@@ -56,6 +58,7 @@ function AppShell() {
   const { isDark, ready: themeReady } = useTheme();
   const ready = useI18n((s) => s.ready);
   const hydrate = useI18n((s) => s.hydrate);
+  const { t } = useTranslation();
 
   useEffect(() => {
     void hydrate();
@@ -73,6 +76,18 @@ function AppShell() {
   // known. The splash is still up, so this frame is not seen on a device.
   if (!booted) {
     return <View style={{ flex: 1, backgroundColor: colors.surface.canvas }} />;
+  }
+
+  /*
+   * A release built without its https API (docs/48 control 19): nothing in it may reach a server — it would be a
+   * development address or clear text — so it says so here, before sign-in, instead of failing every screen.
+   */
+  if (API_ORIGIN_REFUSAL) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.surface.canvas }}>
+        <EmptyState icon={CloudOff} title={t('release.originRefused.title')} body={t('release.originRefused.body')} />
+      </View>
+    );
   }
 
   /*

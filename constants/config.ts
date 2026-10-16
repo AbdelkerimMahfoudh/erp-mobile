@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { releaseOriginRefusal, type OriginRefusal } from '../lib/release-origin';
 
 /**
  * API host resolution:
@@ -38,7 +39,15 @@ function resolveOrigin(): string {
   return `http://${resolveHost()}:3010`;
 }
 
-export const API_BASE = resolveOrigin();
+/**
+ * Why this release build refuses its API origin, or null (lib/release-origin.ts). Only a native release is held to
+ * it: development keeps its defaults above, and the web export is served beside its API by whoever hosts it. A
+ * refused build sends nothing — its address is one that never resolves — and the root layout says why.
+ */
+export const API_ORIGIN_REFUSAL: OriginRefusal | null =
+  !__DEV__ && Platform.OS !== 'web' ? releaseOriginRefusal(process.env.EXPO_PUBLIC_API_ORIGIN) : null;
+
+export const API_BASE = API_ORIGIN_REFUSAL ? 'https://api-origin-refused.invalid' : resolveOrigin();
 export const API_V1_URL = `${API_BASE}/api/v1`;
 
 /**

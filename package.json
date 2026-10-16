@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test:render": "jest",
-    "postinstall": "patch-package && node scripts/verify-native-patch.js"
+    "postinstall": "patch-package && node scripts/verify-native-patch.js",
+    "eas-build-post-install": "node scripts/verify-release-config.js --eas"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
