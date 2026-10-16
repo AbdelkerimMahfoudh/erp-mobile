@@ -378,6 +378,98 @@ describe('the code check', () => {
     await useI18n.getState().setLanguage('en');
   });
 
+  it('a gateway that answered in the API’s place (504, 502) is no answer: the account may be ready, and the same code refused next is never "wrong"', async () => {
+    for (const status of [504, 502]) {
+      let first = true;
+      await confirmWith(() => {
+        if (first) {
+          first = false;
+          throw new ApiError(status === 504 ? 'Gateway Timeout' : 'Bad Gateway', status);
+        }
+        throw new ApiError('That code did not match.', 400);
+      });
+      expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
+      expect(screen.queryByText(/Gateway/)).toBeNull();
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      });
+      expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+      expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
+      fireEvent.press(screen.getByText(t('auth.action.signIn')));
+      expect(routerReplace).toHaveBeenLastCalledWith('/(auth)/login');
+      screen.unmount();
+      (api.post as jest.Mock).mockReset();
+    }
+  });
+
+  it('a success whose answer cannot be read is an answer lost: no session is made up from it, and that code is never "wrong"', async () => {
+    // What a proxy or a cut connection hands back for a 200: a page of its own, a half-written body, nothing at all.
+    for (const answer of ['<html><body>Service notice</body></html>', '{"accessToken":"acc', undefined, {}]) {
+      let first = true;
+      mockStore.set('erp.registration.continuation', CONTINUATION);
+      (api.post as jest.Mock).mockImplementation(async (path: string) => {
+        if (path === '/auth/register/verify/start') return { delivery: 'sent' };
+        if (first) {
+          first = false;
+          return answer;
+        }
+        throw new ApiError('That code did not match.', 400);
+      });
+      renderWith(<VerifyScreen />);
+      await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: getLanguage() }));
+      fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      });
+      expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
+      expect(mockStore.has('erp.accessToken')).toBe(false);
+      expect(routerReplace).not.toHaveBeenCalledWith('/access-closed');
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      });
+      expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+      screen.unmount();
+      (api.post as jest.Mock).mockReset();
+    }
+  });
+
+  it('once the server said yes, a failure after it is not "wrong code" nor "offline": the account is ready — sign in', async () => {
+    (api.get as jest.Mock).mockImplementation(async () => {
+      throw new TypeError('Network request failed');
+    });
+    let first = true;
+    await confirmWith(() => {
+      if (first) {
+        first = false;
+        return { accessToken: 'access-new', refreshToken: 'refresh-new', expiresIn: 900 } as never;
+      }
+      throw new ApiError('That code did not match.', 400);
+    });
+    expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
+    expect(screen.queryByText(t('state.error.offline.body'))).toBeNull();
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+    });
+    expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+    expect(screen.getByText(t('auth.action.signIn'))).toBeTruthy();
+  });
+
+  it('a 503 is an answer — the code was not taken — and a code request through a gateway that gave up is not a refusal', async () => {
+    await confirmWith(() => {
+      throw new ApiError('Service Unavailable', 503);
+    });
+    expect(await screen.findByText(t('auth.error.unknown'))).toBeTruthy();
+    expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
+    screen.unmount();
+    (api.post as jest.Mock).mockReset();
+
+    mockStore.set('erp.registration.continuation', CONTINUATION);
+    (api.post as jest.Mock).mockRejectedValue(new ApiError('Gateway Timeout', 504));
+    renderWith(<VerifyScreen />);
+    expect(await screen.findByText(t('register.verify.sendUnknown'))).toBeTruthy();
+    expect(screen.queryByText(t('register.verify.notSent'))).toBeNull();
+  });
+
   it('a code request the server refuses on arrival is said in the person’s language — French or Arabic — never in its English', async () => {
     for (const language of ['fr', 'ar'] as const) {
       await useI18n.getState().setLanguage(language);

@@ -8,7 +8,7 @@
  * success is how a payment silently never reaches the server.
  */
 import assert from 'node:assert/strict';
-import { classifyError, needsHuman, RequestTimeout } from './classify.ts';
+import { answerLost, classifyError, needsHuman, RequestTimeout } from './classify.ts';
 import { containsCredential, fileNameFor, isQueueItem, QUEUE_SCHEMA_VERSION } from './queue-schema.ts';
 import { isTransient, nextStateAfterError } from './queue-rules.ts';
 
@@ -82,6 +82,18 @@ it('a server fault is worth another try', () => {
   assert.equal(classifyError(status(500)).kind, 'server_error');
   assert.equal(classifyError(status(503)).kind, 'server_error');
   assert.equal(isTransient('server_error'), true);
+});
+
+it('no answer is never a refusal: a timeout, a lost body, a gateway in the API’s place — a 503 or a 500 is an answer', () => {
+  // A registration confirmed through a gateway that gave up (504) or got nonsense (502) may well be finished: the
+  // same code refused next must not be called wrong (C14).
+  assert.equal(answerLost(new RequestTimeout()), true);
+  assert.equal(answerLost({ name: 'AbortError', message: 'aborted' }), true);
+  assert.equal(answerLost(status(504)), true);
+  assert.equal(answerLost(status(502)), true);
+  for (const n of [400, 401, 403, 409, 429, 500, 503]) assert.equal(answerLost(status(n)), false, String(n));
+  assert.equal(answerLost(new TypeError('Network request failed')), false);
+  assert.equal(answerLost(null), false);
 });
 
 it('an unreachable server is distinguished from a dead radio by connectivity state', () => {

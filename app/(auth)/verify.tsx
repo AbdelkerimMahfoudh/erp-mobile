@@ -11,7 +11,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useColors } from '../../lib/design/theme';
 import { space } from '../../lib/design/tokens';
 import { ACCESS_CLOSED, LOGIN } from '../../lib/navigation/entry';
-import { classifyError } from '../../lib/offline/classify';
+import { answerLost } from '../../lib/offline/classify';
 import { forgetContinuation, readContinuation } from '../../lib/registration-session';
 import type { AuthTokens } from '../../types/api';
 
@@ -30,10 +30,12 @@ const RESEND_SECONDS = 60;
  * sign-in produces. The registration password is never replayed to obtain it,
  * and by this point it is no longer in memory.
  *
- * An answer that does not arrive in time is not a wrong code: the request
- * reached the server, which may well have created the account, and the code
- * has then been spent. The screen says so, and offers sign-in with the
- * password the person just chose, for as long as it is open — never "That
+ * An answer that does not arrive is not a wrong code — none in time, a
+ * gateway's in the API's place (502, 504), a success whose body was lost or
+ * cannot be read: the request reached the server, which may well have created
+ * the account, and the code has then been spent. Nor is anything that fails
+ * once the server has said yes. The screen says so, and offers sign-in with
+ * the password the person just chose, for as long as it is open — never "That
  * code did not match" for that code: the server refuses a registration it has
  * already finished exactly as it refuses a wrong code, so confirming the same
  * code again cannot tell the two apart. A refusal — of the code, of a request
@@ -87,7 +89,7 @@ export default function VerifyScreen() {
       if (isResend) setNotice(t('register.verify.sent', { destination: destination ?? '' }));
     } catch (e) {
       // An answer that did not arrive is not a refusal: the code may be on its way.
-      const lost = classifyError(e).kind === 'timeout_uncertain';
+      const lost = answerLost(e);
       setNotice(lost ? t('register.verify.sendUnknown') : null);
       setFailure(lost ? null : refusal(e, 'register.verify.notSent'));
     }
@@ -116,15 +118,24 @@ export default function VerifyScreen() {
     setSubmitting(true);
     setFailure(null);
     const sent = code.trim();
+    let session: AuthTokens | null = null;
     try {
-      const tokens = await api.post<AuthTokens>('/auth/register/verify/confirm', {
-        continuation,
-        code: sent,
-      });
+      session = sessionIn(
+        await api.post<AuthTokens>('/auth/register/verify/confirm', {
+          continuation,
+          code: sent,
+        }),
+      );
+      // A success whose answer cannot be read: the account was made with this
+      // code, and the session it came with is lost.
+      if (!session) {
+        setLostCode(sent);
+        return;
+      }
 
       // The session is real from here on. Everything after this point may fail
       // WITHOUT taking the account down with it.
-      await adoptSession(tokens);
+      await adoptSession(session);
       await forgetContinuation();
 
       // A business created a moment ago has not started: the screen that says
@@ -132,9 +143,10 @@ export default function VerifyScreen() {
       // the server opens the business. Nothing opens a browser.
       router.replace(ACCESS_CLOSED as never);
     } catch (e) {
-      // Only the server says a code is wrong; a lost answer or no connection is not its verdict. Nor is its refusal of
-      // the code whose answer was lost: the registration it made with that code is refused the same way.
-      if (classifyError(e).kind === 'timeout_uncertain') setLostCode(sent);
+      // Only the server says a code is wrong; a lost answer or no connection is not its verdict, nor a failure after it
+      // said yes. Nor is its refusal of the code whose answer was lost: the registration it made with that code is
+      // refused the same way.
+      if (session || answerLost(e)) setLostCode(sent);
       else if (e instanceof ApiError && e.status === 400) {
         if (sent !== lostCode) setFailure(t('register.verify.wrong'));
       } else setFailure(refusal(e, 'auth.error.unknown'));
@@ -223,6 +235,13 @@ export default function VerifyScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+}
+
+/** The ordinary session a finished registration answers with — or null when what came back is not one. */
+function sessionIn(answer: unknown): AuthTokens | null {
+  const tokens = answer as Partial<AuthTokens> | null | undefined;
+  const readable = typeof tokens?.accessToken === 'string' && tokens.accessToken !== '' && typeof tokens.refreshToken === 'string' && tokens.refreshToken !== '';
+  return readable ? (tokens as AuthTokens) : null;
 }
 
 const styles = StyleSheet.create({

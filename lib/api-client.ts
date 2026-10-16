@@ -72,7 +72,15 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function send(method: Method, path: string, body: Body, token: string | null): Promise<Response> {
+/** What came back: the status, the headers and the body — the body read inside the same bound as the rest. */
+interface Answer {
+  status: number;
+  ok: boolean;
+  headers: Headers;
+  text: string;
+}
+
+async function send(method: Method, path: string, body: Body, token: string | null): Promise<Answer> {
   // Never before the branch this device already knows has been read (lib/branch.ts, branchRestored).
   await branchRestored();
   const headers: Record<string, string> = {};
@@ -93,24 +101,39 @@ async function send(method: Method, path: string, body: Body, token: string | nu
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    return await fetch(`${API_V1_URL}${path}`, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } catch (error) {
-    // An abort is ours, and means the outcome is unknown rather than failed.
-    if (controller.signal.aborted) throw new RequestTimeout();
-    throw error;
+    let res: Response;
+    try {
+      res = await fetch(`${API_V1_URL}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      // An abort is ours, and means the outcome is unknown rather than failed.
+      if (controller.signal.aborted) throw new RequestTimeout();
+      throw error;
+    }
+    /*
+     * The status arrived; its body is read inside the same bound. A body cut
+     * off on its way, or not in by the timeout, after a success is an answer
+     * lost: the server did what was asked, and what it answered (a session, a
+     * record) is gone, so no caller may take it for a refusal. A refusal keeps
+     * its status, as when its body is not JSON.
+     */
+    try {
+      return { status: res.status, ok: res.ok, headers: res.headers, text: res.status === 204 ? '' : await res.text() };
+    } catch {
+      if (res.ok) throw new RequestTimeout();
+      return { status: res.status, ok: res.ok, headers: res.headers, text: '' };
+    }
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function parse<T>(res: Response): Promise<T> {
-  if (res.status === 204) return undefined as T;
-  const text = await res.text();
+/** A body as the server wrote it: JSON when it is JSON, its text otherwise, nothing when empty. */
+function parse<T>(text: string): T {
   if (!text) return undefined as T;
   try {
     return JSON.parse(text) as T;
@@ -122,7 +145,7 @@ async function parse<T>(res: Response): Promise<T> {
 async function request<T>(method: Method, path: string, body?: Body): Promise<T> {
   const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
 
-  let res: Response;
+  let res: Answer;
   try {
     res = await send(method, path, body, token);
   } catch (error) {
@@ -150,7 +173,7 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
   }
 
   if (!res.ok) {
-    const payload = await parse<any>(res).catch(() => null);
+    const payload = parse<any>(res.text);
     // Never an empty message: a server validation payload can carry `message: []`, and an empty string is what an
     // error toast showed as a blank red box (the Notifications screenshot of 5 Oct). The status is the last resort.
     const raw = payload?.message || payload?.error;
@@ -163,7 +186,7 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
     );
   }
 
-  return parse<T>(res);
+  return parse<T>(res.text);
 }
 
 /** A file the server generated, plus the name it gave it. */
@@ -192,7 +215,7 @@ export interface DownloadedFile {
 async function download(path: string): Promise<DownloadedFile> {
   const token = await getItem(TOKEN_KEYS.ACCESS_TOKEN);
 
-  let res: Response;
+  let res: Answer;
   try {
     res = await send('GET', path, undefined, token);
   } catch (error) {
@@ -207,7 +230,7 @@ async function download(path: string): Promise<DownloadedFile> {
   }
 
   if (!res.ok) {
-    const payload = await parse<any>(res).catch(() => null);
+    const payload = parse<any>(res.text);
     // Never an empty message: a server validation payload can carry `message: []`, and an empty string is what an
     // error toast showed as a blank red box (the Notifications screenshot of 5 Oct). The status is the last resort.
     const raw = payload?.message || payload?.error;
@@ -220,7 +243,7 @@ async function download(path: string): Promise<DownloadedFile> {
     );
   }
 
-  const text = await res.text();
+  const text = res.text;
 
   /*
    * Validate before anything is written to disk or handed to a share sheet.

@@ -16,7 +16,10 @@ import type { ClassifiedError, ErrorKind } from './queue-rules.ts';
 
 export const REQUEST_TIMEOUT_MS = 20_000;
 
-/** Thrown by the API client when a request outlives `REQUEST_TIMEOUT_MS`. */
+/**
+ * Thrown by the API client when a request's answer is lost: no answer within `REQUEST_TIMEOUT_MS`, or a success whose
+ * body was cut off on its way or never came.
+ */
 export class RequestTimeout extends Error {
   constructor(message = 'The server did not answer in time') {
     super(message);
@@ -80,6 +83,18 @@ export function classifyError(error: unknown, online = true): ClassifiedError {
   }
 
   return { kind: 'server_error', message };
+}
+
+/**
+ * Whether a request got no answer from the API, so its outcome is unknown: it timed out, or its success came back
+ * without its body (both `timeout_uncertain`), or a gateway answered in the API's place — 502, an invalid answer
+ * from it, or 504, none in time. The API may have done what was asked, so this is never its refusal. A 503 is an
+ * answer: the request was not taken.
+ */
+export function answerLost(error: unknown): boolean {
+  if (classifyError(error).kind === 'timeout_uncertain') return true;
+  const status = ((error ?? {}) as StatusCarrier).status;
+  return status === 502 || status === 504;
 }
 
 /**
