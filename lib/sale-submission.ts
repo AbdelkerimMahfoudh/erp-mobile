@@ -94,6 +94,8 @@ export function classifySubmitFailure(error: unknown): SubmitFailure {
           : null;
     if (code === 'idempotency_conflict') return { kind: 'idempotency_conflict' };
     if (code === 'approval_required') return { kind: 'approval_required' };
+    // A gateway that answered for a server that did not: the sale may be recorded (`answerLost`, review MO3-01).
+    if (e.status === 502 || e.status === 504) return { kind: 'uncertain' };
     if (e.status >= 400 && e.status < 500) return { kind: 'refused', status: e.status, message, code };
     return { kind: 'failed', message };
   }

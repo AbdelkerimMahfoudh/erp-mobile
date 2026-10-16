@@ -61,6 +61,12 @@ it('a timeout is UNCERTAIN, never "not sent"', () => {
   assert.deepEqual(classifySubmitFailure({ name: 'AbortError', message: 'x' }), { kind: 'uncertain' });
 });
 
+it('a 502 or 504 from a gateway is UNCERTAIN, as a timeout is: the sale may be recorded', () => {
+  assert.deepEqual(classifySubmitFailure({ name: 'ApiError', status: 502, message: 'Bad gateway' }), { kind: 'uncertain' });
+  assert.deepEqual(classifySubmitFailure({ name: 'ApiError', status: 504, message: 'Gateway timeout' }), { kind: 'uncertain' });
+  assert.equal(classifySubmitFailure({ name: 'ApiError', status: 503, message: 'Unavailable' }).kind, 'failed');
+});
+
 it('the server naming the failure is passed through by name', () => {
   assert.deepEqual(classifySubmitFailure({ status: 409, code: 'idempotency_conflict', message: 'm' }), { kind: 'idempotency_conflict' });
   assert.deepEqual(classifySubmitFailure({ status: 403, code: 'approval_required', message: 'm' }), { kind: 'approval_required' });
