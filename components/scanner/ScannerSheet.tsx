@@ -541,13 +541,30 @@ export function ScannerSheet({
         return;
       }
 
+      /*
+       * An ordinary barcode, for a caller that is not booking a phone in.
+       *
+       * The result panel below can only ever accept an IMEI, so a product
+       * barcode or a serial ended there as "That is not an IMEI" with nothing
+       * to press — the product form, Sell, returns and Stock could not read the
+       * codes they opened the camera for. It goes down the one scan pipeline
+       * instead (`/scan` → `onResult`, closing in single mode), exactly as a
+       * typed code does. The acquisition starts over, so a code still in frame
+       * must be held again before it is taken again.
+       */
+      if (!onImeiAccepted && verdict.payload.kind === 'other') {
+        acquisition.current = EMPTY_ACQUISITION;
+        void scan(verdict.payload.code);
+        return;
+      }
+
       setMachine({ type: 'detected', raw: verdict.target.key });
       // ONE haptic, and only here — after the rule is satisfied, never on a
       // sighting. Buzzing at every decode is what made a sweep feel like a scan.
       haptics.success();
       setMachine({ type: 'validated', payload: verdict.payload });
     },
-    [setMachine, onImeiAccepted],
+    [setMachine, onImeiAccepted, scan],
   );
 
   /**
