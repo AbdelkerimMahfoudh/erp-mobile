@@ -23,6 +23,7 @@ import { toFriendlyError } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
+import { useAskingKey } from '../../lib/asking-key';
 import {
   canAnswerOffer,
   consignmentStanding,
@@ -303,8 +304,10 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
 
   // The friendly, translated explanation — never the server's raw English message.
   const fail = (e: unknown) => onError(toFriendlyError(e).body || t('consignment.failed'));
-  const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T) =>
-    m.mutate({ id: c.id, body }, { onError: fail });
+  // One request at a time, and a payment report keeps its key until it is recorded (review MO1-10).
+  const asking = useAskingKey();
+  const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T, onSuccess?: () => void) =>
+    asking.once((done) => m.mutate({ id: c.id, body }, { onError: fail, onSuccess, onSettled: done }));
 
   const owed = outstandingOf(c.ledger);
   const negotiating = ['requested', 'counter_proposed', 'disputed'].includes(c.status);
@@ -398,7 +401,20 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
             <Button
               title={t('consignment.reportPayment')}
               disabled={!amount.trim()}
-              onPress={() => go(payment, { action: 'report' as const, amount: Number(amount), method: 'cash' as const })}
+              loading={payment.isPending}
+              onPress={() =>
+                go(
+                  payment,
+                  {
+                    action: 'report' as const,
+                    amount: Number(amount),
+                    method: 'cash' as const,
+                    // The same report tapped again (a timeout, a second tap) is the same key: replayed, never twice.
+                    clientUuid: asking.keyFor(String(Number(amount))),
+                  },
+                  asking.settled,
+                )
+              }
             />
             <Text variant="caption" tone="secondary">
               {t('consignment.reportPayment.hint')}
@@ -421,6 +437,7 @@ function Actions({ consignment: c, onError }: { consignment: ConsignmentDetail; 
               title={t('consignment.forgive')}
               variant="ghost"
               disabled={!amount.trim() || reason.trim().length < 3}
+              loading={forgive.isPending}
               onPress={() => go(forgive, { amount: Number(amount), reason: reason.trim() })}
             />
             <Text variant="caption" tone="secondary">

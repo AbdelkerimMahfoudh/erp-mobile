@@ -22,7 +22,7 @@ import { toFriendlyError } from '../../lib/errors';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
-import { uuidv4 } from '../../lib/utils';
+import { useAskingKey } from '../../lib/asking-key';
 import {
   directionTone,
   groupTone,
@@ -226,8 +226,10 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
 
   // The friendly, translated explanation — never the server's raw English message.
   const fail = (e: unknown) => onError(toFriendlyError(e).body || t('loans.failed'));
-  const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T) =>
-    m.mutate({ id: loan.id, body }, { onError: fail });
+  // One request at a time, and a payment report keeps its key until it is recorded (review MO1-10).
+  const asking = useAskingKey();
+  const go = <T,>(m: { mutate: (v: { id: string; body: T }, o: object) => void }, body: T, onSuccess?: () => void) =>
+    asking.once((done) => m.mutate({ id: loan.id, body }, { onError: fail, onSuccess, onSettled: done }));
 
   const negotiating = ['proposed', 'counter_proposed', 'disputed'].includes(loan.status);
   // Our own offer: theirs to answer. Agreeing or countering it is refused by the server, so neither is offered.
@@ -310,14 +312,20 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
             <Button
               title={t('loans.reportPayment')}
               disabled={!amount.trim()}
+              loading={payment.isPending}
               onPress={() =>
-                go(payment, {
-                  action: 'report' as const,
-                  amount: Number(amount),
-                  method: 'cash' as const,
-                  reference: reference.trim() || undefined,
-                  clientUuid: uuidv4(),
-                })
+                go(
+                  payment,
+                  {
+                    action: 'report' as const,
+                    amount: Number(amount),
+                    method: 'cash' as const,
+                    reference: reference.trim() || undefined,
+                    // The same report tapped again (a timeout, a second tap) is the same key: replayed, never twice.
+                    clientUuid: asking.keyFor(`${Number(amount)}|${reference.trim()}`),
+                  },
+                  asking.settled,
+                )
               }
             />
             <Text variant="caption" tone="secondary">
@@ -375,6 +383,7 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
               title={t('loans.forgive')}
               variant="ghost"
               disabled={!amount.trim() || reason.trim().length < 3}
+              loading={forgive.isPending}
               onPress={() => go(forgive, { amount: Number(amount), reason: reason.trim() })}
             />
             <Text variant="caption" tone="secondary">
