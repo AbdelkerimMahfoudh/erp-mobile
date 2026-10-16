@@ -23,7 +23,9 @@
  *   again", which the app does say about its own codes, is not one;
  * - a route is compared after `normalizePath` (percent-encoding decoded, `./`
  *   and `../` resolved, duplicate slashes collapsed) and in any letter case,
- *   because a router may not care about either.
+ *   because a router may not care about either;
+ * - markup is read as a browser reads it, in any letter case: by every tag
+ *   and attribute that can take a page somewhere else, not by one of them.
  */
 
 /** One spelling for the forms a word takes on screen without changing what it says. */
@@ -139,6 +141,17 @@ const ROUTES = [
  */
 const TOKEN_MARKER = /[#?&]t=|^t=|account\/trial(?!-setup)/i;
 
+/**
+ * Markup written to leave the page, or to show another page inside it — wherever the app could write it
+ * (`innerHTML`, `document.write`, the report's own page): a refresh to another address (`<meta
+ * http-equiv="refresh" content="0;url=…">`, or its content alone); a link (`<a href>`, `<area href>`); a page shown
+ * inside it, or a form that sends it away (`<iframe>`, `<frame>`, `<object>`, `<embed>`, `<portal>`, `<form>`); a
+ * `<base>` that moves every address the page holds; and a script the markup runs by itself (`<body onload=…>`,
+ * `<img onerror=…>`), which can submit a form or move the page. The report's and the receipt's pages write none of it.
+ */
+const WRITTEN_WAY_OUT =
+  /http-equiv\s*=\s*["']?\s*refresh|^\s*\d+\s*;\s*url\s*=|content\s*=\s*["']\s*\d+\s*;\s*url\s*=|<(?:a|area)\s[^>]*\bhref\s*=|<(?:iframe|frame|frameset|object|embed|portal|form|base)\b|<[a-z][^>]*\son[a-z]+\s*=/i;
+
 /** The website, by its address or by a configured origin for it. */
 const WEBSITE_ADDRESS = /tsx[-.]mr\.(?:com|mr|net|org|app)\b|\btsx\.mr\b|dukan[\w-]*\.(?:com|mr|net|org|app)\b|PUBLIC_SITE_ORIGIN|EXPO_PUBLIC_(?:SITE|PORTAL|SIGNUP|WEBSITE)_URL/i;
 
@@ -156,4 +169,4 @@ const PAYMENT_INSTRUCTION = words(
   /payment instructions|instructions de paiement|تعليمات الدفع|\bpay now\b|payer maintenant|ادفع الآن|no payment is required|aucun paiement n'est demandé|لا يلزم أي دفع/i,
 );
 
-module.exports = { normalizeLetters, normalizeWords, normalizePath, words, TRIAL_KEY, TRIAL_WORDS, TRIAL_NAME, TRIAL_ACTIONS, ROUTES, TOKEN_MARKER, WEBSITE_ADDRESS, ACCESS_PRICE, PAYMENT_INSTRUCTION };
+module.exports = { normalizeLetters, normalizeWords, normalizePath, words, TRIAL_KEY, TRIAL_WORDS, TRIAL_NAME, TRIAL_ACTIONS, ROUTES, TOKEN_MARKER, WRITTEN_WAY_OUT, WEBSITE_ADDRESS, ACCESS_PRICE, PAYMENT_INSTRUCTION };

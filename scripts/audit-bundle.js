@@ -32,18 +32,24 @@
  *   from it, or a bare global `open(…)`; and every page navigation —
  *   `location.assign` or `.replace`, an assignment to a location or to an
  *   `href`, an `href` or a form's `action` set by `setAttribute`, a form
- *   sent, `document.write`, the page's own `navigation` — is traced to its
- *   module through the source map and compared with `CALL_SITES`, the
- *   libraries' own, the guard's and the report's. One more anywhere, or one
- *   gone, fails; what was found is printed beside what is pinned, so the list
- *   is changed on purpose.
+ *   sent, `document.write`, the page's own `navigation`, an element made that
+ *   leaves the page or shows another inside it (`jsx("meta", …)`,
+ *   `createElement("form")`, a link, an `<object>`, an `<embed>`, a `<base>`,
+ *   a frame) — is traced to its module through the source map and compared
+ *   with `CALL_SITES`, the libraries' own, the guard's and the report's. One
+ *   more anywhere, or one gone, fails; what was found is printed beside what is
+ *   pinned, so the list is changed on purpose. And no element is given a prop
+ *   by a computed name, nor a refresh (`httpEquiv`) or a form's address
+ *   (`formAction`), whatever the element.
  * - Strings. Every string and template literal — a template's parts joined,
  *   concatenated literals folded — is read as a path (`normalizePath`, in any
  *   letter case): no claim, resend, store or seat request, price or platform
  *   route, no setup-link token marker (`#t=`, `?t=`, a string that starts with
  *   `t=`, `account/trial`) wherever it sits, nor a query that carries a `t`
- *   (`new URLSearchParams({ t })`, `.set('t', …)`), no page written to leave (a
- *   refresh to another address, a link in markup), and no address — absolute,
+ *   (`new URLSearchParams({ t })`, `.set('t', …)`), no page written to leave
+ *   (`rules.WRITTEN_WAY_OUT`: a refresh to another address, a link, a form, a
+ *   page inside it, a `<base>`, markup that runs a script by itself), and no
+ *   address — absolute,
  *   protocol-relative or `www.` — that is not the API's, a development host's
  *   or a library's own.
  * - Words. The decoded text is read as words (`normalizeWords`): no claim or
@@ -105,8 +111,9 @@ const LINKING_ALLOWED = new Map([[GUARD, new Set(['Linking'])]]);
  * `xlinkHref` prop, and the Navigation API it restores a page's scroll
  * through) — the guard that makes `openURL` refuse, and on the web build the report preview (`lib/report-pdf.ts` opens
  * the report's own page in a new tab) and the CSV download
- * (`lib/report-export.ts` hands the browser a `blob:` file through a link).
- * Nothing else of the app's own reaches any of them.
+ * (`lib/report-export.ts` hands the browser a `blob:` file through a link: the
+ * link made, and pointed at the file). Nothing else of the app's own reaches
+ * any of them.
  */
 const LINKING_LIBRARIES = {
   'node_modules/expo-linking/build/Linking.js': 2,
@@ -119,7 +126,7 @@ const CALL_SITES = {
     openURL: { ...LINKING_LIBRARIES, 'node_modules/expo-linking/build/RNLinking.web.js': 1, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
     'window.open': { '/lib/report-pdf.ts': 1, [GUARD]: 2, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
     navigation: {
-      '/lib/report-export.ts': 1,
+      '/lib/report-export.ts': 2,
       'node_modules/expo-linking/build/RNLinking.web.js': 1,
       'node_modules/react-dom/cjs/react-dom-client.production.js': 10,
       'node_modules/react-native-svg/lib/module/web/utils/prepare.js': 1,
@@ -134,11 +141,13 @@ const CALLS = ['openURL', 'window.open', 'navigation'];
 /** The attributes that point an element somewhere: a link's, an SVG link's, a form's and a button's target. */
 const POINTING = /^(?:xlink:)?href$|^(?:form)?action$/i;
 /**
- * A page written to leave: a refresh to another address (`<meta http-equiv="refresh" content="0;url=…">`, or its
- * content alone), or a link written into markup (`<a href="…">`) — wherever the string is set: `innerHTML`,
- * `document.write`, the report's own page.
+ * The elements of a page that leave it or show another page inside it — a link, a form, a refresh, a `<base>` that
+ * moves every address, an embedded page — made by React (`jsx("meta", …)`, `createElement("form")`) or by the page
+ * itself (`document.createElement("object")`), in any module.
  */
-const WRITTEN_WAY_OUT = /http-equiv\s*=\s*["']?\s*refresh|^\s*\d+\s*;\s*url\s*=|content\s*=\s*["']\s*\d+\s*;\s*url\s*=|<a\s[^>]*\bhref\s*=/i;
+const LEAVING_ELEMENTS = /^(?:a|area|base|embed|form|frame|frameset|iframe|meta|object|portal)$/i;
+/** What makes an element from a tag: the JSX runtime, React, and a document. */
+const ELEMENT_MAKERS = new Set(['jsx', 'jsxs', 'jsxDEV', 'createElement', 'createElementNS']);
 
 /** The names a page's own window goes by, and the property that leads from a document to it. */
 const WINDOW = new Set(['window', 'self', 'globalThis', 'top', 'parent', 'frames']);
@@ -295,10 +304,26 @@ function moduleAt(code, map) {
 }
 
 const propertyName = (node) => (node.computed ? (node.property.type === 'StringLiteral' ? node.property.value : null) : node.property.name);
-const keyName = (node) => (node.key.type === 'Identifier' ? node.key.name : node.key.type === 'StringLiteral' ? node.key.value : null);
+const keyName = (node) => (node.computed && node.key.type !== 'StringLiteral' ? null : node.key.type === 'Identifier' ? node.key.name : node.key.type === 'StringLiteral' ? node.key.value : null);
 const templateText = (node) => node.quasis.map((q) => q.value.cooked ?? q.value.raw).join('\u0000');
 const isMember = (node) => node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression';
 const isCall = (node) => node.type === 'CallExpression' || node.type === 'OptionalCallExpression';
+/** The name a call is made by: `f(…)`, `o.f(…)`, and a bundler's `(0, o.f)(…)`. */
+const calledName = (callee) =>
+  callee.type === 'Identifier' ? callee.name : isMember(callee) ? propertyName(callee) : callee.type === 'SequenceExpression' ? calledName(callee.expressions[callee.expressions.length - 1]) : null;
+/** A prop whose name is computed, in an element's props or in an object spread into them: what it points to cannot be read. */
+const computedProp = (props) =>
+  props?.type === 'ObjectExpression' && props.properties.some((p) => (p.type === 'SpreadElement' ? computedProp(p.argument) : p.computed && p.key.type !== 'StringLiteral'));
+/**
+ * A prop that turns an element into a way out, whatever element it is given to: a refresh (`httpEquiv: "refresh"`, or
+ * a value known only when it runs — never another `http-equiv`, nor a library's table of attribute names) or a form's
+ * address (`formAction`).
+ */
+function leavingProp(node) {
+  const name = keyName(node);
+  if (name === 'formAction' || name === 'formaction') return true;
+  return (name === 'httpEquiv' || name === 'http-equiv') && !(node.value.type === 'StringLiteral' && !/refresh/i.test(node.value.value));
+}
 
 /** A `+` chain of literals read as the one string it makes; what is not a literal reads as \0. Null if nothing in it is text. */
 function folded(node) {
@@ -468,7 +493,15 @@ function readTree(program, on) {
       if (method === 'submit' || method === 'requestSubmit' || ((method === 'setAttribute' || method === 'setAttributeNS') && attribute?.type === 'StringLiteral' && POINTING.test(attribute.value))) {
         on.navigation(callee.property.start);
       }
-    }
+      // An element made that leaves the page or shows another inside it (`jsx("meta", …)`, `createElement("form")`), and
+      // an element given a prop by a computed name (`jsx(Text, { [name]: e })`, where `name` can be "href").
+      const maker = calledName(callee);
+      if (ELEMENT_MAKERS.has(maker)) {
+        const tag = node.arguments[maker === 'createElementNS' ? 1 : 0];
+        if (tag?.type === 'StringLiteral' && LEAVING_ELEMENTS.test(tag.value)) on.navigation(tag.start);
+        if (computedProp(node.arguments[1])) on.wayOut(node, 'an element given a prop by a computed name');
+      }
+    } else if (node.type === 'ObjectProperty' && leavingProp(node)) on.wayOut(node, 'a prop that refreshes the page or sends a form');
     const children = [];
     for (const key in node) {
       if (key === 'loc' || key === 'extra' || key.endsWith('Comments')) continue;
@@ -595,13 +628,14 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
           if (rules.TOKEN_MARKER.test(route)) report(p, 'setup-link token marker', `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
           for (const [check, pattern] of rules.ROUTES) if (pattern.test(route)) report(p, check, `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
           for (const m of value.matchAll(RELATIVE_ADDRESS)) if (!allowedHost(m[1].toLowerCase())) p.hosts.add(m[1].toLowerCase());
-          if (WRITTEN_WAY_OUT.test(value)) report(p, 'browser-opening call', `${rel} (${at(start)}): a page written to leave: ${JSON.stringify(value.slice(0, 120))}`);
+          if (rules.WRITTEN_WAY_OUT.test(value)) report(p, 'browser-opening call', `${rel} (${at(start)}): a page written to leave: ${JSON.stringify(value.slice(0, 120))}`);
           const said = rules.normalizeWords(value);
           if (rules.TRIAL_WORDS.test(said) && !TRIAL_SENTENCES.has(said) && !rules.TRIAL_NAME.test(value)) report(p, 'trial named outside its approved sentences', `${rel} (${at(start)}): ${JSON.stringify(value.slice(0, 120))}`);
         },
         open: (start) => count(p.calls['window.open'], at(start)),
         navigation: (start) => count(p.calls.navigation, at(start)),
         token: (start) => report(p, 'setup-link token marker', `${rel} (${at(start)}): a query carrying \`t\`: ${JSON.stringify(raw.slice(start, start + 80))}`),
+        wayOut: (node, what) => report(p, 'browser-opening call', `${rel} (${at(node.start)}): ${what}: ${JSON.stringify(raw.slice(node.start, Math.min(node.end, node.start + 120)))}`),
       });
     }
   }

@@ -123,14 +123,47 @@ describe('a browser, however it is reached', () => {
     }
   });
 
-  it('a page written to leave: a refresh to another address, a link in markup — however the string is built', () => {
+  it('a page written to leave: a refresh to another address, a link, a form, a page inside it, a base, a script of its own — however the string is built', () => {
     for (const code of [
       `document.body.innerHTML='<meta http-equiv="refresh" content="0;url='+e+'">'`,
       "var m=document.createElement('meta');m.httpEquiv='refresh';m.content='0;url='+e;document.head.appendChild(m)",
       'n.html=`<a href="${e}">open</a>`',
+      // The verification's markup: what passed the audit, and the source test but for the iframe.
+      'n.html=`<html><body><iframe src="${e}"></iframe></body></html>`',
+      "n.html='<html><body><object data=\"'+e+'\"></object></body></html>'",
+      'n.html=`<html><body><embed src="${e}"></body></html>`',
+      'n.html=`<html><body onload="document.forms[0].submit()"><form action="${e}"></form></body></html>`',
+      'n.html=`<FORM ACTION="${e}"></FORM>`',
+      "n.html='<base href=\"'+e+'\">'",
+      'n.html=`<img src="x" onerror="document.forms[0].submit()">`',
     ]) {
       caught('web', `;(function(e,n){${code}})(q);`, 'browser-opening call');
     }
+    // The pages the app does write — the receipt's and the report's — are not.
+    assert.deepEqual(findings(exportWith('web', ';n.html=`<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head><body><img class="logo" src="${e}" alt="" /></body></html>`;')), []);
+  });
+
+  it('an element that leaves the page or shows another inside it — made by React or by the page — and a refresh, a form’s address or a computed name among its props', () => {
+    for (const code of [
+      // The verification's: compiled from a web-only screen given a server's value.
+      '(0,s.jsx)("meta",{httpEquiv:"refresh",content:e})',
+      '(0,s.jsx)("form",{action:e,method:"get",children:(0,s.jsx)("button",{type:"submit",children:"Go"})})',
+      '(0,s.jsx)("object",{data:e})',
+      '(0,s.jsx)("embed",{src:e})',
+      '(0,s.jsx)(t.default,{[o]:e,children:"x"})',
+      // And the same, written other ways.
+      '(0,s.jsxs)("a",{href:e,children:["x"]})',
+      'r.createElement("base",{href:e})',
+      'document.createElementNS("http://www.w3.org/1999/xhtml","object")',
+      '(0,s.jsx)(t.default,{...{[o]:e},children:"x"})',
+      'var p={httpEquiv:"refresh",content:e}',
+      'var p={httpEquiv:o,content:e}',
+      'var p={formAction:e}',
+    ]) {
+      caught('web', `;(function(e,s,t,o,r){${code}})(q);`, 'browser-opening call');
+    }
+    // A library's table of attribute names, and a meta that refreshes nothing, are not.
+    assert.deepEqual(findings(exportWith('web', ';var v={"http-equiv":"httpEquiv",charset:"charSet"},w={httpEquiv:"content-type",content:"text/html"};')), []);
   });
 
   it('openURL in any form, on a phone and on the web', () => {
