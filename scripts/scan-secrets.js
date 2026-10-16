@@ -68,6 +68,28 @@ function repoAllowlist() {
 }
 ALLOW.push(...repoAllowlist());
 
+/**
+ * Blobs that held a real credential which has since been REVOKED and proven dead, named in `.secret-scan-revoked`:
+ * one full blob SHA per line, then `#` and the incident. History is never rewritten to erase a secret (the protocol
+ * forbids force-pushing shared history); revoking it is the fix. A blob is its exact content, so the same value inside
+ * any other content — another file, another version of this one — is still a finding, which a pattern in
+ * `.secret-scan-allow` would not keep.
+ */
+function revokedBlobs() {
+  try {
+    return new Set(
+      require('node:fs')
+        .readFileSync('.secret-scan-revoked', 'utf8')
+        .split('\n')
+        .map((l) => l.replace(/#.*/, '').trim())
+        .filter((l) => /^[0-9a-f]{40}$/.test(l)),
+    );
+  } catch {
+    return new Set();
+  }
+}
+const REVOKED = revokedBlobs();
+
 const args = new Set(process.argv.slice(2));
 const worktreeOnly = args.has('--worktree');
 
@@ -76,7 +98,7 @@ function git(...a) {
 }
 
 /** Paths never scanned: lockfiles and vendored assets are noise, and this script and its tests describe the patterns. */
-const SKIP_PATH = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$|\.(png|jpg|jpeg|gif|ico|woff2?|ttf|pdf|xlsx)$|scan-secrets/;
+const SKIP_PATH = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$|\.(png|jpg|jpeg|gif|ico|woff2?|ttf|pdf|xlsx)$|scan-secrets|\.secret-scan-(allow|revoked)$/;
 
 function scanText(text, where, findings) {
   const lines = text.split('\n');
@@ -113,6 +135,7 @@ function scanHistory(findings) {
   const commits = git('rev-list', '--all').split('\n').filter(Boolean);
   const seen = new Set();
   let blobs = 0;
+  let revoked = 0;
   for (const commit of commits) {
     const tree = git('ls-tree', '-r', '-z', commit).split('\0').filter(Boolean);
     for (const entry of tree) {
@@ -120,6 +143,10 @@ function scanHistory(findings) {
       const sha = meta.split(' ')[2];
       if (!sha || seen.has(sha) || SKIP_PATH.test(path)) continue;
       seen.add(sha);
+      if (REVOKED.has(sha)) {
+        revoked++;
+        continue;
+      }
       blobs++;
       let text;
       try {
@@ -131,7 +158,7 @@ function scanHistory(findings) {
       scanText(text, `${commit.slice(0, 10)}:${path}`, findings);
     }
   }
-  return { commits: commits.length, blobs };
+  return { commits: commits.length, blobs, revoked };
 }
 
 const findings = [];
@@ -139,8 +166,9 @@ if (worktreeOnly) {
   const n = scanWorktree(findings);
   console.log(`scanned ${n} tracked files in the working tree`);
 } else {
-  const { commits, blobs } = scanHistory(findings);
+  const { commits, blobs, revoked } = scanHistory(findings);
   console.log(`scanned ${blobs} distinct blobs across ${commits} commits (every ref)`);
+  if (revoked > 0) console.log(`skipped ${revoked} blob(s) named in .secret-scan-revoked (revoked credentials, see the file)`);
 }
 
 if (findings.length === 0) {
