@@ -92,9 +92,19 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
    * One key for one asking. A retried tap replays the original request rather
    * than creating a second one the Owner would have to answer twice — and a
    * changed price under the same key is refused by the server as the client bug
-   * it would be.
+   * it would be. The sheet stays mounted for the life of the Sell tab, so the
+   * key belongs to the asking (this unit at this price), not to the mount: one
+   * key for the whole tab refused every request after the first (review MO4-02).
    */
-  const clientUuid = useRef(uuidv4());
+  const keys = useRef(new Map<string, string>());
+  const clientUuidFor = (r: ApprovalRequest): string => {
+    const asking = `${r.unitId}|${r.proposedPrice}`;
+    const known = keys.current.get(asking);
+    if (known) return known;
+    const fresh = uuidv4();
+    keys.current.set(asking, fresh);
+    return fresh;
+  };
 
   const outstanding = useApprovalsForUnit(request?.unitId ?? null);
   const rows = outstanding.data ?? [];
@@ -146,7 +156,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
         unitId: request.unitId,
         requestedPrice: request.proposedPrice,
         reason: reason.trim() || undefined,
-        clientUuid: clientUuid.current,
+        clientUuid: clientUuidFor(request),
       });
       toast.success(t('approval.asked'));
     } catch (e) {
