@@ -6,6 +6,7 @@ import { invalidateMoney } from './money-invalidation';
 import { checkMoneyOverview, checkSalesByDay, retryUnlessIncompatible } from './contract';
 import { qk } from './query-keys';
 import { isStoreClosedRefusal } from './day-gate';
+import { answerLost } from './offline/classify';
 import { payerNumberField } from './payer-number';
 import { uuidv4 } from './utils';
 import type { DebtorKind, PaymentMethod, SalePayStatus, SalePaymentState } from '../types/api';
@@ -238,18 +239,39 @@ export interface RecordPaymentInput {
 }
 
 /**
+ * The key of a payment whose answer was lost, per sale (review MO3-03).
+ *
+ * The server may have recorded it, and nobody knows. Leaving the screen and
+ * opening it again used to mint a fresh key, and the same money was recorded a
+ * second time. Held here, outside the screen, until the server answers for it.
+ */
+const lostAnswerKeys = new Map<string, string>();
+
+/**
  * Record money received later against a sale.
  *
  * **One key for the whole attempt.** It is created when the screen opens and
  * reused on every retry, so a timeout followed by "Try again" is the same
  * payment, not a second one. The server binds the key to what was sent: a
  * retry with the same details answers the same, and changed details are
- * refused — so the key is renewed only once a payment has actually succeeded.
+ * refused — so the key is renewed only once a payment has actually succeeded,
+ * or the server says that key already recorded a different one.
+ *
+ * A lost answer keeps the key for the next payment screen on this sale too,
+ * and reads the sale and the money again: the payment may be there already.
  */
 export function useRecordSalePayment(saleId: string) {
   const qc = useQueryClient();
   const branchId = useBranch((s) => s.branchId);
-  const key = useRef(uuidv4());
+  const key = useRef(lostAnswerKeys.get(saleId) ?? uuidv4());
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: qk.sale(saleId) });
+    void qc.invalidateQueries({ queryKey: ['sales'] });
+    void qc.invalidateQueries({ queryKey: qk.home(branchId) });
+    void qc.invalidateQueries({ queryKey: ['open-closing'] });
+    // Cash, the chosen account, the overview, collected and outstanding.
+    invalidateMoney(qc);
+  };
 
   const mutation = useMutation({
     mutationFn: (input: RecordPaymentInput) =>
@@ -265,18 +287,26 @@ export function useRecordSalePayment(saleId: string) {
       }),
     onSuccess: () => {
       key.current = uuidv4();
-      void qc.invalidateQueries({ queryKey: qk.sale(saleId) });
-      void qc.invalidateQueries({ queryKey: ['sales'] });
-      void qc.invalidateQueries({ queryKey: qk.home(branchId) });
-      void qc.invalidateQueries({ queryKey: ['open-closing'] });
-      // Cash, the chosen account, the overview, collected and outstanding.
-      invalidateMoney(qc);
+      lostAnswerKeys.delete(saleId);
+      refresh();
     },
     onError: (e) => {
       // The store closed under this payment: the day is read again, so Home and the counter show the lock too.
       if (isStoreClosedRefusal(e)) {
         void qc.invalidateQueries({ queryKey: qk.businessDay(branchId) });
         void qc.invalidateQueries({ queryKey: qk.home(branchId) });
+        return;
+      }
+      if (answerLost(e)) {
+        lostAnswerKeys.set(saleId, key.current);
+        refresh();
+        return;
+      }
+      // The key already recorded a different payment: what the sale holds now is read, and the next one is new.
+      if ((e as { code?: unknown }).code === 'idempotency_key_reused') {
+        key.current = uuidv4();
+        lostAnswerKeys.delete(saleId);
+        refresh();
       }
     },
   });

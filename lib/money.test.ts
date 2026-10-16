@@ -268,7 +268,8 @@ const pay = code(read('../app/sales/pay/[id].tsx'));
 const hooks = code(read('./money-overview.ts'));
 
 it('one key covers the whole attempt and is renewed only after success', () => {
-  assert.match(hooks, /const key = useRef\(uuidv4\(\)\)/);
+  // A lost answer's key outlives the screen, so reopening it is the same payment (review MO3-03).
+  assert.match(hooks, /const key = useRef\(lostAnswerKeys\.get\(saleId\) \?\? uuidv4\(\)\)/);
   assert.match(hooks, /clientUuid: key\.current/);
   const success = hooks.slice(hooks.indexOf('onSuccess'));
   assert.match(success, /key\.current = uuidv4\(\)/, 'a fresh key only once the payment is recorded');
