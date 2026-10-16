@@ -5,9 +5,10 @@
  *
  * The source boundary test (`lib/access-boundary.test.ts`) and the bundle audit (`scripts/audit-bundle.js`) judge
  * words and routes by these rules. Each phrase below was once a way past them — a claim with "7 day" for "7-day",
- * "Commencer maintenant mon essai", "جرّب مجانًا", a resend of the link rather than of the instructions — so each
- * stays here, with the app's own sentences that must stay allowed beside them: sending a code again is the app's
- * own sign-in and team check, not the trial's.
+ * "Commencer maintenant mon essai", "جرّب مجانًا", "Try Dukan ERP for 7 days", a resend of the link rather than of the
+ * instructions, "Have the instructions sent again", "Demander un nouvel envoi des instructions" — so each stays here,
+ * with the app's own sentences that must stay allowed beside them: sending a code again is the app's own sign-in and
+ * team check, not the trial's, and "try again" follows a failure.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,6 +34,9 @@ describe('a claim, however it is worded', () => {
       'Activate my trial', 'Claim the 7-day trial', 'Try Dukan ERP free for 7 days',
       // Starting for free, without the trial's name.
       'Start now — 7 days free', 'Start for free', 'Get started free', 'Sign up free', 'Enable it for free today',
+      // Trying, using or getting it for a time, or on us (verification, R5-3).
+      'Try Dukan ERP for 7 days', 'Enjoy Dukan ERP for a week', 'Use Dukan ERP free for 7 days', 'Sign up and get 7 days',
+      'Start now: 14 days at no cost', 'Your first week is on us — start today',
     ]) {
       assertBroken(phrase, /^claim button text \(EN\)$/);
     }
@@ -43,6 +47,9 @@ describe('a claim, however it is worded', () => {
       'Commencer mon essai gratuit', 'Commencer maintenant mon essai gratuit', 'Démarrer mon essai gratuit de 7 jours', 'Démarrer l’essai gratuit',
       'Je commence mon essai', 'Activer votre période d’essai', 'Lancer mon essai de {durationDays} jours', 'Commencez gratuitement pendant 7 jours',
       'Profitez de 7 jours gratuits',
+      // For a time, or offered (verification, R5-3).
+      'Profitez de 7 jours offerts', 'Essayez Dukan ERP pendant 7 jours', 'Bénéficiez de 7 jours gratuits', 'Utilisez Dukan ERP gratuitement pendant 7 jours',
+      'Commencez maintenant : 7 jours offerts', 'Essayez une semaine sans frais',
     ]) {
       assertBroken(phrase, /^claim button text \(FR\)$/);
     }
@@ -54,6 +61,9 @@ describe('a claim, however it is worded', () => {
       'فعّل فترتك التجريبية المجانية', 'جرّب مجانًا لمدة 7 أيام', 'استفد من الفترة التجريبية المجانية',
       // Starting for free, without the trial's name.
       'ابدأ الآن مجانًا', 'فعّل مجانًا لمدة 7 أيام',
+      // For a time, or at no cost — and a verb joined to its "and" (verification, R5-3).
+      'جرّب Dukan ERP لمدة 7 أيام', 'احصل على 7 أيام دون مقابل', 'استمتع بـ 7 أيام مجانًا', 'ابدأ الآن لمدة 7 أيام',
+      'استخدم Dukan ERP مجانًا لمدة 7 أيام', 'سجّل الآن واحصل على 7 أيام', 'جرّب أسبوعًا بلا مقابل',
     ]) {
       assertBroken(phrase, /^claim button text \(AR\)$/);
     }
@@ -89,6 +99,10 @@ describe('a resend, by what it sends again: the instructions, the link, the mess
       'Resend instructions', 'Send the setup instructions again', 'Send me the instructions again', 'Resend the setup link', 'Send the link again',
       'Send me a new link', 'Resend email', 'Send the message again', 'Request new instructions', 'Get the instructions again',
       'Send again the link', 'Send again the setup instructions',
+      // Named with "again" or "new" in any order, or asked to be sent (verification, R5-3).
+      'Ask for the setup instructions again', 'Request the setup e-mail again', 'Have the instructions sent again', 'Get the setup link again',
+      'Send the instructions once more', 'Instructions: send again', 'Request a fresh link', 'Get a new setup link', 'Need new instructions?',
+      'Ask for the link to be sent', 'Request sending the instructions',
     ]) {
       assertBroken(phrase, /^resend\/send button text \(EN\)$/);
     }
@@ -98,6 +112,9 @@ describe('a resend, by what it sends again: the instructions, the link, the mess
     for (const phrase of [
       'Renvoyer les instructions', 'Renvoyer les instructions de configuration', 'Envoyer à nouveau les instructions', 'Renvoyer le lien',
       'Renvoyer le lien de configuration', 'Envoyer à nouveau le lien', 'Recevoir de nouveau les instructions', 'Renvoyer le message',
+      // A new sending asked for, "again" after a pronoun, in any order (verification, R5-3).
+      'Demander un nouvel envoi des instructions', 'Envoyez-moi de nouveau les instructions', 'Recevoir à nouveau les instructions',
+      'Demander l’envoi des instructions', 'Obtenir un autre lien', 'Redemander de nouveaux liens',
     ]) {
       assertBroken(phrase, /^resend\/send button text \(FR\)$/);
     }
@@ -107,6 +124,8 @@ describe('a resend, by what it sends again: the instructions, the link, the mess
     for (const phrase of [
       'إعادة إرسال التعليمات', 'أعِد إرسال التعليمات', 'إرسال التعليمات مرة أخرى', 'إرسال تعليمات الإعداد مرة أخرى', 'إعادة إرسال الرابط',
       'إعادة إرسال رابط الإعداد', 'أرسل الرابط مرة أخرى',
+      // A new link asked for, the instructions anew, sending asked for (R5-3).
+      'اطلب رابطًا جديدًا', 'إرسال التعليمات من جديد', 'التعليمات مجددًا', 'اطلب إرسال التعليمات', 'أعد إرسال التعليمات',
     ]) {
       assertBroken(phrase, /^resend\/send button text \(AR\)$/);
     }
@@ -131,9 +150,27 @@ describe('what the app does say stays allowed', () => {
       'We sent the instructions for completing your business setup to your verified contact.',
       'We are sending the instructions for completing your business setup to your verified contact.',
       'Nous envoyons les instructions pour finaliser la configuration de votre commerce à votre contact vérifié.', 'سيتم إرسال التعليمات تلقائيًا',
+      // Its other sentences nearest to the rules: a retry after a failure, asking for a code again, the trial's length
+      // after activation, the instructions sent and the latest not, a new code, a server that may not send messages.
+      'Remove the WhatsApp number to continue with your email address, or try again later.', 'Check your email and try again.',
+      'Vérifiez vos messages et essayez de nouveau.', 'تحقق من بريدك الإلكتروني وحاول مرة أخرى.', 'Free up space on this phone and try again.',
+      'You can ask again in {seconds}s', 'Vous pourrez redemander dans {seconds} s', 'يمكنك الطلب مجدّدًا بعد {seconds} ثانية',
+      'Duration after activation: {durationDays} days', 'Durée après activation : {durationDays} jours', 'المدة بعد التفعيل: {durationDays} أيام',
+      'The setup instructions were sent to your verified contact on {date}, but the latest ones have not been sent.',
+      'Les instructions de configuration ont été envoyées à votre contact vérifié le {date}, mais les plus récentes n’ont pas été envoyées.',
+      'أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في {date}، لكن أحدث التعليمات لم تُرسل.',
+      'إرسال رمز جديد', 'the server is not allowed to send messages', 'Last 7 days',
     ]) {
       assertAllowed(phrase);
     }
+  });
+
+  it('code is not a sentence: what ships is read whole, and a property’s name beside a sentence is not a word on it', () => {
+    // The design gallery's scanner notice, as the bundle compiles it: the property `message`, then a sentence.
+    assertAllowed("onScanAgain:()=>{},notice:{tone:'danger',message:'This unit is already sold - it cannot be sold again.'}");
+    assertAllowed('{start:e,end:t,days:7}');
+    // The same words as a sentence says them are found.
+    assertBroken('Message: send it again', /^resend\/send button text \(EN\)$/);
   });
 });
 

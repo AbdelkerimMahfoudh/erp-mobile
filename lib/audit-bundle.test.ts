@@ -210,9 +210,17 @@ describe('words a screen could say', () => {
       ['إعادة إرسال الرابط', 'resend/send button text (AR)'],
       ['Start now — 7 days free', 'claim button text (EN)'],
       ['ابدأ الآن مجانًا', 'claim button text (AR)'],
+      // The verification's: the instructions named with "again" in any order or asked to be sent anew, a claim for a time.
+      ['Have the instructions sent again', 'resend/send button text (EN)'],
+      ['Demander un nouvel envoi des instructions', 'resend/send button text (FR)'],
+      ['Try Dukan ERP for 7 days', 'claim button text (EN)'],
+      ['Profitez de 7 jours offerts', 'claim button text (FR)'],
+      ['احصل على 7 أيام دون مقابل', 'claim button text (AR)'],
     ]) {
       caught('web', say(text), check);
     }
+    // A property's name beside a sentence is code, not a word on a screen: the design gallery's notice ships as it is.
+    assert.deepEqual(findings(exportWith('web', ";n.x={tone:'danger',message:'This unit is already sold - it cannot be sold again.'};")), []);
   });
 
   it('the trial named in any sentence but its own — in a string, a joined string or a page rendered ahead of time', () => {
