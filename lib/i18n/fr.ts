@@ -2810,6 +2810,9 @@ export const fr: Catalogue = {
   'register.verify.resendWait': 'Vous pourrez redemander dans {seconds} s',
   'register.verify.wrong': 'Ce code ne correspond pas. Vérifiez-le et réessayez.',
   'register.verify.timeout': 'Nous n’avons pas pu confirmer à temps. Si le code était bon, votre compte est prêt — connectez-vous avec votre mot de passe.',
+  'register.verify.notSent': 'Le code n’a pas été envoyé. Patientez un peu et réessayez. Si cela ne fonctionne toujours pas, recommencez l’inscription.',
+  'register.verify.sendUnknown': 'Nous n’avons pas pu savoir si le code a été envoyé. S’il n’arrive pas d’ici quelques minutes, réessayez.',
+  'register.verify.tooMany': 'Trop de tentatives en peu de temps. Patientez une minute, puis réessayez.',
   'register.verify.change': 'Utiliser un autre contact',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────

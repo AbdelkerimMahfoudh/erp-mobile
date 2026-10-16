@@ -2569,6 +2569,9 @@ export const ar: Catalogue = {
   'register.verify.resendWait': 'يمكنك الطلب مجدّدًا بعد {seconds} ثانية',
   'register.verify.wrong': 'الرمز غير مطابق. تحقّق منه وحاول مجدّدًا.',
   'register.verify.timeout': 'تعذّر التأكيد في الوقت المحدد. إذا كان الرمز صحيحًا فحسابك جاهز — سجّل الدخول بكلمة المرور.',
+  'register.verify.notSent': 'لم يُرسَل الرمز. انتظر قليلًا وحاول مرّة أخرى. وإن لم ينجح ذلك، فابدأ التسجيل من جديد.',
+  'register.verify.sendUnknown': 'تعذّر علينا معرفة ما إذا كان الرمز قد أُرسل. إذا لم يصلك خلال بضع دقائق، فحاول مرّة أخرى.',
+  'register.verify.tooMany': 'محاولات كثيرة خلال وقت قصير. انتظر دقيقة ثم حاول مرّة أخرى.',
   'register.verify.change': 'استخدام وسيلة تواصل أخرى',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────

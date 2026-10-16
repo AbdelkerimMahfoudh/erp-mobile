@@ -2634,6 +2634,11 @@ export const en = {
   'register.verify.wrong': 'That code did not match. Check it and try again.',
   // The answer was lost, not necessarily the confirmation: never "wrong code".
   'register.verify.timeout': 'We could not confirm in time. If the code was right, your account is ready — sign in with your password.',
+  // The code asked for and refused, or its answer lost, and the rate limit: the app's own words, never the server's
+  // English, which says one sentence for every refusal.
+  'register.verify.notSent': 'The code was not sent. Wait a little and try again. If it still does not work, start again.',
+  'register.verify.sendUnknown': 'We could not tell whether the code was sent. If it does not arrive in a few minutes, try again.',
+  'register.verify.tooMany': 'Too many tries in a short time. Wait a minute, then try again.',
   'register.verify.change': 'Use a different contact',
 
   // ── Mistake prevention (A1 warnings, A2 approvals) ────────────────────────

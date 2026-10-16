@@ -377,4 +377,95 @@ describe('the code check', () => {
     }
     await useI18n.getState().setLanguage('en');
   });
+
+  it('a code request the server refuses on arrival is said in the person’s language — French or Arabic — never in its English', async () => {
+    for (const language of ['fr', 'ar'] as const) {
+      await useI18n.getState().setLanguage(language);
+      mockStore.set('erp.registration.continuation', CONTINUATION);
+      // The server's one sentence for every refused code request: an expired or spent sign-up, a code limit reached.
+      (api.post as jest.Mock).mockRejectedValue(new ApiError('That registration cannot be continued.', 400));
+      renderWith(<VerifyScreen />);
+      expect(await screen.findByText(t('register.verify.notSent'))).toBeTruthy();
+      expect(t('register.verify.notSent')).not.toMatch(/code was not sent|cannot be continued/);
+      expect(screen.queryByText(/cannot be continued/)).toBeNull();
+      expect(screen.queryByText(t('register.failed'))).toBeNull();
+      screen.unmount();
+      (api.post as jest.Mock).mockReset();
+    }
+    await useI18n.getState().setLanguage('en');
+    expect(t('register.verify.notSent')).toBe('The code was not sent. Wait a little and try again. If it still does not work, start again.');
+  });
+
+  it('Send again refused — by the rate limit, by a code limit — says so in the app’s words, never "ThrottlerException" or the server’s sentence', async () => {
+    jest.useFakeTimers();
+    try {
+      await useI18n.getState().setLanguage('fr');
+      mockStore.set('erp.registration.continuation', CONTINUATION);
+      const answers: (() => unknown)[] = [
+        () => ({ delivery: 'sent' }),
+        () => {
+          throw new ApiError('ThrottlerException: Too Many Requests', 429);
+        },
+        () => {
+          throw new ApiError('Too many codes requested. Try again in a little while.', 400);
+        },
+      ];
+      (api.post as jest.Mock).mockImplementation(async () => answers.shift()!());
+      renderWith(<VerifyScreen />);
+      await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+      // Send again waits a minute after a code was sent.
+      for (let second = 0; second <= 60; second++) {
+        await act(async () => {
+          jest.advanceTimersByTime(1000);
+        });
+      }
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.verify.resend')));
+      });
+      expect(await screen.findByText(t('register.verify.tooMany'))).toBeTruthy();
+      expect(screen.queryByText(/ThrottlerException|Too Many Requests/)).toBeNull();
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.verify.resend')));
+      });
+      expect(await screen.findByText(t('register.verify.notSent'))).toBeTruthy();
+      expect(screen.queryByText(t('register.verify.tooMany'))).toBeNull();
+      expect(screen.queryByText(/Too many codes requested/)).toBeNull();
+      expect(api.post).toHaveBeenCalledTimes(3);
+      screen.unmount();
+    } finally {
+      jest.useRealTimers();
+      await useI18n.getState().setLanguage('en');
+    }
+  });
+
+  it('a code request with no answer is not a refusal: the code may be on its way, and nothing says it was not sent', async () => {
+    mockStore.set('erp.registration.continuation', CONTINUATION);
+    (api.post as jest.Mock).mockRejectedValue(new RequestTimeout());
+    renderWith(<VerifyScreen />);
+    expect(await screen.findByText(t('register.verify.sendUnknown'))).toBeTruthy();
+    expect(t('register.verify.sendUnknown')).toBe('We could not tell whether the code was sent. If it does not arrive in a few minutes, try again.');
+    expect(screen.queryByText(t('register.verify.notSent'))).toBeNull();
+    expect(screen.queryByText(t('register.failed'))).toBeNull();
+  });
+
+  it('the code check’s own refusals are said in the person’s language too: the rate limit asks for a minute, anything else is the app’s', async () => {
+    await useI18n.getState().setLanguage('ar');
+    await confirmWith(() => {
+      throw new ApiError('ThrottlerException: Too Many Requests', 429);
+    });
+    expect(await screen.findByText(t('register.verify.tooMany'))).toBeTruthy();
+    expect(screen.queryByText(/ThrottlerException/)).toBeNull();
+    expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
+    screen.unmount();
+    (api.post as jest.Mock).mockReset();
+
+    await useI18n.getState().setLanguage('fr');
+    await confirmWith(() => {
+      throw new ApiError('Forbidden resource', 403);
+    });
+    expect(await screen.findByText(t('auth.error.unknown'))).toBeTruthy();
+    expect(screen.queryByText(/Forbidden resource/)).toBeNull();
+    screen.unmount();
+    await useI18n.getState().setLanguage('en');
+  });
 });

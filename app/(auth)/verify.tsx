@@ -36,8 +36,9 @@ const RESEND_SECONDS = 60;
  * password the person just chose, for as long as it is open — never "That
  * code did not match" for that code: the server refuses a registration it has
  * already finished exactly as it refuses a wrong code, so confirming the same
- * code again cannot tell the two apart. A refusal is said in the person's own
- * language, never in the server's English.
+ * code again cannot tell the two apart. A refusal — of the code, of a request
+ * for one, or by the rate limit — is said in the person's own language, never
+ * in the server's English.
  */
 export default function VerifyScreen() {
   const { t, language } = useTranslation();
@@ -82,10 +83,25 @@ export default function VerifyScreen() {
       // The language on screen now, so a code asked for again after switching arrives in the new one.
       await api.post('/auth/register/verify/start', { continuation, language });
       setWaitSeconds(RESEND_SECONDS);
+      setFailure(null);
       if (isResend) setNotice(t('register.verify.sent', { destination: destination ?? '' }));
     } catch (e) {
-      setFailure(e instanceof ApiError && e.message ? e.message : t('register.failed'));
+      // An answer that did not arrive is not a refusal: the code may be on its way.
+      const lost = classifyError(e).kind === 'timeout_uncertain';
+      setNotice(lost ? t('register.verify.sendUnknown') : null);
+      setFailure(lost ? null : refusal(e, 'register.verify.notSent'));
     }
+  }
+
+  /**
+   * A request of the code check that did not go through, in the person's language — never the server's English: it
+   * answers every refused code request with one sentence ("That registration cannot be continued.", or a code limit's
+   * own), and its rate limit with a class name. The rate limit asks for a minute, no connection says so, and anything
+   * else is `otherwise`.
+   */
+  function refusal(e: unknown, otherwise: 'register.verify.notSent' | 'auth.error.unknown'): string {
+    if (e instanceof ApiError) return t(e.status === 429 ? 'register.verify.tooMany' : otherwise);
+    return e instanceof TypeError ? toFriendlyError(e).body : t(otherwise);
   }
 
   async function confirm() {
@@ -121,7 +137,7 @@ export default function VerifyScreen() {
       if (classifyError(e).kind === 'timeout_uncertain') setLostCode(sent);
       else if (e instanceof ApiError && e.status === 400) {
         if (sent !== lostCode) setFailure(t('register.verify.wrong'));
-      } else setFailure(toFriendlyError(e).body);
+      } else setFailure(refusal(e, 'auth.error.unknown'));
     } finally {
       inFlight.current = false;
       setSubmitting(false);
