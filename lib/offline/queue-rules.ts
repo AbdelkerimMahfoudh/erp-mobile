@@ -137,6 +137,18 @@ export function nextStateAfterError(e: ClassifiedError): QueueState {
 export const MAX_ATTEMPTS = 8;
 
 /**
+ * An item found `sending` when the queue opens: the app stopped (killed, crashed, swiped away) while its answer was
+ * on its way, so it may or may not be recorded — a lost answer, like a timeout. Every kind but the exchange (which the
+ * status lookup decides, D161) is idempotent under its own key, so it waits again under the SAME key and a resend
+ * finds the original record; past the bounded attempts it waits for a person instead. Anything else is untouched.
+ */
+export function resumeInterrupted(item: QueueItem): QueueItem {
+  if (item.state !== 'sending' || item.kind === 'agent.exchange.record') return item;
+  const lastError: ClassifiedError = { kind: 'timeout_uncertain', message: 'The app stopped before the server answered.' };
+  return { ...item, state: item.attempts >= MAX_ATTEMPTS ? 'needs_attention' : 'waiting_for_connection', lastError };
+}
+
+/**
  * Bounded exponential backoff with a ceiling, in milliseconds.
  *
  * Roughly 2s, 4s, 8s … capped at five minutes. The cap matters more than the

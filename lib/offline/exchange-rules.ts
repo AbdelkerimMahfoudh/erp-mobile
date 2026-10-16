@@ -1,7 +1,7 @@
 import { AGENT_REFUSALS, type AgentRefusal, type RefusalAction } from '../agent-rules.ts';
 import { AGENT_EXCHANGE_KIND, isExchangePayload, type ExchangeConfirmation } from './agent-exchange.ts';
 import { mayQueue } from './policy.ts';
-import { backoffMs, belongsToSession, MAX_ATTEMPTS, type ClassifiedError, type QueueItem, type QueueState } from './queue-rules.ts';
+import { backoffMs, belongsToSession, MAX_ATTEMPTS, resumeInterrupted, type ClassifiedError, type QueueItem, type QueueState } from './queue-rules.ts';
 
 /**
  * A refused offline exchange has a clear outcome (D161).
@@ -115,11 +115,14 @@ export function normaliseExchange(item: QueueItem): QueueItem {
   return mayBeRecorded === undefined ? item : rest;
 }
 
-/** A whole file's items, normalised; `changed` when anything moved, so the file is written back once. */
+/**
+ * A whole file's items, normalised — and any other kind left mid-send by a stopped app waiting again under its own
+ * key; `changed` when anything moved, so the file is written back once.
+ */
 export function normaliseQueue(items: readonly QueueItem[]): { items: QueueItem[]; changed: boolean } {
   let changed = false;
   const out = items.map((i) => {
-    const n = normaliseExchange(i);
+    const n = resumeInterrupted(normaliseExchange(i));
     if (n !== i) changed = true;
     return n;
   });

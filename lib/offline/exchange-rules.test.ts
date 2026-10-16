@@ -29,7 +29,7 @@ import {
   type LookupAnswer,
   type ServerExchange,
 } from './exchange-rules.ts';
-import { backoffMs, MAX_ATTEMPTS, type ClassifiedError, type QueueItem, type QueueState } from './queue-rules.ts';
+import { backoffMs, MAX_ATTEMPTS, nextSendable, type ClassifiedError, type QueueItem, type QueueState } from './queue-rules.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -172,6 +172,26 @@ it('an older build’s exchanges are brought into the six states at load — the
   const moved = normaliseQueue([done, item({ id: 'x', state: 'sending' })]);
   assert.equal(moved.changed, true);
   assert.deepEqual(moved.items.map((i) => i.state), ['synced', 'uncertain']);
+});
+
+it('any other kind the app stopped mid-send waits again under its own key — never stranded "sending"', () => {
+  const loanPayment = (over: Partial<QueueItem> = {}) =>
+    item({ id: 'lp', kind: 'loan.payment.report', clientUuid: '22222222-2222-4222-8222-222222222222', payload: { loanId: 'loan-1', amount: 500 }, ...over });
+  const stopped = loanPayment({ state: 'sending', attempts: 1, lastAttemptAt: 5 });
+  const { items, changed } = normaliseQueue([stopped]);
+  assert.equal(changed, true);
+  const [resumed] = items;
+  assert.equal(resumed.state, 'waiting_for_connection');
+  assert.equal(resumed.clientUuid, stopped.clientUuid, 'the same key: a resend is a replay');
+  assert.equal(resumed.lastError?.kind, 'timeout_uncertain');
+  // Sent again after its backoff, and no longer holding back the next report on the same loan.
+  const later = loanPayment({ id: 'lp2', clientUuid: '33333333-3333-4333-8333-333333333333', createdAt: 2 });
+  assert.deepEqual(nextSendable([resumed, later], session, 5 + backoffMs(1)).map((i) => i.id), ['lp']);
+  // An expense too; past the bounded attempts, a person decides ("Try again"), never a silent wait.
+  assert.equal(normaliseQueue([item({ kind: 'expense.submit', payload: {}, state: 'sending' })]).items[0].state, 'waiting_for_connection');
+  const last = normaliseQueue([loanPayment({ state: 'sending', attempts: MAX_ATTEMPTS })]).items[0];
+  assert.equal(last.state, 'needs_attention');
+  assert.equal(mayResend(last), true);
 });
 
 // ── The status lookup ───────────────────────────────────────────────────────
