@@ -31,7 +31,7 @@ export class ApiError extends Error {
 }
 
 // Single-flight refresh: parallel 401s trigger one /auth/refresh, not many.
-let refreshInFlight: Promise<string | null> | null = null;
+let refreshInFlight: Promise<string | null | typeof REFRESH_UNAVAILABLE> | null = null;
 
 export async function clearSession(): Promise<void> {
   await deleteItem(TOKEN_KEYS.ACCESS_TOKEN);
@@ -39,7 +39,18 @@ export async function clearSession(): Promise<void> {
   await deleteItem(TOKEN_KEYS.USER);
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+/**
+ * The refresh could not be answered — a rate limit, a server error, no connection — as opposed to refused. The
+ * request that needed it then fails as `session_unconfirmed` (503), never as the 401 that started it: a 401 at
+ * launch ends the session, and an expired access token met during a bad minute must not (review NW2-03).
+ */
+const REFRESH_UNAVAILABLE = Symbol('refresh-unavailable');
+
+function unconfirmed(): ApiError {
+  return new ApiError('The session could not be confirmed right now', 503, 'session_unconfirmed');
+}
+
+async function refreshAccessToken(): Promise<string | null | typeof REFRESH_UNAVAILABLE> {
   if (refreshInFlight) return refreshInFlight;
 
   refreshInFlight = (async () => {
@@ -54,8 +65,11 @@ async function refreshAccessToken(): Promise<string | null> {
       if (!res.ok) {
         // Only a refusal of the refresh token ends the session; a rate limit or a server error is not one, and
         // signed the person out on a bad minute (review MO2-03). The request then fails as it would offline.
-        if (res.status === 400 || res.status === 401 || res.status === 403) await clearSession();
-        return null;
+        if (res.status === 400 || res.status === 401 || res.status === 403) {
+          await clearSession();
+          return null;
+        }
+        return REFRESH_UNAVAILABLE;
       }
       const data = await res.json();
       // Backend ROTATES the refresh token — persist BOTH or the next refresh fails.
@@ -63,7 +77,7 @@ async function refreshAccessToken(): Promise<string | null> {
       if (data?.refreshToken) await setItem(TOKEN_KEYS.REFRESH_TOKEN, data.refreshToken);
       return data?.accessToken ?? null;
     } catch {
-      return null;
+      return REFRESH_UNAVAILABLE;
     }
   })();
 
@@ -177,6 +191,7 @@ async function request<T>(method: Method, path: string, body?: Body): Promise<T>
 
   if (res.status === 401 && token) {
     const fresh = await refreshAccessToken();
+    if (fresh === REFRESH_UNAVAILABLE) throw unconfirmed();
     if (fresh) res = await send(method, path, body, fresh);
   }
 
@@ -234,6 +249,7 @@ async function download(path: string): Promise<DownloadedFile> {
 
   if (res.status === 401 && token) {
     const fresh = await refreshAccessToken();
+    if (fresh === REFRESH_UNAVAILABLE) throw unconfirmed();
     if (fresh) res = await send('GET', path, undefined, fresh, false);
   }
 

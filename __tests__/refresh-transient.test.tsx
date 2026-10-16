@@ -34,16 +34,31 @@ beforeEach(() => {
   mockStore.set('erp.user', '{"id":"u1"}');
 });
 
-it.each([429, 500, 503])('a refresh answered %i keeps both tokens', async (status) => {
+it.each([429, 500, 503])('a refresh answered %i keeps both tokens, and the request fails unconfirmed, not 401', async (status) => {
   server(status);
-  await expect(api.get('/inventory')).rejects.toBeInstanceOf(ApiError);
+  const error = (await api.get('/inventory').catch((e: unknown) => e)) as ApiError;
+  expect(error).toBeInstanceOf(ApiError);
+  // A 401 here is what the launch check treats as "the session is over" (review NW2-03).
+  expect(error.status).toBe(503);
+  expect(error.code).toBe('session_unconfirmed');
   expect(mockStore.get('erp.accessToken')).toBe('expired');
+  expect(mockStore.get('erp.refreshToken')).toBe('refresh');
+});
+
+it('a refresh that cannot reach the server keeps the session and fails unconfirmed', async () => {
+  (globalThis as { fetch: unknown }).fetch = jest.fn(async (url: string) => {
+    if (url.endsWith('/auth/refresh')) throw new TypeError('Network request failed');
+    return { status: 401, ok: false, headers: { get: () => null }, text: async () => '{}', json: async () => ({}) };
+  });
+  const error = (await api.get('/inventory').catch((e: unknown) => e)) as ApiError;
+  expect(error.status).toBe(503);
   expect(mockStore.get('erp.refreshToken')).toBe('refresh');
 });
 
 it.each([400, 401, 403])('a refresh refused with %i still ends the session', async (status) => {
   server(status);
-  await expect(api.get('/inventory')).rejects.toBeInstanceOf(ApiError);
+  const error = (await api.get('/inventory').catch((e: unknown) => e)) as ApiError;
+  expect(error.status).toBe(401);
   expect(mockStore.has('erp.accessToken')).toBe(false);
   expect(mockStore.has('erp.refreshToken')).toBe(false);
 });
