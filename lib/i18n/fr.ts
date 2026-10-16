@@ -2914,7 +2914,7 @@ export const fr: Catalogue = {
   'approvals.lapsed': 'Cette demande a expiré.',
   'approvals.notFound': 'Cette demande n’existe plus.',
   'sell.approval.priceChanged': 'Le prix défini a changé. Redemandez au prix voulu.',
-  'sell.discountBelowCost': 'Cette remise ferait vendre à perte. Retirez-la, ou demandez au propriétaire d’approuver le prix final.',
+  'sell.discountBelowCost': 'Cette remise ferait vendre à perte. Retirez-la ou réduisez-la.',
   'sell.approval.alreadyUsed': 'Cette approbation a déjà servi à une autre vente.',
   'sell.approval.expired': 'Cette approbation a expiré. Redemandez si le client est encore là.',
   'sell.approval.waiting': 'En attente du propriétaire. Rien n’a encore été vendu.',
