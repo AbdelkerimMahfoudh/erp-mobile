@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { AppState } from 'react-native';
 import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { api, clearSession } from '../lib/api-client';
+import { api, ApiError, clearSession } from '../lib/api-client';
 import { deleteItem, getItem, setItem } from '../lib/storage';
 import { TOKEN_KEYS } from '../constants/config';
 import { useBranch } from '../lib/branch';
@@ -79,8 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await branch.hydrate();
           await onRestoredSession(me);
         }
-      } catch {
-        await clearSession();
+      } catch (e) {
+        /*
+         * Only the server saying this session is over ends it. Offline, a timeout or a server error at launch used to
+         * delete the tokens too, so opening the app without a connection signed the person out (review MO1-03). Now
+         * the session stays, with the identity this phone stored at sign-in, as it does when the network drops later.
+         */
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          await clearSession();
+        } else {
+          let known: AuthUser | null = null;
+          try {
+            const cached = await getItem(TOKEN_KEYS.USER);
+            known = cached ? (JSON.parse(cached) as AuthUser) : null;
+          } catch {
+            known = null;
+          }
+          if (known) {
+            setUser(known);
+            await branch.hydrate();
+          }
+        }
       } finally {
         setBootstrapping(false);
       }

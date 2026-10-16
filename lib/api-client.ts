@@ -52,7 +52,9 @@ async function refreshAccessToken(): Promise<string | null> {
         body: JSON.stringify({ refreshToken }),
       });
       if (!res.ok) {
-        await clearSession();
+        // Only a refusal of the refresh token ends the session; a rate limit or a server error is not one, and
+        // signed the person out on a bad minute (review MO2-03). The request then fails as it would offline.
+        if (res.status === 400 || res.status === 401 || res.status === 403) await clearSession();
         return null;
       }
       const data = await res.json();
