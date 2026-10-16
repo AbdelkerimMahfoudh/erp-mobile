@@ -72,7 +72,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-/** What came back: the status, the headers and the body — the body read inside the same bound as the rest. */
+/** What came back: the status, the headers and the body. */
 interface Answer {
   status: number;
   ok: boolean;
@@ -80,7 +80,12 @@ interface Answer {
   text: string;
 }
 
-async function send(method: Method, path: string, body: Body, token: string | null): Promise<Answer> {
+/**
+ * One request, and its answer read whole. An API answer's body is read inside
+ * the request's own bound (`bounded`); a file's (`download`) may take what its
+ * size takes once the status has arrived, as it always could.
+ */
+async function send(method: Method, path: string, body: Body, token: string | null, bounded = true): Promise<Answer> {
   // Never before the branch this device already knows has been read (lib/branch.ts, branchRestored).
   await branchRestored();
   const headers: Record<string, string> = {};
@@ -114,12 +119,13 @@ async function send(method: Method, path: string, body: Body, token: string | nu
       if (controller.signal.aborted) throw new RequestTimeout();
       throw error;
     }
+    if (!bounded) clearTimeout(timer);
     /*
-     * The status arrived; its body is read inside the same bound. A body cut
-     * off on its way, or not in by the timeout, after a success is an answer
-     * lost: the server did what was asked, and what it answered (a session, a
-     * record) is gone, so no caller may take it for a refusal. A refusal keeps
-     * its status, as when its body is not JSON.
+     * The status arrived; an API answer's body is read inside the same bound.
+     * A body cut off on its way, or not in by the timeout, after a success is
+     * an answer lost: the server did what was asked, and what it answered (a
+     * session, a record) is gone, so no caller may take it for a refusal. A
+     * refusal keeps its status, as when its body is not JSON.
      */
     try {
       return { status: res.status, ok: res.ok, headers: res.headers, text: res.status === 204 ? '' : await res.text() };
@@ -217,7 +223,7 @@ async function download(path: string): Promise<DownloadedFile> {
 
   let res: Answer;
   try {
-    res = await send('GET', path, undefined, token);
+    res = await send('GET', path, undefined, token, false);
   } catch (error) {
     if (!(error instanceof RequestTimeout)) useConnectivity.getState().markUnreachable();
     throw error;
@@ -226,7 +232,7 @@ async function download(path: string): Promise<DownloadedFile> {
 
   if (res.status === 401 && token) {
     const fresh = await refreshAccessToken();
-    if (fresh) res = await send('GET', path, undefined, fresh);
+    if (fresh) res = await send('GET', path, undefined, fresh, false);
   }
 
   if (!res.ok) {

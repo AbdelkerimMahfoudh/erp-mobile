@@ -67,6 +67,27 @@ describe('an answer that does not come whole', () => {
     }
   });
 
+  it('a file’s body takes what its size takes once its status arrived, as it always could: only an API answer is held to the bound', async () => {
+    jest.useFakeTimers();
+    (globalThis as { fetch: unknown }).fetch = jest.fn(async (_url: string, init: { signal: AbortSignal }) => ({
+      status: 200,
+      ok: true,
+      headers: { get: (name: string) => (name === 'content-type' ? 'text/csv' : null) },
+      // Five seconds past the bound — and refused the moment the request is aborted, as a browser's would be.
+      text: () =>
+        new Promise<string>((resolve, reject) => {
+          const done = setTimeout(() => resolve('product,profit\nA,1\n'), REQUEST_TIMEOUT_MS + 5_000);
+          init.signal.addEventListener('abort', () => {
+            clearTimeout(done);
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+          });
+        }),
+    }));
+    const pending = api.download('/reports/profit-by-product.csv').catch((e: unknown) => e);
+    await jest.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 5_001);
+    expect(await pending).toEqual(expect.objectContaining({ text: 'product,profit\nA,1\n' }));
+  });
+
   it('a whole answer reads as before: JSON as JSON, nothing as nothing, a refusal with its sentence and code', async () => {
     respond(200, async () => JSON.stringify({ accessToken: 'a', refreshToken: 'r', expiresIn: 900 }));
     await expect(api.post('/auth/register/verify/confirm', {})).resolves.toEqual({ accessToken: 'a', refreshToken: 'r', expiresIn: 900 });
