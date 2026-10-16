@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import {
   Boxes,
   Camera,
@@ -163,9 +163,15 @@ const DEMO_SUPPLIERS: DemoSupplier[] = [
  * fastest way to check Arabic: switch language at the top, relaunch, and read
  * this page top to bottom.
  *
- * Development only. Not linked from the app's navigation.
+ * Development only. Not linked from the app's navigation — and not reachable in a release build either: the route
+ * exists in every build because the router is the file system, so a `dukanerp://dev/gallery` link opened it on a
+ * phone, with its language switch and demo figures (finding PR-F12, 2026-10-16). A release build goes home instead.
  */
-export default function GalleryScreen() {
+export default function GalleryRoute() {
+  return __DEV__ ? <GalleryScreen /> : <Redirect href="/" />;
+}
+
+function GalleryScreen() {
   const styles = useStyles();
   const { t, isRTL, language } = useTranslation();
   const setLanguage = useI18n((s) => s.setLanguage);

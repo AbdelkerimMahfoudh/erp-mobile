@@ -86,6 +86,13 @@ it('the design gallery (development only) is left alone; the platform console is
   assert.equal(entryRoute(state({ segment: 'platform', signedIn: false, branchChosen: false })), LOGIN, 'an old link to the console lands on sign-in');
 });
 
+it('the design gallery is not reachable in a release build: its route sends a release build home', () => {
+  const gallery = readFileSync(new URL('../../app/dev/gallery.tsx', import.meta.url), 'utf8');
+  const route = gallery.match(/export default function \w+\(\) \{([\s\S]*?)\n\}/);
+  assert.ok(route, 'the gallery has a default-exported route');
+  assert.match(route[1], /^\s*return __DEV__ \? <GalleryScreen \/> : <Redirect href="\/" \/>;\s*$/, 'the route renders the gallery only in development');
+});
+
 it('every combination settles within two steps, never back where it started, never in a loop', () => {
   const segments = [undefined, '(auth)', '(tabs)', 'select-branch', 'access-closed', 'stores', 'closing', 'sales', 'quick-sell'];
   const bools = [false, true];
