@@ -3644,7 +3644,7 @@ export const en = {
     'Your login, your name, your contact details and the sign-in identifier you were given; your sessions, devices and codes. Your name is replaced by “Deleted user” on what you recorded at the counter. Every device signed in as you is signed out, and this phone forgets your login. The business continues without you.',
   'account.delete.scopeBusinessTitle': 'What will be deleted',
   'account.delete.scopeBusiness':
-    'Your business, your login and every login in it; the contact details of your customers, your suppliers and the people you lent to; the numbers payments came from and the numbers your money services counter served; notes, receipt photos, branch addresses and your city. Every device is signed out.',
+    'Your business, your login and every login in it; the contact details of your customers, your suppliers and the people you lent to; the numbers payments came from and the numbers your money services counter served; the notes on your customers, suppliers and expenses, receipt photos, branch addresses and your city. Notes written on sales, payments, returns and other records stay with those records. Every device is signed out.',
   'account.delete.retainedTitle': 'What is kept, and why',
   'account.delete.retained':
     'Sales, purchases, payments, closings and the audit trail are kept because the law requires business and tax records to be retained; they refer to a “Deleted user”. Some copies cannot be edited: the audit trail and the subscription history are sealed and may still hold a name or contact detail written into them at the time, and backups keep their copy until they expire.',
