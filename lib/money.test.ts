@@ -10,8 +10,12 @@ import { formatMoney } from './money-format.ts';
 import {
   amountProblem,
   collectionProblem,
+  customerPhoneProblem,
+  DEBT_DUE_MAX_DAYS,
   debtorFields,
   debtorProblem,
+  dueDatePreview,
+  dueDaysProblem,
   MAX_PAYMENT_METHODS,
   methodForAccount,
   nextFreeSource,
@@ -47,14 +51,41 @@ it('a balance needs a debtor; a paid sale needs none', () => {
   assert.equal(debtorProblem(10_000, { kind: 'none' }), 'debtor_required');
   assert.equal(debtorProblem(0, { kind: 'none' }), null);
 });
-it('a typed customer needs a name, never a phone', () => {
-  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: '  ', phone: '' }), 'customer_name_required');
-  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: 'Mariam', phone: '' }), null);
-  assert.deepEqual(debtorFields({ kind: 'customer_new', name: ' Mariam ', phone: '' }), { customer: { name: 'Mariam' } });
-  assert.deepEqual(debtorFields({ kind: 'customer_new', name: 'Mariam', phone: '22 11' }), { customer: { name: 'Mariam', phone: '22 11' } });
+// The owner's brief of 2026-10-17: a customer who owes has a name AND a phone number, and the debt a due date in days.
+it('a typed customer who owes needs a name and a valid phone number', () => {
+  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: '  ', phone: '22334455' }), 'customer_name_required');
+  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: 'Mariam', phone: '' }), 'customer_phone_required');
+  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: 'Mariam', phone: '22 11' }), 'customer_phone_invalid');
+  assert.equal(debtorProblem(10_000, { kind: 'customer_new', name: 'Mariam', phone: '22 33 44 55' }), null);
+  assert.deepEqual(debtorFields({ kind: 'customer_new', name: ' Mariam ', phone: ' 22334455 ' }), { customer: { name: 'Mariam', phone: '22334455' } });
 });
-it('a selected customer is sent by id, so no duplicate is created', () => {
-  assert.deepEqual(debtorFields({ kind: 'customer_existing', customerId: 'c1', name: 'M' }), { customerId: 'c1' });
+it('a selected customer is sent by id, so no duplicate is created; a number is sent only for one who has none', () => {
+  assert.deepEqual(debtorFields({ kind: 'customer_existing', customerId: 'c1', name: 'M', phone: '22334455' }), { customerId: 'c1' });
+  assert.deepEqual(debtorFields({ kind: 'customer_existing', customerId: 'c1', name: 'M', phone: '22334455', typedPhone: '33445566' }), { customerId: 'c1' }, 'a saved number is never replaced from a sale');
+  assert.deepEqual(debtorFields({ kind: 'customer_existing', customerId: 'c1', name: 'M', phone: null, typedPhone: ' 33445566 ' }), { customerId: 'c1', customerPhone: '33445566' });
+  assert.equal(debtorProblem(500, { kind: 'customer_existing', customerId: 'c1', name: 'M', phone: null }), 'customer_phone_required');
+  assert.equal(debtorProblem(500, { kind: 'customer_existing', customerId: 'c1', name: 'M', phone: '22334455' }), null);
+});
+it('a debt needs its due date in whole days, 1 to a year; a paid sale needs none of it', () => {
+  const owed = { kind: 'customer_new' as const, name: 'Mariam', phone: '22334455' };
+  assert.equal(debtorProblem(100, owed, ''), 'due_days_required');
+  assert.equal(debtorProblem(100, owed, '0'), 'due_days_invalid');
+  assert.equal(debtorProblem(100, owed, '2.5'), 'due_days_invalid');
+  assert.equal(debtorProblem(100, owed, String(DEBT_DUE_MAX_DAYS + 1)), 'due_days_invalid');
+  assert.equal(debtorProblem(100, owed, '7'), null);
+  assert.equal(debtorProblem(0, { kind: 'none' }, ''), null);
+  assert.equal(dueDaysProblem(' 30 '), null);
+});
+it('the due date shown is today plus the days, on the calendar', () => {
+  assert.equal(dueDatePreview(7, new Date(2026, 9, 17, 23, 30)).toDateString(), new Date(2026, 9, 24).toDateString());
+  assert.equal(dueDatePreview(3, new Date(2026, 11, 30)).toDateString(), new Date(2027, 0, 2).toDateString());
+});
+it('a phone number is checked as the server checks it', () => {
+  assert.equal(customerPhoneProblem('+222 22-33-44-55'), null);
+  assert.equal(customerPhoneProblem('٢٢٣٣٤٤٥٥'), null);
+  assert.equal(customerPhoneProblem(''), 'customer_phone_required');
+  assert.equal(customerPhoneProblem('1234567'), 'customer_phone_invalid');
+  assert.equal(customerPhoneProblem('22 33 AB 55'), 'customer_phone_invalid');
 });
 it('a partner store is sent as the counterparty, alone', () => {
   assert.deepEqual(debtorFields({ kind: 'store', counterpartyId: 's1', name: 'Atlas' }), { counterpartyId: 's1' });
@@ -310,20 +341,25 @@ it('whatever the money taken now leaves — one method or a split — is owed by
   assert.ok(!/multiSplit/.test(sheet), 'a split is not judged apart from one method');
   assert.match(sheet, /const owing = remaining > 0\.005;/);
   assert.match(sheet, /const overpaid = remaining < -0\.005;/);
-  assert.match(sheet, /const debtorBlock = owing \? \(\s*<>\s*<Card variant="warning"/);
+  assert.match(sheet, /const debtOpen = owing && agreedBalance !== null;/);
+  assert.match(sheet, /const owedBy = debtOpen \? debtorProblem\(remaining, debtor, dueDaysText\) : null;/);
   assert.match(sheet, /<DebtorPicker/);
-  assert.match(sheet, /title=\{owing \? t\('sell\.payment\.review'\) : t\('sell\.payment\.complete'\)\}/);
+  // One final action, whatever is owed (the owner's brief of 2026-10-17).
+  assert.match(sheet, /title=\{t\('sell\.payment\.confirm'\)\}/);
 });
-it('what is owed sits under the one-method field, and after the parts while splitting, so nothing jumps above the amount being typed', () => {
+it('money left owing is asked about in words, and asked again whenever the balance changed', () => {
+  assert.match(sheet, /if \(owing && agreedBalance !== remaining\) \{/);
+  assert.match(sheet, /if \(record\) setAgreedBalance\(remaining\);\s*return;/);
+  assert.match(sheet, /const due = owing \? dueDays : null;/);
+});
+it('what is owed comes after the money, so nothing jumps above the amount being typed; split payment is its own control', () => {
   const field = sheet.indexOf("t('sell.payment.receivedNow')");
-  const single = sheet.indexOf('{isSplitting ? null : debtorBlock}');
-  const disclosure = sheet.indexOf('<Disclosure');
   const parts = sheet.indexOf('parts.map((entry) =>');
-  const disclosureEnd = sheet.indexOf('</Disclosure>');
-  const split = sheet.indexOf('{isSplitting ? debtorBlock : null}');
-  assert.ok(field > 0 && single > field && single < disclosure, 'one method: under the received field');
-  assert.ok(parts > disclosure && disclosureEnd > parts && split > disclosureEnd, 'splitting: after the parts and the More options content');
-  assert.equal(sheet.match(/debtorBlock/g)?.length, 3, 'defined once, rendered in exactly these two places');
+  const splitButton = sheet.indexOf("title={isSplitting ? t('sell.payment.addMethod') : t('sell.payment.split')}");
+  const card = sheet.indexOf('{debtCard}');
+  assert.ok(field > 0 && parts > field && splitButton > parts && card > splitButton, 'received, parts, split control, then the debt card');
+  assert.equal(sheet.match(/\{debtCard\}/g)?.length, 1, 'rendered once');
+  assert.ok(!/<Disclosure|ReturnPolicy|onDiscountChange/.test(sheet), 'no combined section, no return policy and no discount on the sheet');
 });
 it('a split: at most four places, each once, each with an amount — refused with the reason on screen', () => {
   assert.match(sheet, /const splitIssue = isSplitting \? splitProblem\(parts\) : null;/);
@@ -341,7 +377,7 @@ it('a split: at most four places, each once, each with an amount — refused wit
   for (const locale of ['en', 'fr', 'ar']) {
     const cat = read(`./i18n/${locale}.ts`);
     assert.ok(!cat.includes("'sell.payment.split.sum':"), `${locale} still says a split pays the whole amount`);
-    for (const k of ['sell.payment.split.over', 'sell.payment.split.empty', 'sellDebt.review.bodySplit']) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
+    for (const k of ['sell.payment.split.over', 'sell.payment.split.empty', 'sellDebt.ask.body']) assert.ok(cat.includes(`'${k}':`), `${locale} is missing ${k}`);
   }
   assert.match(read('./i18n/en.ts'), /'sell\.payment\.split\.over': 'The parts add up to \{sum\}, more than the \{total\} due\. Lower a part\.'/);
   // The rule itself.
@@ -380,12 +416,14 @@ it('a split part keeps its amount as typed, and nothing empty is sent', () => {
   assert.match(sheet, /\{ \.\.\.x, amountText: text \}/);
   assert.match(sheet, /split\.map\(\(entry\) => \(\{\s*\.\.\.entry,/);
 });
-it('the review names each part when more than one is sent; one part or one method keeps the one-method sentence', () => {
-  assert.match(sheet, /split\.length > 1\s*\?\s*t\('sellDebt\.review\.bodySplit', \{/);
-  // Each part named by its place — and by the number it came from when one was typed (D151), found by the part's own key.
-  assert.match(sheet, /parts: split\.map\(\(entry\) => `\$\{namedSource\(sourceOf\(entry\), partPayers\[entry\.key\]\)\} \$\{isolateLtr\(formatMoney\(entry\.amount, \{ decimals \}\)\)\}`\)\.join\(' \+ '\)/);
-  assert.match(sheet, /:\s*t\('sellDebt\.review\.body', \{\s*received: formatMoney\(paid, \{ decimals \}\),\s*method: isSplitting && split\[0\] \? namedSource\(sourceOf\(split\[0\]\), partPayers\[split\[0\]\.key\]\) : namedSource\(source, payerText\),/);
-  assert.match(read('./i18n/en.ts'), /'sellDebt\.review\.bodySplit': "\{received\} received now: \{parts\}\. \{remaining\} will be owed by \{name\}\."/);
+it('the question says what is still owed, in the owner’s words (2026-10-17), and says so when nothing was received', () => {
+  assert.match(sheet, /message: paid > 0 \? t\('sellDebt\.ask\.body', \{ amount \}\) : t\('sellDebt\.ask\.bodyNothing', \{ amount \}\)/);
+  assert.match(sheet, /confirmLabel: t\('sellDebt\.ask\.record'\),\s*cancelLabel: t\('sellDebt\.ask\.back'\)/);
+  const en = read('./i18n/en.ts');
+  assert.match(en, /'sellDebt\.ask\.body': "The customer still owes \{amount\}\. Record this sale with an outstanding balance\?"/);
+  assert.match(en, /'sellDebt\.ask\.back': "Go back"/);
+  assert.match(en, /'sellDebt\.ask\.record': "Record outstanding balance"/);
+  assert.match(en, /'sell\.payment\.confirm': "Confirm payment"/);
 });
 it('an amount past two decimals — or under 0.01 — is never sent: Complete waits, and the sheet says why', () => {
   assert.equal(amountProblem(''), 'empty');
@@ -419,8 +457,11 @@ it('a split opens on the amount already typed as received, when the sale can tak
 it('with cents anywhere, every figure of the sheet shows them, so received and owed add up to the total shown', () => {
   assert.match(sheet, /const decimals = \[total, paid, remaining, \.\.\.split\.map\(\(entry\) => entry\.amount\)\]\.some\(\(v\) => Number\.isFinite\(v\) && Math\.round\(v \* 100\) % 100 !== 0\) \? 2 : 0;/);
   const calls = sheet.match(/formatMoney\([^()]*\)/g) ?? [];
-  assert.ok(calls.length >= 9, `expected every figure, found ${calls.length}`);
+  assert.ok(calls.length >= 5, `expected every figure, found ${calls.length}`);
   for (const call of calls) assert.match(call, /, \{ decimals \}\)$/, call);
+  const values = sheet.match(/<MoneyValue\b[^>]*\/>/g) ?? [];
+  assert.ok(values.length >= 3, `expected every drawn figure, found ${values.length}`);
+  for (const value of values) assert.match(value, /decimals=\{decimals\}/, value);
   assert.match(sheet, /<MoneyValue value=\{total\} size="large" decimals=\{decimals\} \/>/);
   assert.match(sheet, /<MoneyValue value=\{remaining\} size="large" decimals=\{decimals\} \/>/);
   // 1 500,50 received of 7 000 leaves 5 499,50: whole units would print 1 501 + 5 500, which is not 7 000.

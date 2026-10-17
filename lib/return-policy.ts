@@ -137,3 +137,32 @@ export function allowedWindowChoices(companyDefaultHours: number, canOverride: b
     .filter((hours) => hours === 0 || hours === companyDefaultHours || hours > companyDefaultHours)
     .sort((a, b) => a - b);
 }
+
+/** The longest window a sale may carry: the server's `RETURN_WINDOW_MAX_HOURS` (one year). */
+export const RETURN_WINDOW_MAX_DAYS = 365;
+
+/**
+ * The choices on the Review sale screen (the owner's brief of 2026-10-17): 1, 2
+ * and 3 days, the shop's own default when it is something else, and — where
+ * the person may change the policy — no returns. Each says whether it may be
+ * chosen: a window shorter than a positive default is shown but not offered,
+ * because the server refuses it (`return-policy.ts` on the server).
+ */
+export function reviewWindowChoices(companyDefaultHours: number, canOverride: boolean): { hours: number; allowed: boolean }[] {
+  const hours = [...new Set([24, 48, 72, companyDefaultHours, ...(canOverride ? [0] : [])])].sort((a, b) => a - b);
+  return hours.map((h) => ({
+    hours: h,
+    allowed: h === companyDefaultHours || (canOverride && (h === 0 || companyDefaultHours <= 0 || h > companyDefaultHours)),
+  }));
+}
+
+/** A custom duration typed in days: whole days, 1 to a year, never shorter than a positive default. */
+export function customWindowProblem(text: string, companyDefaultHours: number): 'empty' | 'invalid' | 'too_long' | 'shorter_than_default' | null {
+  const trimmed = text.trim();
+  if (trimmed === '') return 'empty';
+  if (!/^\d+$/.test(trimmed) || Number(trimmed) < 1) return 'invalid';
+  const days = Number(trimmed);
+  if (days > RETURN_WINDOW_MAX_DAYS) return 'too_long';
+  if (companyDefaultHours > 0 && days * 24 < companyDefaultHours) return 'shorter_than_default';
+  return null;
+}

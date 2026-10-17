@@ -19,6 +19,8 @@ import { HeaderBack } from '../../components/navigation/HeaderBack';
 import { BottomSheet, SelectSheet } from '../../components/overlay';
 import { CartLineRow } from '../../components/sell/CartLineRow';
 import { PaymentSheet, type ReceivingAccount } from '../../components/sell/PaymentSheet';
+import { DiscountCard, discountFrom } from '../../components/sell/DiscountCard';
+import { ReturnPolicyCard } from '../../components/sell/ReturnPolicyCard';
 import { useCreateCustomer, useCustomers, type Customer } from '../../lib/customers';
 import { SaleSuccess } from '../../components/sell/SaleSuccess';
 import {
@@ -122,7 +124,8 @@ function SellScreen() {
    * shut until the server can answer.
    */
   const cartDraft = useDraft<CartLine[]>('sell.cart', lines, setLines);
-  const [discount, setDiscount] = useState(0);
+  /** The whole-sale discount, as typed on the Discount card (2026-10-17: decided before payment, not in the sheet). */
+  const [discountText, setDiscountText] = useState('');
   const [pending, setPending] = useState<PendingScan | null>(null);
   const [pendingPrice, setPendingPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -191,6 +194,8 @@ function SellScreen() {
   const heldPayments = useRef<PaymentEntry[] | null>(null);
   /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
   const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
+  /** In how many days that balance is due (2026-10-17). Travels with every retry, so a retry is the same sale. */
+  const heldDueDays = useRef<number | null>(null);
   /**
    * A submission in flight, as a ref rather than state: a second tap arrives
    * before React has re-rendered the button disabled, and must find this.
@@ -198,7 +203,9 @@ function SellScreen() {
   const inFlight = useRef(false);
 
   const subtotal = cartSubtotal(lines);
-  const total = Math.max(0, subtotal - discount);
+  const discountState = discountFrom(discountText, subtotal);
+  const discount = discountState.amount;
+  const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
   const totalCost = cartCost(lines);
   /**
    * Only knowable when every line's cost came back — the server strips cost
@@ -391,7 +398,7 @@ function SellScreen() {
     });
     if (!ok) return;
     setLines([]);
-    setDiscount(0);
+    setDiscountText('');
     cartDraft.clear();
   };
 
@@ -428,7 +435,7 @@ function SellScreen() {
     setDone({ sale, receipt });
     setPaymentOpen(false);
     setLines([]);
-    setDiscount(0);
+    setDiscountText('');
     // The next customer is a different person; carrying this one over is how a
     // sale gets attributed to somebody who was never in the shop.
     setCustomer(null);
@@ -479,6 +486,7 @@ function SellScreen() {
         })),
         ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
         ...(discount > 0 ? { saleDiscount: discount } : {}),
+        ...(heldDueDays.current !== null ? { dueInDays: heldDueDays.current } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         // Omitted for an ordinary sale: re-stating the default is not an
         // override, and sending a value the shop may have changed since this
@@ -589,6 +597,14 @@ function SellScreen() {
             );
             return;
           }
+          // The debt card stops each of these first; these answer an older screen, in the reader's language.
+          case 'customer_name_required':
+          case 'customer_phone_required':
+          case 'customer_phone_invalid':
+          case 'due_days_required':
+          case 'due_days_invalid':
+            toast.error(t(`sellDebt.problem.${e.code}` as never));
+            return;
           case 'debtor_required': {
             const received = payments.reduce((sum, p) => sum + p.amount, 0);
             toast.error(t('sellDebt.problem.debtor_required', { amount: isolateLtr(formatMoney(Math.max(0, total - received))) }));
@@ -726,11 +742,12 @@ function SellScreen() {
     });
   };
 
-  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }, dueInDays: number | null = null) => {
     // A second tap while the first is on its way must not start another sale.
     if (inFlight.current) return;
     inFlight.current = true;
     heldDebtor.current = debtor;
+    heldDueDays.current = dueInDays;
     setSubmitting(true);
     try {
       let overrideReason: string | undefined;
@@ -875,7 +892,7 @@ function SellScreen() {
                  * refusing up front is the honest answer, and the banner above
                  * says why rather than leaving a dead button unexplained.
                  */
-                disabled={offline || submitting}
+                disabled={offline || submitting || discountState.problem !== null}
                 loading={submitting}
                 onPress={() => setPaymentOpen(true)}
               />
@@ -917,6 +934,14 @@ function SellScreen() {
                 onRemove={removeLine}
               />
             ))}
+            {/* Decided before payment, as on Review sale (2026-10-17): the policy stated, then any discount. */}
+            <ReturnPolicyCard
+              companyDefaultHours={companyDefaultHours}
+              windowHours={effectiveWindowHours}
+              onWindowChange={setReturnWindowHours}
+              canOverride={canOverrideReturnPolicy}
+            />
+            <DiscountCard text={discountText} onChangeText={setDiscountText} subtotal={subtotal} />
           </ScrollView>
         )}
       </Screen>
@@ -960,18 +985,10 @@ function SellScreen() {
         open={paymentOpen}
         onClose={onPaymentClosed}
         total={total}
-        discount={discount}
-        onDiscountChange={setDiscount}
         onComplete={onComplete}
-        presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
+        presetCustomer={customer ? { id: customer.id, name: customer.name, phone: customer.phone } : null}
         submitting={submitting}
         accounts={selectableAccounts(receivingAccounts)}
-        returnPolicy={{
-          companyDefaultHours,
-          windowHours: effectiveWindowHours,
-          onWindowChange: setReturnWindowHours,
-          canOverride: canOverrideReturnPolicy,
-        }}
       />
       {/*
         Searching happens on the server, so a name two pages down is still

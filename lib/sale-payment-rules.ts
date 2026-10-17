@@ -8,6 +8,7 @@
  */
 
 import { parseAmount } from './price-input.ts';
+import { parsePayerNumber } from './payer-number.ts';
 import type { PaymentMethod, SalePayStatus } from '../types/api';
 
 const EPSILON = 0.005;
@@ -92,21 +93,77 @@ export function localTime(d: Date): string {
 
 // ── who owes it ─────────────────────────────────────────────────────────────
 
+/**
+ * Who owes what was not paid. An existing customer carries the number saved for
+ * them (`phone`), and — only when they have none — the number typed at the
+ * counter (`typedPhone`), which the server then saves on the customer.
+ */
 export type DebtorDraft =
   | { kind: 'none' }
-  | { kind: 'customer_existing'; customerId: string; name: string }
+  | { kind: 'customer_existing'; customerId: string; name: string; phone?: string | null; typedPhone?: string }
   | { kind: 'customer_new'; name: string; phone: string }
   | { kind: 'store'; counterpartyId: string; name: string };
 
+export type DebtProblem =
+  | 'debtor_required'
+  | 'customer_name_required'
+  | 'customer_phone_required'
+  | 'customer_phone_invalid'
+  | 'due_days_required'
+  | 'due_days_invalid';
+
+/** A debt is due within a year: the server's `DEBT_DUE_MAX_DAYS`. */
+export const DEBT_DUE_MAX_DAYS = 365;
+const PHONE_MIN_DIGITS = 8;
+const PHONE_MAX_DIGITS = 15;
+
 /**
- * Whether the sale can be sent: a balance left owing must name who owes it,
- * and a typed customer needs a name. The phone number never blocks anything.
+ * A customer's phone number as the server will accept it (the owner's brief of
+ * 2026-10-17): the payer-number normalisation, held to a phone's length.
  */
-export function debtorProblem(remaining: number, debtor: DebtorDraft): 'debtor_required' | 'customer_name_required' | null {
+export function customerPhoneProblem(text: string | null | undefined): 'customer_phone_required' | 'customer_phone_invalid' | null {
+  const parsed = parsePayerNumber(text ?? '');
+  if (!parsed.ok) return 'customer_phone_invalid';
+  if (parsed.value === null) return 'customer_phone_required';
+  const digits = parsed.value.replace('+', '').length;
+  return digits < PHONE_MIN_DIGITS || digits > PHONE_MAX_DIGITS ? 'customer_phone_invalid' : null;
+}
+
+/** The days typed until the balance is due: whole days, 1 to a year. */
+export function dueDaysProblem(text: string): 'due_days_required' | 'due_days_invalid' | null {
+  const trimmed = text.trim();
+  if (trimmed === '') return 'due_days_required';
+  if (!/^\d+$/.test(trimmed)) return 'due_days_invalid';
+  const days = Number(trimmed);
+  return days < 1 || days > DEBT_DUE_MAX_DAYS ? 'due_days_invalid' : null;
+}
+
+/**
+ * Whether the sale can be sent: a balance left owing names who owes it, a
+ * customer who owes has a name and a valid phone number, and the debt has a due
+ * date in days. A fully paid sale needs none of it.
+ */
+export function debtorProblem(remaining: number, debtor: DebtorDraft, dueDaysText?: string): DebtProblem | null {
   if (remaining <= EPSILON) return null;
   if (debtor.kind === 'none') return 'debtor_required';
-  if (debtor.kind === 'customer_new' && debtor.name.trim().length === 0) return 'customer_name_required';
-  return null;
+  if (debtor.kind === 'customer_new') {
+    if (debtor.name.trim().length === 0) return 'customer_name_required';
+    const phone = customerPhoneProblem(debtor.phone);
+    if (phone) return phone;
+  }
+  if (debtor.kind === 'customer_existing' && !debtor.phone?.trim()) {
+    const phone = customerPhoneProblem(debtor.typedPhone);
+    if (phone) return phone;
+  }
+  return dueDaysText === undefined ? null : dueDaysProblem(dueDaysText);
+}
+
+/**
+ * The due date the server will set, for the screen only: today plus the days.
+ * The server counts from the sale's own business day when it is confirmed.
+ */
+export function dueDatePreview(days: number, today: Date = new Date()): Date {
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + days);
 }
 
 /**
@@ -115,12 +172,16 @@ export function debtorProblem(remaining: number, debtor: DebtorDraft): 'debtor_r
  */
 export function debtorFields(debtor: DebtorDraft): {
   customerId?: string;
+  customerPhone?: string;
   customer?: { name: string; phone?: string };
   counterpartyId?: string;
 } {
   switch (debtor.kind) {
-    case 'customer_existing':
-      return { customerId: debtor.customerId };
+    case 'customer_existing': {
+      // A number typed for a customer who has none is saved on them; a saved one is never sent back.
+      const typed = !debtor.phone?.trim() ? debtor.typedPhone?.trim() : '';
+      return { customerId: debtor.customerId, ...(typed ? { customerPhone: typed } : {}) };
+    }
     case 'customer_new': {
       const phone = debtor.phone.trim();
       return { customer: { name: debtor.name.trim(), ...(phone ? { phone } : {}) } };

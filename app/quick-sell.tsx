@@ -20,6 +20,8 @@ import { ScanTarget } from '../components/scanner';
 import { useLeave } from '../components/navigation/HeaderBack';
 import { SelectSheet } from '../components/overlay';
 import { PaymentSheet, type ReceivingAccount } from '../components/sell/PaymentSheet';
+import { DiscountCard, discountFrom } from '../components/sell/DiscountCard';
+import { ReturnPolicyCard } from '../components/sell/ReturnPolicyCard';
 import { SaleSuccess } from '../components/sell/SaleSuccess';
 import { ApprovalRequestSheet, type ApprovalRequest } from '../components/sell/ApprovalRequestSheet';
 import type { PaymentEntry } from '../components/sell/types';
@@ -33,7 +35,7 @@ import { space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
 import { toErrorMessage } from '../lib/errors';
 import { formatDate, formatMoney } from '../lib/format';
-import { daysInStock, expectedGrossProfit } from '../lib/home-metrics';
+import { daysInStock } from '../lib/home-metrics';
 import { saleDebtorFields, type DebtorDraft } from '../lib/sale-payment-rules';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
@@ -149,6 +151,8 @@ function QuickSellScreen() {
   const [price, setPrice] = useState('');
   /** How many of a counted product. A serialized unit is always exactly one. */
   const [quantity, setQuantity] = useState(1);
+  /** The whole-sale discount, as typed on the Discount card. */
+  const [discountText, setDiscountText] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);
@@ -169,6 +173,8 @@ function QuickSellScreen() {
   const heldPayments = useRef<PaymentEntry[] | null>(null);
   /** Who owes what the payments leave unpaid (0074). Travels with every retry. */
   const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });
+  /** In how many days that balance is due (2026-10-17). Travels with every retry, so a retry is the same sale. */
+  const heldDueDays = useRef<number | null>(null);
   /**
    * A submission in flight, as a ref rather than state: a second tap arrives
    * before React has re-rendered the button disabled, and must find this.
@@ -194,12 +200,22 @@ function QuickSellScreen() {
   const receivingAccounts = accountsQuery.data?.receivingAccounts ?? [];
 
   const proposedPrice = Number(price) > 0 ? Number(price) : null;
-  const expected = expectedGrossProfit(proposedPrice, canViewCost ? picked?.selection.cost : undefined);
   const age = daysInStock(picked?.selection.dateIn);
   /** How many the branch has of a counted product; a unit has no such figure. */
   const available = picked?.selection.kind === 'product' ? picked.selection.quantityAvailable : undefined;
   const quantityIssue = quantityProblem(quantity, available);
-  const total = proposedPrice === null ? null : saleTotal(proposedPrice, quantity);
+  /** The price times the quantity, before any discount. */
+  const gross = proposedPrice === null ? null : saleTotal(proposedPrice, quantity);
+  const discount = discountFrom(discountText, gross ?? 0);
+  /** What the customer pays: the server recomputes it, and refuses a discount its rules do not allow. */
+  const total = gross === null ? null : Math.round((gross - discount.amount) * 100) / 100;
+  /**
+   * What the sale would earn, from two numbers the server supplied: the total
+   * after the discount, less what the items cost. Shown only where the role may
+   * see cost; a loss is shown as a loss.
+   */
+  const cost = canViewCost ? picked?.selection.cost : undefined;
+  const expected = total === null || typeof cost !== 'number' ? null : Math.round((total - cost * quantity) * 100) / 100;
 
   // ── Finding the item ──────────────────────────────────────────────────────
 
@@ -250,6 +266,7 @@ function QuickSellScreen() {
     setStockPick(null);
     setPrice('');
     setQuantity(1);
+    setDiscountText('');
     setMode('choose');
   };
 
@@ -280,8 +297,8 @@ function QuickSellScreen() {
       branchName: branchName ?? '',
       cashierName: user?.name ?? '',
       lines: [{ label, identifier, quantity, unitPrice: proposedPrice ?? sale.total }],
-      subtotal: total ?? sale.total,
-      discount: 0,
+      subtotal: gross ?? sale.total,
+      discount: discount.amount,
       total: sale.total,
       payments: payments.map((p) => ({
         method: p.receivingAccountId
@@ -300,6 +317,7 @@ function QuickSellScreen() {
     setMode('choose');
     setPrice('');
     setQuantity(1);
+    setDiscountText('');
     setCustomer(null);
     setReturnWindowHours(null);
     // Home's month figures and the shelf both moved.
@@ -378,6 +396,8 @@ function QuickSellScreen() {
           ...(p.payerNumber ? { payerNumber: p.payerNumber } : {}),
         })),
         ...saleDebtorFields(heldDebtor.current, customer?.id ?? null),
+        ...(discount.amount > 0 ? { saleDiscount: discount.amount } : {}),
+        ...(heldDueDays.current !== null ? { dueInDays: heldDueDays.current } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
         ...(effectiveWindowHours !== companyDefaultHours
           ? { returnWindowHours: effectiveWindowHours }
@@ -461,6 +481,14 @@ function QuickSellScreen() {
             );
             return;
           }
+          // The debt card stops each of these first; these answer an older screen, in the reader's language.
+          case 'customer_name_required':
+          case 'customer_phone_required':
+          case 'customer_phone_invalid':
+          case 'due_days_required':
+          case 'due_days_invalid':
+            toast.error(t(`sellDebt.problem.${e.code}` as never));
+            return;
           case 'debtor_required': {
             const received = payments.reduce((sum, p) => sum + p.amount, 0);
             toast.error(t('sellDebt.problem.debtor_required', { amount: isolateLtr(formatMoney(Math.max(0, (total ?? 0) - received))) }));
@@ -527,10 +555,11 @@ function QuickSellScreen() {
     });
   };
 
-  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }) => {
+  const onComplete = async (payments: PaymentEntry[], debtor: DebtorDraft = { kind: 'none' }, dueInDays: number | null = null) => {
     if (!maySubmit({ inFlight: inFlight.current, sellable: Boolean(sellable), price: proposedPrice, quantity, available })) return;
     inFlight.current = true;
     heldDebtor.current = debtor;
+    heldDueDays.current = dueInDays;
     setSubmitting(true);
     try {
       let overrideReason: string | undefined;
@@ -620,17 +649,23 @@ function QuickSellScreen() {
                   {t('sell.offline.body')}
                 </InlineNotice>
               ) : null}
+              {/*
+                One primary action (the owner's brief of 2026-10-17). Another item
+                is the header's back arrow; an item that cannot be sold keeps a way
+                back here, because it has nothing else to press.
+              */}
               {sellable ? (
                 <Button
                   title={t('pick.continue')}
                   size="lg"
                   fullWidth
-                  disabled={offline || submitting || proposedPrice === null || quantityIssue !== null}
+                  disabled={offline || submitting || proposedPrice === null || quantityIssue !== null || discount.problem !== null}
                   loading={submitting}
                   onPress={() => setPaymentOpen(true)}
                 />
-              ) : null}
-              <Button title={t('pick.another')} variant={sellable ? 'tertiary' : 'secondary'} fullWidth onPress={chooseAnother} />
+              ) : (
+                <Button title={t('pick.another')} variant="secondary" fullWidth onPress={chooseAnother} />
+              )}
             </>
           ) : mode === 'stock' ? (
             /*
@@ -743,7 +778,15 @@ function QuickSellScreen() {
                   </>
                 ) : null}
               </SelectedPhoneCard>
-              {sellable ? <InlineNotice tone="info">{t('pick.review.note')}</InlineNotice> : null}
+              {/* The return policy, stated before any money is taken (Picture 1). */}
+              {sellable ? (
+                <ReturnPolicyCard
+                  companyDefaultHours={companyDefaultHours}
+                  windowHours={effectiveWindowHours}
+                  onWindowChange={setReturnWindowHours}
+                  canOverride={canOverrideReturnPolicy}
+                />
+              ) : null}
             </>
           ) : null}
 
@@ -779,6 +822,13 @@ function QuickSellScreen() {
                   <SummaryRow label={t('quick.sell.cost')} value={formatMoney(picked.selection.cost)} />
                 ) : null}
 
+                {discount.amount > 0 && total !== null ? (
+                  <>
+                    <SummaryRow label={t('sell.discount')} value={`− ${formatMoney(discount.amount)}`} />
+                    <SummaryRow label={t('quick.sell.saleTotal')} value={formatMoney(total)} />
+                  </>
+                ) : null}
+
                 {expected !== null ? (
                   <View style={styles.row}>
                     <Text variant="body" tone="secondary">
@@ -794,6 +844,9 @@ function QuickSellScreen() {
                   {t('quick.sell.private')}
                 </Text>
               </Card>
+
+              {/* Its own card, right under the summary it changes; open only when somebody wants one. */}
+              <DiscountCard text={discountText} onChangeText={setDiscountText} subtotal={gross ?? 0} />
 
               <ListRow
                 leading={UserRound}
@@ -811,8 +864,6 @@ function QuickSellScreen() {
         open={paymentOpen}
         onClose={onPaymentClosed}
         total={total ?? 0}
-        discount={0}
-        onDiscountChange={() => {}}
         onComplete={onComplete}
         summary={
           picked
@@ -825,15 +876,9 @@ function QuickSellScreen() {
                 .join(' · ')
             : null
         }
-        presetCustomer={customer ? { id: customer.id, name: customer.name } : null}
+        presetCustomer={customer ? { id: customer.id, name: customer.name, phone: customer.phone } : null}
         submitting={submitting}
         accounts={selectableAccounts(receivingAccounts)}
-        returnPolicy={{
-          companyDefaultHours,
-          windowHours: effectiveWindowHours,
-          onWindowChange: setReturnWindowHours,
-          canOverride: canOverrideReturnPolicy,
-        }}
       />
 
       <SelectSheet

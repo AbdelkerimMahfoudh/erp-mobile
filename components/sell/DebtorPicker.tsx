@@ -8,6 +8,7 @@ import { SelectSheet } from '../overlay';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { isRTL, useTranslation } from '../../lib/i18n';
+import { isolateLtr } from '../../lib/design/direction';
 import { useCounterparties } from '../../lib/consignment';
 import { useCustomers, type Customer } from '../../lib/customers';
 import type { DebtorDraft } from '../../lib/sale-payment-rules';
@@ -16,8 +17,10 @@ import type { DebtorDraft } from '../../lib/sale-payment-rules';
  * Who owes what was not paid at the counter (0074).
  *
  * Two kinds, one choice: a customer, or a partner store. A customer is typed
- * as someone new — a name, and a phone number if they give one — or picked
- * from the list so nobody is recorded twice; a new customer is created inside
+ * as someone new — a name and a phone number, both required since the owner's
+ * brief of 2026-10-17 — or picked from the list so nobody is recorded twice,
+ * their saved details filled in; one with no number saved is asked for one,
+ * which the server then keeps on the customer. A new customer is created inside
  * the sale itself, never beforehand. A store must be a connected one the shop
  * may still start business with; adding one happens in Partners.
  */
@@ -65,11 +68,31 @@ export function DebtorPicker({
 
       {kind === 'customer' ? (
         value.kind === 'customer_existing' ? (
-          <View style={styles.chosen}>
-            <Text variant="bodyStrong" style={styles.grow}>
-              {t('sellDebt.chosen', { name: value.name })}
-            </Text>
-            <Button title={t('sellDebt.change')} variant="tertiary" size="sm" onPress={() => onChange({ kind: 'none' })} />
+          <View style={styles.wrap}>
+            <View style={styles.chosen}>
+              <View style={styles.grow}>
+                <Text variant="bodyStrong">{t('sellDebt.chosen', { name: value.name })}</Text>
+                {value.phone ? (
+                  <Text variant="caption" tone="secondary">
+                    {t('sellDebt.savedPhone', { phone: isolateLtr(value.phone) })}
+                  </Text>
+                ) : null}
+              </View>
+              <Button title={t('sellDebt.change')} variant="tertiary" size="sm" onPress={() => onChange({ kind: 'none' })} />
+            </View>
+            {/* No number saved yet: one is required, and the server keeps it on the customer. */}
+            {!value.phone ? (
+              <TextField
+                label={t('sellDebt.phoneFor', { name: value.name })}
+                accessibilityLabel={t('sellDebt.phoneFor', { name: value.name })}
+                value={value.typedPhone ?? ''}
+                onChangeText={(typedPhone) => onChange({ ...value, typedPhone })}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                maxLength={40}
+                required
+              />
+            ) : null}
           </View>
         ) : picking ? (
           <View style={styles.wrap}>
@@ -80,7 +103,7 @@ export function DebtorPicker({
                 customer={c}
                 onPress={() => {
                   setPicking(false);
-                  onChange({ kind: 'customer_existing', customerId: c.id, name: c.name ?? c.phone ?? '' });
+                  onChange({ kind: 'customer_existing', customerId: c.id, name: c.name ?? c.phone ?? '', phone: c.phone });
                 }}
               />
             ))}
@@ -91,15 +114,20 @@ export function DebtorPicker({
             <Button title={t('sellDebt.selectExisting')} variant="tertiary" size="sm" onPress={() => setPicking(true)} />
             <TextField
               label={t('sellDebt.name')}
+              accessibilityLabel={t('sellDebt.name')}
               value={typed.name}
               onChangeText={(name) => onChange({ kind: 'customer_new', name, phone: typed.phone })}
               required
             />
             <TextField
               label={t('sellDebt.phone')}
+              accessibilityLabel={t('sellDebt.phone')}
               value={typed.phone}
               onChangeText={(phone) => onChange({ kind: 'customer_new', name: typed.name, phone })}
               keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              maxLength={40}
+              required
             />
           </View>
         )

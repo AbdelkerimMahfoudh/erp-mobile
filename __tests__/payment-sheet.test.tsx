@@ -48,18 +48,15 @@ function Harness({ children }: { children: React.ReactNode }) {
 }
 
 function openSheet(total = 1500) {
-  const onComplete = jest.fn<void, [PaymentEntry[], unknown]>();
+  const onComplete = jest.fn<void, [PaymentEntry[], unknown, number | null]>();
   render(
     <Harness>
       <PaymentSheet
         open
         onClose={() => undefined}
         total={total}
-        discount={0}
-        onDiscountChange={() => undefined}
         onComplete={onComplete}
         accounts={ACCOUNTS}
-        returnPolicy={{ companyDefaultHours: 0, windowHours: 0, onWindowChange: () => undefined, canOverride: false }}
       />
     </Harness>,
   );
@@ -71,7 +68,7 @@ const chooseAccount = (label: string, index = 0) => {
   fireEvent.press(screen.getAllByRole('tab', { name: t('receivedVia.account') })[index]);
   fireEvent.press(screen.getAllByRole('button', { name: label })[0]);
 };
-const complete = () => fireEvent.press(screen.getByText(t('sell.payment.complete')));
+const complete = () => fireEvent.press(screen.getByText(t('sell.payment.confirm')));
 const sent = (onComplete: jest.Mock) => onComplete.mock.calls[0][0] as PaymentEntry[];
 
 describe('one method', () => {
@@ -154,7 +151,6 @@ describe('a split', () => {
     fireEvent.changeText(screen.getByDisplayValue('1500'), '1000');
     chooseAccount('Bankily Main');
     fireEvent.changeText(screen.getByLabelText(PAYER), '36111111');
-    fireEvent.press(screen.getByText(t('sell.payment.moreOptions')));
     fireEvent.press(screen.getByText(t('sell.payment.split')));
     fireEvent.press(screen.getByText(t('sell.payment.addMethod')));
     return onComplete;

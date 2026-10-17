@@ -101,6 +101,11 @@ function DebtorCard({ debtor: d }: { debtor: OutstandingDebtor }) {
             <Text variant="caption" tone="tertiary">
               {t('outstanding.since', { date: formatDate(d.oldest) })}
             </Text>
+            {d.nextDue ? (
+              <Text variant="caption" tone="secondary">
+                {t('outstanding.due', { date: formatDate(d.nextDue) })}
+              </Text>
+            ) : null}
           </View>
           <MoneyValue value={d.owed} />
         </View>

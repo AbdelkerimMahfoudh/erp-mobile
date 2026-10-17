@@ -27,7 +27,7 @@ import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
-import { formatDateTime, formatMoney } from '../../lib/format';
+import { formatDate, formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/receipt';
@@ -180,6 +180,7 @@ function Body({ sale }: { sale: SaleDetail }) {
         <Fact label={t('saleDetail.paymentMethod')} value={where || '—'} />
         <Fact label={sale.balanceDue > 0 ? t('saleDetail.received') : t('saleDetail.amountReceived')} money={sale.amountPaid} />
         {sale.balanceDue > 0 ? <Fact label={t('saleDetail.owed')} money={sale.balanceDue} strong /> : null}
+        {sale.balanceDue > 0 && sale.dueDate ? <Fact label={t('saleDetail.dueDate')} value={formatDate(sale.dueDate)} /> : null}
         <Fact label={t('saleDetail.soldOn')} value={formatDateTime(new Date(sale.soldAt))} />
         {sale.soldBy ? <Fact label={t('saleDetail.soldBy')} value={sale.soldBy} /> : null}
       </Card>

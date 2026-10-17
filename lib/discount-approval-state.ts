@@ -218,6 +218,12 @@ export type SaleRefusal =
   | 'duplicate_payment_destination'
   | 'overpayment'
   | 'debtor_required'
+  // A customer debt's terms (2026-10-17): a name and phone for the customer, and its due date in days.
+  | 'customer_name_required'
+  | 'customer_phone_required'
+  | 'customer_phone_invalid'
+  | 'due_days_required'
+  | 'due_days_invalid'
   // The current business day is closed (2026-09-27): nothing was sold, and the store is opened first.
   | 'store_closed'
   | 'unknown';
@@ -236,6 +242,11 @@ const REFUSALS: ReadonlySet<string> = new Set<SaleRefusal>([
   'duplicate_payment_destination',
   'overpayment',
   'debtor_required',
+  'customer_name_required',
+  'customer_phone_required',
+  'customer_phone_invalid',
+  'due_days_required',
+  'due_days_invalid',
   'store_closed',
 ]);
 

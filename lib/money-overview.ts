@@ -166,6 +166,8 @@ export interface OutstandingSale {
   received: number;
   remaining: number;
   payStatus: SalePayStatus;
+  /** The day this sale's balance is due ('YYYY-MM-DD'), or null for one recorded before due dates. */
+  dueDate: string | null;
 }
 
 export interface OutstandingDebtor {
@@ -175,6 +177,8 @@ export interface OutstandingDebtor {
   phone: string | null;
   owed: number;
   oldest: string;
+  /** The earliest due date among this debtor's sales, or null when none has one. */
+  nextDue: string | null;
   sales: OutstandingSale[];
 }
 
