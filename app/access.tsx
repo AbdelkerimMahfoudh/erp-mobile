@@ -22,6 +22,9 @@ import { isStale, useEntitlement, type Entitlement } from '../lib/entitlement';
  * A free trial (0095) is said the same way: the server's exact end, on the
  * business's own clock with that clock's name — never the phone's zone, never a
  * zone written here — while it runs, and the moment it ended once it is over.
+ * So is the grace (0099): its deadline on the business's clock, and the
+ * allowance of three in any 12 months as the server counts it — how many are
+ * left, that none followed, or that none would follow — never counted here.
  */
 export default function AccessScreen() {
   const { t } = useTranslation();
@@ -84,11 +87,22 @@ export default function AccessScreen() {
 function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitlement: Entitlement }) {
   const { t } = useTranslation();
 
+  const grace = e.grace;
+  // The allowance's numbers, the server's: how many there are, in how many months.
+  const allowance = grace ? { allowance: grace.allowance, months: grace.windowMonths } : null;
+
   if (access.mode === 'grace') {
     return (
-      <InlineNotice tone="warning">
-        {t('access.grace.body', { deadline: e.graceEnd ? formatDateTime(e.graceEnd) : '' })}
-      </InlineNotice>
+      <View style={styles.body}>
+        <InlineNotice tone="warning">
+          {t('access.grace.body', { deadline: access.graceEnd ? formatDateTime(access.graceEnd, { timeZone: access.timeZone ?? undefined }) : '' })}
+        </InlineNotice>
+        {allowance && grace?.usesRemaining !== null && grace?.usesRemaining !== undefined ? (
+          <Text variant="caption" tone="secondary">
+            {t('access.grace.allowance', { ...allowance, left: grace.usesRemaining })}
+          </Text>
+        ) : null}
+      </View>
     );
   }
 
@@ -98,6 +112,11 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
         <InlineNotice tone="danger">
           {access.trialEnd ? t('access.trial.ended', { date: trialDate(access.trialEnd) }) : t('access.readOnly.body')}
         </InlineNotice>
+        {allowance && !access.trialEnd && grace?.status === 'unavailable' ? (
+          <Text variant="caption" tone="secondary">
+            {t('access.grace.unavailable', allowance)}
+          </Text>
+        ) : null}
         <Text variant="caption" tone="secondary">
           {t('access.readOnly.kept')}
         </Text>
@@ -118,9 +137,15 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
     // The later of a running grant's end and the paid end; a grant without an end has no date.
     const end = accessEnd(e);
     return (
-      <Text variant="body">
-        {end ? t('access.active.until', { date: formatDate(end) }) : t('access.active.open')}
-      </Text>
+      <View style={styles.body}>
+        <Text variant="body">{end ? t('access.active.until', { date: formatDate(end) }) : t('access.active.open')}</Text>
+        {/* The server's answer: this period's end, passing unextended, would open no grace. */}
+        {allowance && grace?.availableAtPeriodEnd === false ? (
+          <Text variant="caption" tone="secondary">
+            {t('access.grace.noneAhead', allowance)}
+          </Text>
+        ) : null}
+      </View>
     );
   }
 

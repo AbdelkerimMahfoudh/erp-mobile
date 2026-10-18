@@ -1,6 +1,6 @@
 /**
- * What the closed screen says about the free trial's setup instructions (0095; the owner's correction of
- * 2026-10-13) — and that it can only say it.
+ * What the closed screen says about the free trial's instructions (0095, 0099; the owner's briefs of 2026-10-13 and
+ * 2026-10-18) — and that it can only say it.
  *
  *   node lib/trial-setup.test.ts
  *
@@ -21,59 +21,67 @@ const eligible: TrialSetupStatus = {
   eligible: true,
   durationHours: 168,
   durationDays: 7,
-  requiredContacts: ['email', 'phone'],
+  requiredContacts: ['phone'],
   missingContacts: [],
-  destinations: [{ channel: 'email', masked: 'a•••@example.com' }],
+  destinations: [{ channel: 'whatsapp', masked: '+222••••1234' }],
   delivery: 'sent',
-  sentTo: ['email'],
+  channel: 'whatsapp',
+  destination: '+222••••1234',
+  fallbackReason: null,
+  failureReason: null,
   lastAttemptAt: '2026-10-13T10:00:00.000Z',
+  lastSentAt: '2026-10-13T10:00:00.000Z',
   timeZone: 'Africa/Nouakchott',
 };
 
+/** The parts of a status the delivery line reads, for one delivery word. */
+const line = (delivery: string, over: Record<string, unknown> = {}) =>
+  deliveryLines({ delivery: delivery as never, missingContacts: [], channel: null, destination: null, lastSentAt: null, ...over });
+
 describe('the delivery line', () => {
-  it('sent, unavailable, failed and not sent each say their own sentence — once', () => {
-    assert.deepEqual(deliveryLines({ delivery: 'sent', missingContacts: [] }), ['trialSetup.delivery.sent']);
-    assert.deepEqual(deliveryLines({ delivery: 'unavailable', missingContacts: [] }), ['trialSetup.delivery.unavailable']);
-    assert.deepEqual(deliveryLines({ delivery: 'failed', missingContacts: [] }), ['trialSetup.delivery.failed']);
-    assert.deepEqual(deliveryLines({ delivery: 'not_sent', missingContacts: [] }), ['trialSetup.delivery.not_sent']);
+  it('sent names the channel, the masked contact and the day when the server does — and says it plainly when it does not', () => {
+    const sent = { channel: 'whatsapp', destination: '+222••••1234', lastSentAt: '2026-10-13T10:00:00.000Z' };
+    assert.deepEqual(line('sent', sent), ['trialSetup.delivery.sent.whatsapp']);
+    assert.deepEqual(line('sent', { ...sent, channel: 'email', destination: 'a•••@example.com' }), ['trialSetup.delivery.sent.email']);
+    for (const missing of [{ channel: null }, { destination: null }, { lastSentAt: null }, { channel: 'pigeon' }]) {
+      assert.deepEqual(line('sent', { ...sent, ...missing }), ['trialSetup.delivery.sent']);
+    }
+  });
+
+  it('failed and not sent each say their own sentence — once', () => {
+    assert.deepEqual(line('failed'), ['trialSetup.delivery.failed']);
+    assert.deepEqual(line('not_sent'), ['trialSetup.delivery.not_sent']);
   });
 
   it('waiting names the contact still to be verified — the WhatsApp number or the email address — and offers nothing to press', () => {
-    assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['phone'] }), ['trialSetup.delivery.waiting.phone']);
-    assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['email'] }), ['trialSetup.delivery.waiting.email']);
-    assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['email', 'phone'] }), ['trialSetup.delivery.waiting.email', 'trialSetup.delivery.waiting.phone']);
+    assert.deepEqual(line('waiting_for_contact', { missingContacts: ['phone'] }), ['trialSetup.delivery.waiting.phone']);
+    assert.deepEqual(line('waiting_for_contact', { missingContacts: ['email'] }), ['trialSetup.delivery.waiting.email']);
+    assert.deepEqual(line('waiting_for_contact', { missingContacts: ['email', 'phone'] }), ['trialSetup.delivery.waiting.email', 'trialSetup.delivery.waiting.phone']);
   });
 
-  it('being sent — a link issued less than a minute ago, its outcome not recorded yet — says so in its own sentence', () => {
-    assert.deepEqual(deliveryLines({ delivery: 'sending', missingContacts: [] }), ['trialSetup.delivery.sending']);
+  it('being sent — asked for, not yet handed to a provider — says so in its own sentence', () => {
+    assert.deepEqual(line('sending'), ['trialSetup.delivery.sending']);
   });
 
-  it('not sent is told apart by when the instructions last went out (C17): never, sent and no longer working, or sent and the latest lost', () => {
-    const notSent = { delivery: 'not_sent', missingContacts: [] } as const;
-    // Nothing was ever accepted — or a server too old to say when: the line it always had.
-    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [], lastSentAt: null }), ['trialSetup.delivery.not_sent']);
-    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [] }), ['trialSetup.delivery.not_sent']);
-    // Sent once, and nothing reaches the Owner's contacts as they are now: sent on that day, and no longer working.
-    assert.deepEqual(deliveryLines({ ...notSent, sentTo: [], lastSentAt: '2026-10-13T10:00:00.000Z' }), ['trialSetup.delivery.not_sent.changed']);
-    // Sent, still good for a verified contact, and the newest ones lost on the way: sent on that day, the latest not.
-    assert.deepEqual(deliveryLines({ ...notSent, sentTo: ['email'], lastSentAt: '2026-10-13T10:00:00.000Z' }), ['trialSetup.delivery.not_sent.latest']);
+  it('not sent is told apart by whether earlier instructions went out: never, or sent on a day and the latest not', () => {
+    assert.deepEqual(line('not_sent', { lastSentAt: null }), ['trialSetup.delivery.not_sent']);
+    assert.deepEqual(line('not_sent', { lastSentAt: '2026-10-13T10:00:00.000Z' }), ['trialSetup.delivery.not_sent.latest']);
     // The other words do not change with it.
-    for (const delivery of ['sent', 'sending', 'failed', 'unavailable'] as const) {
-      assert.deepEqual(deliveryLines({ delivery, missingContacts: [], sentTo: [], lastSentAt: '2026-10-13T10:00:00.000Z' }), [`trialSetup.delivery.${delivery}`]);
-    }
+    for (const delivery of ['sending', 'failed'] as const) assert.deepEqual(line(delivery, { lastSentAt: '2026-10-13T10:00:00.000Z' }), [`trialSetup.delivery.${delivery}`]);
     assert.equal(deliveryTone('not_sent'), 'warning');
   });
 
-  it('a word this build does not know says nothing rather than something untrue', () => {
-    assert.deepEqual(deliveryLines({ delivery: 'something_new' as never, missingContacts: [] }), []);
-    assert.deepEqual(deliveryLines({ delivery: 'waiting_for_contact', missingContacts: ['pigeon' as never] }), []);
+  it('a word this build does not know says nothing rather than something untrue — the retired "unavailable" among them', () => {
+    assert.deepEqual(line('something_new'), []);
+    assert.deepEqual(line('unavailable'), []);
+    assert.deepEqual(line('waiting_for_contact', { missingContacts: ['pigeon'] }), []);
   });
 
   it('sent is good news, waiting and being sent are information, anything that will not arrive is a warning', () => {
     assert.equal(deliveryTone('sent'), 'success');
     assert.equal(deliveryTone('waiting_for_contact'), 'info');
     assert.equal(deliveryTone('sending'), 'info');
-    for (const d of ['unavailable', 'failed', 'not_sent'] as const) assert.equal(deliveryTone(d), 'warning');
+    for (const d of ['failed', 'not_sent'] as const) assert.equal(deliveryTone(d), 'warning');
   });
 });
 
@@ -120,9 +128,9 @@ describe('display only (the owner’s correction of 2026-10-13)', () => {
     assert.match(card, /deliveryLines\(status\)\.map\(/);
   });
 
-  it('a line that names the day the instructions went out reads it on the business’s clock, isolated in its own direction', () => {
+  it('a line that names the day reads it on the business’s clock, and the masked contact in its own direction, each isolated', () => {
     assert.match(card, /const sentOn = status\.lastSentAt \? isolateAuto\(formatDateTime\(status\.lastSentAt, \{ timeZone: status\.timeZone \}\)\) : '';/);
-    assert.match(card, /\{t\(key, \{ date: sentOn \}\)\}/);
+    assert.match(card, /\{t\(key, \{ date: sentOn, masked: status\.destination \? isolateLtr\(status\.destination\) : '' \}\)\}/);
   });
 
   it('the closed screen reads the status — the only trial request in the app — and keeps only its three general actions', () => {

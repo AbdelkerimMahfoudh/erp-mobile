@@ -91,6 +91,26 @@ export interface TrialView {
   accessAfterTrial?: { kind: 'paid' | 'granted'; startsAt: string } | null;
 }
 
+/**
+ * The business's grace after a paid period (0099; the owner's brief of 2026-10-18): 72 hours, at most three times in
+ * any rolling 12 months, each decided once by the server and recorded. Rendered, never recomputed: the app counts
+ * nothing and adds no hours — `usesRemaining` and `availableAtPeriodEnd` are the server's answers.
+ */
+export interface GraceView {
+  status: 'none' | 'active' | 'ended' | 'unavailable';
+  startedAt: string | null;
+  endsAt: string | null;
+  hoursRemaining: number;
+  /** While a paid period runs: whether its end, passing unextended, would open a grace. Null otherwise. */
+  availableAtPeriodEnd: boolean | null;
+  allowance: number;
+  windowMonths: number;
+  durationHours: number;
+  usesInWindow: number | null;
+  usesRemaining: number | null;
+  nextUseRestoredAt: string | null;
+}
+
 export interface Entitlement {
   state: EntitlementState;
   periodEnd: string | null;
@@ -119,6 +139,10 @@ export interface Entitlement {
   seatsByStore?: BranchSeat[];
   /** The free trial, when there is one to tell (0095). Absent on an older server. */
   trial?: TrialView | null;
+  /** The grace and its allowance (0099). Absent on an older server. */
+  grace?: GraceView;
+  /** The business's configured zone: the grace's deadline is shown on its clock. Absent on an older server. */
+  timeZone?: string;
 }
 
 /** `enabled` lets the root gate ask only once there is a session to ask for. */

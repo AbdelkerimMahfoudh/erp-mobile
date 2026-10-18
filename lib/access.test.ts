@@ -54,6 +54,12 @@ describe('the four modes, from the server’s flags alone', () => {
     assert.equal(a.graceEnd, '2026-11-04T00:00:00.000Z');
   });
 
+  it('the deadline is read on the business’s clock, the zone the server names — none from an older server, none before it answers', () => {
+    assert.equal(businessAccess(entitlement({ state: 'grace', timeZone: 'Asia/Tokyo' })).timeZone, 'Asia/Tokyo');
+    assert.equal(businessAccess(entitlement({ state: 'grace' })).timeZone, null);
+    assert.equal(businessAccess(undefined).timeZone, null);
+  });
+
   it('expired is read-only: everything readable, nothing new', () => {
     const a = businessAccess(entitlement({ state: 'expired', canWrite: false }));
     assert.equal(a.mode, 'read_only');

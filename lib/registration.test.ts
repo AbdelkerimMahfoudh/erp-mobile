@@ -1,5 +1,6 @@
 /**
- * The rules for creating a business account on the phone (restored 2026-10-13).
+ * The rules for creating a business account on the phone (restored 2026-10-13; the WhatsApp number required since
+ * the owner's brief of 2026-10-18, an email address optional).
  *
  * Run directly with Node (type-stripping):
  *   node lib/registration.test.ts
@@ -11,7 +12,6 @@ import {
   emptyRegistration,
   registrationPayload,
   sameRegistration,
-  unavailableMessage,
   validateRegistration,
   type RegistrationDraft,
 } from './registration.ts';
@@ -38,23 +38,22 @@ const base: RegistrationDraft = {
 const withEmail = { ...base, email: 'aicha@example.invalid' };
 const withPhone = { ...base, phone: '+22212345678' };
 
-// ── contacts: either is enough, neither is not ───────────────────────────────
+// ── contacts: the WhatsApp number required, an email address optional ─────────
 
-it('email only is accepted', () => {
-  assert.deepEqual(validateRegistration(withEmail), {});
-});
-
-it('WhatsApp only is accepted', () => {
+it('the WhatsApp number alone is accepted', () => {
   assert.deepEqual(validateRegistration(withPhone), {});
 });
 
-it('both contacts together are accepted', () => {
-  assert.deepEqual(validateRegistration({ ...withEmail, phone: '+22212345678' }), {});
+it('the WhatsApp number with an email address is accepted', () => {
+  assert.deepEqual(validateRegistration({ ...withPhone, email: 'aicha@example.invalid' }), {});
 });
 
-it('neither contact is refused, because the contact IS the credential', () => {
-  const problems = validateRegistration(base);
-  assert.equal(problems.contact, 'register.problem.contact');
+it('an email address without the WhatsApp number is refused: the number is the contact the account is checked by', () => {
+  assert.deepEqual(validateRegistration(withEmail), { phone: 'register.problem.phoneRequired' });
+});
+
+it('no contact at all is refused on the WhatsApp number, by its own words', () => {
+  assert.equal(validateRegistration(base).phone, 'register.problem.phoneRequired');
 });
 
 it('a malformed email is refused', () => {
@@ -75,25 +74,25 @@ it('owner name, business name and branch name are all required', () => {
 });
 
 it('city stays optional', () => {
-  assert.deepEqual(validateRegistration({ ...withEmail, city: '' }), {});
+  assert.deepEqual(validateRegistration({ ...withPhone, city: '' }), {});
 });
 
 it('a short password is refused', () => {
   assert.equal(
-    validateRegistration({ ...withEmail, password: 'short', passwordConfirm: 'short' }).password,
+    validateRegistration({ ...withPhone, password: 'short', passwordConfirm: 'short' }).password,
     'register.problem.password',
   );
 });
 
 it('a mismatched confirmation is refused', () => {
   assert.equal(
-    validateRegistration({ ...withEmail, passwordConfirm: 'something else' }).passwordConfirm,
+    validateRegistration({ ...withPhone, passwordConfirm: 'something else' }).passwordConfirm,
     'register.problem.passwordConfirm',
   );
 });
 
 it('both password problems are reported at once, not one after the other', () => {
-  const problems = validateRegistration({ ...withEmail, password: 'abc', passwordConfirm: 'xyz' });
+  const problems = validateRegistration({ ...withPhone, password: 'abc', passwordConfirm: 'xyz' });
   assert.equal(problems.password, 'register.problem.password');
   assert.equal(problems.passwordConfirm, 'register.problem.passwordConfirm');
 });
@@ -115,7 +114,7 @@ it('the draft has no field for a Store ID, a personal ID or any internal id', ()
 });
 
 it('the payload sends no identifier the server did not generate', () => {
-  const body = registrationPayload(withEmail, 'key-1', 'en');
+  const body = registrationPayload({ ...withPhone, email: 'aicha@example.invalid' }, 'key-1', 'en');
   for (const forbidden of ['storeId', 'companyId', 'branchId', 'userId', 'roleId', 'nationalId']) {
     assert.ok(!(forbidden in body), 'payload must not contain ' + forbidden);
   }
@@ -123,17 +122,18 @@ it('the payload sends no identifier the server did not generate', () => {
 
 // ── the payload ──────────────────────────────────────────────────────────────
 
-it('optional fields are omitted rather than sent empty', () => {
-  const body = registrationPayload(withEmail, 'key-1', 'en');
-  assert.ok(!('phone' in body), 'an unfilled contact is absent, not an empty string');
+it('the WhatsApp number is always sent; optional fields are omitted rather than sent empty', () => {
+  const body = registrationPayload(withPhone, 'key-1', 'en');
+  assert.equal(body.phone, '+22212345678');
+  assert.ok(!('email' in body), 'an unfilled email address is absent, not an empty string');
   assert.ok(!('city' in body));
-  assert.equal(body.email, 'aicha@example.invalid');
   assert.equal(body.language, 'en');
   assert.equal(body.idempotencyKey, 'key-1');
+  assert.equal(registrationPayload({ ...withPhone, email: ' aicha@example.invalid ' }, 'key-1', 'en').email, 'aicha@example.invalid');
 });
 
 it('values are trimmed, so a stray space cannot create a second business', () => {
-  const body = registrationPayload({ ...withEmail, businessName: '  Nour  ' }, 'k', 'fr');
+  const body = registrationPayload({ ...withPhone, businessName: '  Nour  ' }, 'k', 'fr');
   assert.equal(body.businessName, 'Nour');
 });
 
@@ -194,26 +194,10 @@ it('the screens reach the server only on auth/register, auth/register/verify/sta
   assert.ok(!/\/platform\//.test(register + verify), 'nothing here reaches a platform route');
 });
 
-it('account creation that is not available right now says so, and that nothing was saved', () => {
+it('account creation that is not available right now says so, and that nothing was saved — the number is the one contact that can refuse it', () => {
   const register = code('app/(auth)/register.tsx');
-  assert.match(register, /e instanceof ApiError && e\.code === 'registration_unavailable'\s*\?\s*t\(unavailableMessage\(e\.body, draft\)\)/);
-});
-
-// ── a contact the server cannot verify right now (every contact given must be) ─
-
-const both = { ...withEmail, phone: '+22212345678' };
-
-it('the WhatsApp number alone cannot be verified and an email was given: remove the number to go on, or wait', () => {
-  assert.equal(unavailableMessage({ code: 'registration_unavailable', unavailableContacts: ['phone'] }, both), 'register.unavailable.whatsapp');
-});
-
-it('anything else is the plain refusal — no email to go on with, the email itself, both, or an older server that names none', () => {
-  assert.equal(unavailableMessage({ unavailableContacts: ['phone'] }, withPhone), 'register.unavailable');
-  assert.equal(unavailableMessage({ unavailableContacts: ['email'] }, both), 'register.unavailable');
-  assert.equal(unavailableMessage({ unavailableContacts: ['email', 'phone'] }, both), 'register.unavailable');
-  assert.equal(unavailableMessage({ unavailableContacts: ['phone', 'phone'] }, both), 'register.unavailable');
-  assert.equal(unavailableMessage({ code: 'registration_unavailable' }, both), 'register.unavailable');
-  assert.equal(unavailableMessage(undefined, both), 'register.unavailable');
+  assert.match(register, /e instanceof ApiError && e\.code === 'registration_unavailable'\s*\?\s*t\('register\.unavailable'\)/);
+  assert.doesNotMatch(register, /register\.unavailable\.whatsapp|register\.problem\.contact/);
 });
 
 console.log('\n' + passed + ' passed');

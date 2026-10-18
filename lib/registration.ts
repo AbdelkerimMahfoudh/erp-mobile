@@ -30,8 +30,9 @@ export interface RegistrationDraft {
   businessName: string;
   branchName: string;
   city: string;
+  /** Optional (the owner's brief of 2026-10-18): verified later, from the account, if the Owner wants a second channel. */
   email: string;
-  /** WhatsApp number. Either this or `email` is enough; both is fine. */
+  /** The WhatsApp number — required: the registration's code goes there, and so does every subscription message first. */
   phone: string;
   password: string;
   passwordConfirm: string;
@@ -49,15 +50,7 @@ export const emptyRegistration: RegistrationDraft = {
 };
 
 /** Which field a problem belongs to, so it can be shown beside its input. */
-export type RegistrationField =
-  | 'ownerName'
-  | 'businessName'
-  | 'branchName'
-  | 'contact'
-  | 'email'
-  | 'phone'
-  | 'password'
-  | 'passwordConfirm';
+export type RegistrationField = 'ownerName' | 'businessName' | 'branchName' | 'email' | 'phone' | 'password' | 'passwordConfirm';
 
 /** A translation key, never a sentence — this module renders nothing. */
 export type RegistrationProblems = Partial<Record<RegistrationField, string>>;
@@ -86,14 +79,14 @@ export function validateRegistration(draft: RegistrationDraft): RegistrationProb
   const email = draft.email.trim();
   const phone = draft.phone.trim();
 
-  // At least one contact, because it IS the credential — an account with
-  // neither cannot reach the sign-in screen at all. The server refuses this
-  // too; catching it here saves a round trip, it does not replace the rule.
-  if (!email && !phone) {
-    problems.contact = 'register.problem.contact';
-  }
+  // The WhatsApp number is required (the owner's brief of 2026-10-18): it is
+  // the contact the registration verifies and the credential the Owner signs
+  // in with. The server refuses a registration without it too; catching it
+  // here saves a round trip, it does not replace the rule. An email address is
+  // optional, and checked only when given.
+  if (!phone) problems.phone = 'register.problem.phoneRequired';
+  else if (!PHONE.test(phone)) problems.phone = 'register.problem.phone';
   if (email && !EMAIL.test(email)) problems.email = 'register.problem.email';
-  if (phone && !PHONE.test(phone)) problems.phone = 'register.problem.phone';
 
   if (draft.password.length < MIN_PASSWORD) problems.password = 'register.problem.password';
   // Checked even when the password is too short: somebody fixing one error
@@ -120,12 +113,12 @@ export function registrationPayload(
     ownerName: draft.ownerName.trim(),
     businessName: draft.businessName.trim(),
     branchName: draft.branchName.trim(),
+    phone: draft.phone.trim(),
     password: draft.password,
     language,
   };
   if (draft.city.trim()) body.city = draft.city.trim();
   if (draft.email.trim()) body.email = draft.email.trim();
-  if (draft.phone.trim()) body.phone = draft.phone.trim();
   return body;
 }
 
@@ -147,20 +140,4 @@ export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): bo
   const y = registrationPayload(b, '', 'en');
   const fields = new Set([...Object.keys(x), ...Object.keys(y)]);
   return [...fields].every((field) => x[field] === y[field]);
-}
-
-/**
- * The words for a server that refused before saving anything because a code
- * cannot be sent right now (503 `registration_unavailable`).
- *
- * Every contact given at registration must be verified, so the server names
- * each one it cannot send a code to (`unavailableContacts`). When that is the
- * WhatsApp number alone and an email address was given too, the person can go
- * on with the email address by removing the number — or wait. Anything else is
- * the plain refusal: not now, and nothing was saved.
- */
-export function unavailableMessage(body: unknown, sent: RegistrationDraft): 'register.unavailable.whatsapp' | 'register.unavailable' {
-  const named = (body as { unavailableContacts?: unknown } | null | undefined)?.unavailableContacts;
-  const onlyWhatsApp = Array.isArray(named) && named.length === 1 && named[0] === 'phone';
-  return onlyWhatsApp && sent.email.trim() !== '' ? 'register.unavailable.whatsapp' : 'register.unavailable';
 }

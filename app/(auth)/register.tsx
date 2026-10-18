@@ -13,7 +13,6 @@ import {
   emptyRegistration,
   registrationPayload,
   sameRegistration,
-  unavailableMessage,
   validateRegistration,
   type RegistrationDraft,
   type RegistrationProblems,
@@ -71,7 +70,7 @@ export default function RegisterScreen() {
     setDraft((d) => ({ ...d, [key]: value }));
     // Clear only the field being corrected: wiping every message would hide
     // problems the person has not looked at yet.
-    setProblems((p) => ({ ...p, [key]: undefined, contact: undefined }));
+    setProblems((p) => ({ ...p, [key]: undefined }));
     setFailure(null);
   };
 
@@ -116,17 +115,15 @@ export default function RegisterScreen() {
       } as never);
     } catch (e) {
       /*
-       * A server that cannot send a code to every contact given refuses before
+       * A server that cannot send a code to the WhatsApp number refuses before
        * anything is created (503 `registration_unavailable`), and the screen
        * says exactly that, in the person's language: not now, and nothing was
-       * saved — or, when only the WhatsApp number cannot be verified and an
-       * email address was given too, that removing the number lets them go on
-       * (`unavailableMessage`). Otherwise the server's own wording when it has
-       * some, because it knows things this screen does not — a rate limit.
+       * saved. Otherwise the server's own wording when it has some, because it
+       * knows things this screen does not — a rate limit.
        */
       setFailure(
         e instanceof ApiError && e.code === 'registration_unavailable'
-          ? t(unavailableMessage(e.body, draft))
+          ? t('register.unavailable')
           : e instanceof ApiError && e.message
             ? e.message
             : t('register.failed'),
@@ -200,6 +197,14 @@ export default function RegisterScreen() {
               {t('register.contact.hint')}
             </Text>
             <TextField
+              label={t('register.field.phone')}
+              value={draft.phone}
+              onChangeText={(v) => set('phone', v)}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              error={problem('phone')}
+            />
+            <TextField
               label={t('register.field.email')}
               value={draft.email}
               onChangeText={(v) => set('email', v)}
@@ -208,19 +213,6 @@ export default function RegisterScreen() {
               autoComplete="email"
               error={problem('email')}
             />
-            <TextField
-              label={t('register.field.phone')}
-              value={draft.phone}
-              onChangeText={(v) => set('phone', v)}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              error={problem('phone')}
-            />
-            {problems.contact ? (
-              <Text variant="caption" tone="danger">
-                {t('register.problem.contact')}
-              </Text>
-            ) : null}
           </View>
 
           <View style={styles.group}>

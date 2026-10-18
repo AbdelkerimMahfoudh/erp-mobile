@@ -8,18 +8,18 @@ import { useTranslation } from '../../lib/i18n';
 import { deliveryLines, deliveryTone, type EligibleTrialSetup } from '../../lib/trial-setup';
 
 /**
- * The Owner's word on the free trial, on the closed screen (0095; the owner's
- * correction of 2026-10-13).
+ * The Owner's word on the free trial, on the closed screen (0095, 0099; the
+ * owner's briefs of 2026-10-13 and 2026-10-18).
  *
  * DISPLAY ONLY. It says what the server knows: the business is eligible, the
- * trial has not started, how many days it lasts once it is claimed, which
- * verified contacts the setup instructions go to (as the server masks them),
- * and whether they were sent — or, honestly, that they cannot be sent right
- * now, or that the ones sent on a given day no longer work. Nothing in it can
- * be pressed: no button, no link, no countdown, no request. The trial is
- * started on the Dukan ERP website alone, and sending the instructions again
- * happens there once the Owner has signed in, or through support;
- * `lib/access-boundary.test.ts` and the bundle audit keep it that way.
+ * trial has not started, how many days it lasts once it is claimed, the
+ * verified contacts (as the server masks them), and whether the instructions
+ * were sent — by which channel, to which contact and on which day — or,
+ * honestly, that they were not. Nothing in it can be pressed: no button, no
+ * link, no address, no countdown, no request. The trial is started on the Dukan
+ * ERP portal alone, and the instructions are sent again only there, once the
+ * Owner has signed in, or through support; `lib/access-boundary.test.ts` and
+ * the bundle audit keep it that way.
  *
  * Shown only for an eligible answer of `GET account/trial-setup`, which the
  * server gives the business's Owner alone.
@@ -50,7 +50,7 @@ export function TrialSetupCard({ status }: { status: EligibleTrialSetup }) {
 
       {deliveryLines(status).map((key) => (
         <InlineNotice key={key} tone={deliveryTone(status.delivery)}>
-          {t(key, { date: sentOn })}
+          {t(key, { date: sentOn, masked: status.destination ? isolateLtr(status.destination) : '' })}
         </InlineNotice>
       ))}
     </Card>

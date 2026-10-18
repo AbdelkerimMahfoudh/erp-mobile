@@ -1,15 +1,16 @@
 /// <reference types="jest" />
 /**
- * The free trial as the app shows it (0095; the owner's correction of 2026-10-13), rendered: what the Owner,
- * staff, and a business whose trial runs or has ended actually see — and that none of it can be pressed.
+ * The free trial as the app shows it (0095, 0099; the owner's briefs of 2026-10-13 and 2026-10-18), rendered: what the
+ * Owner, staff, and a business whose trial runs or has ended actually see — and that none of it can be pressed.
  *
  * - The Owner of a business that has not started sees a display-only card: eligible, not started, the server's
  *   number of days, the verified contacts as the server masks them, and one delivery line for each of `sent`,
- *   `sending`, `waiting_for_contact`, `unavailable`, `failed` and `not_sent`. Nothing inside it is pressable, links anywhere
- *   or names a website; the screen keeps only Check again, Sign out and Delete account.
- * - `not_sent` is told apart by when the instructions last went out (C17): never; sent on a day and no longer working;
- *   or sent on a day to the verified contact, the latest lost — that day on the business's clock with its zone's name,
- *   in English, French and Arabic laid out right to left.
+ *   `sending`, `waiting_for_contact`, `failed` and `not_sent`. Nothing inside it is pressable, links anywhere or names
+ *   a website; the screen keeps only Check again, Sign out and Delete account.
+ * - `sent` names what the server names: the channel (WhatsApp, or email when WhatsApp could not carry them), the
+ *   contact as the server masks it, and the day — on the business's clock with its zone's name, in English, French
+ *   and Arabic laid out right to left. A server that names none of them keeps the general line.
+ * - `not_sent` is told apart by whether instructions ever went out (C17): never; or sent on a day, the latest lost.
  * - Staff, refused the Owner's status by the server (403), see the neutral "not started" words only.
  * - A running trial says when it ends and an ended one when it ended — the server's UTC instant on the business's
  *   own clock, with the clock's name. The zones are Tokyo and New York, so neither GMT nor this machine's clock is
@@ -54,6 +55,7 @@ import AccessScreen from '../app/access';
 import { AccessNotice } from '../components/access';
 
 const ENDS = '2026-10-20T10:30:00.000Z';
+const SENT_AT = '2026-10-13T10:00:00.000Z';
 
 const base = {
   periodEnd: null, graceEnd: null, daysRemaining: null, graceHoursRemaining: 0, subscribedBranchCount: 1, activeBranchCount: 1,
@@ -63,23 +65,30 @@ const notStarted = { ...base, state: 'trial_available', canRead: false, canWrite
 const running = (timeZone: string) => ({ ...base, state: 'trial_active', canRead: true, canWrite: true, trial: { status: 'active', durationHours: 168, durationDays: 7, claimedAt: '2026-10-13T10:30:00.000Z', startedAt: '2026-10-13T10:30:00.000Z', endsAt: ENDS, timeZone } });
 const ended = (timeZone: string) => ({ ...running(timeZone), state: 'trial_expired', canWrite: false, trial: { ...running(timeZone).trial, status: 'expired' } });
 
+/** The server's answer for an eligible business: by default, the instructions sent by WhatsApp to the verified number. */
 const setup = (over: Partial<Extract<TrialSetupStatus, { eligible: true }>>): TrialSetupStatus => ({
   state: 'trial_available',
   eligible: true,
   durationHours: 168,
   durationDays: 7,
-  requiredContacts: ['email', 'phone'],
+  requiredContacts: ['phone'],
   missingContacts: [],
   destinations: [
-    { channel: 'email', masked: 'a•••@example.com' },
     { channel: 'whatsapp', masked: '+222••••1234' },
+    { channel: 'email', masked: 'a•••@example.com' },
   ],
   delivery: 'sent',
-  sentTo: ['email'],
-  lastAttemptAt: '2026-10-13T10:00:00.000Z',
+  channel: 'whatsapp',
+  destination: '+222••••1234',
+  fallbackReason: null,
+  failureReason: null,
+  lastAttemptAt: SENT_AT,
+  lastSentAt: SENT_AT,
   timeZone: 'Asia/Tokyo',
   ...over,
 });
+/** Nothing has gone out, nor was ever to go. */
+const nothingSent = { channel: null, destination: null, lastAttemptAt: null, lastSentAt: null } as const;
 
 /** The server: one entitlement, and the trial's setup status — or the refusal it gives anybody but the Owner. */
 function serve(entitlement: object, trialSetup: TrialSetupStatus | Error) {
@@ -123,6 +132,8 @@ function pressables(node: ReactTestInstance): ReactTestInstance[] {
 /** What a trial action would say — none may be on screen, in any of the three languages. */
 const TRIAL_ACTION = /start my|claim (my|your|the) |resend|\bsend (the )?(setup )?instructions|démarrer mon|renvoyer|إعادة إرسال|ابدأ فترتي/i;
 const WEBSITE = /https?:|www\.|website|site web|\bsite\b|موقع/i;
+const SENT_BY_WHATSAPP = 'We sent the instructions for completing your business setup by WhatsApp to +222••••1234 on 13 Oct 2026 · 19:00 (Japan Standard Time).';
+const SENT_GENERAL = 'We sent the instructions for completing your business setup to your verified contact.';
 
 beforeEach(() => {
   (api.get as jest.Mock).mockReset();
@@ -141,9 +152,9 @@ describe('the Owner of a business that has not started', () => {
     expect(screen.getByText('Trial status: Available').props.accessibilityLabel).toBe('Trial status: Available, not started');
     expect(screen.getByText('Duration after activation: 7 days')).toBeTruthy();
     expect(screen.getByText('Starts only after you claim it')).toBeTruthy();
-    expect(screen.getByText('Verified contact: a•••@example.com')).toBeTruthy();
     expect(screen.getByText('Verified contact: +222••••1234')).toBeTruthy();
-    expect(screen.getByText('We sent the instructions for completing your business setup to your verified contact.')).toBeTruthy();
+    expect(screen.getByText('Verified contact: a•••@example.com')).toBeTruthy();
+    expect(screen.getByText(SENT_BY_WHATSAPP)).toBeTruthy();
 
     // Nothing inside the card can be pressed, links anywhere, or names a website.
     expect(pressables(card)).toHaveLength(0);
@@ -154,8 +165,8 @@ describe('the Owner of a business that has not started', () => {
   });
 
   it('is not sent to an organisation administrator: the card names Dukan ERP support, and the organisation’s lines are left out', async () => {
-    for (const delivery of ['sent', 'unavailable', 'failed', 'not_sent'] as const) {
-      serve(notStarted, setup({ delivery, sentTo: delivery === 'sent' ? ['email'] : [] }));
+    for (const over of [{ delivery: 'sent' }, { delivery: 'failed', failureReason: 'no_email', lastSentAt: null }, { delivery: 'not_sent', ...nothingSent }] as const) {
+      serve(notStarted, setup(over));
       const view = renderScreen(<AccessClosed />);
       await screen.findByTestId('trial-setup-card');
       expect(screen.queryByText(t('access.managed'))).toBeNull();
@@ -176,7 +187,7 @@ describe('the Owner of a business that has not started', () => {
   });
 
   it('Check again reads the business’s access and the instructions’ status again — reads only', async () => {
-    serve(notStarted, setup({ delivery: 'failed' }));
+    serve(notStarted, setup({ delivery: 'failed', failureReason: 'no_email', lastSentAt: null }));
     renderScreen(<AccessClosed />);
     await screen.findByText('The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.');
 
@@ -184,7 +195,7 @@ describe('the Owner of a business that has not started', () => {
     await act(async () => {
       fireEvent.press(screen.getByText(t('access.recheck')));
     });
-    expect(await screen.findByText('We sent the instructions for completing your business setup to your verified contact.')).toBeTruthy();
+    expect(await screen.findByText(SENT_BY_WHATSAPP)).toBeTruthy();
     const reads = (api.get as jest.Mock).mock.calls.map(([path]) => path);
     expect(reads.filter((p: string) => p === '/entitlement')).toHaveLength(2);
     expect(reads.filter((p: string) => p === '/account/trial-setup')).toHaveLength(2);
@@ -192,7 +203,7 @@ describe('the Owner of a business that has not started', () => {
   });
 
   it('waiting for the WhatsApp number: the instructions go automatically once it is verified — nothing to press', async () => {
-    serve(notStarted, setup({ delivery: 'waiting_for_contact', missingContacts: ['phone'], destinations: [{ channel: 'email', masked: 'a•••@example.com' }], sentTo: [], lastAttemptAt: null }));
+    serve(notStarted, setup({ delivery: 'waiting_for_contact', missingContacts: ['phone'], destinations: [{ channel: 'email', masked: 'a•••@example.com' }], ...nothingSent }));
     renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     expect(screen.getByText('The instructions will be sent automatically once your WhatsApp number is verified.')).toBeTruthy();
@@ -200,41 +211,37 @@ describe('the Owner of a business that has not started', () => {
     expect(pressables(card)).toHaveLength(0);
   });
 
-  it('waiting for the email address says so in its own words', async () => {
-    serve(notStarted, setup({ delivery: 'waiting_for_contact', missingContacts: ['email'], destinations: [{ channel: 'whatsapp', masked: '+222••••1234' }], sentTo: [], lastAttemptAt: null }));
+  it('waiting for the email address — a business that registered with one before the number was required — says so in its own words', async () => {
+    serve(notStarted, setup({ delivery: 'waiting_for_contact', requiredContacts: ['email'], missingContacts: ['email'], destinations: [], ...nothingSent }));
     renderScreen(<AccessClosed />);
     expect(await screen.findByText('The instructions will be sent automatically once your email address is verified.')).toBeTruthy();
   });
 
-  it('no working provider: the honest unavailable line, the trial not started, and support — no "try again" button', async () => {
-    serve(notStarted, setup({ delivery: 'unavailable', sentTo: [] }));
-    renderScreen(<AccessClosed />);
-    const card = await screen.findByTestId('trial-setup-card');
-    expect(
-      screen.getByText('Your business is eligible for a 7-day free trial, but setup instructions cannot be sent right now. Your trial has not started. Please contact Dukan ERP support.'),
-    ).toBeTruthy();
-    expect(pressables(card)).toHaveLength(0);
-  });
-
-  it('being sent — a link issued less than a minute ago: says so, beside the verified contacts, with nothing to press', async () => {
-    serve(notStarted, setup({ delivery: 'sending', sentTo: [], lastAttemptAt: null }));
+  it('being sent — asked for, not yet handed to a provider: says so, beside the verified contacts, with nothing to press', async () => {
+    serve(notStarted, setup({ delivery: 'sending', lastSentAt: null }));
     renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     expect(screen.getByText('We are sending the instructions for completing your business setup to your verified contact.')).toBeTruthy();
-    expect(screen.getByText('Verified contact: a•••@example.com')).toBeTruthy();
+    expect(screen.getByText('Verified contact: +222••••1234')).toBeTruthy();
     expect(pressables(card)).toHaveLength(0);
     expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('refused by every provider: could not be sent', async () => {
-    serve(notStarted, setup({ delivery: 'failed', sentTo: [] }));
-    renderScreen(<AccessClosed />);
-    expect(await screen.findByText('The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.')).toBeTruthy();
+  it('carried by nothing: could not be sent — whatever the reason the server recorded, which the app does not repeat', async () => {
+    for (const failureReason of ['no_email', 'email_unavailable', 'opted_out'] as const) {
+      serve(notStarted, setup({ delivery: 'failed', failureReason, lastSentAt: null }));
+      const view = renderScreen(<AccessClosed />);
+      const card = await screen.findByTestId('trial-setup-card');
+      expect(screen.getByText('The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.')).toBeTruthy();
+      expect(textOf(card)).not.toMatch(new RegExp(failureReason));
+      expect(pressables(card)).toHaveLength(0);
+      view.unmount();
+    }
   });
 
   it('never attempted: have not been sent', async () => {
-    serve(notStarted, setup({ delivery: 'not_sent', sentTo: [], lastAttemptAt: null }));
+    serve(notStarted, setup({ delivery: 'not_sent', ...nothingSent }));
     renderScreen(<AccessClosed />);
     expect(await screen.findByText('The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.')).toBeTruthy();
   });
@@ -246,9 +253,7 @@ describe('the Owner of a business that has not started', () => {
   });
 });
 
-describe('instructions that were sent, and no longer work or were followed by ones that were lost (C17)', () => {
-  const SENT_AT = '2026-10-13T10:00:00.000Z';
-  const CHANGED = 'The setup instructions were sent on 13 Oct 2026 · 19:00 (Japan Standard Time), but they no longer work because your account details have changed since. Your trial has not started. Please contact Dukan ERP support.';
+describe('instructions that were sent — by which channel, to which contact, on which day — and ones lost after (C17)', () => {
   const LATEST = 'The setup instructions were sent to your verified contact on 13 Oct 2026 · 19:00 (Japan Standard Time), but the latest ones have not been sent. Your trial has not started. Please contact Dukan ERP support.';
   const NEVER = 'The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.';
   const LINK = /\blinks?\b|\bliens?\b|رابط/i;
@@ -261,29 +266,17 @@ describe('instructions that were sent, and no longer work or were followed by on
     });
   });
 
-  /** The card's text, read once it shows. */
+  /** The card, read once it shows. */
   async function cardFor(over: Parameters<typeof setup>[0]) {
-    serve(notStarted, setup({ delivery: 'not_sent', ...over }));
+    serve(notStarted, setup(over));
     const view = renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     return { card, view };
   }
 
-  it('never sent — and a server too old to say when — keeps the line it always had', async () => {
-    // `lastSentAt` null, and absent — as a server older than C17 answers.
-    const olderServer: Parameters<typeof setup>[0] = { sentTo: [] };
-    for (const over of [{ sentTo: [], lastSentAt: null }, olderServer]) {
-      const { card, view } = await cardFor(over);
-      expect(screen.getByText(NEVER)).toBeTruthy();
-      expect(textOf(card)).not.toMatch(/were sent|no longer work|latest/);
-      view.unmount();
-    }
-  });
-
-  it('sent, and nothing reaches the Owner as they are now: sent on that day, on the business’s clock, and no longer working', async () => {
-    const { card } = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
-    expect(screen.getByText(CHANGED)).toBeTruthy();
-    expect(screen.queryByText(NEVER)).toBeNull();
+  it('sent by WhatsApp: the channel, the number as the server masks it, and the day on the business’s clock — nothing to press', async () => {
+    const { card } = await cardFor({});
+    expect(screen.getByText(SENT_BY_WHATSAPP)).toBeTruthy();
     expect(pressables(card)).toHaveLength(0);
     expect(textOf(card)).not.toMatch(TRIAL_ACTION);
     expect(textOf(card)).not.toMatch(WEBSITE);
@@ -294,12 +287,45 @@ describe('instructions that were sent, and no longer work or were followed by on
   });
 
   it('the zone the server names decides the hour, and is named: the same instant in New York', async () => {
-    await cardFor({ sentTo: [], lastSentAt: SENT_AT, timeZone: 'America/New_York' });
-    expect(screen.getByText(CHANGED.replace('13 Oct 2026 · 19:00 (Japan Standard Time)', '13 Oct 2026 · 06:00 (Eastern Daylight Time)'))).toBeTruthy();
+    await cardFor({ timeZone: 'America/New_York' });
+    expect(screen.getByText(SENT_BY_WHATSAPP.replace('13 Oct 2026 · 19:00 (Japan Standard Time)', '13 Oct 2026 · 06:00 (Eastern Daylight Time)'))).toBeTruthy();
   });
 
-  it('sent and still good for the verified contact, the latest lost on the way: says both — nothing to press', async () => {
-    const { card } = await cardFor({ sentTo: ['email'], lastSentAt: SENT_AT });
+  it('sent by email, WhatsApp having failed for a reason the server recorded: says email and the masked address — never the reason', async () => {
+    const { card } = await cardFor({ channel: 'email', destination: 'a•••@example.com', fallbackReason: 'number_undeliverable' });
+    expect(screen.getByText('We sent the instructions for completing your business setup by email to a•••@example.com on 13 Oct 2026 · 19:00 (Japan Standard Time).')).toBeTruthy();
+    expect(textOf(card)).not.toMatch(/undeliverable|fallback/i);
+    expect(pressables(card)).toHaveLength(0);
+  });
+
+  it('a server that names no channel, contact or day — or one too old to — keeps the general sent line', async () => {
+    const olderServer = setup({}) as Record<string, unknown>;
+    for (const key of ['channel', 'destination', 'lastSentAt', 'fallbackReason', 'failureReason']) delete olderServer[key];
+    for (const answer of [setup({ channel: null, destination: null }), setup({ lastSentAt: null }), olderServer as TrialSetupStatus]) {
+      serve(notStarted, answer);
+      const view = renderScreen(<AccessClosed />);
+      const card = await screen.findByTestId('trial-setup-card');
+      expect(screen.getByText(SENT_GENERAL)).toBeTruthy();
+      expect(textOf(card)).not.toMatch(/by WhatsApp|by email| on \d/);
+      view.unmount();
+    }
+  });
+
+  it('never sent — and a server too old to say when — keeps the line it always had', async () => {
+    const olderServer = setup({ delivery: 'not_sent' }) as Record<string, unknown>;
+    for (const key of ['channel', 'destination', 'lastSentAt']) delete olderServer[key];
+    for (const answer of [setup({ delivery: 'not_sent', ...nothingSent }), olderServer as TrialSetupStatus]) {
+      serve(notStarted, answer);
+      const view = renderScreen(<AccessClosed />);
+      const card = await screen.findByTestId('trial-setup-card');
+      expect(screen.getByText(NEVER)).toBeTruthy();
+      expect(textOf(card)).not.toMatch(/were sent|latest/);
+      view.unmount();
+    }
+  });
+
+  it('sent once, the latest lost on the way: says both — nothing to press', async () => {
+    const { card } = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
     expect(screen.getByText(LATEST)).toBeTruthy();
     expect(screen.queryByText(NEVER)).toBeNull();
     expect(pressables(card)).toHaveLength(0);
@@ -311,18 +337,22 @@ describe('instructions that were sent, and no longer work or were followed by on
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('in French, the day in French on the business’s clock', async () => {
+  it('in French, the channel, the masked contact and the day in French on the business’s clock', async () => {
     await useI18n.getState().setLanguage('fr');
-    const changed = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
+    const whatsapp = await cardFor({});
     expect(
-      screen.getByText(
-        'Les instructions de configuration ont été envoyées le 13 oct. 2026 · 19:00 (heure normale du Japon), mais elles ne fonctionnent plus, car les informations de votre compte ont changé depuis. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
-      ),
+      screen.getByText('Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par WhatsApp au +222••••1234 le 13 oct. 2026 · 19:00 (heure normale du Japon).'),
     ).toBeTruthy();
-    expect(textOf(changed.card)).not.toMatch(LINK);
-    changed.view.unmount();
+    expect(textOf(whatsapp.card)).not.toMatch(LINK);
+    whatsapp.view.unmount();
 
-    const latest = await cardFor({ sentTo: ['whatsapp'], lastSentAt: SENT_AT });
+    const email = await cardFor({ channel: 'email', destination: 'a•••@example.com', fallbackReason: 'whatsapp_disabled' });
+    expect(
+      screen.getByText('Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par e-mail à a•••@example.com le 13 oct. 2026 · 19:00 (heure normale du Japon).'),
+    ).toBeTruthy();
+    email.view.unmount();
+
+    const latest = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
     expect(
       screen.getByText(
         'Les instructions de configuration ont été envoyées à votre contact vérifié le 13 oct. 2026 · 19:00 (heure normale du Japon), mais les plus récentes n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
@@ -331,18 +361,19 @@ describe('instructions that were sent, and no longer work or were followed by on
     expect(pressables(latest.card)).toHaveLength(0);
   });
 
-  it('in Arabic, laid out right to left: the day reads in its own order, isolated from the sentence around it', async () => {
+  it('in Arabic, laid out right to left: the number held left to right, the day in its own order — each isolated from the sentence', async () => {
     await useI18n.getState().setLanguage('ar');
     jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
-    const day = '\u206813 أكتوبر 2026 · 19:00 (توقيت اليابان الرسمي)\u2069';
+    const day = '⁨13 أكتوبر 2026 · 19:00 (توقيت اليابان الرسمي)⁩';
+    const number = '⁦+222••••1234⁩';
 
-    const changed = await cardFor({ sentTo: [], lastSentAt: SENT_AT });
-    expect(screen.getByText(`أُرسلت تعليمات الإعداد في ${day}، لكنها لم تعد تعمل لأن بيانات حسابك تغيّرت منذ ذلك الحين. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
-    expect(textOf(changed.card)).not.toMatch(LINK);
-    expect(textOf(changed.card)).not.toMatch(TRIAL_ACTION);
-    changed.view.unmount();
+    const whatsapp = await cardFor({});
+    expect(screen.getByText(`أرسلنا تعليمات إكمال إعداد نشاطك التجاري عبر واتساب إلى ${number} في ${day}.`)).toBeTruthy();
+    expect(textOf(whatsapp.card)).not.toMatch(LINK);
+    expect(textOf(whatsapp.card)).not.toMatch(TRIAL_ACTION);
+    whatsapp.view.unmount();
 
-    const latest = await cardFor({ sentTo: ['email'], lastSentAt: SENT_AT });
+    const latest = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
     expect(screen.getByText(`أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في ${day}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
     expect(pressables(latest.card)).toHaveLength(0);
   });

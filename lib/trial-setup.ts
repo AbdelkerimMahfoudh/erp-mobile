@@ -2,18 +2,19 @@ import type { EntitlementState } from './entitlement';
 import type { TranslationKey } from './i18n/keys';
 
 /**
- * What the closed screen may say about the free trial's setup instructions
- * (0095; the owner's correction of 2026-10-13).
+ * What the closed screen may say about the free trial's instructions (0095,
+ * 0099; the owner's briefs of 2026-10-13 and 2026-10-18).
  *
  * A business that created its own account is eligible for one 7-day free
- * trial, started by its Owner on the Dukan ERP website and nowhere else. The
- * instructions for that go out automatically, once the Owner's contacts are
- * verified, to those verified contacts only. The app's part is to SAY what the
- * server knows — eligible, not started, how long it lasts once claimed, where
- * the instructions went (masked by the server), whether they were sent — and
- * nothing more: no claim, no resend, no link, no countdown. These are the
- * decisions behind those words, with no React and no network, so a plain node
- * test reads them.
+ * trial, started by its Owner on the Dukan ERP portal and nowhere else. One
+ * message says so, sent automatically once the Owner's WhatsApp number is
+ * verified: WhatsApp first, email only for a reason the server records. The
+ * app's part is to SAY what the server knows — eligible, not started, how long
+ * it lasts once claimed, by which channel and to which contact the instructions
+ * went (masked by the server), whether they were sent — and nothing more: no
+ * claim, no resend, no link, no address, no countdown. These are the decisions
+ * behind those words, with no React and no network, so a plain node test reads
+ * them.
  *
  * Type-only imports, so a plain `node` test can load this file.
  */
@@ -23,12 +24,12 @@ export type TrialContact = 'email' | 'phone';
 /** Where the instructions can go. */
 export type TrialChannel = 'email' | 'whatsapp';
 /**
- * The last word on the instructions: waiting for a required contact to be
- * verified (nothing is sent before), being sent (a link was issued less than a
- * minute ago and its outcome is not recorded yet), never attempted, sent,
- * refused by every provider, or nothing able to send them at all.
+ * The last word on the instructions: waiting for the required contact to be
+ * verified (nothing is sent before), being sent (asked for, not yet handed to a
+ * provider), never sent, sent, or carried by nothing (`failed`, the reason
+ * recorded by the server).
  */
-export type TrialDelivery = 'waiting_for_contact' | 'sending' | 'not_sent' | 'sent' | 'failed' | 'unavailable';
+export type TrialDelivery = 'waiting_for_contact' | 'sending' | 'not_sent' | 'sent' | 'failed';
 
 /** A verified contact as the server masks it (`a•••@example.com`, `+222••••1234`) — never the raw value. */
 export interface TrialDestination {
@@ -48,14 +49,17 @@ export type TrialSetupStatus =
       missingContacts: TrialContact[];
       destinations: TrialDestination[];
       delivery: TrialDelivery;
-      sentTo: TrialChannel[];
+      /** The channel the newest instructions went, or were to go, by; null when none was chosen. */
+      channel: TrialChannel | null;
+      /** That channel's destination, masked by the server; null when none was chosen. */
+      destination: string | null;
+      /** Why they went by email — WhatsApp could not carry them — as the server recorded it; null otherwise. */
+      fallbackReason: string | null;
+      /** Why nothing carried them, as the server recorded it; null otherwise. */
+      failureReason: string | null;
       lastAttemptAt: string | null;
-      /**
-       * When a provider last accepted the instructions, whatever happened since — whether or not they still work for
-       * the Owner as they are now (C17): a UTC instant, or null when none ever was. A server older than C17 does not
-       * send it.
-       */
-      lastSentAt?: string | null;
+      /** When a provider last accepted the instructions, whatever happened since: a UTC instant, or null when none ever was. */
+      lastSentAt: string | null;
       timeZone: string;
     };
 
@@ -87,45 +91,32 @@ const WAITING: Record<TrialContact, TranslationKey> = {
   email: 'trialSetup.delivery.waiting.email',
 };
 
-/**
- * Not sent, said for what it is (C17). The server says `not_sent` when nothing
- * ever went out — and also when what went out no longer works for the Owner as
- * they are now (their password, a contact or a verification changed since),
- * or when the latest instructions were lost on the way while earlier ones
- * still reach a verified contact. Instructions that were sent were sent: when
- * the server names the day (`lastSentAt`), the line says so, and whether they
- * still reach a verified contact (`sentTo`). A server too old to name the day
- * keeps the first line.
- */
-function notSentLine(status: { lastSentAt?: string | null; sentTo?: readonly TrialChannel[] }): TranslationKey {
-  if (!status.lastSentAt) return 'trialSetup.delivery.not_sent';
-  return status.sentTo?.length ? 'trialSetup.delivery.not_sent.latest' : 'trialSetup.delivery.not_sent.changed';
-}
+const SENT: Record<TrialChannel, TranslationKey> = {
+  whatsapp: 'trialSetup.delivery.sent.whatsapp',
+  email: 'trialSetup.delivery.sent.email',
+};
 
 /**
  * The card's delivery line — one, or one per contact still to be verified
  * while it waits for them. Every line is a statement; none offers an action,
- * because there is nothing to do here: sending again is the website's, after
- * the Owner signs in, or support's. A word this build does not know says
- * nothing rather than something untrue. A line that names the day the
- * instructions went out takes it as `{date}`.
+ * because there is nothing to do here: sending again is the portal's, after the
+ * Owner signs in there, or support's. Sent names the channel and the masked
+ * contact when the server does (`{masked}`) and the day (`{date}`); not sent
+ * says when earlier instructions did go out, if any did. A word this build does
+ * not know says nothing rather than something untrue.
  */
-export function deliveryLines(
-  status: Pick<EligibleTrialSetup, 'delivery' | 'missingContacts' | 'lastSentAt'> & { sentTo?: readonly TrialChannel[] },
-): TranslationKey[] {
+export function deliveryLines(status: Pick<EligibleTrialSetup, 'delivery' | 'missingContacts' | 'channel' | 'destination' | 'lastSentAt'>): TranslationKey[] {
   switch (status.delivery) {
     case 'waiting_for_contact':
       return status.missingContacts.map((contact) => WAITING[contact]).filter(Boolean);
     case 'sending':
       return ['trialSetup.delivery.sending'];
     case 'sent':
-      return ['trialSetup.delivery.sent'];
-    case 'unavailable':
-      return ['trialSetup.delivery.unavailable'];
+      return [(status.channel && status.destination && status.lastSentAt && SENT[status.channel]) || 'trialSetup.delivery.sent'];
     case 'failed':
       return ['trialSetup.delivery.failed'];
     case 'not_sent':
-      return [notSentLine(status)];
+      return [status.lastSentAt ? 'trialSetup.delivery.not_sent.latest' : 'trialSetup.delivery.not_sent'];
     default:
       return [];
   }

@@ -105,12 +105,13 @@ function screenText(): string {
 }
 
 /** The form, filled in as a shop owner would: business, branch, owner, email, password twice. */
+/** The form as a person fills it: the WhatsApp number (required) first among the contacts, no email address. */
 function fillForm() {
-  const [business, branch, , owner, email, , password, again] = screen.UNSAFE_getAllByType(TextInput);
+  const [business, branch, , owner, phone, , password, again] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(business, 'Nour Electronics');
   fireEvent.changeText(branch, 'Main Store');
   fireEvent.changeText(owner, 'Aicha');
-  fireEvent.changeText(email, 'aicha@example.invalid');
+  fireEvent.changeText(phone, '+22236000001');
   fireEvent.changeText(password, 'correct horse');
   fireEvent.changeText(again, 'correct horse');
 }
@@ -156,7 +157,7 @@ describe('the form', () => {
   it('posts to auth/register only, with no identifier the server generates, then goes to the code check', async () => {
     (api.post as jest.Mock).mockResolvedValue({
       status: 'pending_activation', created: true, publicStoreId: 'S-NEW',
-      verification: { destination: 'a•••@example.com', channel: 'email' },
+      verification: { destination: '+222••••0001', channel: 'phone' },
       continuation: { token: CONTINUATION, expiresAt: '2026-10-13T09:15:00.000Z', expiresInSeconds: 900 },
       next: 'verify_contact',
     });
@@ -169,11 +170,13 @@ describe('the form', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/auth/register');
-    expect(body).toEqual(expect.objectContaining({ ownerName: 'Aicha', businessName: 'Nour Electronics', branchName: 'Main Store', email: 'aicha@example.invalid', language: 'en' }));
+    expect(body).toEqual(expect.objectContaining({ ownerName: 'Aicha', businessName: 'Nour Electronics', branchName: 'Main Store', phone: '+22236000001', language: 'en' }));
+    // No email address given: none is sent, not even an empty one.
+    expect(body).not.toHaveProperty('email');
     for (const id of ['storeId', 'companyId', 'branchId', 'userId', 'roleId']) expect(body).not.toHaveProperty(id);
     // The continuation is kept in secure storage; the code check is next, with where the code went.
     expect(mockStore.get('erp.registration.continuation')).toBe(CONTINUATION);
-    expect(routerReplace).toHaveBeenCalledWith({ pathname: '/(auth)/verify', params: { destination: 'a•••@example.com' } });
+    expect(routerReplace).toHaveBeenCalledWith({ pathname: '/(auth)/verify', params: { destination: '+222••••0001' } });
     expect(screenText()).not.toMatch(UNSAID);
   });
 
@@ -183,7 +186,7 @@ describe('the form', () => {
       .mockRejectedValueOnce(new RequestTimeout())
       .mockResolvedValueOnce({
         status: 'pending_activation', created: true, publicStoreId: 'S-NEW',
-        verification: { destination: 'r•••@example.invalid', channel: 'email' },
+        verification: { destination: '+222••••0002', channel: 'phone' },
         continuation: { token: CONTINUATION, expiresAt: '2026-10-13T09:15:00.000Z', expiresInSeconds: 900 },
         next: 'verify_contact',
       });
@@ -195,8 +198,8 @@ describe('the form', () => {
         fireEvent.press(screen.getByText(t('register.submit')));
       });
     }
-    // Then they notice the address was wrong and correct it: a new attempt.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[4], 'right@example.invalid');
+    // Then they notice the number was wrong and correct it: a new attempt.
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[4], '+22236000002');
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -204,9 +207,9 @@ describe('the form', () => {
     const [first, retry, corrected] = (api.post as jest.Mock).mock.calls.map(([, body]) => body);
     expect(retry.idempotencyKey).toBe(first.idempotencyKey);
     expect(corrected.idempotencyKey).not.toBe(first.idempotencyKey);
-    expect(corrected.email).toBe('right@example.invalid');
+    expect(corrected.phone).toBe('+22236000002');
     // The code check follows the corrected registration, not the first one.
-    expect(routerReplace).toHaveBeenLastCalledWith({ pathname: '/(auth)/verify', params: { destination: 'r•••@example.invalid' } });
+    expect(routerReplace).toHaveBeenLastCalledWith({ pathname: '/(auth)/verify', params: { destination: '+222••••0002' } });
   });
 
   it('a server that cannot send the code: account creation is not available right now, nothing was saved — and nothing moves on', async () => {
@@ -225,25 +228,19 @@ describe('the form', () => {
     expect(mockStore.has('erp.registration.continuation')).toBe(false);
   });
 
-  it('a server that cannot verify the WhatsApp number given beside an email: remove the number to go on, or try later — nothing moves on', async () => {
-    (api.post as jest.Mock).mockRejectedValue(
-      Object.assign(new ApiError('Registration cannot be completed right now: a verification code cannot be sent. Nothing was saved.', 503, 'registration_unavailable'), {
-        body: { code: 'registration_unavailable', unavailableContacts: ['phone'] },
-      }),
-    );
+  it('without the WhatsApp number nothing is sent: the number is required, said beside it — an email address alone is not enough', async () => {
     renderWith(<RegisterScreen />);
     fillForm();
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[5], '+22212345678');
+    const inputs = screen.UNSAFE_getAllByType(TextInput);
+    fireEvent.changeText(inputs[4], '');
+    fireEvent.changeText(inputs[5], 'aicha@example.invalid');
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
 
-    expect(await screen.findByText(t('register.unavailable.whatsapp'))).toBeTruthy();
-    expect(t('register.unavailable.whatsapp')).toBe(
-      'WhatsApp verification is not available right now. Remove the WhatsApp number to continue with your email address, or try again later.',
-    );
+    expect(await screen.findByText(t('register.problem.phoneRequired'))).toBeTruthy();
+    expect(api.post).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
-    expect(screenText()).not.toMatch(UNSAID);
   });
 });
 

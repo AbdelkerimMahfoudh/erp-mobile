@@ -246,8 +246,14 @@ const TOKEN_MARKER = /[#?&]t=|^t=|account\/trial(?!-setup)/i;
 const WRITTEN_WAY_OUT =
   /http-equiv\s*=\s*["']?\s*refresh|^\s*\d+\s*;\s*url\s*=|content\s*=\s*["']\s*\d+\s*;\s*url\s*=|<(?:a|area)\s[^>]*\bhref\s*=|<(?:iframe|frame|frameset|object|embed|portal|form|base)\b|<[a-z][^>]*\son[a-z]+\s*=/i;
 
-/** The website, by its address or by a configured origin for it. */
-const WEBSITE_ADDRESS = /tsx[-.]mr\.(?:com|mr|net|org|app)\b|\btsx\.mr\b|dukan[\w-]*\.(?:com|mr|net|org|app)\b|PUBLIC_SITE_ORIGIN|EXPO_PUBLIC_(?:SITE|PORTAL|SIGNUP|WEBSITE)_URL/i;
+/**
+ * The website and the Dukan ERP portal, by an address or by a configured origin for them: `tsxmr.com` and every host
+ * under it — the portal's `dukan.tsxmr.com` among them (the owner's brief of 2026-10-18) — however the brand is
+ * spelled (`tsxmr`, `tsx-mr`, `tsx.mr`), and a `dukan…` domain of its own. The legal pages' origin is configured
+ * (`EXPO_PUBLIC_LEGAL_ORIGIN`), never written.
+ */
+const WEBSITE_ADDRESS =
+  /tsx[-.]?mr\.(?:com|mr|net|org|app)\b|\btsx\.mr\b|\bdukan[\w-]*\.(?:com|mr|net|org|app)\b|PUBLIC_SITE_ORIGIN|EXPO_PUBLIC_(?:SITE|PORTAL|SIGNUP|WEBSITE)_URL/i;
 
 /**
  * A price for the app's own access, by what it is a price of — per month, per

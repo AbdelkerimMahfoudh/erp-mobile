@@ -14,7 +14,7 @@ import { usePermission } from '../../lib/permissions';
  *
  * Mounted once at the top of Home, Partners, Money, Stock and More, so the five
  * never disagree: grace is one restrained warning carrying the server's exact
- * deadline; read-only says that reading and exports continue — after a free
+ * deadline, on the business's own clock; read-only says that reading and exports continue — after a free
  * trial, with the moment it ended, on the business's own clock; an Owner over
  * the staff allowance is told so. An open shop sees nothing, and a closed one
  * never reaches a tab. Every word comes from the server's state — no price, no
@@ -34,7 +34,7 @@ export function AccessNotice({ style }: { style?: StyleProp<ViewStyle> }) {
       : kind === 'trial_ended'
         ? t('access.trial.ended', { date: access.trialEnd ? formatDateTime(access.trialEnd.at, { timeZone: access.trialEnd.timeZone }) : '' })
         : kind === 'grace'
-          ? t('access.grace.notice', { deadline: access.graceEnd ? formatDateTime(access.graceEnd) : '' })
+          ? t('access.grace.notice', { deadline: access.graceEnd ? formatDateTime(access.graceEnd, { timeZone: access.timeZone ?? undefined }) : '' })
           : t('access.staff.over');
 
   return (

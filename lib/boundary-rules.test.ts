@@ -132,6 +132,29 @@ describe('a resend, by what it sends again: the instructions, the link, the mess
   });
 });
 
+describe('the website and the portal, by their addresses (the owner’s brief of 2026-10-18)', () => {
+  it('the company site, the portal and any host under the brand are found, however the brand is spelled', () => {
+    for (const phrase of [
+      'https://tsxmr.com',
+      'tsxmr.com/subscription',
+      'https://dukan.tsxmr.com/subscription',
+      'Open dukan.tsxmr.com to start',
+      'portal.tsxmr.com',
+      'www.tsxmr.com/fr/products/dukan-erp',
+      'https://tsx-mr.com',
+      'tsx.mr',
+      'https://dukan-erp.com',
+      'EXPO_PUBLIC_PORTAL_URL',
+    ]) {
+      assertBroken(phrase, /^website address$/);
+    }
+  });
+
+  it('an address of no website of ours, and the app’s own words, stay allowed', () => {
+    for (const phrase of ['owner@example.com', 'The Dukan ERP app', 'Your WhatsApp number', 'api.example.mr']) assertAllowed(phrase);
+  });
+});
+
 describe('a price of the app’s own access, by what it prices', () => {
   it('per month, per seat or place, an extra place, a tariff, an amount in ouguiya', () => {
     for (const phrase of ['500 MRU per month', '100 MRU per seat', '500 UM par mois', '500 MRU / mois', '500 أوقيه شهريا', '500 أوقية', 'Additional staff place: 100', 'Place supplémentaire : 100']) {

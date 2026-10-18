@@ -32,6 +32,8 @@ export interface BusinessAccess {
   readonly periodEnd: string | null;
   /** The server's exact grace deadline, shown verbatim in the grace warning. */
   readonly graceEnd: string | null;
+  /** The business's zone, which that deadline is read in (0099); null from a server too old to name it. */
+  readonly timeZone: string | null;
   /** The free trial's end while the business's access is its trial's (`trialEndOf`); null otherwise. */
   readonly trialEnd: TrialEnd | null;
   readonly overLimit: boolean;
@@ -47,12 +49,13 @@ export interface TrialEnd {
 
 export function businessAccess(entitlement: Entitlement | undefined, stale = false): BusinessAccess {
   if (!entitlement) {
-    return { mode: 'unknown', state: null, canWrite: true, canRead: true, periodEnd: null, graceEnd: null, trialEnd: null, overLimit: false, stale: true };
+    return { mode: 'unknown', state: null, canWrite: true, canRead: true, periodEnd: null, graceEnd: null, timeZone: null, trialEnd: null, overLimit: false, stale: true };
   }
   const base = {
     state: entitlement.state,
     periodEnd: entitlement.periodEnd,
     graceEnd: entitlement.graceEnd,
+    timeZone: entitlement.timeZone ?? null,
     trialEnd: trialEndOf(entitlement),
     overLimit: entitlement.overLimit,
     stale,
