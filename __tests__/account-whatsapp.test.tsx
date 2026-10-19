@@ -56,7 +56,7 @@ function server(account: { now: AccountView }, onConfirm: () => void) {
     if (path === '/account') return account.now;
     if (path === '/account/trial-setup') return { state: 'trial_available', eligible: false };
     if (consentCopyFor(path)) return consentCopyFor(path);
-    if (path.startsWith('/account/whatsapp/consent')) return { state: 'granted', copy: consentCopyFor('/messaging/whatsapp/consent?language=en'), history: [] };
+    if (path.startsWith('/account/whatsapp/consent')) return { state: 'active', copy: consentCopyFor('/messaging/whatsapp/consent?language=en'), history: [] };
     throw new Error(`unexpected read ${path}`);
   });
   (api.post as jest.Mock).mockImplementation(async (path: string) => {

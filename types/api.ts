@@ -464,12 +464,24 @@ export interface TeamPending {
   seats: { branchId: string; branchName: string; state: 'included' | 'held' | 'awaiting_payment' }[];
 }
 
+export type StaffDeliveryState = 'sent' | 'unavailable' | 'awaiting_consent';
+
+/** `POST staff/verify/confirm`: the contact proved, and where each waiting account stands (docs/69 §3). */
+export interface StaffConfirmResult {
+  verified: true;
+  accounts: { business: string; name: string; activated: boolean; pending: string[] }[];
+}
+
 /** `POST /users`: an account that waits to be activated. Never carries a code the app could show. */
 export interface StaffInvitationResult {
   created: boolean;
   user: { id: string; name: string; email: string | null; phone: string | null; status: 'pending'; stores: { id: string; name: string; role: string }[] };
-  /** `sent`: a code went out; `unavailable`: nothing can deliver right now, the account stays pending. */
-  verification: { email: 'sent' | 'unavailable' | null; phone: 'sent' | 'unavailable' | null };
+  /**
+   * `sent`: a code went out; `unavailable`: nothing can deliver right now, the account stays pending;
+   * `awaiting_consent` (a WhatsApp number, D213): the person agrees to WhatsApp messages and asks for the code on
+   * their own phone — the Owner never consents for them.
+   */
+  verification: { email: StaffDeliveryState | null; phone: StaffDeliveryState | null };
   seats: { storeId: string; store: string; state: 'included' | 'held' | 'awaiting_payment' }[];
   activation: { activated: boolean; pending: string[] };
 }
@@ -1560,7 +1572,7 @@ export interface WhatsAppConsentCopy {
 }
 
 /** Where a number's consent stands, as the server decides it. */
-export type WhatsAppConsentState = 'no_number' | 'none' | 'granted' | 'outdated' | 'withdrawn';
+export type WhatsAppConsentState = 'no_number' | 'none' | 'pending' | 'active' | 'outdated' | 'withdrawn' | 'superseded';
 
 /** My operational WhatsApp consent (`GET account/whatsapp/consent`, D213). The number arrives masked. */
 export interface WhatsAppConsentView {

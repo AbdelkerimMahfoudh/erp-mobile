@@ -16,9 +16,12 @@ export function consentFields(copy: WhatsAppConsentCopy | null | undefined, tick
   return { whatsappConsentVersion: copy.version, whatsappConsentLocale: copy.language };
 }
 
-/** Whether the account should ask for the consent: a verified number without the copy in force agreed to. */
+/**
+ * Whether the account should ask for the consent: a verified number without an active consent to the copy in force —
+ * never agreed, agreed to an earlier copy, replaced, or still pending. A withdrawal is the person's choice: not nagged.
+ */
 export function consentRequested(view: Pick<WhatsAppConsentView, 'state'> | null | undefined): boolean {
-  return view?.state === 'none' || view?.state === 'outdated';
+  return view?.state === 'none' || view?.state === 'outdated' || view?.state === 'superseded' || view?.state === 'pending';
 }
 
 /** Whether a withdrawal needs the support-recovery acknowledgement before the server will take it. */
@@ -29,9 +32,11 @@ export function withdrawalNeedsAcknowledgement(view: Pick<WhatsAppConsentView, '
 const STATE: Record<WhatsAppConsentState, TranslationKey> = {
   no_number: 'consent.state.no_number',
   none: 'consent.state.none',
-  granted: 'consent.state.granted',
+  pending: 'consent.state.pending',
+  active: 'consent.state.active',
   outdated: 'consent.state.outdated',
   withdrawn: 'consent.state.withdrawn',
+  superseded: 'consent.state.superseded',
 };
 
 /** The state in words — never by colour alone. */
@@ -41,22 +46,28 @@ export function consentStateKey(state: WhatsAppConsentState): TranslationKey {
 
 /** The chip tone that goes with the words. */
 export function consentStateTone(state: WhatsAppConsentState): 'success' | 'warning' | 'neutral' {
-  if (state === 'granted') return 'success';
-  if (state === 'none' || state === 'outdated') return 'warning';
+  if (state === 'active') return 'success';
+  if (state === 'none' || state === 'outdated' || state === 'superseded' || state === 'pending') return 'warning';
   return 'neutral';
 }
 
 const EVENT: Record<string, TranslationKey> = {
-  granted: 'consent.event.granted',
+  pending_unverified: 'consent.event.pending_unverified',
+  active: 'consent.event.active',
+  granted: 'consent.event.active',
   withdrawn: 'consent.event.withdrawn',
+  superseded: 'consent.event.superseded',
+  expired: 'consent.event.expired',
   opted_out_optional: 'consent.event.opted_out_optional',
 };
 
 export function consentEventKey(event: string): TranslationKey {
-  return EVENT[event] ?? 'consent.event.granted';
+  return EVENT[event] ?? 'consent.event.active';
 }
 
 const SOURCE: Record<string, TranslationKey> = {
+  employee_activation: 'consent.source.employee_activation',
+  expiry: 'consent.source.expiry',
   mobile_registration: 'consent.source.registration',
   website_registration: 'consent.source.registration',
   owner_registration: 'consent.source.registration',

@@ -246,6 +246,11 @@ export default function Login() {
               <Text variant="caption" tone="secondary" align="center">
                 {t('auth.accounts.managed')}
               </Text>
+              {/*
+                The employee's own way in (D213): prove the contact the Owner gave, agree to WhatsApp messages on this
+                phone if it is a number, and choose a password.
+              */}
+              <Button title={t('auth.action.join')} variant="tertiary" onPress={() => router.push('/(auth)/join' as never)} />
 
               {/*
                 Last on the screen, and the first thing somebody needs.

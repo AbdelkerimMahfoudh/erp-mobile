@@ -9,7 +9,7 @@ import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
-import type { StaffInvitationResult, UserBranch } from '../../types/api';
+import type { StaffDeliveryState, StaffInvitationResult, UserBranch } from '../../types/api';
 
 /** E.164-ish, matched after stripping punctuation — mirrors the server. */
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -163,11 +163,16 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
 /** What the server did — said in its own terms, nothing inferred. */
 function Outcome({ result }: { result: StaffInvitationResult }) {
   const { t } = useTranslation();
-  const channel = (label: string, state: 'sent' | 'unavailable' | null) =>
+  const DELIVERY = {
+    sent: 'team.pending.delivery.sent',
+    unavailable: 'team.pending.delivery.unavailableShort',
+    awaiting_consent: 'team.pending.delivery.awaitingConsentShort',
+  } as const;
+  const channel = (label: string, state: StaffDeliveryState | null) =>
     state === null ? null : (
       <View style={styles.line} key={label}>
         <Text variant="body">{label}</Text>
-        <Chip tone={state === 'sent' ? 'success' : 'warning'} label={state === 'sent' ? t('team.pending.delivery.sent') : t('team.pending.delivery.unavailableShort')} />
+        <Chip tone={state === 'sent' ? 'success' : 'warning'} label={t(DELIVERY[state])} />
       </View>
     );
   const anyUnavailable = result.verification.email === 'unavailable' || result.verification.phone === 'unavailable';
@@ -176,6 +181,13 @@ function Outcome({ result }: { result: StaffInvitationResult }) {
       <Text variant="body">{result.created ? t('team.create.done.body', { name: result.user.name }) : t('team.create.done.existing', { name: result.user.name })}</Text>
       {channel(result.user.phone ?? '', result.verification.phone)}
       {channel(result.user.email ?? '', result.verification.email)}
+      {result.verification.phone === 'awaiting_consent' ? (
+        <InlineNotice tone="info" title={t('team.pending.delivery.awaitingConsentTitle')}>
+          <Text variant="caption" tone="secondary">
+            {t('team.pending.delivery.awaitingConsent', { name: result.user.name })}
+          </Text>
+        </InlineNotice>
+      ) : null}
       {anyUnavailable ? (
         <InlineNotice tone="warning" title={t('team.pending.delivery.unavailableTitle')}>
           <Text variant="caption" tone="secondary">

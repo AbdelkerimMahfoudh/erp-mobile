@@ -69,8 +69,17 @@ export function PendingPanel({ user, onCancelled }: { user: TeamUser; onCancelle
           <Text variant="body">{value}</Text>
           <Chip tone={state === 'verified' ? 'success' : 'warning'} label={state === 'verified' ? t('team.pending.contact.verified') : t('team.pending.contact.awaiting')} />
         </View>
-        {state === 'awaiting' ? (
+        {/*
+          A WhatsApp number's code is the person's to ask for, after agreeing on their own phone (D213): the Owner can
+          send an email code again, never a WhatsApp one.
+        */}
+        {state === 'awaiting' && channel === 'email' ? (
           <Button title={t('team.pending.resend')} variant="secondary" size="sm" loading={resend.isPending} onPress={() => resend.mutate(channel)} />
+        ) : null}
+        {state === 'awaiting' && channel === 'phone' ? (
+          <Text variant="caption" tone="secondary">
+            {t('team.pending.delivery.awaitingConsent', { name: user.name })}
+          </Text>
         ) : null}
       </View>
     );

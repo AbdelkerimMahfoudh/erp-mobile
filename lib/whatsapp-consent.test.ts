@@ -35,9 +35,9 @@ it('an agreement carries the server’s version and the language shown — only 
 });
 
 it('the account asks when the number has no consent to the copy in force — never otherwise', () => {
-  assert.equal(consentRequested({ state: 'none' }), true);
-  assert.equal(consentRequested({ state: 'outdated' }), true);
-  for (const state of ['granted', 'withdrawn', 'no_number'] as const) assert.equal(consentRequested({ state }), false);
+  for (const state of ['none', 'outdated', 'superseded', 'pending'] as const) assert.equal(consentRequested({ state }), true);
+  // A withdrawal is the person's choice: asked again only in Communication preferences, never nagged.
+  for (const state of ['active', 'withdrawn', 'no_number'] as const) assert.equal(consentRequested({ state }), false);
   assert.equal(consentRequested(null), false);
 });
 
@@ -47,14 +47,19 @@ it('a withdrawal needs the acknowledgement exactly when WhatsApp is the only ver
 });
 
 it('every state has its words and a tone beside them', () => {
-  for (const state of ['no_number', 'none', 'granted', 'outdated', 'withdrawn'] as const) assert.equal(consentStateKey(state), `consent.state.${state}`);
-  assert.equal(consentStateTone('granted'), 'success');
+  for (const state of ['no_number', 'none', 'pending', 'active', 'outdated', 'withdrawn', 'superseded'] as const) assert.equal(consentStateKey(state), `consent.state.${state}`);
+  assert.equal(consentStateTone('active'), 'success');
+  assert.equal(consentStateTone('pending'), 'warning');
   assert.equal(consentStateTone('none'), 'warning');
   assert.equal(consentStateTone('withdrawn'), 'neutral');
 });
 
 it('events and sources read in words; legacy sources read as the account', () => {
-  assert.equal(consentEventKey('withdrawn'), 'consent.event.withdrawn');
+  for (const event of ['pending_unverified', 'active', 'withdrawn', 'superseded', 'expired'] as const) assert.equal(consentEventKey(event), `consent.event.${event}`);
+  // A grant recorded before the lifecycle reads as an agreement.
+  assert.equal(consentEventKey('granted'), 'consent.event.active');
+  assert.equal(consentSourceKey('employee_activation'), 'consent.source.employee_activation');
+  assert.equal(consentSourceKey('expiry'), 'consent.source.expiry');
   assert.equal(consentSourceKey('mobile_registration'), 'consent.source.registration');
   assert.equal(consentSourceKey('inbound_keyword'), 'consent.source.inbound_keyword');
   assert.equal(consentSourceKey('phone_verification'), 'consent.source.account');

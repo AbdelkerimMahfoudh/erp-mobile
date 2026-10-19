@@ -399,6 +399,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/agent/providers/[id]': 'One provider of the agent counter — its configuration, its versions, switching it off — opened from Providers.',
   '/login': 'Authentication, reached when signed out. A business account is created from here (restored 2026-10-13); an employee’s account is created by the Owner in Team.',
   '/register': 'Creating a business account, reached from the sign-in screen when signed out.',
+  '/join': 'An employee proving the contact their Owner gave and agreeing to WhatsApp messages (D213); from sign-in, signed out.',
   '/verify': 'Proving the contact for a registration in progress. Reached only from /register.',
   // Shown INSTEAD of the app when the server says the business is closed
   // (pending, suspended, cancelled, refused). Not a destination anybody navigates to on purpose.

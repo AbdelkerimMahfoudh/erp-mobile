@@ -142,7 +142,7 @@ function ConsentSection({ view }: { view: WhatsAppConsentView }) {
     return <InlineNotice tone="warning">{t('consent.noNumber')}</InlineNotice>;
   }
 
-  const granted = view.state === 'granted';
+  const granted = view.state === 'active';
 
   return (
     <>

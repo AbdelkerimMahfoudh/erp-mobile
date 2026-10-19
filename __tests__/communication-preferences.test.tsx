@@ -53,10 +53,10 @@ const view = (over: Partial<WhatsAppConsentView> = {}, lang: 'en' | 'fr' | 'ar' 
   ...over,
 });
 const GRANTED = {
-  state: 'granted' as const,
+  state: 'active' as const,
   grantedVersion: CONSENT_VERSION,
   grantedAt: '2026-10-19T08:00:00.000Z',
-  history: [{ event: 'granted', version: CONSENT_VERSION, locale: 'en', source: 'mobile_registration', at: '2026-10-19T08:00:00.000Z' }],
+  history: [{ event: 'active', version: CONSENT_VERSION, locale: 'en', source: 'mobile_registration', at: '2026-10-19T08:00:00.000Z' }],
 };
 
 function serve(current: { now: WhatsAppConsentView }) {
@@ -109,7 +109,7 @@ describe('an account without a consent', () => {
     });
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/consent?language=en', { version: CONSENT_VERSION, locale: 'en' });
     await waitFor(() => expect(toasts()).toEqual([`success: ${t('consent.agreed')}`]));
-    expect(await screen.findByText(t('consent.state.granted'))).toBeTruthy();
+    expect(await screen.findByText(t('consent.state.active'))).toBeTruthy();
     expect(screen.queryByTestId('whatsapp-consent-check')).toBeNull();
   });
 
@@ -179,16 +179,16 @@ describe('what the screen shows', () => {
       now: view({
         ...GRANTED,
         history: [
-          { event: 'granted', version: CONSENT_VERSION, locale: 'ar', source: 'account_settings', at: '2026-10-19T10:00:00.000Z' },
+          { event: 'active', version: CONSENT_VERSION, locale: 'ar', source: 'account_settings', at: '2026-10-19T10:00:00.000Z' },
           { event: 'withdrawn', version: null, locale: null, source: 'inbound_keyword', at: '2026-10-19T09:00:00.000Z' },
-          { event: 'granted', version: CONSENT_VERSION, locale: 'en', source: 'mobile_registration', at: '2026-10-19T08:00:00.000Z' },
+          { event: 'active', version: CONSENT_VERSION, locale: 'en', source: 'mobile_registration', at: '2026-10-19T08:00:00.000Z' },
         ],
       }),
     });
     renderScreen();
     expect(await screen.findByText(t('consent.history'))).toBeTruthy();
     const lines = screen.getAllByText(/ · /).map((n) => String(n.props.children));
-    expect(lines.some((l) => l.startsWith(t('consent.event.granted')) && l.endsWith(t('consent.source.account')))).toBe(true);
+    expect(lines.some((l) => l.startsWith(t('consent.event.active')) && l.endsWith(t('consent.source.account')))).toBe(true);
     expect(lines.some((l) => l.startsWith(t('consent.event.withdrawn')) && l.endsWith(t('consent.source.inbound_keyword')))).toBe(true);
     expect(lines.some((l) => l.endsWith(t('consent.source.registration')))).toBe(true);
     expect(screen.getByText(new RegExp(MASKED.replace(/[+]/g, '\\+')))).toBeTruthy();
@@ -210,7 +210,7 @@ describe('what the screen shows', () => {
       serve({ now: view(GRANTED, 'ar') });
       renderScreen();
       expect(await screen.findByText(CONSENT_COPY.ar.agreement)).toBeTruthy();
-      expect(screen.getByText(t('consent.state.granted'))).toBeTruthy();
+      expect(screen.getByText(t('consent.state.active'))).toBeTruthy();
       expect(screen.getByText(`⁦${MASKED}⁩`)).toBeTruthy();
       expect(api.get).toHaveBeenCalledWith('/account/whatsapp/consent?language=ar');
     } finally {
@@ -258,7 +258,7 @@ describe('Your account', () => {
   it('says nothing more once the consent is given', async () => {
     serveAccount(view(GRANTED));
     renderScreen(<AccountScreen />);
-    expect(await screen.findByText(t('consent.state.granted'))).toBeTruthy();
+    expect(await screen.findByText(t('consent.state.active'))).toBeTruthy();
     expect(screen.queryByText(t('account.consent.request'))).toBeNull();
   });
 });
