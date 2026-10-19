@@ -1,5 +1,5 @@
 import React from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { Platform, Share, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Button, InlineNotice, Text } from '../ui';
 import { space } from '../../lib/design/tokens';
@@ -7,6 +7,9 @@ import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
 import type { IssuedInvitation } from '../../types/api';
+
+/** A browser without a share sheet (most desktops) offers Copy alone, rather than a button that does nothing. */
+const canShare = Platform.OS !== 'web' || typeof globalThis.navigator?.share === 'function';
 
 /**
  * An employee's invitation reference, the one time it can be seen (D214).
@@ -46,7 +49,7 @@ export function InvitationReference({ name, invitation }: { name: string; invita
       </Text>
       <View style={styles.actions}>
         <Button title={t('team.invite.copy')} variant="secondary" size="sm" onPress={() => void copy()} />
-        <Button title={t('team.invite.share')} variant="secondary" size="sm" onPress={share} />
+        {canShare ? <Button title={t('team.invite.share')} variant="secondary" size="sm" onPress={share} /> : null}
       </View>
       <InlineNotice tone="warning">{t('team.invite.once')}</InlineNotice>
     </View>

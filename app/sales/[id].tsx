@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Ban, FileText, Store, UserRound } from 'lucide-react-native';
 import { CorrectionSheet } from '../../components/corrections/CorrectionSheet';
@@ -30,7 +30,7 @@ import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { formatDate, formatDateTime, formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
-import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/receipt';
+import { shareReceipt, type ReceiptData } from '../../lib/receipt';
 import { isFresh, useRecentSuccess } from '../../lib/recent-success';
 import { describeWindow, policyStatus } from '../../lib/return-policy';
 import { useSale } from '../../lib/sales';
@@ -114,7 +114,7 @@ function Body({ sale }: { sale: SaleDetail }) {
     setSharing(true);
     try {
       const shared = await shareReceipt(receiptOf(sale, t, user?.companyName ?? null));
-      if (!shared) toast.info(t('sell.done.shareFailed'));
+      if (!shared) toast.info(t(Platform.OS === 'web' ? 'reportPdf.error.popupBlocked' : 'sell.done.shareFailed'));
     } catch {
       toast.error(t('sell.done.shareFailed'));
     } finally {
@@ -264,8 +264,8 @@ function Body({ sale }: { sale: SaleDetail }) {
       </Section>
 
       {/* The customer's copy, for warranty and ownership: the exact phone and
-          what was paid, and never cost or margin. No share sheet on web. */}
-      {canShareReceipt() && !cancelled ? (
+          what was paid, and never cost or margin. On web it opens in a new tab. */}
+      {!cancelled ? (
         <Button title={t('saleDetail.viewReceipt')} variant="secondary" icon={FileText} fullWidth loading={sharing} onPress={() => void share()} />
       ) : null}
 

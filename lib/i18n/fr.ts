@@ -1330,9 +1330,9 @@ export const fr: Catalogue = {
   'scanner.permission.grant': 'Autoriser la caméra',
   'scanner.permission.denied':
     'L’accès à la caméra est désactivé. Activez-le dans les réglages du téléphone, ou saisissez le code.',
-  'scanner.unavailable.title': 'Pas de caméra ici',
+  'scanner.unavailable.title': 'Le scan se fait dans l’application',
   'scanner.unavailable.body':
-    'Cet appareil n’a pas de caméra disponible. Vous pouvez saisir le code à la place.',
+    'La version navigateur ne peut pas utiliser la caméra. Saisissez l’IMEI, le numéro de série ou le code-barres — il est vérifié de la même façon.',
 
   // ── Sell ──────────────────────────────────────────────────────────────────
   'sell.title': 'Vendre',
@@ -2701,6 +2701,7 @@ export const fr: Catalogue = {
   'refund.receipt.netReturned': 'Rendu au client',
   'refund.receipt.status': 'État',
   'refund.receipt.unavailable': 'Le partage n’est pas disponible sur cet appareil.',
+  'refund.receipt.phoneApp': 'Le reçu de remboursement se partage depuis l’application du téléphone.',
   'refund.receipt.failed':
     'Impossible de créer le reçu. Le remboursement reste confirmé.',
 

@@ -1249,8 +1249,8 @@ export const en = {
   'scanner.permission.grant': 'Allow camera',
   'scanner.permission.denied':
     'Camera access is turned off. Turn it on in your phone settings, or type the code instead.',
-  'scanner.unavailable.title': 'No camera here',
-  'scanner.unavailable.body': 'This device has no camera available. You can type the code instead.',
+  'scanner.unavailable.title': 'Scanning is in the phone app',
+  'scanner.unavailable.body': 'The browser version cannot use the camera. Type the IMEI, serial number or barcode instead — it is checked the same way.',
 
   // ── Sell ──────────────────────────────────────────────────────────────────
   'sell.title': 'Sell',
@@ -2520,6 +2520,7 @@ export const en = {
   'refund.receipt.netReturned': 'Returned to customer',
   'refund.receipt.status': 'Status',
   'refund.receipt.unavailable': 'Sharing is not available on this device.',
+  'refund.receipt.phoneApp': 'The refund receipt is shared from the phone app.',
   'refund.receipt.failed': 'Could not create the receipt. The refund is still confirmed.',
 
   'refund.recon.section': 'Refunds',

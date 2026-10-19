@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Check, Share2, ShoppingCart } from 'lucide-react-native';
 import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
 import { formatMoney } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
-import { canShareReceipt, shareReceipt, type ReceiptData } from '../../lib/receipt';
+import { shareReceipt, type ReceiptData } from '../../lib/receipt';
 import { toast } from '../../lib/toast';
 import { Button } from '../ui/Button';
 import { MoneyValue } from '../ui/MoneyValue';
@@ -43,7 +43,7 @@ export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: Sa
     setSharing(true);
     try {
       const shared = await shareReceipt(receipt);
-      if (!shared) toast.info(t('sell.done.shareFailed'));
+      if (!shared) toast.info(t(Platform.OS === 'web' ? 'reportPdf.error.popupBlocked' : 'sell.done.shareFailed'));
     } catch {
       toast.error(t('sell.done.shareFailed'));
     } finally {
@@ -82,16 +82,15 @@ export function SaleSuccess({ invoiceNo, total, margin, receipt, onNewSale }: Sa
           fullWidth
           onPress={onNewSale}
         />
-        {canShareReceipt() ? (
-          <Button
-            title={t('sell.done.share')}
-            icon={Share2}
-            variant="secondary"
-            fullWidth
-            loading={sharing}
-            onPress={share}
-          />
-        ) : null}
+        {/* On web the receipt opens in a new tab, to print or save as a PDF: there is no share sheet. */}
+        <Button
+          title={t(Platform.OS === 'web' ? 'saleDetail.viewReceipt' : 'sell.done.share')}
+          icon={Share2}
+          variant="secondary"
+          fullWidth
+          loading={sharing}
+          onPress={share}
+        />
       </View>
     </View>
   );

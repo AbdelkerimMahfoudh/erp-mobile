@@ -244,7 +244,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
   const showReport = awaitingReport && canReportRefund;
   const showConfirm = pending && canConfirmRefund;
   const showReceipt = confirmed && canShareRefundReceipt();
-  const showsActions = showReview || showReport || showConfirm || showReceipt;
+  const receiptOnPhoneOnly = confirmed && !canShareRefundReceipt();
+  const showsActions = showReview || showReport || showConfirm || showReceipt || receiptOnPhoneOnly;
 
   /**
    * The actions sit over the bottom of the page, so the page reserves their
@@ -544,8 +545,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
         </View>
       ) : null}
 
-      {/* Sharing needs a native share sheet; on web the button stays hidden
-          rather than offering something that cannot work. */}
+      {/* Sharing needs a native share sheet; on web it says where the receipt is
+          shared from, rather than offering something that cannot work. */}
       {showReceipt ? (
         <View style={styles.actions} onLayout={measureActions}>
           <Button
@@ -554,6 +555,12 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
             onPress={() => void onShareReceipt()}
             loading={sharing}
           />
+        </View>
+      ) : receiptOnPhoneOnly ? (
+        <View style={styles.actions} onLayout={measureActions}>
+          <Text variant="caption" tone="secondary" align="center">
+            {t('refund.receipt.phoneApp')}
+          </Text>
         </View>
       ) : null}
 

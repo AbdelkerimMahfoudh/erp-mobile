@@ -1239,8 +1239,8 @@ export const ar: Catalogue = {
   'scanner.permission.grant': 'السماح بالكاميرا',
   'scanner.permission.denied':
     'إذن الكاميرا مغلق. فعّله من إعدادات الهاتف، أو أدخل الرقم يدويًا.',
-  'scanner.unavailable.title': 'لا توجد كاميرا',
-  'scanner.unavailable.body': 'لا تتوفر كاميرا على هذا الجهاز. يمكنك إدخال الرقم يدويًا.',
+  'scanner.unavailable.title': 'المسح متاح في تطبيق الهاتف',
+  'scanner.unavailable.body': 'لا تستطيع نسخة المتصفح استخدام الكاميرا. اكتب رقم IMEI أو الرقم التسلسلي أو الباركود — ويُتحقق منه بالطريقة نفسها.',
 
   // ── Sell ──────────────────────────────────────────────────────────────────
   'sell.title': 'بيع',
@@ -2461,6 +2461,7 @@ export const ar: Catalogue = {
   'refund.receipt.netReturned': 'المُعاد إلى العميل',
   'refund.receipt.status': 'الحالة',
   'refund.receipt.unavailable': 'المشاركة غير متاحة على هذا الجهاز.',
+  'refund.receipt.phoneApp': 'يُشارَك إيصال الاسترداد من تطبيق الهاتف.',
   'refund.receipt.failed': 'تعذّر إنشاء الإيصال. الاسترداد لا يزال مؤكَّدًا.',
 
   'refund.recon.section': 'المبالغ المستردة',

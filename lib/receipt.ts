@@ -5,6 +5,7 @@ import { formatDateTime, formatMoney } from './format';
 import { getLanguage, isRtlLanguage, t } from './i18n';
 import { receiptPolicyLine } from './return-policy';
 import { buildReceiptHtml, receiptLabels, type ReceiptData } from './receipt-html';
+import { openPageInTab } from './browser-tab';
 
 export type {
   ReceiptData,
@@ -46,12 +47,12 @@ const PAGE_MARGINS_PT = { top: 45, bottom: 45, left: 51, right: 51 };
 /**
  * Build the PDF and hand it to the OS share sheet.
  *
- * Returns false when sharing is unavailable — on web there is no share sheet,
- * so the caller should keep the button hidden rather than offer something that
- * cannot work.
+ * On web there is no share sheet: the receipt opens in a new tab, where the
+ * browser prints it or saves it as a PDF. Returns false when it could not be
+ * handed over — no share sheet on the phone, or the browser blocked the tab.
  */
 export async function shareReceipt(data: ReceiptData): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (Platform.OS === 'web') return openPageInTab(receiptHtml(data)) === 'opened';
 
   const { uri } = await Print.printToFileAsync({ html: receiptHtml(data), margins: PAGE_MARGINS_PT });
   if (!(await Sharing.isAvailableAsync())) return false;
@@ -62,9 +63,4 @@ export async function shareReceipt(data: ReceiptData): Promise<boolean> {
     UTI: 'com.adobe.pdf',
   });
   return true;
-}
-
-/** Whether the receipt button should be offered at all. */
-export function canShareReceipt(): boolean {
-  return Platform.OS !== 'web';
 }

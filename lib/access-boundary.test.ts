@@ -799,19 +799,19 @@ describe('the website’s entry points are gone from the app', () => {
     assert.equal(internalRoute('//example.invalid'), null);
   });
 
-  it('no page navigates itself or opens a window but the report’s preview, the CSV download and the guard', () => {
+  it('no page navigates itself or opens a window but the report’s and the receipt’s preview, the CSV download and the guard', () => {
     assert.deepEqual(SOURCES.flatMap(browserUses).sort(), [
       // The web build's API host is the page's own: read, never written.
       'constants/config.ts: reads (globalThis as { location?: { hostname?: string } }).location?.hostname',
+      // The report's preview and the customer's receipt: a new tab on a blob made from the page already in memory.
+      'lib/browser-tab.ts: window.open',
       // The guard: a new tab only for a blob page.
       'lib/navigation/no-browser.ts: window.open',
       'lib/navigation/no-browser.ts: window.open',
       // The CSV the browser saves: a link to a blob made from the report already in memory.
       'lib/report-export.ts: assigns link.href',
-      // The report's preview: a new tab on a blob made from the page already in memory.
-      'lib/report-pdf.ts: window.open',
     ]);
-    assert.match(code(new URL('lib/report-pdf.ts', ROOT).pathname), /const url = URL\.createObjectURL\(new Blob\(\[report\.html\][^)]*\)\);\s*const tab = window\.open\(url, '_blank'\);/);
+    assert.match(code(new URL('lib/browser-tab.ts', ROOT).pathname), /const url = URL\.createObjectURL\(new Blob\(\[html\][^)]*\)\);\s*const tab = window\.open\(url, '_blank'\);/);
     assert.match(code(new URL('lib/report-export.ts', ROOT).pathname), /const url = URL\.createObjectURL\(blob\);\s*const link = document\.createElement\('a'\);\s*link\.href = url;/);
   });
 

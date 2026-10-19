@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 import { Directory, File, Paths } from 'expo-file-system';
 import { api } from './api-client';
 import { getActiveBranchId } from './branch';
+import { openPageInTab } from './browser-tab';
 import { formatDate, formatDateTime, formatDayRange, formatMoney, formatMonth, formatNumber } from './format';
 import { getLanguage, isRtlLanguage, t } from './i18n';
 import type { ReportRequest } from './report-document';
@@ -103,13 +104,7 @@ export async function shareReportPdf(report: GeneratedReport): Promise<ShareOutc
  * On the web this must run straight from the press: a browser only opens a tab for a click.
  */
 export async function openReportPdf(report: GeneratedReport): Promise<'opened' | 'blocked'> {
-  if (Platform.OS === 'web') {
-    const url = URL.createObjectURL(new Blob([report.html], { type: 'text/html;charset=utf-8' }));
-    const tab = window.open(url, '_blank');
-    // Long enough for the tab to load what it was given; it holds its own copy afterwards.
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    return tab ? 'opened' : 'blocked';
-  }
+  if (Platform.OS === 'web') return openPageInTab(report.html);
   if (!report.uri) return 'blocked';
   await Print.printAsync({ uri: report.uri });
   return 'opened';
