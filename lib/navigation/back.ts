@@ -103,9 +103,10 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/team': TABS.more,
   '/access': TABS.more,
   '/settings': TABS.more,
-  // The person's own account (docs/64), and its one detail screen.
+  // The person's own account (docs/64), and its detail screens: deletion, communication preferences (D213).
   '/account': TABS.more,
   '/account/delete': '/account',
+  '/account/communication': '/account',
   '/appearance': TABS.more,
   '/devices': TABS.more,
   '/sync': TABS.more,

@@ -36,6 +36,11 @@ export interface RegistrationDraft {
   phone: string;
   password: string;
   passwordConfirm: string;
+  /**
+   * The operational WhatsApp consent beside the number (D213): ticked by the person, never by default and never
+   * because a number was typed. The server refuses a registration without it.
+   */
+  whatsappConsent: boolean;
 }
 
 export const emptyRegistration: RegistrationDraft = {
@@ -47,10 +52,19 @@ export const emptyRegistration: RegistrationDraft = {
   phone: '',
   password: '',
   passwordConfirm: '',
+  whatsappConsent: false,
 };
 
 /** Which field a problem belongs to, so it can be shown beside its input. */
-export type RegistrationField = 'ownerName' | 'businessName' | 'branchName' | 'email' | 'phone' | 'password' | 'passwordConfirm';
+export type RegistrationField =
+  | 'ownerName'
+  | 'businessName'
+  | 'branchName'
+  | 'email'
+  | 'phone'
+  | 'whatsappConsent'
+  | 'password'
+  | 'passwordConfirm';
 
 /** A translation key, never a sentence — this module renders nothing. */
 export type RegistrationProblems = Partial<Record<RegistrationField, string>>;
@@ -87,6 +101,8 @@ export function validateRegistration(draft: RegistrationDraft): RegistrationProb
   if (!phone) problems.phone = 'register.problem.phoneRequired';
   else if (!PHONE.test(phone)) problems.phone = 'register.problem.phone';
   if (email && !EMAIL.test(email)) problems.email = 'register.problem.email';
+  // The consent beside it (D213): the server refuses without it; asked here so nothing is sent for nothing.
+  if (!draft.whatsappConsent) problems.whatsappConsent = 'register.problem.whatsappConsent';
 
   if (draft.password.length < MIN_PASSWORD) problems.password = 'register.problem.password';
   // Checked even when the password is too short: somebody fixing one error
@@ -101,12 +117,15 @@ export function validateRegistration(draft: RegistrationDraft): RegistrationProb
 /**
  * The exact body `POST auth/register` expects. Optional fields are omitted,
  * never empty. `language` is the one the person is reading, so the code the
- * server sends next arrives in it too.
+ * server sends next arrives in it too. `consent` is what the ticked box agreed
+ * to — the server's version and the language it was shown in — and is sent
+ * only when the box is ticked (`consentFields`).
  */
 export function registrationPayload(
   draft: RegistrationDraft,
   idempotencyKey: string,
   language: Language,
+  consent: Record<string, string> = {},
 ): Record<string, string> {
   const body: Record<string, string> = {
     idempotencyKey,
@@ -119,7 +138,7 @@ export function registrationPayload(
   };
   if (draft.city.trim()) body.city = draft.city.trim();
   if (draft.email.trim()) body.email = draft.email.trim();
-  return body;
+  return draft.whatsappConsent ? { ...body, ...consent } : body;
 }
 
 /**
@@ -139,5 +158,5 @@ export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): bo
   const x = registrationPayload(a, '', 'en');
   const y = registrationPayload(b, '', 'en');
   const fields = new Set([...Object.keys(x), ...Object.keys(y)]);
-  return [...fields].every((field) => x[field] === y[field]);
+  return a.whatsappConsent === b.whatsappConsent && [...fields].every((field) => x[field] === y[field]);
 }

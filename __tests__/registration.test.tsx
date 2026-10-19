@@ -74,6 +74,7 @@ import { AuthProvider } from '../hooks/useAuth';
 import LoginScreen from '../app/(auth)/login';
 import RegisterScreen from '../app/(auth)/register';
 import VerifyScreen from '../app/(auth)/verify';
+import { CONSENT_COPY, CONSENT_VERSION, consentCopyFor } from './mocks/whatsapp-consent';
 
 const CONTINUATION = 'continuation-0123456789abcdef';
 const OWNER = { id: 'u-new', companyId: 'c-new', name: 'Aicha', login: 'aicha', publicStoreId: 'S-NEW' };
@@ -92,7 +93,10 @@ function renderWith(node: React.ReactElement, client = new QueryClient({ default
   return client;
 }
 
-/** Every string on screen, joined: what a person could read. */
+/**
+ * Every string on screen, joined: what a person could read — but the server's consent copy, which names what the
+ * operational messages are about (the account's status among them) and is the approved text of the agreement itself.
+ */
 function screenText(): string {
   const texts: string[] = [];
   const walk = (node: unknown) => {
@@ -101,12 +105,12 @@ function screenText(): string {
     else if (node && typeof node === 'object') walk((node as { children?: unknown }).children ?? []);
   };
   walk(screen.toJSON());
-  return texts.join(' ');
+  const copies = Object.values(CONSENT_COPY).flatMap((c) => [c.agreement, c.body]);
+  return texts.filter((text) => !copies.includes(text)).join(' ');
 }
 
-/** The form, filled in as a shop owner would: business, branch, owner, email, password twice. */
 /** The form as a person fills it: the WhatsApp number (required) first among the contacts, no email address. */
-function fillForm() {
+function fillFields() {
   const [business, branch, , owner, phone, , password, again] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(business, 'Nour Electronics');
   fireEvent.changeText(branch, 'Main Store');
@@ -114,6 +118,12 @@ function fillForm() {
   fireEvent.changeText(phone, '+22236000001');
   fireEvent.changeText(password, 'correct horse');
   fireEvent.changeText(again, 'correct horse');
+}
+
+/** …and ticks the WhatsApp consent beside the number, once the server's copy is shown. */
+async function fillForm() {
+  fillFields();
+  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
 }
 
 beforeEach(() => {
@@ -127,6 +137,7 @@ beforeEach(() => {
   (api.get as jest.Mock).mockImplementation(async (path: string) => {
     if (path.startsWith('/auth/me')) return OWNER;
     if (path.startsWith('/entitlement')) return { state: 'trial_available', canRead: false, canWrite: false, status: 'pending_activation', isComplimentary: false, calculatedAt: '2026-10-13T09:00:00.000Z' };
+    if (consentCopyFor(path)) return consentCopyFor(path);
     return {};
   });
 });
@@ -162,7 +173,7 @@ describe('the form', () => {
       next: 'verify_contact',
     });
     renderWith(<RegisterScreen />);
-    fillForm();
+    await fillForm();
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -171,6 +182,8 @@ describe('the form', () => {
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/auth/register');
     expect(body).toEqual(expect.objectContaining({ ownerName: 'Aicha', businessName: 'Nour Electronics', branchName: 'Main Store', phone: '+22236000001', language: 'en' }));
+    // The consent ticked: the server's version, and the language it was shown in.
+    expect(body).toEqual(expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: 'en' }));
     // No email address given: none is sent, not even an empty one.
     expect(body).not.toHaveProperty('email');
     for (const id of ['storeId', 'companyId', 'branchId', 'userId', 'roleId']) expect(body).not.toHaveProperty(id);
@@ -191,7 +204,7 @@ describe('the form', () => {
         next: 'verify_contact',
       });
     renderWith(<RegisterScreen />);
-    fillForm();
+    await fillForm();
     // The answer is lost, and the person taps again with nothing changed: the same attempt.
     for (let i = 0; i < 2; i++) {
       await act(async () => {
@@ -217,7 +230,7 @@ describe('the form', () => {
       new ApiError('Registration cannot be completed right now: no verification code can be sent. Nothing was saved.', 503, 'registration_unavailable'),
     );
     renderWith(<RegisterScreen />);
-    fillForm();
+    await fillForm();
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -230,7 +243,7 @@ describe('the form', () => {
 
   it('without the WhatsApp number nothing is sent: the number is required, said beside it — an email address alone is not enough', async () => {
     renderWith(<RegisterScreen />);
-    fillForm();
+    await fillForm();
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[4], '');
     fireEvent.changeText(inputs[5], 'aicha@example.invalid');
@@ -241,6 +254,93 @@ describe('the form', () => {
     expect(await screen.findByText(t('register.problem.phoneRequired'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe('the WhatsApp consent beside the number (D213)', () => {
+  it('shows the server’s copy beside the number with a box that starts unticked, and the privacy page', async () => {
+    renderWith(<RegisterScreen />);
+    const box = await screen.findByTestId('whatsapp-consent-check');
+    expect(box.props.accessibilityRole).toBe('checkbox');
+    expect(box.props.accessibilityState).toMatchObject({ checked: false });
+    expect(box.props.accessibilityLabel).toBe(CONSENT_COPY.en.agreement);
+    expect(screen.getByText(CONSENT_COPY.en.agreement)).toBeTruthy();
+    expect(screen.getByText(CONSENT_COPY.en.body)).toBeTruthy();
+    expect(api.get).toHaveBeenCalledWith('/messaging/whatsapp/consent?language=en');
+    // Typing the number ticks nothing.
+    fillFields();
+    expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
+  });
+
+  it('unticked, nothing is sent: the problem is said under the box, read with it, and the screen reader is taken there', async () => {
+    const { AccessibilityInfo } = jest.requireActual('react-native') as typeof import('react-native');
+    const focus = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation(() => undefined);
+    renderWith(<RegisterScreen />);
+    await screen.findByTestId('whatsapp-consent-check');
+    fillFields();
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.submit')));
+    });
+    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.getByText(t('register.problem.whatsappConsent'))).toBeTruthy();
+    expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityHint).toBe(t('register.problem.whatsappConsent'));
+    expect(focus).toHaveBeenCalledWith(expect.anything(), 'focus');
+    // Ticking it clears the problem.
+    fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
+    expect(screen.queryByText(t('register.problem.whatsappConsent'))).toBeNull();
+    focus.mockRestore();
+  });
+
+  it('an updated copy refused by the server: the box is unticked again and the new copy is fetched — nothing moves on', async () => {
+    (api.post as jest.Mock).mockRejectedValue(new ApiError('The WhatsApp consent shown is not the current one.', 400, 'whatsapp_consent_outdated'));
+    renderWith(<RegisterScreen />);
+    await fillForm();
+    const reads = (api.get as jest.Mock).mock.calls.filter(([p]) => String(p).startsWith('/messaging/whatsapp/consent')).length;
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.submit')));
+    });
+    expect(await screen.findByText(t('consent.problem.outdated'))).toBeTruthy();
+    expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
+    await waitFor(() => expect((api.get as jest.Mock).mock.calls.filter(([p]) => String(p).startsWith('/messaging/whatsapp/consent')).length).toBeGreaterThan(reads));
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it('a modified client that sends no consent is refused by the server, and the screen asks for it', async () => {
+    (api.post as jest.Mock).mockRejectedValue(new ApiError('Agree to receive operational Dukan ERP messages on WhatsApp to continue.', 400, 'whatsapp_consent_required'));
+    renderWith(<RegisterScreen />);
+    await fillForm();
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('register.submit')));
+    });
+    expect(await screen.findByText(t('register.problem.whatsappConsent'))).toBeTruthy();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it('the copy that cannot be loaded is said, with a way to try again — and there is no box to tick without it', async () => {
+    (api.get as jest.Mock).mockImplementation(async (path: string) => {
+      if (consentCopyFor(path)) throw new TypeError('Network request failed');
+      return {};
+    });
+    renderWith(<RegisterScreen />);
+    expect(await screen.findByText(t('consent.loadFailed'))).toBeTruthy();
+    expect(screen.queryByTestId('whatsapp-consent-check')).toBeNull();
+    expect(screen.getByText(t('action.retry'))).toBeTruthy();
+  });
+
+  it.each(['fr', 'ar'] as const)('in %s, the copy is the server’s in that language, and its language is what is recorded', async (lang) => {
+    await useI18n.getState().setLanguage(lang);
+    try {
+      (api.post as jest.Mock).mockResolvedValue({ status: 'pending_activation', created: true, publicStoreId: 'S', verification: null, continuation: null, next: 'sign_in' });
+      renderWith(<RegisterScreen />);
+      expect(await screen.findByText(CONSENT_COPY[lang].agreement)).toBeTruthy();
+      await fillForm();
+      await act(async () => {
+        fireEvent.press(screen.getByText(t('register.submit')));
+      });
+      expect((api.post as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: lang, language: lang }));
+    } finally {
+      await useI18n.getState().setLanguage('en');
+    }
   });
 });
 

@@ -1,8 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { AuthLanguageSwitch, Button, TextField } from '../../components/ui';
+import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
 import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
@@ -18,7 +20,9 @@ import {
   type RegistrationProblems,
 } from '../../lib/registration';
 import { forgetContinuation, rememberContinuation } from '../../lib/registration-session';
-import type { RegistrationStarted } from '../../types/api';
+import { qk } from '../../lib/query-keys';
+import { consentFields } from '../../lib/whatsapp-consent';
+import type { RegistrationStarted, WhatsAppConsentCopy } from '../../types/api';
 
 /**
  * Creating a business account, on the phone (restored 2026-10-13).
@@ -43,7 +47,18 @@ import type { RegistrationStarted } from '../../types/api';
  * way to tell which one is yours. A form corrected after a failure is a new
  * attempt with a new key (`sameRegistration`): the server answers a key it has
  * seen with the business it made for it, whatever the form now says.
+ *
+ * ## The WhatsApp consent
+ *
+ * Beside the number, the server's own consent copy and a box that starts
+ * unticked (D213). Ticking it is the only way it becomes ticked; the version
+ * the server served goes back with the registration, and the server refuses a
+ * registration without it — this screen asks first only so nothing is sent for
+ * nothing. A refusal for an updated copy unticks the box and shows the new one.
  */
+/** The order of the fields on screen: the first one with a problem is where a screen reader is taken. */
+const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'branchName', 'ownerName', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
+
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
   const router = useRouter();
@@ -58,6 +73,12 @@ export default function RegisterScreen() {
   const attempt = useRef<{ key: string; sent: RegistrationDraft | null }>({ key: uuidv4(), sent: null });
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
+  const consentRef = useRef<View>(null);
+
+  const copy = useQuery({
+    queryKey: qk.whatsappConsentCopy(language),
+    queryFn: () => api.get<WhatsAppConsentCopy>(`/messaging/whatsapp/consent?language=${language}`),
+  });
 
   // A new registration starts here, so one left unfinished takes its continuation with it.
   useFocusEffect(
@@ -66,7 +87,19 @@ export default function RegisterScreen() {
     }, []),
   );
 
-  const set = <K extends keyof RegistrationDraft>(key: K, value: string) => {
+  const setConsent = (next: boolean) => {
+    setDraft((d) => ({ ...d, whatsappConsent: next }));
+    setProblems((p) => ({ ...p, whatsappConsent: undefined }));
+    setFailure(null);
+  };
+
+  /** A screen reader is taken to the box when it is the first thing to fix; a sighted person sees it in red. */
+  const focusConsentIf = (found: RegistrationProblems) => {
+    if (FIELD_ORDER.find((f) => found[f]) !== 'whatsappConsent') return;
+    if (consentRef.current) AccessibilityInfo.sendAccessibilityEvent(consentRef.current, 'focus');
+  };
+
+  const set = <K extends Exclude<keyof RegistrationDraft, 'whatsappConsent'>>(key: K, value: string) => {
     setDraft((d) => ({ ...d, [key]: value }));
     // Clear only the field being corrected: wiping every message would hide
     // problems the person has not looked at yet.
@@ -79,7 +112,15 @@ export default function RegisterScreen() {
 
     const found = validateRegistration(draft);
     setProblems(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      focusConsentIf(found);
+      return;
+    }
+    // The box is shown only with the server's copy, so a ticked box always has a version to send.
+    if (!copy.data) {
+      setFailure(t('consent.loadFailed'));
+      return;
+    }
 
     // Edited since it was last sent: a new attempt.
     if (attempt.current.sent && !sameRegistration(attempt.current.sent, draft)) attempt.current = { key: uuidv4(), sent: null };
@@ -91,7 +132,7 @@ export default function RegisterScreen() {
     try {
       const started = await api.post<RegistrationStarted>(
         '/auth/register',
-        registrationPayload(draft, attempt.current.key, language),
+        registrationPayload(draft, attempt.current.key, language, consentFields(copy.data, draft.whatsappConsent)),
       );
 
       /*
@@ -114,6 +155,18 @@ export default function RegisterScreen() {
         params: { destination: started.verification?.destination ?? '' },
       } as never);
     } catch (e) {
+      // The server's own consent rule: an updated copy is shown again, unticked; a missing agreement is asked for.
+      if (e instanceof ApiError && (e.code === 'whatsapp_consent_outdated' || e.code === 'whatsapp_consent_required')) {
+        const outdated = e.code === 'whatsapp_consent_outdated';
+        if (outdated) {
+          setDraft((d) => ({ ...d, whatsappConsent: false }));
+          void copy.refetch();
+        }
+        const found = { whatsappConsent: outdated ? 'consent.problem.outdated' : 'register.problem.whatsappConsent' };
+        setProblems(found);
+        focusConsentIf(found);
+        return;
+      }
       /*
        * A server that cannot send a code to the WhatsApp number refuses before
        * anything is created (503 `registration_unavailable`), and the screen
@@ -203,6 +256,17 @@ export default function RegisterScreen() {
               keyboardType="phone-pad"
               autoComplete="tel"
               error={problem('phone')}
+            />
+            <WhatsAppConsentCheck
+              ref={consentRef}
+              copy={copy.data}
+              loading={copy.isLoading}
+              failed={copy.isError}
+              onRetry={() => void copy.refetch()}
+              checked={draft.whatsappConsent}
+              onChange={setConsent}
+              error={problem('whatsappConsent')}
+              disabled={submitting}
             />
             <TextField
               label={t('register.field.email')}

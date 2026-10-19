@@ -41,6 +41,7 @@ jest.mock('../lib/api-client', () => {
 
 import { api, ApiError } from '../lib/api-client';
 import AccountScreen from '../app/account';
+import { CONSENT_VERSION, consentCopyFor } from './mocks/whatsapp-consent';
 
 const none: AccountView = {
   id: 'u1', name: 'Aicha', login: 'aicha', personalId: 'P-1', phone: null, phoneVerifiedAt: null, email: 'aicha@example.invalid',
@@ -54,6 +55,8 @@ function server(account: { now: AccountView }, onConfirm: () => void) {
   (api.get as jest.Mock).mockImplementation(async (path: string) => {
     if (path === '/account') return account.now;
     if (path === '/account/trial-setup') return { state: 'trial_available', eligible: false };
+    if (consentCopyFor(path)) return consentCopyFor(path);
+    if (path.startsWith('/account/whatsapp/consent')) return { state: 'granted', copy: consentCopyFor('/messaging/whatsapp/consent?language=en'), history: [] };
     throw new Error(`unexpected read ${path}`);
   });
   (api.post as jest.Mock).mockImplementation(async (path: string) => {
@@ -80,6 +83,8 @@ async function confirmNumber(open: string, typed: string) {
   const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(phone, typed);
   fireEvent.changeText(password, 'correct horse');
+  // The new number's own consent, ticked by the person (D213).
+  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
   await act(async () => {
     fireEvent.press(screen.getByText(t('account.whatsapp.send')));
   });
@@ -154,6 +159,7 @@ it('an account that cannot be read again is said to be unread, and Try again rea
   const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(phone, '49998877');
   fireEvent.changeText(password, 'correct horse');
+  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
   await act(async () => {
     fireEvent.press(screen.getByText(t('account.whatsapp.send')));
   });
@@ -184,4 +190,30 @@ it('a code the server refused is still said to be wrong', async () => {
   expect(await screen.findByText(t('account.code.wrong', { left: '4' }))).toBeTruthy();
   expect(screen.queryByText(t('account.whatsapp.notConfirmed'))).toBeNull();
   expect(screen.queryByText(t('account.whatsapp.unread'))).toBeNull();
+});
+
+describe('a new number’s own consent (D213)', () => {
+  it('starts unticked; without it no code is asked for; ticked, the server’s version and the language shown go with the number', async () => {
+    const account = { now: verified('+22249998877') };
+    server(account, () => undefined);
+    renderScreen();
+    fireEvent.press(await screen.findByText(t('account.whatsapp.change')));
+    const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
+    fireEvent.changeText(phone, '36001122');
+    fireEvent.changeText(password, 'correct horse');
+    const box = await screen.findByTestId('whatsapp-consent-check');
+    expect(box.props.accessibilityState).toMatchObject({ checked: false });
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+    });
+    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.getByText(t('consent.problem.required'))).toBeTruthy();
+
+    fireEvent.press(box);
+    expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: true });
+    await act(async () => {
+      fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+    });
+    expect(api.post).toHaveBeenCalledWith('/account/whatsapp/verify/start', expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: 'en' }));
+  });
 });

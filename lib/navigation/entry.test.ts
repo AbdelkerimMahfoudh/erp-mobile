@@ -49,6 +49,7 @@ it('the business closed (pending, suspended, cancelled, refused): the access scr
   }
   assert.equal(entryRoute(state({ segment: 'access-closed', closed: true })), null, 'and it stays there, with Check again and Sign out');
   assert.equal(entryRoute(state({ segment: 'account', closed: true })), null, 'the person’s own account stays reachable');
+  assert.equal(entryRoute(state({ segment: 'account', closed: true, pathname: '/account/communication' })), null, 'and so do its communication preferences (D213)');
   // A login assigned to no branch still reaches its own account: verifying a number and deleting it need no branch.
   assert.equal(entryRoute(state({ segment: 'account', branchChosen: false })), null, 'the account of a login without a branch stays reachable');
   assert.equal(entryRoute(state({ segment: '(tabs)', branchChosen: false })), SELECT_BRANCH, 'the rest of the app still needs a branch');
@@ -58,7 +59,7 @@ it('a read-only business (the period and its grace are over) keeps every read an
   for (const pathname of ['/quick-sell', '/sell', '/receive', '/receive/file', '/expenses/new', '/sales/pay/0190-ab', '/catalog/edit', '/pricing/unit']) {
     assert.equal(entryRoute(state({ readOnly: true, segment: pathname.split('/')[1], pathname })), ACCESS_STATUS, pathname);
   }
-  for (const pathname of ['/', '/sales', '/sales/0190-ab', '/expenses', '/money', '/team', '/settings', '/account/delete', '/access', '/closing', '/devices']) {
+  for (const pathname of ['/', '/sales', '/sales/0190-ab', '/expenses', '/money', '/team', '/settings', '/account/delete', '/account/communication', '/access', '/closing', '/devices']) {
     assert.equal(entryRoute(state({ readOnly: true, segment: pathname.split('/')[1] || '(tabs)', pathname })), null, pathname);
   }
   // Not read-only: the same screens open as ever.

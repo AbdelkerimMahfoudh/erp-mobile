@@ -1546,6 +1546,35 @@ export interface DeletionRequestView {
   retained: unknown;
 }
 
+/**
+ * The operational WhatsApp consent copy the server serves (`GET messaging/whatsapp/consent`, D213): shown exactly as
+ * it comes, and its `version` sent back with the agreement. The app holds no copy and no version of its own.
+ */
+export interface WhatsAppConsentCopy {
+  version: string;
+  language: 'en' | 'fr' | 'ar';
+  title: string;
+  body: string;
+  agreement: string;
+  purposes: string[];
+}
+
+/** Where a number's consent stands, as the server decides it. */
+export type WhatsAppConsentState = 'no_number' | 'none' | 'granted' | 'outdated' | 'withdrawn';
+
+/** My operational WhatsApp consent (`GET account/whatsapp/consent`, D213). The number arrives masked. */
+export interface WhatsAppConsentView {
+  copy: WhatsAppConsentCopy;
+  number: string | null;
+  state: WhatsAppConsentState;
+  grantedVersion: string | null;
+  grantedAt: string | null;
+  withdrawnAt: string | null;
+  /** WhatsApp is my only verified contact: a withdrawal needs the support-recovery acknowledgement. */
+  onlyVerifiedContact: boolean;
+  history: { event: string; version: string | null; locale: string | null; source: string; at: string }[];
+}
+
 export interface AccountView {
   id: string;
   name: string;

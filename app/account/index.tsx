@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CircleUserRound, ShieldCheck, Smartphone, Trash2 } from 'lucide-react-native';
+import { CircleUserRound, MessageCircle, ShieldCheck, Smartphone, Trash2 } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -18,6 +18,7 @@ import {
   TextField,
 } from '../../components/ui';
 import { LegalPageRows } from '../../components/legal/LegalPages';
+import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
 import { api, ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
@@ -26,7 +27,8 @@ import { getLanguage, useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
 import { whatsAppNumber } from '../../lib/whatsapp-number';
-import type { AccountView, PhoneVerificationStart } from '../../types/api';
+import { consentFields, consentProblemKey, consentRequested, consentStateKey } from '../../lib/whatsapp-consent';
+import type { AccountView, PhoneVerificationStart, WhatsAppConsentCopy, WhatsAppConsentView } from '../../types/api';
 
 /**
  * Your account (docs/64).
@@ -87,6 +89,8 @@ export default function AccountScreen() {
         <WhatsAppSection me={me} />
       </Section>
 
+      <MessagesSection verified={me.whatsappVerified} />
+
       <Section title={t('account.delete.title')}>
         <RowGroup>
           <ListRow
@@ -115,6 +119,36 @@ export default function AccountScreen() {
 }
 
 /**
+ * Communication preferences, one tap away (D213): where the operational WhatsApp consent stands, and — for an account
+ * whose verified number has no consent to the copy in force, such as one made before D213 — the request to give it.
+ * The request never stands in the way of anything else on this screen or in the app.
+ */
+function MessagesSection({ verified }: { verified: boolean }) {
+  const { t, language } = useTranslation();
+  const router = useRouter();
+  const consent = useQuery({
+    queryKey: [...qk.whatsappConsent, language],
+    queryFn: () => api.get<WhatsAppConsentView>(`/account/whatsapp/consent?language=${language}`),
+    enabled: verified,
+  });
+  if (!verified) return null;
+  return (
+    <Section title={t('account.messages.title')}>
+      {consentRequested(consent.data) ? <InlineNotice tone="warning">{t('account.consent.request')}</InlineNotice> : null}
+      <RowGroup>
+        <ListRow
+          flat
+          title={t('consent.title')}
+          subtitle={consent.data ? t(consentStateKey(consent.data.state)) : undefined}
+          leading={MessageCircle}
+          onPress={() => router.push('/account/communication' as never)}
+        />
+      </RowGroup>
+    </Section>
+  );
+}
+
+/**
  * The verified WhatsApp number, or the way to prove one.
  *
  * Two steps, both on the server's terms: the password again and the number
@@ -126,7 +160,7 @@ export default function AccountScreen() {
  * refusal nobody gave, and never a chip left for the person to interpret.
  */
 function WhatsAppSection({ me }: { me: AccountView }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
 
   const [editing, setEditing] = useState(false);
@@ -136,6 +170,15 @@ function WhatsAppSection({ me }: { me: AccountView }) {
   const [challenge, setChallenge] = useState<PhoneVerificationStart | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // A new number needs its own consent (D213): the box starts unticked for every number, and the old number's never
+  // carries over.
+  const [consentTicked, setConsentTicked] = useState(false);
+  const [consentProblem, setConsentProblem] = useState<string | null>(null);
+  const consentCopy = useQuery({
+    queryKey: qk.whatsappConsentCopy(language),
+    queryFn: () => api.get<WhatsAppConsentCopy>(`/messaging/whatsapp/consent?language=${language}`),
+    enabled: editing,
+  });
   /**
    * A confirmation whose answer was lost and that the account, read again, did
    * not show — the number as it was typed, and whether the account could be read.
@@ -149,6 +192,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
     setCode('');
     setChallenge(null);
     setProblem(null);
+    setConsentTicked(false);
+    setConsentProblem(null);
   };
 
   const explain = (e: unknown): string => {
@@ -185,6 +230,10 @@ function WhatsAppSection({ me }: { me: AccountView }) {
 
   const start = async () => {
     if (busy) return;
+    if (!consentTicked || !consentCopy.data) {
+      setConsentProblem(t(consentCopy.data ? 'consent.problem.required' : 'consent.loadFailed'));
+      return;
+    }
     setBusy(true);
     setProblem(null);
     try {
@@ -192,11 +241,21 @@ function WhatsAppSection({ me }: { me: AccountView }) {
         phone,
         password,
         language: getLanguage(),
+        ...consentFields(consentCopy.data, consentTicked),
       });
       setChallenge(started);
       setPassword('');
     } catch (e) {
-      setProblem(explain(e));
+      const consentKey = e instanceof ApiError ? consentProblemKey(e.code) : null;
+      if (consentKey) {
+        if (e instanceof ApiError && e.code === 'whatsapp_consent_outdated') {
+          setConsentTicked(false);
+          void consentCopy.refetch();
+        }
+        setConsentProblem(t(consentKey));
+      } else {
+        setProblem(explain(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -211,6 +270,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       toast.success(t('account.whatsapp.done'));
       reset();
       await queryClient.invalidateQueries({ queryKey: qk.account });
+      // The new number carries its own consent; the replaced number's ended on the server.
+      await queryClient.invalidateQueries({ queryKey: qk.whatsappConsent });
       // A verified number may be what the free trial's setup instructions were waiting for (0095): read their status again.
       await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     } catch (e) {
@@ -341,6 +402,20 @@ function WhatsAppSection({ me }: { me: AccountView }) {
         secureTextEntry
         autoComplete="current-password"
         error={problem ?? undefined}
+      />
+      <WhatsAppConsentCheck
+        copy={consentCopy.data}
+        loading={consentCopy.isLoading}
+        failed={consentCopy.isError}
+        onRetry={() => void consentCopy.refetch()}
+        checked={consentTicked}
+        onChange={(next) => {
+          setConsentTicked(next);
+          setConsentProblem(null);
+        }}
+        error={consentProblem ?? undefined}
+        explain={false}
+        disabled={busy}
       />
       <Button
         title={t('account.whatsapp.send')}

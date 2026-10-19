@@ -3,6 +3,10 @@ export const qk = {
   me: ['me'] as const,
   /** The signed-in person's own account page (docs/64). */
   account: ['account'] as const,
+  /** My operational WhatsApp consent (D213). */
+  whatsappConsent: ['account', 'whatsapp-consent'] as const,
+  /** The consent copy registration shows, in one language (public, D213). */
+  whatsappConsentCopy: (language: string) => ['whatsapp-consent-copy', language] as const,
   branches: ['branches'] as const,
   permissions: (branchId: string | null) => ['permissions', branchId] as const,
   products: (q?: string) => ['products', q ?? ''] as const,

@@ -33,6 +33,8 @@ const base: RegistrationDraft = {
   branchName: 'Main Store',
   password: 'correct horse',
   passwordConfirm: 'correct horse',
+  // Ticked by the person — the rules about the consent itself are below.
+  whatsappConsent: true,
 };
 
 const withEmail = { ...base, email: 'aicha@example.invalid' };
@@ -110,6 +112,7 @@ it('the draft has no field for a Store ID, a personal ID or any internal id', ()
     'password',
     'passwordConfirm',
     'phone',
+    'whatsappConsent',
   ]);
 });
 
@@ -170,14 +173,14 @@ it('any field the server receives, edited after a failure, makes a new attempt',
 it('the screen renews its key when the form changed since it was sent, and keeps it otherwise', () => {
   const register = code('app/(auth)/register.tsx');
   assert.match(register, /if \(attempt\.current\.sent && !sameRegistration\(attempt\.current\.sent, draft\)\) attempt\.current = \{ key: uuidv4\(\), sent: null \};\s*attempt\.current\.sent = draft;/);
-  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language\)/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\)\)/);
 });
 
 it('the language sent is the one the person is reading, so the code arrives in it', () => {
   assert.equal(registrationPayload(withPhone, 'k', 'ar').language, 'ar');
   const register = code('app/(auth)/register.tsx');
   assert.match(register, /const \{ t, language \} = useTranslation\(\);/);
-  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language\)/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\)\)/);
   assert.match(code('app/(auth)/verify.tsx'), /\{ continuation, language \}/);
 });
 
@@ -198,6 +201,42 @@ it('account creation that is not available right now says so, and that nothing w
   const register = code('app/(auth)/register.tsx');
   assert.match(register, /e instanceof ApiError && e\.code === 'registration_unavailable'\s*\?\s*t\('register\.unavailable'\)/);
   assert.doesNotMatch(register, /register\.unavailable\.whatsapp|register\.problem\.contact/);
+});
+
+// ── the operational WhatsApp consent beside the number (D213) ─────────────────
+
+const CONSENT = { whatsappConsentVersion: 'wa-operational-2026-10-19', whatsappConsentLocale: 'fr' };
+
+it('the consent starts unticked, and a draft without it is refused beside the box', () => {
+  assert.equal(emptyRegistration.whatsappConsent, false);
+  assert.deepEqual(validateRegistration({ ...withPhone, whatsappConsent: false }), { whatsappConsent: 'register.problem.whatsappConsent' });
+});
+
+it('typing or correcting the number never ticks it', () => {
+  const typed = { ...emptyRegistration, phone: '+22212345678' };
+  assert.equal(typed.whatsappConsent, false);
+});
+
+it('the agreement goes in the body only when ticked: the server’s version and the language it was shown in', () => {
+  assert.deepEqual(
+    { v: registrationPayload(withPhone, 'k', 'fr', CONSENT).whatsappConsentVersion, l: registrationPayload(withPhone, 'k', 'fr', CONSENT).whatsappConsentLocale },
+    { v: 'wa-operational-2026-10-19', l: 'fr' },
+  );
+  const unticked = registrationPayload({ ...withPhone, whatsappConsent: false }, 'k', 'fr', CONSENT);
+  assert.equal('whatsappConsentVersion' in unticked, false);
+  assert.equal('whatsappConsentLocale' in unticked, false);
+});
+
+it('unticking or ticking the box makes another attempt; the same tick is the same attempt', () => {
+  assert.equal(sameRegistration(withPhone, { ...withPhone, whatsappConsent: false }), false);
+  assert.equal(sameRegistration(withPhone, { ...withPhone }), true);
+});
+
+it('the screen keeps no consent copy or version of its own: both come from the server', () => {
+  const register = code('app/(auth)/register.tsx');
+  assert.match(register, /\/messaging\/whatsapp\/consent\?language=/);
+  assert.doesNotMatch(register, /wa-operational|wa-consent-/);
+  assert.doesNotMatch(code('components/consent/WhatsAppConsentCheck.tsx'), /wa-operational|wa-consent-|checked=\{true\}|useState\(true\)/);
 });
 
 console.log('\n' + passed + ' passed');
