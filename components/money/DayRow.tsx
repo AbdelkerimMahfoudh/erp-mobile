@@ -41,6 +41,7 @@ export function DayRow({
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${caption}`}
       accessibilityState={open === undefined ? undefined : { expanded: open }}
+      aria-expanded={open}
       onPress={onPress}
       {...pressHandlers}
       style={[styles.row, divider ? styles.divider : null, pressed ? styles.pressed : null]}

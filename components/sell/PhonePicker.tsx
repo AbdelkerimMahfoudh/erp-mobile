@@ -507,6 +507,7 @@ const StockOption = React.memo(function StockOption({
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
+      aria-selected={selected}
       accessibilityLabel={name}
       onPress={() => onChoose(row)}
       {...pressHandlers}

@@ -785,6 +785,7 @@ const GroupRow = React.memo(function GroupRow({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         accessibilityLabel={label}
         onPress={() => onToggle(groupKey)}
         {...pressHandlers}

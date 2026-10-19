@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
@@ -22,6 +22,7 @@ import {
 import { forgetContinuation, rememberContinuation } from '../../lib/registration-session';
 import { qk } from '../../lib/query-keys';
 import { consentFields } from '../../lib/whatsapp-consent';
+import { focusForScreenReader } from '../../lib/accessibility-focus';
 import type { RegistrationStarted, WhatsAppConsentCopy } from '../../types/api';
 
 /**
@@ -96,7 +97,7 @@ export default function RegisterScreen() {
   /** A screen reader is taken to the box when it is the first thing to fix; a sighted person sees it in red. */
   const focusConsentIf = (found: RegistrationProblems) => {
     if (FIELD_ORDER.find((f) => found[f]) !== 'whatsappConsent') return;
-    if (consentRef.current) AccessibilityInfo.sendAccessibilityEvent(consentRef.current, 'focus');
+    focusForScreenReader(consentRef.current);
   };
 
   const set = <K extends Exclude<keyof RegistrationDraft, 'whatsappConsent'>>(key: K, value: string) => {

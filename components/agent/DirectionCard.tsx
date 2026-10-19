@@ -42,6 +42,7 @@ export function DirectionCard({
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${moves}`}
       accessibilityState={{ selected }}
+      aria-selected={selected}
       {...pressHandlers}
       style={[
         styles.card,

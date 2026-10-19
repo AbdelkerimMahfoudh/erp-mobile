@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import { LOGIN } from '../../lib/navigation/entry';
 import { qk } from '../../lib/query-keys';
 import { codeRequestBody, confirmBody, numberOf, openBody, referenceOf } from '../../lib/staff-activation';
 import { consentFields, consentProblemKey } from '../../lib/whatsapp-consent';
+import { focusForScreenReader } from '../../lib/accessibility-focus';
 import type { JoinConfirmResult, OpenedInvitation, WhatsAppConsentCopy } from '../../types/api';
 
 /**
@@ -100,7 +101,7 @@ export default function JoinScreen() {
     }
     if (!ticked || !copy.data) {
       setConsentProblem(t(copy.data ? 'consent.problem.required' : 'consent.loadFailed'));
-      if (consentRef.current) AccessibilityInfo.sendAccessibilityEvent(consentRef.current, 'focus');
+      focusForScreenReader(consentRef.current);
       return;
     }
     setBusy(true);

@@ -1012,6 +1012,7 @@ export function ScannerSheet({
                         key={value}
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: picked, disabled: full }}
+                        aria-checked={picked}
                         // Read out as a position rather than as digits: a screen
                         // reader saying fifteen numbers is not a usable label.
                         accessibilityLabel={t('scan.choose.option', { index: i + 1 })}

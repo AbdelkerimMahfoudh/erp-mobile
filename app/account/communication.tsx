@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { AccessibilityInfo, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageCircle } from 'lucide-react-native';
@@ -13,6 +13,7 @@ import { formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
+import { focusForScreenReader } from '../../lib/accessibility-focus';
 import {
   consentEventKey,
   consentProblemKey,
@@ -89,7 +90,7 @@ function ConsentSection({ view }: { view: WhatsAppConsentView }) {
     if (busy) return;
     if (!ticked) {
       setProblem(t('consent.problem.required'));
-      if (boxRef.current) AccessibilityInfo.sendAccessibilityEvent(boxRef.current, 'focus');
+      focusForScreenReader(boxRef.current);
       return;
     }
     setBusy(true);

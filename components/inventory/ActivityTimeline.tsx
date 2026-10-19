@@ -165,6 +165,7 @@ function RunRow({ run, last }: { run: HistoryRun; last: boolean }) {
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: open }}
+            aria-expanded={open}
             accessibilityLabel={open ? t('history.collapse') : t('history.expand')}
             onPress={() => setOpen((v) => !v)}
             hitSlop={8}

@@ -248,6 +248,7 @@ export function Button({
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
+      aria-busy={loading}
       accessibilityLabel={title}
       disabled={inactive}
       onPress={inactive ? undefined : handlePress}

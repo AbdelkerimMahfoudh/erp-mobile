@@ -54,6 +54,7 @@ export function DiscountCard({
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         accessibilityLabel={t('sell.discount')}
         onPress={() => setOpen((o) => !o)}
         {...pressHandlers}

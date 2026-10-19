@@ -38,6 +38,7 @@ export function Disclosure({ title, summary, initiallyOpen = false, onOpenChange
         }}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         accessibilityLabel={title}
         {...pressHandlers}
         style={[styles.head, pressed ? { opacity: pressedOpacity } : null]}

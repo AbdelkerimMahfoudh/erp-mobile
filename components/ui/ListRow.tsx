@@ -174,6 +174,7 @@ export function ListRow({
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled, selected }}
+      aria-selected={selected}
       onPress={onPress}
       {...pressHandlers}
       style={pressed ? { opacity: pressedOpacity } : undefined}

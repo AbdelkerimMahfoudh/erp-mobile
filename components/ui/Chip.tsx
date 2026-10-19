@@ -109,6 +109,7 @@ export function FilterChip({ label, selected, onPress, count, style }: FilterChi
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={() => {
         haptics.tap();
         onPress();

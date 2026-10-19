@@ -68,6 +68,7 @@ export const WhatsAppConsentCheck = forwardRef<View, WhatsAppConsentCheckProps>(
         ref={ref}
         accessibilityRole="checkbox"
         accessibilityState={{ checked, disabled }}
+        aria-checked={checked}
         accessibilityLabel={copy.agreement}
         accessibilityHint={error ?? t('consent.a11y.hint')}
         disabled={disabled}

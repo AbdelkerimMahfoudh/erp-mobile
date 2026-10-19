@@ -88,6 +88,7 @@ export function SegmentedControl<T extends string>({
             key={option.value}
             accessibilityRole="tab"
             accessibilityState={{ selected, disabled: off }}
+            aria-selected={selected}
             disabled={off}
             onPress={() => {
               if (selected) return;
