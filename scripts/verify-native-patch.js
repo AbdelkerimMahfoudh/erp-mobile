@@ -25,8 +25,11 @@ const PKG = 'expo-camera';
  * 57.0.5 (re-cut 2026-10-03): byte-identical hunks — upstream changed no
  * source file between 57.0.4 and 57.0.5 (only version numbers and prebuilt
  * binaries; its changelog: "no user-facing changes").
+ * 57.0.6 (re-cut 2026-10-19): byte-identical hunks — `android/src` is
+ * identical between 57.0.5 and 57.0.6; upstream changed only iOS (a scanner
+ * leak and barcode scanning without the companion pod) and version numbers.
  */
-const PATCHED_VERSION = '57.0.5';
+const PATCHED_VERSION = '57.0.6';
 
 const red = (s) => `[31m${s}[0m`;
 const problems = [];
