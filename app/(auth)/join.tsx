@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { AuthLanguageSwitch, Button, InlineNotice, TextField } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
@@ -13,94 +13,141 @@ import { useColors } from '../../lib/design/theme';
 import { space } from '../../lib/design/tokens';
 import { LOGIN } from '../../lib/navigation/entry';
 import { qk } from '../../lib/query-keys';
-import { codeRequestBody, confirmBody, contactOf, needsConsent, type StaffContact } from '../../lib/staff-activation';
+import { codeRequestBody, confirmBody, numberOf, openBody, referenceOf } from '../../lib/staff-activation';
 import { consentFields, consentProblemKey } from '../../lib/whatsapp-consent';
-import type { StaffConfirmResult, WhatsAppConsentCopy } from '../../types/api';
+import type { JoinConfirmResult, OpenedInvitation, WhatsAppConsentCopy } from '../../types/api';
 
 /**
- * Joining a team (D213; docs/69 §3): the employee finishes the account their business Owner created.
+ * Joining a team (D213, D214; docs/69 §3): the employee activates the account their business Owner created.
  *
- * Signed out, on the person's own phone. They type the WhatsApp number or email address the Owner gave. For a number,
- * the server's operational WhatsApp consent is shown with an unticked box, and the code is asked for only once the
- * person ticks it — their agreement, recorded with them as its author, pending until this code proves the number. The
- * Owner never agrees for them, and cannot send this code. For an email address no WhatsApp consent is asked.
+ * Signed out, on the person's own phone. Creating the account sent them nothing; the Owner gave them an invitation
+ * reference. They type it — or open the app's link, which only fills it in: nothing is opened, accepted or sent until
+ * they act. The invitation shows whose it is and the last two digits of the number; they type the whole number, see the
+ * server's operational WhatsApp consent with an unticked box, tick it and ask for the code. Only then is their
+ * agreement recorded — by them, pending until the code proves the number — and the code sent. The code and a first
+ * password finish it, in one step on the server: the consent, the invitation and the account together.
  *
- * The routes are the public ones of the employee's own side (`staff/verify/*`), which answer the same whether or not
- * an account waits: nothing here tells a stranger who works where.
+ * Every unusable reference — unknown, expired, replaced, used — reads the same: ask the business owner for a new one.
  */
 export default function JoinScreen() {
   const { t, language } = useTranslation();
   const router = useRouter();
   const colors = useColors();
+  const { ref } = useLocalSearchParams<{ ref?: string }>();
 
-  const [step, setStep] = useState<'contact' | 'code' | 'done'>('contact');
-  const [typed, setTyped] = useState('');
+  const [step, setStep] = useState<'reference' | 'details' | 'code' | 'done'>('reference');
+  const [typedReference, setTypedReference] = useState(() => (typeof ref === 'string' ? (referenceOf(ref) ?? ref) : ''));
+  const [reference, setReference] = useState<string | null>(null);
+  const [invitation, setInvitation] = useState<OpenedInvitation | null>(null);
+  const [typedNumber, setTypedNumber] = useState('');
   const [ticked, setTicked] = useState(false);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [contactProblem, setContactProblem] = useState<string | null>(null);
+  const [referenceProblem, setReferenceProblem] = useState<string | null>(null);
+  const [numberProblem, setNumberProblem] = useState<string | null>(null);
   const [consentProblem, setConsentProblem] = useState<string | null>(null);
   const [codeProblem, setCodeProblem] = useState<string | null>(null);
   const [passwordProblem, setPasswordProblem] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [accounts, setAccounts] = useState<StaffConfirmResult['accounts']>([]);
+  const [result, setResult] = useState<JoinConfirmResult | null>(null);
   const consentRef = useRef<View>(null);
 
-  const contact = contactOf(typed);
-  const asksConsent = needsConsent(contact);
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),
     queryFn: () => api.get<WhatsAppConsentCopy>(`/messaging/whatsapp/consent?language=${language}`),
-    enabled: asksConsent,
+    enabled: step === 'details' || step === 'code',
   });
 
-  const askForCode = async () => {
+  /** An unusable invitation, whatever the step: back to the reference, said the one way. */
+  const invitationGone = () => {
+    setStep('reference');
+    setInvitation(null);
+    setReference(null);
+    setTicked(false);
+    setReferenceProblem(t('join.unavailable'));
+  };
+
+  const open = async () => {
     if (busy) return;
     setFailure(null);
-    if (!contact) {
-      setContactProblem(t('join.problem.contact'));
+    const normalised = referenceOf(typedReference);
+    if (!normalised) {
+      setReferenceProblem(t('join.problem.reference'));
       return;
     }
-    if (asksConsent && (!ticked || !copy.data)) {
+    setBusy(true);
+    try {
+      const opened = await api.post<OpenedInvitation>('/staff/join/open', openBody(normalised));
+      setReference(normalised);
+      setInvitation(opened);
+      setStep('details');
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'invitation_unavailable') setReferenceProblem(t('join.unavailable'));
+      else setFailure(toFriendlyError(e).body);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askForCode = async () => {
+    if (busy || !reference) return;
+    setFailure(null);
+    const number = numberOf(typedNumber);
+    if (!number) {
+      setNumberProblem(t('join.problem.numberFormat'));
+      return;
+    }
+    if (!ticked || !copy.data) {
       setConsentProblem(t(copy.data ? 'consent.problem.required' : 'consent.loadFailed'));
       if (consentRef.current) AccessibilityInfo.sendAccessibilityEvent(consentRef.current, 'focus');
       return;
     }
     setBusy(true);
     try {
-      await api.post('/staff/verify/resend', codeRequestBody(contact, language, consentFields(copy.data, ticked)));
+      await api.post('/staff/join/request-code', codeRequestBody(reference, number, language, consentFields(copy.data, ticked)));
       setStep('code');
     } catch (e) {
-      const key = e instanceof ApiError ? consentProblemKey(e.code) : null;
-      if (key) {
-        if (e instanceof ApiError && e.code === 'whatsapp_consent_outdated') {
+      const code = e instanceof ApiError ? e.code : undefined;
+      const consentKey = consentProblemKey(code);
+      if (code === 'invitation_unavailable') invitationGone();
+      else if (code === 'number_mismatch') {
+        setStep('details');
+        setNumberProblem(t('join.problem.number'));
+      } else if (code === 'number_invalid') setNumberProblem(t('join.problem.numberFormat'));
+      else if (consentKey) {
+        setStep('details');
+        if (code === 'whatsapp_consent_outdated') {
           setTicked(false);
           void copy.refetch();
         }
-        setConsentProblem(t(key));
-      } else if (e instanceof ApiError && e.code === 'delivery_unavailable') {
-        setFailure(t('join.unavailable'));
-      } else {
-        setFailure(toFriendlyError(e).body);
-      }
+        setConsentProblem(t(consentKey));
+      } else if (code === 'delivery_unavailable') setFailure(t('join.noDelivery'));
+      else setFailure(toFriendlyError(e).body);
     } finally {
       setBusy(false);
     }
   };
 
-  const confirm = async (target: StaffContact) => {
-    if (busy) return;
+  const confirm = async () => {
+    if (busy || !reference) return;
     setFailure(null);
     setBusy(true);
     try {
-      const result = await api.post<StaffConfirmResult>('/staff/verify/confirm', confirmBody(target, code, password));
-      setAccounts(result.accounts);
+      const confirmed = await api.post<JoinConfirmResult>('/staff/join/confirm', confirmBody(reference, code, password));
+      setResult(confirmed);
       setPassword('');
       setStep('done');
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'password_required') setPasswordProblem(t('join.problem.password'));
-      else if (e instanceof ApiError && e.status === 400) setCodeProblem(t('join.problem.code'));
+      const errorCode = e instanceof ApiError ? e.code : undefined;
+      if (errorCode === 'invitation_unavailable') invitationGone();
+      else if (errorCode === 'password_required') setPasswordProblem(t('join.problem.password'));
+      else if (errorCode === 'consent_expired') {
+        setTicked(false);
+        setCode('');
+        setStep('details');
+        setConsentProblem(t('join.problem.consentExpired'));
+      } else if (e instanceof ApiError && e.status === 400) setCodeProblem(t('join.problem.code'));
       else setFailure(toFriendlyError(e).body);
     } finally {
       setBusy(false);
@@ -112,49 +159,72 @@ export default function JoinScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('join.title') }} />
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-          {step === 'contact' ? (
+          {step === 'reference' ? (
             <View style={styles.group}>
               <Text variant="body" tone="secondary">
                 {t('join.subtitle')}
               </Text>
               <TextField
-                label={t('join.field.contact')}
-                hint={t('join.field.contact.hint')}
-                value={typed}
+                label={t('join.field.reference')}
+                hint={t('join.field.reference.hint')}
+                value={typedReference}
                 onChangeText={(v) => {
-                  setTyped(v);
-                  setContactProblem(null);
+                  setTypedReference(v);
+                  setReferenceProblem(null);
                   setFailure(null);
                 }}
-                autoCapitalize="none"
-                autoComplete="tel"
-                error={contactProblem ?? undefined}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                variant="identifier"
+                maxLength={20}
+                error={referenceProblem ?? undefined}
               />
-              {asksConsent ? (
-                <WhatsAppConsentCheck
-                  ref={consentRef}
-                  copy={copy.data}
-                  loading={copy.isLoading}
-                  failed={copy.isError}
-                  onRetry={() => void copy.refetch()}
-                  checked={ticked}
-                  onChange={(next) => {
-                    setTicked(next);
-                    setConsentProblem(null);
-                  }}
-                  error={consentProblem ?? undefined}
-                  disabled={busy}
-                />
-              ) : null}
+              {failure ? <InlineNotice tone="warning">{failure}</InlineNotice> : null}
+              <Button title={t('join.continue')} onPress={() => void open()} loading={busy} disabled={busy} />
+            </View>
+          ) : null}
+
+          {step === 'details' && invitation ? (
+            <View style={styles.group}>
+              <Text variant="body">{t('join.hello', { name: invitation.name, business: invitation.business })}</Text>
+              <TextField
+                label={t('join.field.number')}
+                hint={t('join.field.number.hint', { ending: invitation.numberEnding })}
+                value={typedNumber}
+                onChangeText={(v) => {
+                  setTypedNumber(v);
+                  setNumberProblem(null);
+                  setFailure(null);
+                }}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                variant="identifier"
+                maxLength={24}
+                error={numberProblem ?? undefined}
+              />
+              <WhatsAppConsentCheck
+                ref={consentRef}
+                copy={copy.data}
+                loading={copy.isLoading}
+                failed={copy.isError}
+                onRetry={() => void copy.refetch()}
+                checked={ticked}
+                onChange={(next) => {
+                  setTicked(next);
+                  setConsentProblem(null);
+                }}
+                error={consentProblem ?? undefined}
+                disabled={busy}
+              />
               {failure ? <InlineNotice tone="warning">{failure}</InlineNotice> : null}
               <Button title={t('join.send')} onPress={() => void askForCode()} loading={busy} disabled={busy} />
             </View>
           ) : null}
 
-          {step === 'code' && contact ? (
+          {step === 'code' ? (
             <View style={styles.group}>
               <Text variant="body" tone="secondary">
-                {t(contact.channel === 'phone' ? 'join.sent.phone' : 'join.sent.email')}
+                {t('join.sent')}
               </Text>
               <TextField
                 label={t('join.field.code')}
@@ -183,18 +253,16 @@ export default function JoinScreen() {
                 error={passwordProblem ?? undefined}
               />
               {failure ? <InlineNotice tone="warning">{failure}</InlineNotice> : null}
-              <Button title={t('join.confirm')} onPress={() => void confirm(contact)} loading={busy} disabled={busy || code.trim().length < 4} />
+              <Button title={t('join.confirm')} onPress={() => void confirm()} loading={busy} disabled={busy || code.trim().length < 4} />
               <Button title={t('join.again')} variant="tertiary" onPress={() => void askForCode()} disabled={busy} />
             </View>
           ) : null}
 
-          {step === 'done' ? (
+          {step === 'done' && result ? (
             <View style={styles.group}>
-              {accounts.map((a) => (
-                <InlineNotice key={`${a.business}-${a.name}`} tone={a.activated ? 'success' : 'info'}>
-                  {t(a.activated ? 'join.done.ready' : 'join.done.waiting', { business: a.business })}
-                </InlineNotice>
-              ))}
+              <InlineNotice tone={result.activated ? 'success' : 'info'}>
+                {t(result.activated ? 'join.done.ready' : 'join.done.waiting', { business: result.business })}
+              </InlineNotice>
               <Button title={t('join.signIn')} onPress={() => router.replace(LOGIN as never)} />
             </View>
           ) : null}

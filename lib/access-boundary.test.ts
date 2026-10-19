@@ -903,11 +903,12 @@ describe('the access screens', () => {
 describe('stores and staff seats (the owner, 2026-10-15)', () => {
   it('the app requests no store or seat, and prices, sells and activates neither: a staff member’s seat is the platform’s word', () => {
     for (const f of SOURCES) assert.doesNotMatch(rules.normalizePath(code(f)), /seat-requests|store-requests|activity-requests|activity-options|my-subscription/i, `${f} reaches a store or seat request`);
-    // The team's own writes: a member created pending, a code sent again, an invitation withdrawn, a member edited, a delegation.
+    // The team's own writes: a member created pending (with its invitation), a new invitation, an account withdrawn, a
+    // member edited, a delegation. No code is ever sent from here (D214).
     const team = ['app/team.tsx', 'components/team/CreateMemberSheet.tsx', 'components/team/PendingPanel.tsx'].map((f) => strip(read(f))).join('\n');
     const writes = [...team.matchAll(/api\.(post|put|patch|delete)(?:<[^>]*>)?\(\s*([`'][^`']*[`']|\w+)/g)].map((m) => `${m[1]} ${m[2]}`);
     assert.deepEqual([...new Set(writes)].sort(), [
-      'delete path', "post '/users'", 'post `/users/${user.id}/cancel-invitation`', 'post `/users/${user.id}/resend-verification`', 'put path', 'patch `/users/${user!.id}`',
+      'delete path', "post '/users'", 'post `/users/${user.id}/cancel-invitation`', 'post `/users/${user.id}/invitation`', 'put path', 'patch `/users/${user!.id}`',
     ].sort());
     // What the team is told about seats: creating a member, a member waiting, a refusal (no seat free), staff over the limit.
     for (const lang of LANGS) {

@@ -456,34 +456,58 @@ export type Settings = OwnerSettings | StaffSettings;
 /** `pending`: created from Team and not yet activated by the server (docs/21, 2026-10-05). */
 export type UserStatus = 'active' | 'inactive' | 'pending_contact' | 'pending';
 
+/**
+ * Where a pending employee's invitation stands (D214). Never the reference: the server keeps only a hash of it.
+ * `none` — never issued (an account from before invitations); `open` — waiting for the employee; `code_requested` — they
+ * agreed and asked for their code; `expired` — 72 hours passed unused.
+ */
+export interface TeamInvitation {
+  state: 'none' | 'open' | 'code_requested' | 'expired';
+  expiresAt: string | null;
+}
+
 /** What still stands between a pending account and its first sign-in. The server decides; the app only shows it. */
 export interface TeamPending {
+  /** Optional, and never a condition of activation (D214). */
   email: 'verified' | 'awaiting' | 'not_selected';
   phone: 'verified' | 'awaiting' | 'not_selected';
+  invitation: TeamInvitation;
   /** One per store: `included` (a free seat), `held` (a seat held for this person) or `awaiting_payment` (the platform has not approved it yet). */
   seats: { branchId: string; branchName: string; state: 'included' | 'held' | 'awaiting_payment' }[];
 }
 
-export type StaffDeliveryState = 'sent' | 'unavailable' | 'awaiting_consent';
-
-/** `POST staff/verify/confirm`: the contact proved, and where each waiting account stands (docs/69 §3). */
-export interface StaffConfirmResult {
-  verified: true;
-  accounts: { business: string; name: string; activated: boolean; pending: string[] }[];
+/** An invitation as issued: its reference shown to the Owner once, never again (D214). */
+export interface IssuedInvitation {
+  reference: string;
+  /** The app's own link to the join form (`dukanerp://join?ref=…`): it opens the form, nothing more. */
+  link: string;
+  expiresAt: string;
 }
 
-/** `POST /users`: an account that waits to be activated. Never carries a code the app could show. */
+/** `POST /users`: an account that waits to be activated, and — when created now — its invitation. Nothing was sent. */
 export interface StaffInvitationResult {
   created: boolean;
   user: { id: string; name: string; email: string | null; phone: string | null; status: 'pending'; stores: { id: string; name: string; role: string }[] };
-  /**
-   * `sent`: a code went out; `unavailable`: nothing can deliver right now, the account stays pending;
-   * `awaiting_consent` (a WhatsApp number, D213): the person agrees to WhatsApp messages and asks for the code on
-   * their own phone — the Owner never consents for them.
-   */
-  verification: { email: StaffDeliveryState | null; phone: StaffDeliveryState | null };
+  invitation: IssuedInvitation | null;
   seats: { storeId: string; store: string; state: 'included' | 'held' | 'awaiting_payment' }[];
   activation: { activated: boolean; pending: string[] };
+}
+
+/** `POST staff/join/open`: whose invitation it is — never the number, only its last two digits. */
+export interface OpenedInvitation {
+  business: string;
+  name: string;
+  numberEnding: string;
+  expiresAt: string;
+}
+
+/** `POST staff/join/confirm`: the number confirmed, and where the account stands. */
+export interface JoinConfirmResult {
+  verified: true;
+  business: string;
+  name: string;
+  activated: boolean;
+  pending: string[];
 }
 
 export interface TeamUserBranch {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, InlineNotice, SegmentedControl, Text, TextField, Toggle } from '../ui';
+import { Button, SegmentedControl, Text, TextField, Toggle } from '../ui';
 import { BottomSheet } from '../overlay';
 import { ApiError, api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
@@ -9,7 +9,8 @@ import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
 import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
-import type { StaffDeliveryState, StaffInvitationResult, UserBranch } from '../../types/api';
+import type { StaffInvitationResult, UserBranch } from '../../types/api';
+import { InvitationReference } from './InvitationReference';
 
 /** E.164-ish, matched after stripping punctuation — mirrors the server. */
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -22,15 +23,16 @@ const cleanedPhone = (raw: string) => {
 type Role = 'store_employee' | 'store_manager';
 
 /**
- * The Owner creates an employee account (docs/21, 2026-10-05).
+ * The Owner creates an employee account (docs/21, 2026-10-05; D214).
  *
- * The account is created PENDING. The server sends a code to each contact the
- * Owner gives — the email, the WhatsApp number, or both — and activates the
- * account only once the person has proven every one of them and a seat is held
- * at each store. What this sheet shows afterwards is the server's own report:
- * where codes went, where nothing could be sent, and whether a seat is
- * included or still waits for the platform. It never shows a code and never
- * names a price.
+ * The account is created PENDING, and nothing is sent to the person — no
+ * WhatsApp message, no email. A WhatsApp number is required, an email address
+ * optional. The server answers with an invitation reference, shown here once:
+ * the Owner reads it out, copies it or shares it from their own phone, and the
+ * person activates their own account with it — agreeing to WhatsApp messages
+ * and confirming their number themselves. The sheet also says whether each
+ * store's seat is included or still waits for the platform. It never shows a
+ * code and never names a price.
  */
 export function CreateMemberSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -43,7 +45,7 @@ export function CreateMemberSheet({ open, onClose }: { open: boolean; onClose: (
 }
 
 function CreateMemberForm({ onClose }: { onClose: () => void }) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { branchId: currentBranchId } = useBranch();
 
@@ -72,8 +74,8 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
         setErrors({ phone: phone.trim() ? t('team.create.error.contactInUse') : undefined, email: email.trim() ? t('team.create.error.contactInUse') : undefined });
         return;
       }
-      if (error instanceof ApiError && error.code === 'contact_required') {
-        setErrors({ phone: t('team.create.error.contact') });
+      if (error instanceof ApiError && error.code === 'whatsapp_required') {
+        setErrors({ phone: t('team.create.error.phone') });
         return;
       }
       setErrors({ name: toFriendlyError(error).body });
@@ -86,7 +88,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
     const trimmedEmail = email.trim();
     const normalizedPhone = phone.trim() === '' ? '' : cleanedPhone(phone);
     if (!trimmedName) next.name = t('team.create.error.name');
-    if (!normalizedPhone && !trimmedEmail) next.phone = t('team.create.error.contact');
+    if (!normalizedPhone) next.phone = t('team.create.error.phone');
     if (normalizedPhone && !E164.test(normalizedPhone)) next.phone = t('team.error.phone');
     if (trimmedEmail && !EMAIL.test(trimmedEmail)) next.email = t('team.error.email');
     if (stores.length === 0) next.stores = t('team.create.error.stores');
@@ -94,11 +96,10 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
     if (Object.keys(next).length > 0) return;
     create.mutate({
       name: trimmedName,
-      ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+      phone: normalizedPhone,
       ...(trimmedEmail ? { email: trimmedEmail } : {}),
       branchIds: stores,
       role,
-      language,
     });
   };
 
@@ -119,7 +120,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
           <TextField label={t('team.field.name')} value={name} error={errors.name} onChangeText={setName} maxLength={160} autoFocus />
           <TextField
             label={t('team.field.phone')}
-            hint={t('team.create.contactHint')}
+            hint={t('team.create.phoneHint')}
             value={phone}
             error={errors.phone}
             onChangeText={setPhone}
@@ -160,41 +161,13 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** What the server did — said in its own terms, nothing inferred. */
+/** What the server did — said in its own terms, nothing inferred — and the invitation, shown this once. */
 function Outcome({ result }: { result: StaffInvitationResult }) {
   const { t } = useTranslation();
-  const DELIVERY = {
-    sent: 'team.pending.delivery.sent',
-    unavailable: 'team.pending.delivery.unavailableShort',
-    awaiting_consent: 'team.pending.delivery.awaitingConsentShort',
-  } as const;
-  const channel = (label: string, state: StaffDeliveryState | null) =>
-    state === null ? null : (
-      <View style={styles.line} key={label}>
-        <Text variant="body">{label}</Text>
-        <Chip tone={state === 'sent' ? 'success' : 'warning'} label={t(DELIVERY[state])} />
-      </View>
-    );
-  const anyUnavailable = result.verification.email === 'unavailable' || result.verification.phone === 'unavailable';
   return (
     <View style={styles.block}>
       <Text variant="body">{result.created ? t('team.create.done.body', { name: result.user.name }) : t('team.create.done.existing', { name: result.user.name })}</Text>
-      {channel(result.user.phone ?? '', result.verification.phone)}
-      {channel(result.user.email ?? '', result.verification.email)}
-      {result.verification.phone === 'awaiting_consent' ? (
-        <InlineNotice tone="info" title={t('team.pending.delivery.awaitingConsentTitle')}>
-          <Text variant="caption" tone="secondary">
-            {t('team.pending.delivery.awaitingConsent', { name: result.user.name })}
-          </Text>
-        </InlineNotice>
-      ) : null}
-      {anyUnavailable ? (
-        <InlineNotice tone="warning" title={t('team.pending.delivery.unavailableTitle')}>
-          <Text variant="caption" tone="secondary">
-            {t('team.pending.delivery.unavailable')}
-          </Text>
-        </InlineNotice>
-      ) : null}
+      {result.invitation ? <InvitationReference name={result.user.name} invitation={result.invitation} /> : null}
       {result.seats.map((s) => (
         <Text key={s.storeId} variant="caption" tone="secondary">
           {s.state === 'awaiting_payment'
@@ -214,5 +187,4 @@ function Outcome({ result }: { result: StaffInvitationResult }) {
 const styles = StyleSheet.create({
   sheet: { gap: space.md, padding: space.base },
   block: { gap: space.xs },
-  line: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
 });
