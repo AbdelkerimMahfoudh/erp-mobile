@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Package the web export for the protected browser-test site (docs/24 §68).
+ * Package the web export for the protected browser-test site (docs/102 §4).
  *
  *   node scripts/web-test-release.mjs <export-dir> <release-dir> <api-origin>
  *

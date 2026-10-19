@@ -86,7 +86,8 @@ it('pinned buttons reserve their measured height, so the end of the page can be 
     assert.doesNotMatch(src, /content: \{[^}]*paddingBottom/, `${file} still pads by a constant`);
   }
   const detail = code('app/returns/[id].tsx');
-  assert.equal((detail.match(/<View style=\{styles\.actions\} onLayout=\{measureActions\}>/g) ?? []).length, 4, 'every action group is measured');
+  // Review, report, confirm, the refund receipt — and on the web the line saying it is shared from the phone app.
+  assert.equal((detail.match(/<View style=\{styles\.actions\} onLayout=\{measureActions\}>/g) ?? []).length, 5, 'every action group is measured');
 });
 
 it('a sale fact keeps its own width beside the label, never a quarter of the row (docs/61 §8)', () => {

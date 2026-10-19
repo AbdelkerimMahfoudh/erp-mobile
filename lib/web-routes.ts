@@ -1,5 +1,5 @@
 /**
- * The web export's routes, for a server that is not Expo's own (docs/24 §68).
+ * The web export's routes, for a server that is not Expo's own (docs/102 §4).
  *
  * `expo export --platform web` with static output writes one page per screen: `sales/period.html` for a fixed route,
  * `sales/[id].html` for a dynamic one, `(auth)/login.html` beside `login.html` for a route group. A plain file server

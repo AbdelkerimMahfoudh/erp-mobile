@@ -1,5 +1,5 @@
 /**
- * The web export's routes for a file server that is not Expo's (docs/24 §68): a file that exists wins, then the
+ * The web export's routes for a file server that is not Expo's (docs/102 §4): a file that exists wins, then the
  * dynamic pages most specific first, then the not-found page with a 404 — and the rules come from the export's files.
  *
  * Run directly with Node (type-stripping):
