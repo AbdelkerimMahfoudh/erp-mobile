@@ -112,8 +112,8 @@ const LINKING_ALLOWED = new Map([[GUARD, new Set(['Linking'])]]);
  * react-native-svg's `href` on an SVG element, React DOM's own (an SVG
  * `xlinkHref` prop, and the Navigation API it restores a page's scroll
  * through) — the guard that makes `openURL` refuse (twice: it keeps the phone's own opener, for the four legal pages
- * alone, then refuses), and on the web build the report preview (`lib/report-pdf.ts` opens
- * the report's own page in a new tab) and the CSV download
+ * alone, then refuses), and on the web build the report's and the receipt's preview (`lib/browser-tab.ts` opens
+ * the page already in memory in a new tab) and the CSV download
  * (`lib/report-export.ts` hands the browser a `blob:` file through a link: the
  * link made, and pointed at the file). Nothing else of the app's own reaches
  * any of them.
@@ -127,7 +127,7 @@ const LINKING_LIBRARIES = {
 const CALL_SITES = {
   web: {
     openURL: { ...LINKING_LIBRARIES, 'node_modules/expo-linking/build/RNLinking.web.js': 1, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
-    'window.open': { '/lib/report-pdf.ts': 1, [GUARD]: 2, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
+    'window.open': { '/lib/browser-tab.ts': 1, [GUARD]: 2, 'node_modules/react-native-web/dist/exports/Linking/index.js': 1 },
     navigation: {
       '/lib/report-export.ts': 2,
       'node_modules/expo-linking/build/RNLinking.web.js': 1,

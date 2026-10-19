@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /**
  * The web's way to read a document the app renders — a report, a customer's receipt: the page in a new tab, where the
  * browser's own Print can print it or save it as a PDF. There is no share sheet on the web.
@@ -7,6 +9,8 @@
  * only for a click.
  */
 export function openPageInTab(html: string): 'opened' | 'blocked' {
+  // A phone has no tab to open. Asked first, so a native bundle carries no `window.open` (scripts/audit-bundle.js).
+  if (Platform.OS !== 'web') return 'blocked';
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
   const tab = window.open(url, '_blank');
   // Long enough for the tab to load what it was given; it holds its own copy afterwards.
