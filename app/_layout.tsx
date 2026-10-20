@@ -10,6 +10,7 @@ import { CloudOff } from 'lucide-react-native';
 import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { EmptyState, OfflineBanner } from '../components/ui';
+import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
 import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
@@ -134,6 +135,8 @@ function AppShell() {
             because a banner that hides what it warns about is worse than none.
           */}
           <OfflineBanner />
+          {/* A test business, said on every signed-in screen (D217); nothing for any other business. */}
+          <TestBusinessBanner />
           {/*
             The back-swipe is the native stack's own gesture, and on iOS it
             belongs to UINavigationController's push transition. Naming an

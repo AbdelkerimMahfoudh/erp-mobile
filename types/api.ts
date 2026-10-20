@@ -25,6 +25,11 @@ export interface AuthUser {
    */
   personalId: string;
   publicStoreId: string;
+  /**
+   * A persistent test business (D217): every signed-in screen says so. Optional because an API before 0102, and a
+   * session restored from before it, do not send it — and then it is not one.
+   */
+  isTestBusiness?: boolean;
 }
 
 export interface AuthResponse {

@@ -153,6 +153,7 @@ export const AUTH_ROOTS: Readonly<Record<string, string>> = {
   '/login': 'Signing in — the start, with Create a business account beside it.',
   '/register': 'Creating a business account, from sign-in, with its own way back (Back to sign in).',
   '/join': 'An employee finishing the account their Owner created, from sign-in, with its own way back (Back to sign in).',
+  '/setup': 'An Owner choosing a first password with the platform’s setup code (D217), from sign-in, with its own way back (Back to sign in).',
   '/verify': 'The code check that finishes a business account: Confirm, ask for the code again, or use a different contact.',
   '/select-branch':
     'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',

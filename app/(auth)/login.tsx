@@ -251,6 +251,11 @@ export default function Login() {
                 phone if it is a number, and choose a password.
               */}
               <Button title={t('auth.action.join')} variant="tertiary" onPress={() => router.push('/(auth)/join' as never)} />
+              {/*
+                An Owner whose business the platform created (D217): the one-time setup code the platform handed over
+                privately, and a password of their own. Nothing is sent to them.
+              */}
+              <Button title={t('auth.action.setup')} variant="tertiary" onPress={() => router.push('/(auth)/setup' as never)} />
 
               {/*
                 Last on the screen, and the first thing somebody needs.
