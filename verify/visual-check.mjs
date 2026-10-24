@@ -412,6 +412,17 @@ if (OWNER) {
       await field.click();
       await page.keyboard.type('Sidi Exemple');
       check(`team sheet ${lang} ${theme} ${width}: a tapped field takes and keeps typing`, (await field.inputValue()) === 'Sidi Exemple');
+      const knobs = await page.evaluate(() => [...document.querySelectorAll('[aria-modal="true"] div[role="switch"][aria-label]')].map((row) => {
+        const input = row.querySelector('input');
+        const box = input?.parentElement;
+        if (!box) return 'no switch';
+        const b = box.getBoundingClientRect();
+        const outside = [...box.querySelectorAll('div')].some((d) => { const r = d.getBoundingClientRect(); return r.width > 0 && (r.left < b.left - 1 || r.right > b.right + 1); });
+        const words = [...row.querySelectorAll('div')].filter((d) => d.children.length === 0 && (d.textContent ?? '').trim() && !box.contains(d));
+        const covers = words.some((w) => { const r = w.getBoundingClientRect(); return r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom; });
+        return outside || covers ? `knob outside its track: ${outside}, over words: ${covers}` : 'ok';
+      }));
+      check(`team sheet ${lang} ${theme} ${width}: every switch's knob stays in its track, clear of its words`, knobs.length > 0 && knobs.every((k) => k === 'ok'), knobs.join(', '));
       const STATE = { en: 'Works here', fr: 'Y travaille', ar: 'يعمل هنا' }[lang];
       const sheetText = await page.locator('[aria-modal="true"]').last().innerText();
       check(`team sheet ${lang} ${theme} ${width}: the store switch says "${STATE}", never "On"`, sheetText.includes(STATE) && !/(^|\s)On(\s|$)/m.test(sheetText));
