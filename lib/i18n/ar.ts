@@ -1689,6 +1689,9 @@ export const ar: Catalogue = {
   'money.free': 'مجاني',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'notFound.title': 'هذه الصفحة غير موجودة',
+  'notFound.body': 'ربما العنوان مكتوب بشكل خاطئ أو قديم.',
+  'notFound.action': 'الذهاب إلى البداية',
   'theme.toggle.toDark': 'التبديل إلى المظهر الداكن',
   'theme.toggle.toLight': 'التبديل إلى المظهر الفاتح',
   'register.step': 'الخطوة {current} من {total}',
@@ -1722,6 +1725,8 @@ export const ar: Catalogue = {
   'team.create.done.existing': 'كان {name} في انتظار التفعيل أصلًا. لم يُرسل شيء. إذا ضاعت دعوته، افتح حسابه وأنشئ دعوة جديدة.',
   'team.create.role': 'الدور',
   'team.create.stores': 'المتاجر',
+  'team.create.store.on': 'يعمل هنا',
+  'team.create.store.off': 'لا يعمل هنا',
   'team.create.storesHint': 'حيث يعمل هذا الشخص. يلزم مقعد في كل متجر.',
   'team.create.submit': 'إضافة إلى الفريق',
   'team.create.error.name': 'أعطِ الشخص اسمًا.',

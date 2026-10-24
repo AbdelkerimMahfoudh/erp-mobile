@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { ScanLine, Search, X } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
 import { textAlign, writingDirection } from '../../lib/design/direction';
@@ -167,10 +167,13 @@ const useStyles = makeStyles((colors) => ({
   },
   input: {
     flex: 1,
+    // As in `Field`: a browser's input keeps an intrinsic width, and at 320 points it pushed the Scan button off the
+    // screen (Receive, Quick receive); and below 16px Safari on an iPhone zooms the page into the field.
+    minWidth: 0,
     paddingVertical: space.md,
     padding: 0,
-    fontSize: typeScale.body.fontSize,
-    lineHeight: typeScale.body.lineHeight,
+    fontSize: Platform.OS === 'web' ? typeScale.inputWeb.fontSize : typeScale.body.fontSize,
+    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : typeScale.body.lineHeight,
     color: colors.text.primary,
   },
   identifierInput: {

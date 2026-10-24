@@ -1817,6 +1817,9 @@ export const fr: Catalogue = {
   'money.free': 'Gratuit',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'notFound.title': 'Cette page n’existe pas',
+  'notFound.body': 'L’adresse est peut-être mal saisie ou ancienne.',
+  'notFound.action': 'Aller à l’accueil',
   'theme.toggle.toDark': 'Passer à l’apparence sombre',
   'theme.toggle.toLight': 'Passer à l’apparence claire',
   'register.step': 'Étape {current} sur {total}',
@@ -1850,6 +1853,8 @@ export const fr: Catalogue = {
   'team.create.done.existing': '{name} attendait déjà l’activation. Rien n’a été envoyé. Si l’invitation est perdue, ouvrez son compte et créez-en une nouvelle.',
   'team.create.role': 'Rôle',
   'team.create.stores': 'Magasins',
+  'team.create.store.on': 'Y travaille',
+  'team.create.store.off': 'N’y travaille pas',
   'team.create.storesHint': 'Là où cette personne travaille. Une place est nécessaire dans chaque magasin.',
   'team.create.submit': 'Ajouter à l’équipe',
   'team.create.error.name': 'Donnez un nom à la personne.',

@@ -1709,6 +1709,9 @@ export const en = {
   'money.free': 'Free',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'notFound.title': 'This page doesn’t exist',
+  'notFound.body': 'The address may be mistyped or out of date.',
+  'notFound.action': 'Go to the start',
   'theme.toggle.toDark': 'Switch to dark appearance',
   'theme.toggle.toLight': 'Switch to light appearance',
   'register.step': 'Step {current} of {total}',
@@ -1742,6 +1745,8 @@ export const en = {
   'team.create.done.existing': '{name} was already waiting to be activated. Nothing was sent. If they lost their invitation, open their account and create a new one.',
   'team.create.role': 'Role',
   'team.create.stores': 'Stores',
+  'team.create.store.on': 'Works here',
+  'team.create.store.off': 'Not here',
   'team.create.storesHint': 'Where this person works. A seat is needed at each store.',
   'team.create.submit': 'Add to the team',
   'team.create.error.name': 'Give the person a name.',

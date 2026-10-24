@@ -146,7 +146,16 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
               {t('team.create.storesHint')}
             </Text>
             {(branches.data ?? []).map((b) => (
-              <Toggle key={b.id} flat label={b.name} value={stores.includes(b.id)} onValueChange={(on) => toggleStore(b.id, on)} />
+              <Toggle
+                key={b.id}
+                flat
+                label={b.name}
+                value={stores.includes(b.id)}
+                onValueChange={(on) => toggleStore(b.id, on)}
+                // What the switch means for this person at this store, in words — not a bare On/Off.
+                onLabel={t('team.create.store.on')}
+                offLabel={t('team.create.store.off')}
+              />
             ))}
             {errors.stores ? (
               <Text variant="caption" tone="warning">

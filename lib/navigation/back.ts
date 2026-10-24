@@ -157,6 +157,8 @@ export const AUTH_ROOTS: Readonly<Record<string, string>> = {
   '/verify': 'The code check that finishes a business account: Confirm, ask for the code again, or use a different contact.',
   '/select-branch':
     'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
+  '/+not-found':
+    'An address the app does not have (a mistyped or old link): no arrow to an unknown history, one way on — the start, where the sign-in guard decides.',
   '/access-closed':
     'The server says this business is closed (pending, suspended, cancelled, refused): shown instead of the app, and the guard returns here from anywhere in it. Check again, or Sign out.',
 };

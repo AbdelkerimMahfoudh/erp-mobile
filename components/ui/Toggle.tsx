@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { Text } from './Text';
+import { useTranslation } from '../../lib/i18n';
 import { usePressed } from './use-pressed';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
@@ -12,8 +13,8 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * thing to hit accurately with a thumb while holding a phone in the other hand,
  * and someone reading the label has already told you what they mean to press.
  *
- * The state is always written out as well as shown — "On"/"Off" beneath the
- * label — because a switch's position is the one control users routinely read
+ * The state is always written out as well as shown — "On"/"Off", in the
+ * reader's language — because a switch's position is the one control users routinely read
  * backwards, and colour alone never carries meaning in this app.
  */
 export interface ToggleProps {
@@ -22,7 +23,7 @@ export interface ToggleProps {
   hint?: string;
   value: boolean;
   onValueChange: (next: boolean) => void;
-  /** Words for the two states. Defaults to On / Off. */
+  /** Words for the two states. Default: On / Off in the reader's language (`settings.toggle.*`), never English alone. */
   onLabel?: string;
   offLabel?: string;
   disabled?: boolean;
@@ -41,15 +42,17 @@ export function Toggle({
   hint,
   value,
   onValueChange,
-  onLabel = 'On',
-  offLabel = 'Off',
+  onLabel,
+  offLabel,
   disabled = false,
   flat = false,
   style,
 }: ToggleProps) {
   const styles = useStyles();
   const colors = useColors();
+  const { t } = useTranslation();
   const { pressed, pressHandlers } = usePressed();
+  const stateText = value ? (onLabel ?? t('settings.toggle.on')) : (offLabel ?? t('settings.toggle.off'));
 
   return (
     <Pressable
@@ -82,7 +85,7 @@ export function Toggle({
 
       <View style={styles.control}>
         <Text variant="label" tone={value ? 'accent' : 'tertiary'}>
-          {value ? onLabel : offLabel}
+          {stateText}
         </Text>
         {/* `pointerEvents="none"`: the row owns the gesture, so a tap on the
             switch itself cannot fire the change twice. */}

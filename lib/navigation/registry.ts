@@ -384,6 +384,7 @@ export function visibleGroups(
  */
 export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Bottom tab — Home.',
+  '/+not-found': 'An address the app does not have — reached only by a wrong link, never from a menu.',
   '/sell': 'The full sale — no longer a tab, still a route. Reached from Quick Sell (Home’s Sell, docs/59 D75); kept so links and the saved cart keep working.',
   '/stores': 'Legacy link — redirects to the Partners tab.',
   '/closing': 'The Daily closing — reached from Home’s Daily closing card (Review closing), no longer a row of Money (docs/63). Everybody who counts (`closing.count`) reaches it there.',
