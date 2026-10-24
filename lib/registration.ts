@@ -160,3 +160,28 @@ export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): bo
   const fields = new Set([...Object.keys(x), ...Object.keys(y)]);
   return a.whatsappConsent === b.whatsappConsent && [...fields].every((field) => x[field] === y[field]);
 }
+
+/**
+ * The form in three steps (owner's review, 2026-10-24): the business, the Owner, then how they sign in — the
+ * number, its consent, an optional email address and the password. Presentation only: nothing is sent between steps,
+ * and the one submission at the end is unchanged. City has no rule, so it appears in no step's list.
+ */
+export const REGISTRATION_STEPS: readonly (readonly RegistrationField[])[] = [
+  ['businessName', 'branchName'],
+  ['ownerName'],
+  ['phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'],
+];
+
+/** The problems that belong to one step, in the order its fields appear. */
+export function stepProblems(problems: RegistrationProblems, step: number): RegistrationProblems {
+  const found: RegistrationProblems = {};
+  for (const field of REGISTRATION_STEPS[step] ?? []) {
+    if (problems[field]) found[field] = problems[field];
+  }
+  return found;
+}
+
+/** The first step holding a problem, or -1 — where a submission refused on the device takes the person back to. */
+export function firstStepWithProblem(problems: RegistrationProblems): number {
+  return REGISTRATION_STEPS.findIndex((fields) => fields.some((f) => problems[f]));
+}

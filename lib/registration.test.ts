@@ -10,7 +10,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   emptyRegistration,
+  firstStepWithProblem,
+  REGISTRATION_STEPS,
   registrationPayload,
+  stepProblems,
   sameRegistration,
   validateRegistration,
   type RegistrationDraft,
@@ -237,6 +240,35 @@ it('the screen keeps no consent copy or version of its own: both come from the s
   assert.match(register, /\/messaging\/whatsapp\/consent\?language=/);
   assert.doesNotMatch(register, /wa-operational|wa-consent-/);
   assert.doesNotMatch(code('components/consent/WhatsAppConsentCheck.tsx'), /wa-operational|wa-consent-|checked=\{true\}|useState\(true\)/);
+});
+
+// ── three steps, one submission (owner's review, 2026-10-24) ──────────────────
+
+it('every field with a rule belongs to exactly one step, in the order the screen shows them', () => {
+  const all = REGISTRATION_STEPS.flat();
+  assert.deepEqual([...all].sort(), ['branchName', 'businessName', 'email', 'ownerName', 'passwordConfirm', 'password', 'phone', 'whatsappConsent'].sort());
+  assert.equal(new Set(all).size, all.length);
+  assert.deepEqual(REGISTRATION_STEPS[0], ['businessName', 'branchName']);
+  assert.deepEqual(REGISTRATION_STEPS[1], ['ownerName']);
+});
+
+it('a step is checked on its own fields only: the business step does not complain about a password not yet asked for', () => {
+  const problems = validateRegistration(emptyRegistration);
+  assert.deepEqual(Object.keys(stepProblems(problems, 0)), ['businessName', 'branchName']);
+  assert.deepEqual(Object.keys(stepProblems(problems, 1)), ['ownerName']);
+  assert.deepEqual(Object.keys(stepProblems(validateRegistration({ ...withPhone, businessName: '' }), 2)), []);
+});
+
+it('a refused submission names the first step with something to fix', () => {
+  assert.equal(firstStepWithProblem(validateRegistration(withPhone)), -1);
+  assert.equal(firstStepWithProblem(validateRegistration({ ...withPhone, ownerName: '' })), 1);
+  assert.equal(firstStepWithProblem(validateRegistration({ ...withPhone, ownerName: '', branchName: '' })), 0);
+});
+
+it('the steps reach the server once, at the end: no request between steps', () => {
+  const register = code('app/(auth)/register.tsx');
+  assert.equal([...register.matchAll(/api\.post/g)].length, 1);
+  assert.doesNotMatch(register, /setParams|searchParams|localStorage|setItem\(/, 'the draft is never put in the address or in storage');
 });
 
 console.log('\n' + passed + ' passed');

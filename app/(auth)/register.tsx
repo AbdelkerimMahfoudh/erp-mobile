@@ -1,19 +1,25 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, ScrollView, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { AuthLanguageSwitch, Button, TextField } from '../../components/ui';
+import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { AuthPage } from '../../components/auth/AuthChrome';
+import { AuthLanguageSwitch, Button, Card, TextField } from '../../components/ui';
 import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
 import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
-import { useColors } from '../../lib/design/theme';
-import { space } from '../../lib/design/tokens';
+import { makeStyles } from '../../lib/design/theme';
+import { radius, space } from '../../lib/design/tokens';
+import { dialog } from '../../lib/dialog';
+import { useBrowserSteps } from '../../lib/navigation/browser-steps';
+import { usePreventRemove } from '../../lib/navigation/router-internals';
 import { uuidv4 } from '../../lib/utils';
 import {
   emptyRegistration,
+  firstStepWithProblem,
+  REGISTRATION_STEPS,
   registrationPayload,
+  stepProblems,
   sameRegistration,
   validateRegistration,
   type RegistrationDraft,
@@ -56,16 +62,35 @@ import type { RegistrationStarted, WhatsAppConsentCopy } from '../../types/api';
  * the server served goes back with the registration, and the server refuses a
  * registration without it — this screen asks first only so nothing is sent for
  * nothing. A refusal for an updated copy unticks the box and shows the new one.
+ *
+ * ## Three steps, one submission (owner's review, 2026-10-24)
+ *
+ * The business, the Owner, then how they sign in (`REGISTRATION_STEPS`). The
+ * steps are presentation only: the draft lives in this screen's memory, never
+ * in the address or in storage; nothing reaches the server until the last
+ * step's button, which sends exactly the one registration it always did.
+ * Each step checks its own fields and puts the cursor in the first one to fix.
+ * Going back — the header arrow, the browser's Back, the system gesture — goes
+ * to the previous step, and leaving from the first step with something typed
+ * asks first. Switching language or theme re-renders in place and keeps all of
+ * it; a reload starts clean, as before, after the browser asks.
  */
+const STEP_COUNT = REGISTRATION_STEPS.length;
+const STEP_TITLES = ['register.section.business', 'register.section.owner', 'register.section.contact'] as const;
+
 /** The order of the fields on screen: the first one with a problem is where a screen reader is taken. */
 const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'branchName', 'ownerName', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
 
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
   const router = useRouter();
-  const colors = useColors();
+  const navigation = useNavigation();
+  const styles = useStyles();
 
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistration);
+  const [step, setStep] = useState(0);
+  /** Set once the registration was accepted: the screen is left for the code check without asking. */
+  const [leaving, setLeaving] = useState<{ destination: string } | null>(null);
   const [problems, setProblems] = useState<RegistrationProblems>({});
   const [failure, setFailure] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +100,8 @@ export default function RegisterScreen() {
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
   const consentRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const inputs = useRef<Partial<Record<keyof RegistrationProblems | 'city', TextInput | null>>>({});
 
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),
@@ -94,11 +121,85 @@ export default function RegisterScreen() {
     setFailure(null);
   };
 
-  /** A screen reader is taken to the box when it is the first thing to fix; a sighted person sees it in red. */
-  const focusConsentIf = (found: RegistrationProblems) => {
-    if (FIELD_ORDER.find((f) => found[f]) !== 'whatsappConsent') return;
-    focusForScreenReader(consentRef.current);
+  /**
+   * The first thing to fix gets the cursor: an input is focused, so somebody can type the correction at once; the
+   * box is where a screen reader is taken, and a sighted person sees it in red.
+   */
+  const focusFirst = (found: RegistrationProblems) => {
+    const first = FIELD_ORDER.find((f) => found[f]);
+    if (!first) return;
+    if (first === 'whatsappConsent') focusForScreenReader(consentRef.current);
+    else inputs.current[first]?.focus();
   };
+
+  const goToStep = (next: number) => {
+    setStep(next);
+    setFailure(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  /** The next step, once this one's own fields hold. Nothing is sent. */
+  const next = () => {
+    const found = stepProblems(validateRegistration(draft), step);
+    setProblems((p) => ({ ...p, ...found }));
+    if (Object.keys(found).length > 0) {
+      focusFirst(found);
+      return;
+    }
+    goToStep(step + 1);
+    steps.forward();
+  };
+
+  const dirty = !sameRegistration(draft, emptyRegistration);
+
+  const confirmLeave = () =>
+    dialog.confirm({
+      title: t('register.leave.title'),
+      message: t('register.leave.body'),
+      confirmLabel: t('register.leave.confirm'),
+      cancelLabel: t('action.cancel'),
+      tone: 'danger',
+    });
+
+  // The browser's Back is a step back too, and asks before a typed first step is thrown away (`useBrowserSteps`).
+  const steps = useBrowserSteps({
+    step,
+    dirty: dirty && !leaving,
+    onStepBack: () => goToStep(step - 1),
+    onLeaveFirstStep: confirmLeave,
+  });
+
+  /*
+   * Every other way back — the header arrow, the system gesture, Android's back button — is one navigation action: a
+   * later step goes to the one before it, and the first step asks before a typed form is thrown away. Nothing is asked
+   * once the registration was accepted and the screen is on its way to the code check.
+   */
+  usePreventRemove(!leaving && (step > 0 || dirty), ({ data }) => {
+    if (step > 0) {
+      steps.back();
+      return;
+    }
+    void confirmLeave().then((leave) => {
+      if (leave) steps.release(() => navigation.dispatch(data.action));
+    });
+  });
+
+  // A reload or a closed tab loses the form, as it always has (nothing is stored): the browser asks first.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || leaving || !dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    globalThis.addEventListener?.('beforeunload', warn);
+    return () => globalThis.removeEventListener?.('beforeunload', warn);
+  }, [dirty, leaving]);
+
+  // Accepted: on to the code check, once the guard above has stood down.
+  useEffect(() => {
+    if (!leaving) return;
+    steps.release(() => router.replace({ pathname: '/(auth)/verify', params: { destination: leaving.destination } } as never));
+  }, [leaving, router, steps]);
 
   const set = <K extends Exclude<keyof RegistrationDraft, 'whatsappConsent'>>(key: K, value: string) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -114,7 +215,10 @@ export default function RegisterScreen() {
     const found = validateRegistration(draft);
     setProblems(found);
     if (Object.keys(found).length > 0) {
-      focusConsentIf(found);
+      // Each step was checked on the way here; should one still hold a problem, that step is shown.
+      const at = firstStepWithProblem(found);
+      if (at !== step) goToStep(at);
+      focusFirst(stepProblems(found, at));
       return;
     }
     // The box is shown only with the server's copy, so a ticked box always has a version to send.
@@ -151,10 +255,7 @@ export default function RegisterScreen() {
        */
       setDraft((d) => ({ ...d, password: '', passwordConfirm: '' }));
 
-      router.replace({
-        pathname: '/(auth)/verify',
-        params: { destination: started.verification?.destination ?? '' },
-      } as never);
+      setLeaving({ destination: started.verification?.destination ?? '' });
     } catch (e) {
       // The server's own consent rule: an updated copy is shown again, unticked; a missing agreement is asked for.
       if (e instanceof ApiError && (e.code === 'whatsapp_consent_outdated' || e.code === 'whatsapp_consent_required')) {
@@ -165,7 +266,7 @@ export default function RegisterScreen() {
         }
         const found = { whatsappConsent: outdated ? 'consent.problem.outdated' : 'register.problem.whatsappConsent' };
         setProblems(found);
-        focusConsentIf(found);
+        focusFirst(found);
         return;
       }
       /*
@@ -191,117 +292,171 @@ export default function RegisterScreen() {
   const problem = (key: keyof RegistrationProblems) =>
     problems[key] ? t(problems[key] as never) : undefined;
 
+  const title = STEP_TITLES[step];
+  const last = step === STEP_COUNT - 1;
+
   return (
-    <SafeAreaView style={[styles.fill, { backgroundColor: colors.surface.canvas }]}>
-      <Stack.Screen options={{ headerShown: true, title: t('register.title') }} />
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <>
+      <Stack.Screen options={{ title: t('register.title') }} />
+      <AuthPage
+        scrollRef={scrollRef}
+        footer={
+          /*
+            The longest form in the product, and the one most likely to be
+            filled in by somebody who was handed the phone. Changing the
+            language here keeps every field and the step exactly as they are:
+            this writes a preference and re-renders, it does not remount the form.
+          */
+          <AuthLanguageSwitch />
+        }
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
+        {step === 0 ? (
           <Text variant="body" tone="secondary">
             {t('register.subtitle')}
           </Text>
+        ) : null}
 
-          <View style={styles.group}>
-            <Text variant="label">{t('register.section.business')}</Text>
-            <TextField
-              label={t('register.field.businessName')}
-              hint={t('register.field.businessName.hint')}
-              value={draft.businessName}
-              onChangeText={(v) => set('businessName', v)}
-              autoCapitalize="words"
-              error={problem('businessName')}
-            />
-            <TextField
-              label={t('register.field.branchName')}
-              hint={t('register.field.branchName.hint')}
-              value={draft.branchName}
-              onChangeText={(v) => set('branchName', v)}
-              autoCapitalize="words"
-              error={problem('branchName')}
-            />
-            <TextField
-              label={t('register.field.city')}
-              value={draft.city}
-              onChangeText={(v) => set('city', v)}
-              autoCapitalize="words"
-            />
+        <View style={styles.progressBlock}>
+          <Text variant="captionStrong" tone="secondary" accessibilityRole="text">
+            {t('register.step', { current: step + 1, total: STEP_COUNT })}
+          </Text>
+          {/* The words above are the indicator; the bar repeats them for the eye and is hidden from a screen reader. */}
+          <View style={styles.progress} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            {REGISTRATION_STEPS.map((_, i) => (
+              <View key={i} style={[styles.segment, i <= step ? styles.segmentDone : null]} />
+            ))}
           </View>
+        </View>
 
-          <View style={styles.group}>
-            <Text variant="label">{t('register.section.owner')}</Text>
+        <Card padding="lg" style={styles.form}>
+          <Text variant="heading" accessibilityRole="header">
+            {t(title)}
+          </Text>
+
+          {step === 0 ? (
+            <>
+              <TextField
+                ref={(node) => {
+                  inputs.current.businessName = node;
+                }}
+                label={t('register.field.businessName')}
+                hint={t('register.field.businessName.hint')}
+                value={draft.businessName}
+                onChangeText={(v) => set('businessName', v)}
+                autoCapitalize="words"
+                error={problem('businessName')}
+                returnKeyType="next"
+                onSubmitEditing={() => inputs.current.branchName?.focus()}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.branchName = node;
+                }}
+                label={t('register.field.branchName')}
+                hint={t('register.field.branchName.hint')}
+                value={draft.branchName}
+                onChangeText={(v) => set('branchName', v)}
+                autoCapitalize="words"
+                error={problem('branchName')}
+                returnKeyType="next"
+                onSubmitEditing={() => inputs.current.city?.focus()}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.city = node;
+                }}
+                label={t('register.field.city')}
+                value={draft.city}
+                onChangeText={(v) => set('city', v)}
+                autoCapitalize="words"
+                returnKeyType="next"
+                onSubmitEditing={next}
+              />
+            </>
+          ) : null}
+
+          {step === 1 ? (
             <TextField
+              ref={(node) => {
+                  inputs.current.ownerName = node;
+                }}
               label={t('register.field.ownerName')}
               value={draft.ownerName}
               onChangeText={(v) => set('ownerName', v)}
               autoCapitalize="words"
               autoComplete="name"
               error={problem('ownerName')}
+              returnKeyType="next"
+              onSubmitEditing={next}
             />
-          </View>
+          ) : null}
 
-          <View style={styles.group}>
-            <Text variant="label">{t('register.section.contact')}</Text>
-            <Text variant="caption" tone="secondary">
-              {t('register.contact.hint')}
-            </Text>
-            <TextField
-              label={t('register.field.phone')}
-              value={draft.phone}
-              onChangeText={(v) => set('phone', v)}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              error={problem('phone')}
-            />
-            <WhatsAppConsentCheck
-              ref={consentRef}
-              copy={copy.data}
-              loading={copy.isLoading}
-              failed={copy.isError}
-              onRetry={() => void copy.refetch()}
-              checked={draft.whatsappConsent}
-              onChange={setConsent}
-              error={problem('whatsappConsent')}
-              disabled={submitting}
-            />
-            <TextField
-              label={t('register.field.email')}
-              value={draft.email}
-              onChangeText={(v) => set('email', v)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              error={problem('email')}
-            />
-          </View>
-
-          <View style={styles.group}>
-            <Text variant="label">{t('register.section.password')}</Text>
-            <TextField
-              label={t('register.field.password')}
-              hint={t('register.field.password.hint')}
-              value={draft.password}
-              onChangeText={(v) => set('password', v)}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="new-password"
-              error={problem('password')}
-            />
-            <TextField
-              label={t('register.field.passwordConfirm')}
-              value={draft.passwordConfirm}
-              onChangeText={(v) => set('passwordConfirm', v)}
-              secureTextEntry
-              autoCapitalize="none"
-              autoComplete="new-password"
-              error={problem('passwordConfirm')}
-            />
-          </View>
+          {last ? (
+            <>
+              <Text variant="caption" tone="secondary">
+                {t('register.contact.hint')}
+              </Text>
+              <TextField
+                ref={(node) => {
+                  inputs.current.phone = node;
+                }}
+                label={t('register.field.phone')}
+                value={draft.phone}
+                onChangeText={(v) => set('phone', v)}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                error={problem('phone')}
+              />
+              <WhatsAppConsentCheck
+                ref={consentRef}
+                copy={copy.data}
+                loading={copy.isLoading}
+                failed={copy.isError}
+                onRetry={() => void copy.refetch()}
+                checked={draft.whatsappConsent}
+                onChange={setConsent}
+                error={problem('whatsappConsent')}
+                disabled={submitting}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.email = node;
+                }}
+                label={t('register.field.email')}
+                value={draft.email}
+                onChangeText={(v) => set('email', v)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                error={problem('email')}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.password = node;
+                }}
+                label={t('register.field.password')}
+                hint={t('register.field.password.hint')}
+                value={draft.password}
+                onChangeText={(v) => set('password', v)}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                error={problem('password')}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.passwordConfirm = node;
+                }}
+                label={t('register.field.passwordConfirm')}
+                value={draft.passwordConfirm}
+                onChangeText={(v) => set('passwordConfirm', v)}
+                secureTextEntry
+                autoCapitalize="none"
+                autoComplete="new-password"
+                error={problem('passwordConfirm')}
+              />
+            </>
+          ) : null}
 
           {failure ? (
             <Text variant="body" tone="danger" align="center">
@@ -309,36 +464,53 @@ export default function RegisterScreen() {
             </Text>
           ) : null}
 
-          <View style={styles.group}>
-            <Button
-              title={submitting ? t('register.creating') : t('register.submit')}
-              onPress={() => void submit()}
-              loading={submitting}
-              disabled={submitting}
-            />
-            <Button
-              title={t('register.back')}
-              variant="secondary"
-              onPress={() => router.back()}
-              disabled={submitting}
-            />
-
-            {/*
-              The longest form in the product, and the one most likely to be
-              filled in by somebody who was handed the phone. Changing the
-              language here keeps every field exactly as typed: this writes a
-              preference and re-renders, it does not remount the form.
-            */}
-            <AuthLanguageSwitch />
+          <View style={styles.actions}>
+            {last ? (
+              <Button
+                title={submitting ? t('register.creating') : t('register.submit')}
+                onPress={() => void submit()}
+                loading={submitting}
+                disabled={submitting}
+              />
+            ) : (
+              <Button title={t('register.next')} onPress={next} testID="register-next" />
+            )}
+            {step > 0 ? (
+              <Button title={t('register.previous')} variant="secondary" onPress={steps.back} disabled={submitting} />
+            ) : null}
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </Card>
+
+        {step === 0 ? (
+          <Button title={t('register.back')} variant="tertiary" onPress={() => router.back()} disabled={submitting} />
+        ) : null}
+      </AuthPage>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  content: { padding: space.lg, gap: space.lg },
-  group: { gap: space.md },
-});
+const useStyles = makeStyles((colors) => ({
+  progressBlock: {
+    gap: space.sm,
+  },
+  progress: {
+    flexDirection: 'row',
+    gap: space.xs,
+  },
+  segment: {
+    flex: 1,
+    height: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.border.subtle,
+  },
+  segmentDone: {
+    backgroundColor: colors.intent.info.solid,
+  },
+  form: {
+    gap: space.base,
+  },
+  actions: {
+    gap: space.md,
+    marginTop: space.xs,
+  },
+}));

@@ -20,6 +20,10 @@ export default class ScrollView extends React.Component<Record<string, unknown>>
   static Context = ScrollViewContext;
   static displayName = 'ScrollView';
 
+  /** The real ScrollView's imperative scrolls, as no-ops: a screen that returns to the top of a step calls them. */
+  scrollTo() {}
+  scrollToEnd() {}
+
   render() {
     return (
       <ScrollViewContext.Provider value={this.props.horizontal ? HORIZONTAL : VERTICAL}>

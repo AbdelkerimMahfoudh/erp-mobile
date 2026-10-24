@@ -37,10 +37,10 @@ function files(dir: string): string[] {
     return statSync(full).isDirectory() ? files(full) : full.endsWith('.tsx') ? [full] : [];
   });
 }
-/** Every route file, as `app/...` — layouts are navigators, not routes. */
+/** Every route file, as `app/...` — layouts are navigators, not routes, and the browser's page shell is neither. */
 const routeFiles = files(APP)
   .map((f) => 'app/' + f.slice(APP.length).replace(/\\/g, '/'))
-  .filter((f) => !f.endsWith('/_layout.tsx'));
+  .filter((f) => !f.endsWith('/_layout.tsx') && f !== 'app/+html.tsx');
 /** The screens of the app itself: not the signed-out group, not the splash. */
 const screens = routeFiles.filter((f) => !f.startsWith('app/(auth)/') && f !== BOOTSTRAP_FILE);
 const routes = [...new Set(routeFiles.filter((f) => f !== BOOTSTRAP_FILE).map(routeOfFile))];
@@ -92,7 +92,7 @@ it('the routes without an arrow: /stores is an invisible redirect; branch choice
   assert.match(closed, /title=\{t\('action\.signOut'\)\}/);
   // Creating a business account goes back to sign-in; its code check can start over with another contact.
   assert.ok('/register' in AUTH_ROOTS && '/verify' in AUTH_ROOTS);
-  assert.match(code(read('app/(auth)/register.tsx')), /title=\{t\('register\.back'\)\}\s*variant="secondary"\s*onPress=\{\(\) => router\.back\(\)\}/);
+  assert.match(code(read('app/(auth)/register.tsx')), /title=\{t\('register\.back'\)\}\s*variant="tertiary"\s*onPress=\{\(\) => router\.back\(\)\}/);
   assert.match(code(read('app/(auth)/verify.tsx')), /title=\{t\('register\.verify\.change'\)\}[\s\S]*?router\.replace\('\/\(auth\)\/register' as never\);/);
 });
 

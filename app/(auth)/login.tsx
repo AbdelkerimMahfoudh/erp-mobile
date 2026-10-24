@@ -1,10 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Store } from 'lucide-react-native';
 import { LegalPageButtons } from '../../components/legal/LegalPages';
-import { AuthLanguageSwitch, Button, Field, InlineNotice, Text } from '../../components/ui';
+import { AuthPage } from '../../components/auth/AuthChrome';
+import { AuthLanguageSwitch, Button, Card, Field, InlineNotice, Text } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
@@ -12,8 +11,8 @@ import { looksSubmittable } from '../../lib/identifier';
 import { forgetContinuation } from '../../lib/registration-session';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
-import { makeStyles, useColors } from '../../lib/design/theme';
-import { radius, space } from '../../lib/design/tokens';
+import { makeStyles } from '../../lib/design/theme';
+import { space } from '../../lib/design/tokens';
 
 /**
  * Signing in.
@@ -37,7 +36,6 @@ import { radius, space } from '../../lib/design/tokens';
  * registered with WhatsApp, because nothing can yet.
  */
 export default function Login() {
-  const colors = useColors();
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
@@ -120,132 +118,141 @@ export default function Login() {
   const canSubmit = looksSubmittable(identifier) && password.length > 0;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
-        <View style={styles.page}>
-          <View style={styles.brand}>
-            <View style={styles.logo}>
-              <Store color={colors.text.inverse} size={30} />
-            </View>
-            <Text variant="title" align="center" accessibilityRole="header">
-              {t('auth.title')}
+    <AuthPage
+      footer={
+        <>
+          {/*
+            Below the task and apart from it: the way out of a language somebody cannot read, then what the app does
+            with a person's information, the terms, help and how deletion works — readable before signing in, in the
+            phone's own browser. Pages to read: none leads to a price or a sign-up.
+          */}
+          <AuthLanguageSwitch />
+          <LegalPageButtons />
+        </>
+      }
+    >
+      <View style={styles.heading}>
+        <Text variant="title" accessibilityRole="header">
+          {choice ? t('auth.choose.title') : t('auth.subtitle')}
+        </Text>
+        <Text variant="caption" tone="tertiary">
+          {t('auth.byline')}
+        </Text>
+      </View>
+
+      {choice ? (
+        /*
+          The password already matched — every shop listed here is genuinely
+          theirs. The alternative the product rules out is asking for a
+          Store ID up front, which would put this rare case's cost on
+          everybody, every day.
+        */
+        <Card padding="lg" style={styles.form}>
+          <Text variant="label" tone="secondary">
+            {t('auth.choose.body')}
+          </Text>
+          {choice.accounts.map((a) => (
+            <Button
+              key={a.accountRef}
+              title={a.companyName}
+              variant="secondary"
+              disabled={loading}
+              onPress={() => void onChoose(a.accountRef)}
+            />
+          ))}
+          {inlineError ? (
+            <Text variant="label" tone="danger" align="center">
+              {inlineError}
             </Text>
-            <Text variant="body" tone="secondary" align="center">
-              {t('auth.subtitle')}
+          ) : null}
+          <Button
+            title={t('auth.choose.cancel')}
+            variant="ghost"
+            disabled={loading}
+            onPress={() => {
+              setChoice(null);
+              setPassword('');
+            }}
+          />
+        </Card>
+      ) : (
+        <>
+          {/* The task: one surface, two fields and the one primary action. */}
+          <Card padding="lg" style={styles.form}>
+            <Field
+              label={t('auth.field.identifier')}
+              hint={t('auth.field.identifier.hint')}
+              /*
+                A general keyboard, NOT a phone pad: the same field has to
+                accept an email address, and a numeric keyboard would make that
+                impossible to type. `email-address` is wrong for the same
+                reason in reverse — it would make the number awkward.
+              */
+              keyboardType="default"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="username"
+              textContentType="username"
+              value={identifier}
+              onChangeText={setIdentifier}
+            />
+            <Field
+              label={t('auth.field.password')}
+              /* Field renders its own show/hide control for a secure input. */
+              secureTextEntry
+              autoComplete="current-password"
+              textContentType="password"
+              value={password}
+              onChangeText={setPassword}
+              onSubmitEditing={onSubmit}
+            />
+
+            {/* Blocking, translated device-verification state. No Continue /
+                Retry as new device / Send code action — none of those exist. */}
+            {failure === 'device_verification_required' ? (
+              <InlineNotice tone="warning" title={t('auth.device.title')}>
+                {t('auth.device.body')}
+              </InlineNotice>
+            ) : inlineError ? (
+              <Text variant="label" tone="danger" align="center">
+                {inlineError}
+              </Text>
+            ) : null}
+
+            <Button
+              title={t('auth.action.signIn')}
+              onPress={onSubmit}
+              loading={loading}
+              disabled={!canSubmit || loading}
+              style={styles.submit}
+            />
+          </Card>
+
+          {/*
+            The other ways in, apart from the sign-in surface so none of them is
+            mistaken for it.
+
+            A clear SECONDARY action (restored 2026-10-13). Somebody whose
+            business has no account yet has somewhere to go from this screen,
+            on this phone: the form is a screen of this app, never a browser,
+            and a server that cannot send its code says so before anything
+            is saved.
+          */}
+          <View style={styles.others}>
+            <Button
+              title={t('auth.action.createAccount')}
+              variant="secondary"
+              onPress={() => router.push('/(auth)/register' as never)}
+            />
+            {/*
+              Who does not sign up here: an employee's account is created by
+              the business owner, in Team. One honest sentence, so staff do not
+              start a second business by mistake. No price, no link.
+            */}
+            <Text variant="caption" tone="secondary" align="center" style={styles.managed}>
+              {t('auth.accounts.managed')}
             </Text>
-            <Text variant="caption" tone="tertiary" align="center">
-              {t('auth.byline')}
-            </Text>
-          </View>
-
-          {choice ? (
-            /*
-              The password already matched — every shop listed here is genuinely
-              theirs. The alternative the product rules out is asking for a
-              Store ID up front, which would put this rare case's cost on
-              everybody, every day.
-            */
-            <View style={styles.stack}>
-              <Text variant="heading" align="center">
-                {t('auth.choose.title')}
-              </Text>
-              <Text variant="label" tone="secondary" align="center">
-                {t('auth.choose.body')}
-              </Text>
-              {choice.accounts.map((a) => (
-                <Button
-                  key={a.accountRef}
-                  title={a.companyName}
-                  variant="secondary"
-                  disabled={loading}
-                  onPress={() => void onChoose(a.accountRef)}
-                />
-              ))}
-              {inlineError ? (
-                <Text variant="label" tone="danger" align="center">
-                  {inlineError}
-                </Text>
-              ) : null}
-              <Button
-                title={t('auth.choose.cancel')}
-                variant="ghost"
-                disabled={loading}
-                onPress={() => {
-                  setChoice(null);
-                  setPassword('');
-                }}
-              />
-            </View>
-          ) : (
-            <View style={styles.stack}>
-              <Field
-                label={t('auth.field.identifier')}
-                hint={t('auth.field.identifier.hint')}
-                /*
-                  A general keyboard, NOT a phone pad: the same field has to
-                  accept an email address, and a numeric keyboard would make that
-                  impossible to type. `email-address` is wrong for the same
-                  reason in reverse — it would make the number awkward.
-                */
-                keyboardType="default"
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="username"
-                textContentType="username"
-                value={identifier}
-                onChangeText={setIdentifier}
-              />
-              <Field
-                label={t('auth.field.password')}
-                /* Field renders its own show/hide control for a secure input. */
-                secureTextEntry
-                autoComplete="current-password"
-                textContentType="password"
-                value={password}
-                onChangeText={setPassword}
-                onSubmitEditing={onSubmit}
-              />
-
-              {/* Blocking, translated device-verification state. No Continue /
-                  Retry as new device / Send code action — none of those exist. */}
-              {failure === 'device_verification_required' ? (
-                <InlineNotice tone="warning" title={t('auth.device.title')}>
-                  {t('auth.device.body')}
-                </InlineNotice>
-              ) : inlineError ? (
-                <Text variant="label" tone="danger" align="center">
-                  {inlineError}
-                </Text>
-              ) : null}
-
-              <Button
-                title={t('auth.action.signIn')}
-                onPress={onSubmit}
-                loading={loading}
-                disabled={!canSubmit || loading}
-              />
-
-              {/*
-                A clear SECONDARY action (restored 2026-10-13). Somebody whose
-                business has no account yet has somewhere to go from this screen,
-                on this phone: the form is a screen of this app, never a browser,
-                and a server that cannot send its code says so before anything
-                is saved.
-              */}
-              <Button
-                title={t('auth.action.createAccount')}
-                variant="secondary"
-                onPress={() => router.push('/(auth)/register' as never)}
-              />
-
-              {/*
-                Who does not sign up here: an employee's account is created by
-                the business owner, in Team. One honest sentence, so staff do not
-                start a second business by mistake. No price, no link.
-              */}
-              <Text variant="caption" tone="secondary" align="center">
-                {t('auth.accounts.managed')}
-              </Text>
+            <View style={styles.links}>
               {/*
                 The employee's own way in (D213): prove the contact the Owner gave, agree to WhatsApp messages on this
                 phone if it is a number, and choose a password.
@@ -256,60 +263,31 @@ export default function Login() {
                 privately, and a password of their own. Nothing is sent to them.
               */}
               <Button title={t('auth.action.setup')} variant="tertiary" onPress={() => router.push('/(auth)/setup' as never)} />
-
-              {/*
-                Last on the screen, and the first thing somebody needs.
-
-                A person handed a phone in a language they cannot read cannot sign
-                in to change the language, and could not change the language
-                without signing in — the setting lived behind this screen. It sits
-                below the actions because it is not the task; it is the way out of
-                being unable to start the task.
-              */}
-              <AuthLanguageSwitch />
-
-              {/*
-                What the app does with a person's information, the terms, where to
-                get help and how deletion works — readable before signing in, in the
-                phone's own browser. Pages to read: none leads to a price or a sign-up.
-              */}
-              <LegalPageButtons />
             </View>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </View>
+        </>
+      )}
+    </AuthPage>
   );
 }
 
-const useStyles = makeStyles((colors) => ({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.surface.canvas,
-  },
-  fill: {
-    flex: 1,
-  },
-  page: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: space.xl,
-  },
-  brand: {
-    alignItems: 'center',
+const useStyles = makeStyles(() => ({
+  heading: {
     gap: space.xs,
-    marginBottom: space['2xl'],
   },
-  logo: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.intent.info.solid,
-    marginBottom: space.md,
-  },
-  stack: {
+  form: {
     gap: space.base,
+  },
+  submit: {
+    marginTop: space.xs,
+  },
+  others: {
+    gap: space.md,
+  },
+  managed: {
+    marginTop: space.xs,
+  },
+  links: {
+    gap: space.xs,
   },
 }));

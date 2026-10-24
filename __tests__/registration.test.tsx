@@ -17,6 +17,7 @@ import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useBranch } from '../lib/branch';
 import { useConnectivity } from '../lib/connectivity';
 import { getLanguage, t, useI18n } from '../lib/i18n';
@@ -34,6 +35,15 @@ jest.mock('expo-router', () => ({
   useSegments: () => ['(auth)'],
   useLocalSearchParams: () => ({ destination: 'a•••@example.com' }),
   useFocusEffect: (effect: () => void) => jest.requireActual('react').useEffect(effect, [effect]),
+}));
+// No navigator here: the guard on leaving is recorded, so a test can take the step back the header arrow would.
+const mockPrevent: { enabled: boolean; leave: ((e: { data: { action: unknown } }) => void) | null } = { enabled: false, leave: null };
+jest.mock('../lib/navigation/router-internals', () => ({
+  HeaderShownContext: jest.requireActual('react').createContext(false),
+  usePreventRemove: (enabled: boolean, leave: (e: { data: { action: unknown } }) => void) => {
+    mockPrevent.enabled = enabled;
+    mockPrevent.leave = leave;
+  },
 }));
 jest.mock('../lib/storage', () => ({
   getItem: jest.fn(async (k: string) => mockStore.get(k) ?? null),
@@ -109,15 +119,28 @@ function screenText(): string {
   return texts.filter((text) => !copies.includes(text)).join(' ');
 }
 
-/** The form as a person fills it: the WhatsApp number (required) first among the contacts, no email address. */
-function fillFields() {
-  const [business, branch, , owner, phone, , password, again] = screen.UNSAFE_getAllByType(TextInput);
+/** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
+function toLastStep() {
+  const [business, branch] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(business, 'Nour Electronics');
   fireEvent.changeText(branch, 'Main Store');
-  fireEvent.changeText(owner, 'Aicha');
+  fireEvent.press(screen.getByText(t('register.next')));
+  fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Aicha');
+  fireEvent.press(screen.getByText(t('register.next')));
+}
+
+/** The last step: the WhatsApp number (required) first among the contacts, no email address, the password twice. */
+function fillLastStep() {
+  const [phone, , password, again] = screen.UNSAFE_getAllByType(TextInput);
   fireEvent.changeText(phone, '+22236000001');
   fireEvent.changeText(password, 'correct horse');
   fireEvent.changeText(again, 'correct horse');
+}
+
+/** The whole form, step by step. */
+function fillFields() {
+  toLastStep();
+  fillLastStep();
 }
 
 /** …and ticks the WhatsApp consent beside the number, once the server's copy is shown. */
@@ -212,7 +235,7 @@ describe('the form', () => {
       });
     }
     // Then they notice the number was wrong and correct it: a new attempt.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[4], '+22236000002');
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '+22236000002');
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -245,8 +268,8 @@ describe('the form', () => {
     renderWith(<RegisterScreen />);
     await fillForm();
     const inputs = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(inputs[4], '');
-    fireEvent.changeText(inputs[5], 'aicha@example.invalid');
+    fireEvent.changeText(inputs[0], '');
+    fireEvent.changeText(inputs[1], 'aicha@example.invalid');
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -257,9 +280,78 @@ describe('the form', () => {
   });
 });
 
+describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
+  const value = (i: number) => screen.UNSAFE_getAllByType(TextInput)[i].props.value;
+
+  it('says which step of three, and checks only that step’s fields before moving on — nothing is sent', async () => {
+    renderWith(<RegisterScreen />);
+    expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
+    fireEvent.press(screen.getByText(t('register.next')));
+    expect(screen.getByText(t('register.problem.businessName'))).toBeTruthy();
+    expect(screen.getByText(t('register.problem.branchName'))).toBeTruthy();
+    // Still the business step: no Owner field yet, and nothing about a password not yet asked for.
+    expect(screen.queryByText(t('register.field.ownerName'))).toBeNull();
+    expect(screen.queryByText(t('register.problem.password'))).toBeNull();
+    // Typing into a refused field is never blocked: the correction is taken and its message cleared.
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Nour Electronics');
+    expect(value(0)).toBe('Nour Electronics');
+    expect(screen.queryByText(t('register.problem.businessName'))).toBeNull();
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('keeps every value going back and forward, by its own button or by the way back', async () => {
+    renderWith(<RegisterScreen />);
+    const [business, branch, city] = screen.UNSAFE_getAllByType(TextInput);
+    fireEvent.changeText(business, 'Nour Electronics');
+    fireEvent.changeText(branch, 'Main Store');
+    fireEvent.changeText(city, 'Rosso');
+    fireEvent.press(screen.getByText(t('register.next')));
+    expect(screen.getByText(t('register.step', { current: 2, total: 3 }))).toBeTruthy();
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Aicha');
+
+    fireEvent.press(screen.getByText(t('register.previous')));
+    expect([value(0), value(1), value(2)]).toEqual(['Nour Electronics', 'Main Store', 'Rosso']);
+    fireEvent.press(screen.getByText(t('register.next')));
+    expect(value(0)).toBe('Aicha');
+
+    // The header arrow, the browser's Back or the gesture: one step back, never off the form.
+    expect(mockPrevent.enabled).toBe(true);
+    act(() => mockPrevent.leave?.({ data: { action: { type: 'GO_BACK' } } }));
+    expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
+    expect(value(0)).toBe('Nour Electronics');
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it('a clean first step may be left without a question; a typed one is guarded', async () => {
+    renderWith(<RegisterScreen />);
+    expect(mockPrevent.enabled).toBe(false);
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[2], 'Rosso');
+    expect(mockPrevent.enabled).toBe(true);
+  });
+
+  it('switching the theme keeps the step and everything typed', async () => {
+    renderWith(
+      <>
+        <ThemeToggle />
+        <RegisterScreen />
+      </>,
+    );
+    toLastStep();
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '+22236000001');
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('theme-toggle'));
+    });
+    expect(screen.getByText(t('register.step', { current: 3, total: 3 }))).toBeTruthy();
+    expect(value(0)).toBe('+22236000001');
+    fireEvent.press(screen.getByText(t('register.previous')));
+    expect(value(0)).toBe('Aicha');
+  });
+});
+
 describe('the WhatsApp consent beside the number (D213)', () => {
   it('shows the server’s copy beside the number with a box that starts unticked, and the privacy page', async () => {
     renderWith(<RegisterScreen />);
+    toLastStep();
     const box = await screen.findByTestId('whatsapp-consent-check');
     expect(box.props.accessibilityRole).toBe('checkbox');
     expect(box.props.accessibilityState).toMatchObject({ checked: false });
@@ -268,7 +360,7 @@ describe('the WhatsApp consent beside the number (D213)', () => {
     expect(screen.getByText(CONSENT_COPY.en.body)).toBeTruthy();
     expect(api.get).toHaveBeenCalledWith('/messaging/whatsapp/consent?language=en');
     // Typing the number ticks nothing.
-    fillFields();
+    fillLastStep();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
   });
 
@@ -276,8 +368,9 @@ describe('the WhatsApp consent beside the number (D213)', () => {
     const { AccessibilityInfo } = jest.requireActual('react-native') as typeof import('react-native');
     const focus = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation(() => undefined);
     renderWith(<RegisterScreen />);
+    toLastStep();
     await screen.findByTestId('whatsapp-consent-check');
-    fillFields();
+    fillLastStep();
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
     });
@@ -322,6 +415,7 @@ describe('the WhatsApp consent beside the number (D213)', () => {
       return {};
     });
     renderWith(<RegisterScreen />);
+    toLastStep();
     expect(await screen.findByText(t('consent.loadFailed'))).toBeTruthy();
     expect(screen.queryByTestId('whatsapp-consent-check')).toBeNull();
     expect(screen.getByText(t('action.retry'))).toBeTruthy();
@@ -332,8 +426,10 @@ describe('the WhatsApp consent beside the number (D213)', () => {
     try {
       (api.post as jest.Mock).mockResolvedValue({ status: 'pending_activation', created: true, publicStoreId: 'S', verification: null, continuation: null, next: 'sign_in' });
       renderWith(<RegisterScreen />);
+      toLastStep();
       expect(await screen.findByText(CONSENT_COPY[lang].agreement)).toBeTruthy();
-      await fillForm();
+      fillLastStep();
+      fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
       await act(async () => {
         fireEvent.press(screen.getByText(t('register.submit')));
       });
