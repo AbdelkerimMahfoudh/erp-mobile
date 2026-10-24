@@ -5,22 +5,7 @@ import { useNavigation, Stack } from 'expo-router';
 import { usePreventRemove } from '../lib/navigation/router-internals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
-import {
-  Button,
-  Card,
-  EmptyState,
-  ErrorState,
-  ListRow,
-  Screen,
-  Section,
-  SegmentedControl,
-  SkeletonList,
-  Chip,
-  Identifier,
-  Text,
-  TextField,
-  Toggle,
-} from '../components/ui';
+import { Button, Card, Chip, EmptyState, ErrorState, Identifier, ListRow, PageIntro, Screen, Section, SegmentedControl, SkeletonList, Text, TextField, Toggle } from '../components/ui';
 import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
 import { space, type as typeScale } from '../lib/design/tokens';
@@ -268,12 +253,8 @@ export default function SettingsScreen() {
         ) : undefined
       }
     >
-      <View>
-        {header}
-        <Text variant="caption" tone="secondary" style={styles.subtitle}>
-          {t('settings.subtitle')}
-        </Text>
-      </View>
+      {header}
+      <PageIntro description={t('settings.subtitle')} />
 
       <PersonalIdCard />
       <StoreAccountIdCard />
@@ -719,7 +700,6 @@ function StoreAccountIdCard() {
 }
 
 const styles = StyleSheet.create({
-  subtitle: { marginTop: space.xs },
   hint: { marginTop: space.xs },
   control: { marginTop: space.md },
   list: { gap: space.sm },

@@ -54,7 +54,7 @@ export function LegalPageButtons({ pages = LEGAL_PAGES }: { pages?: readonly Leg
     <View style={styles.foot}>
       <View style={styles.buttons}>
         {pages.map((page) => (
-          <Button key={page} title={t(LABEL[page])} variant="tertiary" size="sm" onPress={() => open(page)} />
+          <Button key={page} title={t(LABEL[page])} variant="tertiary" size="sm" wrap onPress={() => open(page)} style={styles.button} />
         ))}
       </View>
       <Text variant="caption" tone="tertiary" style={styles.caption}>
@@ -66,6 +66,8 @@ export function LegalPageButtons({ pages = LEGAL_PAGES }: { pages?: readonly Leg
 
 const styles = StyleSheet.create({
   foot: { gap: space.xs, alignItems: 'center' },
-  buttons: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs },
+  // As wide as the page and no wider: a long French or Arabic title wraps inside it rather than past the screen's edge.
+  buttons: { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs },
+  button: { maxWidth: '100%' },
   caption: { textAlign: 'center' },
 });

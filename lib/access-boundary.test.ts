@@ -336,6 +336,11 @@ const ROUTER_INTERNALS: Record<string, string> = {
   'expo-router/build/react-navigation/elements/Header/HeaderShownContext': 'HeaderShownContext',
   'expo-router/build/react-navigation/core/usePreventRemove': 'usePreventRemove',
 };
+/**
+ * The browser export's page shell (`app/+html.tsx`, 2026-10-24) imports Expo's scroll-style reset from
+ * `expo-router/html`, by that one name, there alone: it renders a `<style>` and leads nowhere.
+ */
+const HTML_SHELL = { file: 'app/+html.tsx', module: 'expo-router/html', name: 'ScrollViewStyleReset', tags: ['html', 'head', 'meta', 'script', 'style', 'body'] };
 /** The module a node imports or re-exports — by `import`, `export … from`, `import … = require`, `require()` or `import()` — or null. */
 function moduleOf(node: ts.Node): string | null {
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) return node.moduleSpecifier.text;
@@ -383,6 +388,12 @@ function leadsOutside(file: string): string[] {
   for (const node of nodes) {
     const module = moduleOf(node);
     if (module === null || !/^expo-router(?:\/|$)/.test(module)) continue;
+    if (module === HTML_SHELL.module && rel === HTML_SHELL.file) {
+      const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
+      const only = clause && !clause.name && clause.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.map((e) => e.name.text) : [];
+      if (!(only.length === 1 && only[0] === HTML_SHELL.name)) found.add(node);
+      continue;
+    }
     if (module !== 'expo-router') {
       const internal = Object.hasOwn(ROUTER_INTERNALS, module) ? ROUTER_INTERNALS[module] : null;
       const names = ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause) ? node.exportClause.elements.map((e) => [(e.propertyName ?? e.name).text, e.name.text]) : [];
@@ -449,7 +460,9 @@ function leadsOutside(file: string): string[] {
       };
       if (names.some((name) => LEAVING_PROPS.includes(name)) || (names.includes('href') && !none(value) && !leadsInside(value, tree))) found.add(node);
     } else if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && intrinsic(node.tagName)) {
-      found.add(node);
+      // The page shell is a document: its own html, head, meta, script, style and body, and no link among them.
+      const shellTag = rel === HTML_SHELL.file && ts.isIdentifier(node.tagName) && HTML_SHELL.tags.includes(node.tagName.text);
+      if (!shellTag) found.add(node);
     } else if (ts.isJsxSpreadAttribute(node) && !readableProps(node.expression, tree)) {
       found.add(node);
     } else if (ts.isCallExpression(node) && madeByHand(node, tree)) {

@@ -3,20 +3,7 @@ import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { UserPlus, Users } from 'lucide-react-native';
-import {
-  Button,
-  Chip,
-  EmptyState,
-  ErrorState,
-  ListRow,
-  RowGroup,
-  Screen,
-  SkeletonList,
-  StatusChip,
-  Text,
-  TextField,
-  Toggle,
-} from '../components/ui';
+import { Button, Chip, EmptyState, ErrorState, ListRow, PageIntro, RowGroup, Screen, SkeletonList, StatusChip, Text, TextField, Toggle } from '../components/ui';
 import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
@@ -131,18 +118,16 @@ export default function TeamScreen() {
 
   return (
     <Screen gap="xl">
-      <View>
-        {header}
-        <Text variant="caption" tone="secondary" style={styles.subtitle}>
-          {t('team.subtitle')}
-        </Text>
-        {/*
-          Accounts are created here and activated by the server (docs/21,
-          2026-10-05): the person proves each contact given, and a seat is held
-          at each store. Hidden, like every write, while the business cannot write.
-        */}
-        {access.canWrite ? <Button title={t('team.add')} icon={UserPlus} onPress={() => setCreating(true)} /> : null}
-      </View>
+      {header}
+      {/*
+        Accounts are created here and activated by the server (docs/21,
+        2026-10-05): the person proves each contact given, and a seat is held
+        at each store. Hidden, like every write, while the business cannot write.
+      */}
+      <PageIntro
+        description={t('team.subtitle')}
+        action={access.canWrite ? <Button title={t('team.add')} icon={UserPlus} onPress={() => setCreating(true)} /> : undefined}
+      />
 
       {users.length === 0 ? (
         <EmptyState icon={Users} title={t('team.empty')} body={t('team.emptyBody')} />
@@ -587,7 +572,6 @@ function ClosingDelegation({ user }: { user: TeamUser }) {
 }
 
 const styles = StyleSheet.create({
-  subtitle: { marginTop: space.xs },
   list: {},
   sheet: { gap: space.base },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },

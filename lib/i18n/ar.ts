@@ -1687,6 +1687,14 @@ export const ar: Catalogue = {
   'money.free': 'مجاني',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'theme.toggle.toDark': 'التبديل إلى المظهر الداكن',
+  'theme.toggle.toLight': 'التبديل إلى المظهر الفاتح',
+  'register.step': 'الخطوة {current} من {total}',
+  'register.next': 'متابعة',
+  'register.previous': 'الخطوة السابقة',
+  'register.leave.title': 'مغادرة هذا النموذج؟',
+  'register.leave.body': 'ما كتبته هنا غير محفوظ في أي مكان.',
+  'register.leave.confirm': 'مغادرة',
   'appearance.title': 'المظهر واللغة',
   'appearance.subtitle': 'شكل التطبيق على هذا الهاتف، واللغة التي يتحدث بها.',
   'appearance.darkMode': 'الوضع الداكن',

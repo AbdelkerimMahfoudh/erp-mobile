@@ -17,6 +17,8 @@
 export { Text, Identifier, type TextProps, type TextTone } from './Text';
 export { Card, Section, Divider, Spacer, type CardProps, type SectionProps } from './Surface';
 export { Screen, type ScreenProps } from './Screen';
+export { PageIntro, type PageIntroProps } from './PageIntro';
+export { ThemeToggle } from './ThemeToggle';
 export {
   Button,
   buttonChrome,

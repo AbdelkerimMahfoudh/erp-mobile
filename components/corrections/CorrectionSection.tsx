@@ -296,7 +296,8 @@ const styles = StyleSheet.create({
   card: { marginTop: space.sm },
   gap: { marginTop: space.xs },
   actions: { gap: space.sm, marginTop: space.base },
-  sheet: { gap: space.md, padding: space.base },
+  // The sheet supplies the inset (`BottomSheet` padded): a second one here pushed the form in from the title.
+  sheet: { gap: space.md },
   detail: {
     flexDirection: 'row',
     justifyContent: 'space-between',

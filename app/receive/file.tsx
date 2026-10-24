@@ -1153,7 +1153,8 @@ const useStyles = makeStyles((colors) => ({
   fieldValue: { flexShrink: 1 },
   tail: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base },
   footer: { gap: space.sm },
-  sheet: { gap: space.md, padding: space.base },
+  // The sheet supplies the inset (`BottomSheet` padded): a second one here pushed the form in from the title.
+  sheet: { gap: space.md },
   createBlock: { gap: space.sm, marginTop: space.sm },
   sheetActions: { gap: space.sm },
 }));

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { EmptyState, ListRow, RowGroup, Screen, Text } from '../../components/ui';
+import { EmptyState, ListRow, PageIntro, RowGroup, Screen } from '../../components/ui';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
@@ -58,9 +58,7 @@ export default function HubScreen() {
     <Screen>
       <Stack.Screen options={{ headerShown: true, title: t(hub.titleKey) }} />
 
-      <Text variant="caption" tone="secondary" style={styles.intro}>
-        {t(hub.descriptionKey)}
-      </Text>
+      <PageIntro description={t(hub.descriptionKey)} style={styles.intro} />
 
       {/*
         An empty hub is never offered from More, so reaching one means a
@@ -92,5 +90,5 @@ export default function HubScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { marginBottom: space.md },
+  intro: { marginBottom: space.base },
 });

@@ -291,10 +291,13 @@ it('no raw ramp step is used as a surface', () => {
 
 // ── The preference itself ───────────────────────────────────────────────────
 
-it('light is the default, and it is stored on the device', () => {
+it('the first render is light, a first visit follows the device, and a choice is stored on the device', () => {
   const code = readFileSync('lib/design/theme.tsx', 'utf8');
-  assert.match(code, /useState<ThemeName>\('light'\)/, 'existing users must not change appearance');
-  assert.match(code, /const STORAGE_KEY = 'erp\.theme'/);
+  // Light first, so the browser's pre-rendered page and the first render agree; the device's appearance until a choice.
+  assert.match(code, /useState<ThemeName>\('light'\)/);
+  assert.match(code, /Appearance\.getColorScheme\(\) === 'dark'/);
+  assert.match(code, /THEME_STORAGE_KEY = 'erp\.theme'/);
+  assert.match(readFileSync('app/+html.tsx', 'utf8'), /THEME_STORAGE_KEY/, 'the page shell reads the same key');
   // Uses the storage the app already has; no dependency was added for this.
   assert.match(code, /from '\.\.\/storage'/);
 });
@@ -356,7 +359,7 @@ it('theme and language are independent settings', () => {
   // Changing one must not reset the other, so they must not share a key.
   const theme = readFileSync('lib/design/theme.tsx', 'utf8');
   const i18n = readFileSync('lib/i18n/index.ts', 'utf8');
-  const themeKey = theme.match(/const STORAGE_KEY = '([^']+)'/)?.[1];
+  const themeKey = theme.match(/THEME_STORAGE_KEY = '([^']+)'/)?.[1];
   const langKey = i18n.match(/LANGUAGE_STORAGE_KEY = '([^']+)'/)?.[1];
   assert.ok(themeKey && langKey);
   assert.notEqual(themeKey, langKey);
@@ -388,7 +391,8 @@ it('both themes define every semantic token', () => {
 it('the approved indigo is what light mode actually uses', () => {
   assert.equal(lightColors.semantic.primary, '#5146D9');
   assert.equal(lightColors.semantic.primarySoft, '#EEECFC');
-  assert.equal(lightColors.semantic.background, '#F7F8FB');
+  // Re-cut by the owner's light-mode review (2026-10-24): a tinted canvas so a white card reads as one.
+  assert.equal(lightColors.semantic.background, '#F1F3F8');
   assert.equal(lightColors.semantic.text, '#172033');
   assert.equal(lightColors.semantic.surface, '#FFFFFF');
 });

@@ -16,7 +16,7 @@ import {
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
 import { dismissing } from '../../lib/keyboard-dismiss';
-import { space } from '../../lib/design/tokens';
+import { layout, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
@@ -135,6 +135,7 @@ export function Screen({
       className={className}
       contentContainerStyle={[
         styles.grow,
+        styles.column,
         {
           padding: gutter,
           // The tab bar, the pinned footer and a comfortable overscroll, so the
@@ -207,7 +208,7 @@ export function Screen({
       touches nothing else covers — genuine blank space, down to the bottom of a
       short page — and a list closes the keyboard itself on a tap or a drag.
     */
-    <View className={className} style={[styles.body, { padding: gutter, gap: gap ? space[gap] : undefined }]}>
+    <View className={className} style={[styles.body, styles.column, { padding: gutter, gap: gap ? space[gap] : undefined }]}>
       <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
       {children}
     </View>
@@ -241,14 +242,14 @@ export function Screen({
         {header ? (
           <View style={styles.header}>
             <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
-            {header}
+            <View style={styles.stripColumn}>{header}</View>
           </View>
         ) : null}
         {body}
         {footer ? (
           <View style={styles.footer} onLayout={measureFooter}>
             <Pressable accessible={false} onPress={dismissBlank} style={StyleSheet.absoluteFill} />
-            {footer}
+            <View style={[styles.stripColumn, styles.footerColumn]}>{footer}</View>
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -271,6 +272,12 @@ const useStyles = makeStyles((colors) => ({
   grow: {
     flexGrow: 1,
   },
+  /** The page's content, centred and no wider than `layout.contentMaxWidth`; a phone is narrower and fills it. */
+  column: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+  },
   header: {
     backgroundColor: colors.surface.card,
     paddingHorizontal: space.base,
@@ -278,7 +285,7 @@ const useStyles = makeStyles((colors) => ({
     paddingBottom: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,
-    gap: space.md,
+    alignItems: 'center',
   },
   footer: {
     backgroundColor: colors.surface.card,
@@ -287,6 +294,15 @@ const useStyles = makeStyles((colors) => ({
     paddingBottom: space.base,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border.subtle,
+    alignItems: 'center',
+  },
+  /** A strip's surface runs edge to edge; what is on it lines up with the page's column. */
+  stripColumn: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    gap: space.md,
+  },
+  footerColumn: {
     gap: space.sm,
   },
 }));

@@ -4,16 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react-native';
-import {
-  Chip,
-  EmptyState,
-  ErrorState,
-  ListRow,
-  RowGroup,
-  Screen,
-  SkeletonList,
-  Text,
-} from '../components/ui';
+import { Chip, EmptyState, ErrorState, ListRow, PageIntro, RowGroup, Screen, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { toFriendlyError } from '../lib/errors';
@@ -105,12 +96,8 @@ export default function DevicesScreen() {
 
   return (
     <Screen gap="xl">
-      <View>
-        {header}
-        <Text variant="caption" tone="secondary" style={styles.subtitle}>
-          {t('devices.subtitle')}
-        </Text>
-      </View>
+      {header}
+      <PageIntro description={t('devices.subtitle')} />
 
       {current.length > 0 ? (
         <View style={styles.list}>
@@ -238,7 +225,7 @@ function DeviceRow({ device, onRevoke }: { device: UserDeviceView; onRevoke?: ()
 }
 
 const styles = StyleSheet.create({
-  subtitle: { marginTop: space.xs },
-  list: {},
+  // A section's label, then its rows: related, so close — but never touching.
+  list: { gap: space.sm },
   build: { marginTop: space.sm, gap: 2 },
 });

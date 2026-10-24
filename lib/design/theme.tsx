@@ -24,16 +24,56 @@
  * The setting is a switch, because that is what was asked for and because a
  * third state makes the control ambiguous: with "System" selected, the switch
  * shows the *current* appearance, and a shopkeeper toggling it at dusk cannot
- * tell whether they changed the setting or the sun did. Existing users default
- * to Light, so nobody's app changes appearance on its own after an update.
+ * tell whether they changed the setting or the sun did.
+ *
+ * ## The first visit
+ *
+ * Until somebody chooses, the app starts in the device's own appearance, read
+ * once at start (owner's review, 2026-10-24): a phone already in dark mode
+ * should not open a bright sign-in page. The first choice — the switch in
+ * Appearance, or the sun/moon on the sign-in pages — is stored and wins from
+ * then on. The device is read once, not followed: the switch keeps meaning
+ * exactly what it shows.
+ *
+ * ## The browser
+ *
+ * The web export's pages are pre-rendered in light. `app/+html.tsx` paints the
+ * page in the right theme before any script loads and keeps the pre-rendered
+ * content hidden while the stored or device theme is dark; here the choice is
+ * read synchronously in a layout effect — before the first paint React makes —
+ * and the page is told once it is applied (`data-theme-ready`).
  */
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { Appearance, Platform, StyleSheet } from 'react-native';
 import type { ImageStyle, TextStyle, ViewStyle } from 'react-native';
 import { getItem, setItem } from '../storage';
 import { PALETTES, type Palette, type ThemeName } from './colors';
 
-const STORAGE_KEY = 'erp.theme';
+/** Also read by the boot script in `app/+html.tsx`: the two must name the same key. */
+export const THEME_STORAGE_KEY = 'erp.theme';
+const STORAGE_KEY = THEME_STORAGE_KEY;
+
+/** The device's appearance, for somebody who has not chosen one. */
+function deviceTheme(): ThemeName {
+  return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
+}
+
+function isThemeName(value: unknown): value is ThemeName {
+  return value === 'dark' || value === 'light';
+}
+
+/** The browser's stored choice, synchronously — or the device's appearance. Never throws. */
+function webInitialTheme(): ThemeName {
+  try {
+    const stored = globalThis.localStorage?.getItem(STORAGE_KEY);
+    if (isThemeName(stored)) return stored;
+  } catch {
+    // Storage blocked (a private window): the device's appearance, below.
+  }
+  return deviceTheme();
+}
+
+const isWeb = Platform.OS === 'web';
 
 interface ThemeValue {
   theme: ThemeName;
@@ -56,23 +96,46 @@ const ThemeContext = createContext<ThemeValue | undefined>(undefined);
  * so *something* must wait.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Light for the first render everywhere: the browser's pre-rendered page is light, and hydration must match it.
   const [theme, setThemeState] = useState<ThemeName>('light');
   const [ready, setReady] = useState(false);
 
+  // The browser: read synchronously and applied before React's first paint.
+  useLayoutEffect(() => {
+    if (!isWeb) return;
+    // Deliberate: the first render must match the pre-rendered page, and this runs before the browser paints it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setThemeState(webInitialTheme());
+    setReady(true);
+  }, []);
+
   useEffect(() => {
+    if (isWeb) return;
     (async () => {
+      let next = deviceTheme();
       try {
         const stored = await getItem(STORAGE_KEY);
-        if (stored === 'dark' || stored === 'light') setThemeState(stored);
+        if (isThemeName(stored)) next = stored;
       } catch {
-        // An unreadable preference is not worth failing to start over. Light
-        // is the documented default and the safe one: it is what every
-        // existing user already sees.
+        // An unreadable preference is not worth failing to start over: the
+        // device's own appearance, as for somebody who never chose.
       } finally {
+        setThemeState(next);
         setReady(true);
       }
     })();
   }, []);
+
+  // The boot script in `app/+html.tsx` hides the pre-rendered page while the theme is dark; this says it is applied.
+  useEffect(() => {
+    if (!isWeb || !ready) return;
+    const root = globalThis.document?.documentElement;
+    if (!root) return;
+    root.dataset.theme = theme;
+    root.dataset.themeReady = 'true';
+    root.style.colorScheme = theme;
+    root.style.backgroundColor = PALETTES[theme].surface.canvas;
+  }, [ready, theme]);
 
   const value = useMemo<ThemeValue>(
     () => ({

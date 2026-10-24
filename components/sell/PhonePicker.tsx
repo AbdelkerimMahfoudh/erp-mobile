@@ -631,7 +631,8 @@ const useStyles = makeStyles((colors) => ({
   imeiLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
   chipRow: { flexDirection: 'row', paddingTop: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  sheet: { gap: space.md, padding: space.base },
+  // The sheet supplies the inset (`BottomSheet` padded): a second one here pushed the form in from the title.
+  sheet: { gap: space.md },
   shelf: { paddingBottom: space['3xl'] },
   shelfHead: { gap: space.sm, paddingHorizontal: space.base, paddingTop: space.base, paddingBottom: space.sm },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

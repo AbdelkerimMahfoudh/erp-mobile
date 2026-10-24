@@ -1707,6 +1707,14 @@ export const en = {
   'money.free': 'Free',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'theme.toggle.toDark': 'Switch to dark appearance',
+  'theme.toggle.toLight': 'Switch to light appearance',
+  'register.step': 'Step {current} of {total}',
+  'register.next': 'Continue',
+  'register.previous': 'Previous step',
+  'register.leave.title': 'Leave this form?',
+  'register.leave.body': 'What you typed here is not saved anywhere.',
+  'register.leave.confirm': 'Leave',
   'appearance.title': 'Appearance & language',
   'appearance.subtitle': 'How this app looks on this phone, and the language it speaks.',
   'appearance.darkMode': 'Dark mode',

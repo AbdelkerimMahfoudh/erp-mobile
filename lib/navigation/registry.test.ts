@@ -132,7 +132,8 @@ function appRoutes(): string[] {
       }
       if (!entry.name.endsWith('.tsx')) continue;
       const base = entry.name.replace(/\.tsx$/, '');
-      if (base === '_layout') continue;
+      // Layouts are navigators; `+html` is the browser export's page shell. Neither is a route.
+      if (base === '_layout' || base === '+html') continue;
       const parts = base === 'index' ? segments : [...segments, base];
       out.push('/' + parts.join('/'));
     }

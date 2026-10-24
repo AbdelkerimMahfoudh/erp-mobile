@@ -516,5 +516,6 @@ const styles = StyleSheet.create({
   headText: { flex: 1, gap: 2 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   start: { alignSelf: 'flex-start' },
-  sheet: { gap: space.md, padding: space.base },
+  // The sheet supplies the inset (`BottomSheet` padded): a second one here pushed the form in from the title.
+  sheet: { gap: space.md },
 });

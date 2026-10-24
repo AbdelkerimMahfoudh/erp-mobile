@@ -76,6 +76,7 @@ const useStyles = makeStyles((colors) => ({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.semantic.border,
     backgroundColor: colors.semantic.surface,
+    ...colors.lift.card,
     // Clips the children's corners to the group's radius, so the first and last
     // rows round with the surface instead of squaring off inside it.
     overflow: 'hidden',

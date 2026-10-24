@@ -234,9 +234,13 @@ const useStyles = makeStyles((colors) => ({
   },
   input: {
     flex: 1,
+    // A browser's input keeps an intrinsic width; without this it would not shrink, and on a 320-point phone it pushed
+    // the password's eye out of the field (Arabic, owner's review 2026-10-24).
+    minWidth: 0,
     paddingVertical: space.md,
-    fontSize: typeScale.body.fontSize,
-    lineHeight: typeScale.body.lineHeight,
+    // `inputWeb` in a browser: below 16px Safari on an iPhone zooms the page into the field and stays zoomed.
+    fontSize: Platform.OS === 'web' ? typeScale.inputWeb.fontSize : typeScale.body.fontSize,
+    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : typeScale.body.lineHeight,
     // Android draws its own underline and inner padding on TextInput.
     padding: 0,
   },

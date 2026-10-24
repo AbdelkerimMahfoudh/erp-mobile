@@ -1,7 +1,6 @@
 import React from 'react';
 import { Stack } from 'expo-router';
-import { View } from 'react-native';
-import { InlineNotice, RowGroup, Screen, Text, Toggle } from '../components/ui';
+import { InlineNotice, PageIntro, RowGroup, Screen, Text, Toggle } from '../components/ui';
 import { LanguageRow } from '../components/navigation/LanguageRow';
 import { space } from '../lib/design/tokens';
 import { useI18n, useTranslation } from '../lib/i18n';
@@ -49,13 +48,9 @@ export default function AppearanceScreen() {
   const direction = useI18n((s) => s.direction);
 
   return (
-    <Screen>
-      <View style={styles.intro}>
-        {header}
-        <Text variant="caption" tone="secondary">
-          {t('appearance.subtitle')}
-        </Text>
-      </View>
+    <Screen gap="xl">
+      {header}
+      <PageIntro description={t('appearance.subtitle')} />
 
       <RowGroup>
         <Toggle
@@ -88,6 +83,5 @@ export default function AppearanceScreen() {
 }
 
 const useStyles = makeStyles(() => ({
-  intro: { gap: space.xs, marginBottom: space.md },
   notice: { marginTop: space.md },
 }));

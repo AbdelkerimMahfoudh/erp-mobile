@@ -82,6 +82,9 @@ const dark = {
   borderDefault: '#2E3746',
 } as const;
 
+/** Light mode's page background (owner's review, 2026-10-24): see `lightColors.surface.canvas`. */
+const LIGHT_CANVAS = '#F1F3F8';
+
 interface IntentColor {
   /** Tinted background for chips, banners, subtle fills. */
   bg: string;
@@ -138,6 +141,23 @@ export interface Palette {
     accent: string;
     disabled: string;
   };
+  /**
+   * The lift under a reading surface — a card, a group of rows — and nothing else.
+   *
+   * Light mode only: the faintest shadow, so a white card sits on the canvas
+   * rather than printed on it (owner's review, 2026-10-24). Dark mode keeps
+   * none, deliberately: there elevation is carried by lightness, and a shadow
+   * on a near-black page is invisible.
+   */
+  lift: {
+    card: {
+      shadowColor?: string;
+      shadowOpacity?: number;
+      shadowRadius?: number;
+      shadowOffset?: { width: number; height: number };
+      elevation?: number;
+    };
+  };
   brand: typeof brand;
   neutral: typeof neutral;
   intent: Record<'neutral' | 'info' | 'success' | 'warning' | 'danger', IntentColor>;
@@ -191,8 +211,15 @@ export interface Palette {
 export const lightColors: Palette = {
   /** Page and container backgrounds. */
   surface: {
-    /** The app background behind everything. */
-    canvas: neutral[50],
+    /**
+     * The app background behind everything.
+     *
+     * A cool, very faintly indigo-tinted grey rather than `neutral[50]`: on the
+     * phone, white cards on #F7F8FB read as one flat sheet (1.06:1), and the
+     * owner's iPhone review of 2026-10-24 found light mode had no hierarchy.
+     * At 1.11:1 a card reads as a card without a shadow doing the work.
+     */
+    canvas: LIGHT_CANVAS,
     /** Cards, sheets, headers — the raised reading surface. */
     card: neutral[0],
     /** Recessed areas: input wells, inactive segments, code blocks. */
@@ -213,8 +240,8 @@ export const lightColors: Palette = {
   },
 
   border: {
-    /** Default hairline. Most separation in the app is this. */
-    subtle: neutral[200],
+    /** Default hairline. Most separation in the app is this. A step firmer than `neutral[200]`, so a card's edge holds on the tinted canvas. */
+    subtle: '#E1E5EC',
     /** Input outlines and card edges that need to be seen. */
     default: neutral[300],
     /** Selected outlines and emphasised edges. */
@@ -239,19 +266,21 @@ export const lightColors: Palette = {
      * Its own value rather than `neutral[900]`: the approved text colour is a
      * touch cooler and deeper than that step, and `neutral[900]` is also the
      * DARK card surface — moving it would have repainted dark mode as a side
-     * effect. 16.27:1 on a card, 15.32:1 on the canvas.
+     * effect. 16.27:1 on a card, 14.65:1 on the canvas.
      */
     primary: '#172033',
-    /** Supporting copy, list subtitles. */
-    secondary: neutral[600],
+    /** Supporting copy, list subtitles. 6.08:1 on the canvas, 6.75:1 on a card. */
+    secondary: '#535C6B',
     /**
      * Labels, timestamps, metadata. Never for anything actionable.
      *
      * Its own value rather than `neutral[500]`: on the canvas that step came
      * to 2.9:1, and this text carries real explanation — the line under a
-     * setting saying what it does — not decoration.
+     * setting saying what it does — not decoration. Deepened on 2026-10-24 to
+     * clear 4.5:1 on the canvas (4.56) and on a card (5.06): it is small
+     * text, and it is what explains a field.
      */
-    tertiary: '#828B9B',
+    tertiary: '#666F80',
     /**
      * Placeholder text only — deliberately quieter than real content, but not
      * so quiet it disappears. A shop counter is often in direct sunlight, and
@@ -266,6 +295,16 @@ export const lightColors: Palette = {
     accent: brand[600],
     /** Disabled text. */
     disabled: neutral[400],
+  },
+
+  lift: {
+    card: {
+      shadowColor: '#0B1220',
+      shadowOpacity: 0.05,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 1,
+    },
   },
 
   /** The accent ramp, for the rare case a component needs a specific step. */
@@ -325,7 +364,7 @@ export const lightColors: Palette = {
     primaryPressed: brand[700],
     primarySoft: brand[50],
     onPrimary: neutral[0],
-    background: neutral[50],
+    background: LIGHT_CANVAS,
     surface: neutral[0],
     /**
      * On white, "raised" cannot be a lighter fill — there is nothing lighter.
@@ -409,6 +448,11 @@ export const darkColors: Palette = {
     /** Lifted so a link is legible on the dark canvas. */
     accent: brand[300],
     disabled: neutral[600],
+  },
+
+  // No shadow in the dark — the same keys, none visible: a card is lighter than the canvas instead (see `dark` above).
+  lift: {
+    card: { shadowColor: '#000000', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
   },
 
   brand,

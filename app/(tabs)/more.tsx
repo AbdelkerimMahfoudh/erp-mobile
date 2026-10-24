@@ -156,6 +156,7 @@ function BranchControl() {
       accessibilityRole="button"
       accessibilityLabel={t('more.branch.switch')}
       accessibilityHint={branchName ?? undefined}
+      style={styles.branchPress}
     >
       <Card style={styles.branch}>
         <Store size={18} color={colors.brand[600]} />
@@ -234,9 +235,10 @@ const useStyles = makeStyles((colors) => ({
     alignItems: 'center',
     gap: space.md,
     paddingVertical: space.md,
-    marginTop: space.sm,
     borderRadius: radius.md,
   },
+  // On the pressable, not the card inside it: the whole control keeps its distance from the title above.
+  branchPress: { marginTop: space.md },
   branchText: { flex: 1, gap: space.xs },
   notice: { marginTop: space.sm },
   sectionLabel: { marginTop: space.lg, marginBottom: space.xs, textTransform: 'uppercase' },

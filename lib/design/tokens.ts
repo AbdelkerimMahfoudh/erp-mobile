@@ -43,6 +43,12 @@ export const type = {
   /** Filter pills, chips, toast actions — a label that has to be read at a glance. */
   labelStrong: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '400' },
+  /**
+   * Typed text in a browser's input: 16, because Safari on an iPhone zooms the
+   * whole page into any focused input set smaller, and stays zoomed (owner's
+   * iPhone review, 2026-10-24). Native inputs keep `body`.
+   */
+  inputWeb: { fontSize: 16, lineHeight: 22, fontWeight: '400' },
   /** Status words inside chips, trend lines, small counts. */
   captionStrong: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   /**
@@ -116,6 +122,16 @@ export const density = {
 } as const;
 
 export type Density = keyof typeof density;
+
+/**
+ * Page layout. A phone fills its width; a desktop browser does not stretch a
+ * form, a list or a button across 1900 points (owner's review, 2026-10-24):
+ * a page's content stops at `contentMaxWidth`, centred, so a row still reads
+ * as one row and a button as one button.
+ */
+export const layout = {
+  contentMaxWidth: 760,
+} as const;
 
 /** Motion. Short and unfussy; this is business software, not a toy. */
 export const duration = {

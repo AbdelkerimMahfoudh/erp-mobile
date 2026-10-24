@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, SegmentedControl, Text, TextField, Toggle } from '../ui';
 import { BottomSheet } from '../overlay';
@@ -106,7 +106,11 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
   const toggleStore = (id: string, on: boolean) => setStores((s) => (on ? [...new Set([...s, id])] : s.filter((x) => x !== id)));
 
   return (
-    <View style={styles.sheet}>
+    /*
+      Scrolls inside the sheet, as the other form sheets do: in French or Arabic, or with larger text, the form is taller
+      than the sheet may grow, and "Add to the team" must still be reachable (owner's review, 2026-10-24).
+    */
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheet}>
       {result ? (
         <>
           <Outcome result={result} />
@@ -157,7 +161,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
           <Button title={t('team.create.submit')} onPress={submit} loading={create.isPending} disabled={create.isPending} fullWidth />
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -185,6 +189,7 @@ function Outcome({ result }: { result: StaffInvitationResult }) {
 }
 
 const styles = StyleSheet.create({
-  sheet: { gap: space.md, padding: space.base },
+  // The sheet supplies the inset (`BottomSheet` padded): a second one here pushed the form in from the title.
+  sheet: { gap: space.md },
   block: { gap: space.xs },
 });

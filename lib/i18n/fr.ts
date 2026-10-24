@@ -1815,6 +1815,14 @@ export const fr: Catalogue = {
   'money.free': 'Gratuit',
 
   // ── Settings ──────────────────────────────────────────────────────────────
+  'theme.toggle.toDark': 'Passer à l’apparence sombre',
+  'theme.toggle.toLight': 'Passer à l’apparence claire',
+  'register.step': 'Étape {current} sur {total}',
+  'register.next': 'Continuer',
+  'register.previous': 'Étape précédente',
+  'register.leave.title': 'Quitter ce formulaire ?',
+  'register.leave.body': 'Ce que vous avez saisi ici n’est enregistré nulle part.',
+  'register.leave.confirm': 'Quitter',
   'appearance.title': 'Apparence et langue',
   'appearance.subtitle': 'L’aspect de l’application sur ce téléphone, et sa langue.',
   'appearance.darkMode': 'Mode sombre',

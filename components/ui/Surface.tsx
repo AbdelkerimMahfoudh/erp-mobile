@@ -40,7 +40,7 @@ export function Card({
   const colors = useColors();
   const variantStyle: ViewStyle =
     variant === 'card'
-      ? { backgroundColor: colors.surface.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.subtle }
+      ? { backgroundColor: colors.surface.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border.subtle, ...colors.lift.card }
       : variant === 'sunken'
         ? { backgroundColor: colors.surface.sunken }
         : variant === 'outlined'
