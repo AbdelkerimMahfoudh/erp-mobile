@@ -1,0 +1,119 @@
+# The browser ERP's visual-quality check (owner's iPhone review, 2026-10-24) in WebKit and Chromium.
+#
+# On a fresh runner: MySQL 8.4, the API built from BACKEND with every migration applied, an administrator with MFA, one
+# fictional test business with a no-payment grant and its Owner's own password; the app's web export of MOBILE against
+# that API; then verify/visual-check.mjs — the authentication pages in EN/FR/AR, light and dark, 320/375/390/768/1280
+# and 1280 at 200%; the theme (first visit, persistence, no flash, keyboard); registration's three steps and the
+# browser's Back; signed in, Team, its sheet and every exported route. WebKit here is browser automation on Linux, not a
+# physical iPhone. Everything is fictional and disposable and ends with the runner; nothing is deployed.
+name: visual-check
+
+on:
+  push:
+    branches: [ops/visual-check]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-check
+  cancel-in-progress: false
+
+jobs:
+  browsers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    services:
+      mysql:
+        image: mysql:8.4.11@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1" --health-interval 5s --health-timeout 5s --health-retries 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      WORK: ${{ github.workspace }}/work
+      API: http://127.0.0.1:3410/api/v1
+      APP: http://127.0.0.1:4320
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tools
+      - name: The target
+        run: |
+          set -a; source tools/verify/target.env; set +a
+          for v in BACKEND MOBILE; do [[ "${!v}" =~ ^[0-9a-f]{40}$ ]] || { echo "$v must be a full SHA"; exit 1; }; done
+          { echo "BACKEND=$BACKEND"; echo "MOBILE=$MOBILE"; } >> "$GITHUB_ENV"
+          echo "backend $BACKEND, mobile $MOBILE"
+      - uses: actions/checkout@v4
+        with: { repository: AbdelkerimMahfoudh/erp-backend, ref: '${{ env.BACKEND }}', path: api }
+      - uses: actions/checkout@v4
+        with: { repository: AbdelkerimMahfoudh/erp-mobile, ref: '${{ env.MOBILE }}', path: app }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          mkdir -p "$WORK"; chmod 700 "$WORK"
+          (cd api && npm ci --no-audit --no-fund > "$WORK/api-install.log" 2>&1)
+          (cd app && npm ci --no-audit --no-fund > "$WORK/app-install.log" 2>&1)
+          (cd tools/verify && npm init -y > /dev/null && npm i --no-audit --no-fund playwright@1.63.0 > "$WORK/pw-install.log" 2>&1)
+          (cd tools/verify && npx playwright install --with-deps webkit chromium > "$WORK/pw-browsers.log" 2>&1)
+      - name: The database, the API, an administrator with MFA and one fictional test business
+        run: |
+          umask 077
+          mysql -h 127.0.0.1 -P 3306 --protocol=TCP -u root -e "CREATE DATABASE vc CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+            CREATE USER 'phonestore_app'@'%' IDENTIFIED BY '$(openssl rand -hex 16 | tee "$WORK/app.pw")';
+            GRANT SELECT, INSERT, UPDATE, DELETE ON vc.* TO 'phonestore_app'@'%';"
+          {
+            echo "NODE_ENV=development"; echo "APP_ENV=staging"; echo "PORT=3410"
+            echo "DATABASE_URL=mysql://root:@127.0.0.1:3306/vc"
+            echo "APP_DATABASE_URL=mysql://phonestore_app:$(cat "$WORK/app.pw")@127.0.0.1:3306/vc"
+            for k in JWT_ACCESS_SECRET STAFF_INVITATION_KEY OTP_PEPPER MESSAGING_HASH_KEY; do echo "$k=$(openssl rand -hex 32)"; done
+            echo "PLATFORM_MFA_KEY=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+            echo "CUSTOMER_ACTIVATION=closed"; echo "CORS_ORIGINS=$APP"
+            echo "SWAGGER_ENABLED=false"; echo "LOG_LEVEL=warn"; echo "WHATSAPP_CHANNEL=disabled"; echo "EMAIL_CHANNEL=disabled"
+            echo "UPLOAD_DIR=$WORK/uploads"; echo "THROTTLE_LIMIT=10000"; echo "AUTH_THROTTLE_LIMIT=2000"; echo "ACCOUNT_THROTTLE_LIMIT=2000"
+          } > "$WORK/api.env"
+          openssl rand -hex 24 > "$WORK/admin.pw"
+          cd api
+          set -a; source "$WORK/api.env"; set +a
+          npx prisma generate > /dev/null
+          npx nest build > "$WORK/api-build.log" 2>&1
+          npx prisma migrate deploy > "$WORK/migrate.log" 2>&1
+          PLATFORM_ADMIN_PASSWORD="$(cat "$WORK/admin.pw")" npx ts-node --transpile-only prisma/create-platform-admin.ts ops@example.test "Platform Ops" > /dev/null 2>&1
+          npx ts-node --transpile-only prisma/platform-admin-mfa.ts enrolment-token ops@example.test > "$WORK/enrol.out" 2>&1
+          nohup node dist/src/main.js > "$WORK/api.log" 2>&1 &
+          for _ in $(seq 1 60); do curl -sf http://127.0.0.1:3410/api/health > /dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:3410/api/health/ready; echo
+          cd .. && node tools/verify/seed.mjs
+      - name: The app's web export against this API
+        run: |
+          (cd app && EXPO_PUBLIC_API_ORIGIN=${API%/api/v1} EXPO_PUBLIC_LEGAL_ORIGIN=https://legal.example.invalid npx expo export --platform web --clear --output-dir "$WORK/app-dist" > "$WORK/app-export.log" 2>&1)
+          nohup node tools/verify/static-serve.mjs "$WORK/app-dist" 4320 > "$WORK/app-serve.log" 2>&1 &
+          for _ in $(seq 1 30); do curl -sf -o /dev/null "$APP/" && break; sleep 1; done
+          echo "ROUTES=$(cd "$WORK/app-dist" && find . -name '*.html' | sed 's#^\./##; s#\.html$##' | grep -vE '^\(|^\+|_sitemap|^(login|register|setup|join|verify)$|^dev/' | sed 's#^index$##' | sed 's#\[[a-z]*\]#00000000-0000-4000-8000-000000000000#g' | tr '\n' ' ')" >> "$GITHUB_ENV"
+      - name: Expo Doctor on the target
+        if: ${{ !cancelled() }}
+        run: (cd app && npx expo-doctor)
+      - name: WebKit
+        if: ${{ !cancelled() }}
+        run: BROWSER=webkit OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs
+      - name: Chromium
+        if: ${{ !cancelled() }}
+        run: BROWSER=chromium OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs
+      - name: Keep the results
+        if: always()
+        run: |
+          # Statuses and results only: nothing secret leaves the runner.
+          if grep -rlE "$(cat "$WORK/admin.pw")|$(cat "$WORK/app.pw")" "$WORK/results" > /dev/null 2>&1; then echo "a secret reached the results"; exit 1; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-check-results
+          path: work/results/
+          if-no-files-found: ignore
