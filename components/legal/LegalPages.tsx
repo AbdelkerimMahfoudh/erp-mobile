@@ -54,7 +54,9 @@ export function LegalPageButtons({ pages = LEGAL_PAGES }: { pages?: readonly Leg
     <View style={styles.foot}>
       <View style={styles.buttons}>
         {pages.map((page) => (
-          <Button key={page} title={t(LABEL[page])} variant="tertiary" size="sm" onPress={() => open(page)} />
+          // A long label (French: "Comment fonctionne la suppression du compte") wraps within the row instead of pushing
+          // the page sideways at 320 px — WebKit does not shrink a one-line label (2026-10-24).
+          <Button key={page} title={t(LABEL[page])} variant="tertiary" size="sm" wrap style={styles.button} onPress={() => open(page)} />
         ))}
       </View>
       <Text variant="caption" tone="tertiary" style={styles.caption}>
@@ -67,5 +69,6 @@ export function LegalPageButtons({ pages = LEGAL_PAGES }: { pages?: readonly Leg
 const styles = StyleSheet.create({
   foot: { gap: space.xs, alignItems: 'center' },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs },
+  button: { maxWidth: '100%' },
   caption: { textAlign: 'center' },
 });
