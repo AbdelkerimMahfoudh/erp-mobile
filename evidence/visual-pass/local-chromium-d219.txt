@@ -1,0 +1,268 @@
+access-journey-final.log:PASS  [chromium] the administrator signs in with the password and the second factor — sign-in 200, code 200
+access-journey-final.log:PASS  [chromium] the administrator creates a test business, its Owner and store, with a setup code — status 201
+access-journey-final.log:PASS  [chromium] the setup code and the password type into the setup screen (touch)
+access-journey-final.log:PASS  [chromium] the setup code is redeemed: the Owner’s password is set, no approval is mentioned
+access-journey-final.log:PASS  [chromium] the same setup code again is refused — it works once — status 400
+access-journey-final.log:PASS  [chromium] the setup code is kept nowhere in the browser
+access-closed
+access-journey-final.log:PASS  [chromium] without an entitlement the app says "No active access yet" — never "waiting for approval" — Test business — for testing only, not a real shop No active access yet Your account is ready, but this business does not have active access yet. The app opens as soon as it does. Managed by your organisation. Contact you
+access-journey-final.log:PASS  [chromium] redeeming the code created no paid subscription and granted nothing (pending_activation, no period, closed) — {"status":200,"state":"pending","sub":"pending_activation","periodEnd":null,"comp":false,"canRead":false}
+access-journey-final.log:PASS  [chromium] the administrator gives access without payment (audited grant) — status 200
+select-branch
+
+access-journey-final.log:PASS  [chromium] the grant is access without payment: complimentary, writes, still no paid period — {"state":"complimentary","canWrite":true,"periodEnd":null}
+access-journey-final.log:PASS  [chromium] the console reads the business as a test business with its access — status 200
+access-journey-final.log:PASS  [chromium] en: no entitlement reads "No active access yet", no approval word — Test business — for testing only, not a real shop No active access yet Your account is ready, but this business does not have active access yet. The app opens a
+access-journey-final.log:PASS  [chromium] en: an answer without a state reads as unreadable, never as pending
+access-journey-final.log:PASS  [chromium] fr: no entitlement reads "Pas encore d’accès actif", no approval word — Entreprise de test — pour les tests uniquement, pas une vraie boutique Pas encore d’accès actif Votre compte est prêt, mais cette entreprise n’a pas encore d’ac
+access-journey-final.log:PASS  [chromium] fr: an answer without a state reads as unreadable, never as pending
+access-journey-final.log:PASS  [chromium] ar: no entitlement reads "لا وصول نشط بعد", no approval word, right to left — نشاط تجاري اختباري — للاختبار فقط، وليس متجرًا حقيقيًا لا وصول نشط بعد حسابك جاهز، لكن هذا النشاط التجاري ليس لديه وصول نشط بعد. يُفتح التطبيق فور حصوله عليه. ت
+access-journey-final.log:PASS  [chromium] ar: an answer without a state reads as unreadable, never as pending
+access-journey-final.log:PASS  [chromium] no uncaught page error in the journey
+21 checks passed
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+320 — {"outline":"none","rings":1}
+320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+320
+320 — {"active":true,"outline":"none","width":"0px","rings":1}
+320 — sedad:true bim_bank:true bankily:true other:true
+320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+320 — Caisse 2
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+320 — true,true,true
+320
+320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+375 — {"outline":"none","rings":1}
+375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+375
+375 — {"active":true,"outline":"none","width":"0px","rings":1}
+375 — sedad:true bim_bank:true bankily:true other:true
+375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+375 — Caisse 2
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+375 — true,true,true
+375
+375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+390 — {"outline":"none","rings":1}
+390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+390
+390 — {"active":true,"outline":"none","width":"0px","rings":1}
+390 — sedad:true bim_bank:true bankily:true other:true
+390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+390 — Caisse 2
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+390 — true,true,true
+390
+390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+375 — {"focusColour":"rgb(99, 88, 222)","invalidColour":"rgb(192, 54, 44)","focusedInvalidColour":"rgb(192, 54, 44)"}
+375 — status 201 listed true
+375
+375
+375 — status 201 created true invitation true user pending
+320 — {"focusColour":"rgb(139, 130, 239)","invalidColour":"rgb(192, 54, 44)","focusedInvalidColour":"rgb(192, 54, 44)"}
+320 — status 201 listed true
+320
+320
+320 — status 201 created true invitation true user pending
+ui-input-final.log:PASS  [chromium] no uncaught page error anywhere
+245 checks passed
