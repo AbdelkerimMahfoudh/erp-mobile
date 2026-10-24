@@ -340,7 +340,14 @@ const ROUTER_INTERNALS: Record<string, string> = {
  * The browser export's page shell (`app/+html.tsx`, 2026-10-24) imports Expo's scroll-style reset from
  * `expo-router/html`, by that one name, there alone: it renders a `<style>` and leads nowhere.
  */
-const HTML_SHELL = { file: 'app/+html.tsx', module: 'expo-router/html', name: 'ScrollViewStyleReset', tags: ['html', 'head', 'meta', 'script', 'style', 'body'] };
+const HTML_SHELL = {
+  file: 'app/+html.tsx',
+  module: 'expo-router/html',
+  name: 'ScrollViewStyleReset',
+  tags: ['html', 'head', 'meta', 'script', 'link', 'body'],
+  // Its theme boot files (CSP `'self'`): the only addresses it names, and neither leads anywhere.
+  assets: ['/theme-boot.css'],
+};
 /** The module a node imports or re-exports — by `import`, `export … from`, `import … = require`, `require()` or `import()` — or null. */
 function moduleOf(node: ts.Node): string | null {
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) return node.moduleSpecifier.text;
@@ -450,7 +457,9 @@ function leadsOutside(file: string): string[] {
       const tag = node.parent.parent.tagName.getText(tree);
       const value = node.initializer && (ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer);
       const link = (tag === 'Link' || tag === 'Redirect') && navigators.has(tag);
-      if (LEAVING_PROPS.includes(name) || (name === 'href' && !(link && value && leadsInside(value, tree)))) found.add(node);
+      // The page shell's own stylesheet: one same-origin file, written out exactly, on its <link>.
+      const shellAsset = rel === HTML_SHELL.file && tag === 'link' && value !== undefined && ts.isStringLiteral(value) && HTML_SHELL.assets.includes(value.text);
+      if (LEAVING_PROPS.includes(name) || (name === 'href' && !shellAsset && !(link && value && leadsInside(value, tree)))) found.add(node);
     } else if (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) {
       const names = keyNamesOf(node.name, tree) ?? [];
       const value = ts.isPropertyAssignment(node) ? node.initializer : node.name;

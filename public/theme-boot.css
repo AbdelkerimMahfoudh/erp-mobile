@@ -1,0 +1,7 @@
+/* Dukan ERP — see theme-boot.js. A dark page shows nothing light while the app starts. */
+html[data-theme='dark']:not([data-theme-ready]) #root {
+  visibility: hidden;
+}
+body {
+  background-color: transparent;
+}

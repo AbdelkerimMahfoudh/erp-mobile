@@ -297,7 +297,13 @@ it('the first render is light, a first visit follows the device, and a choice is
   assert.match(code, /useState<ThemeName>\('light'\)/);
   assert.match(code, /Appearance\.getColorScheme\(\) === 'dark'/);
   assert.match(code, /THEME_STORAGE_KEY = 'erp\.theme'/);
-  assert.match(readFileSync('app/+html.tsx', 'utf8'), /THEME_STORAGE_KEY/, 'the page shell reads the same key');
+  // The browser's boot script (a file, never inline: CSP `script-src 'self'`) reads the same key and paints the same canvases.
+  const boot = readFileSync('public/theme-boot.js', 'utf8');
+  assert.match(boot, /localStorage\.getItem\('erp\.theme'\)/, 'the boot script reads the same key');
+  assert.ok(boot.includes(`'${darkColors.surface.canvas}'`) && boot.includes(`'${lightColors.surface.canvas}'`), 'the boot script paints the palette canvases');
+  const shell = readFileSync('app/+html.tsx', 'utf8');
+  assert.match(shell, /<script src="\/theme-boot\.js" \/>/);
+  assert.doesNotMatch(shell, /dangerouslySetInnerHTML/, 'nothing inline in the page shell');
   // Uses the storage the app already has; no dependency was added for this.
   assert.match(code, /from '\.\.\/storage'/);
 });
