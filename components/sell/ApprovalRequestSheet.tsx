@@ -165,7 +165,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
   };
 
   return (
-    <BottomSheet open onClose={onClose} title={t('approval.needed.title')}>
+    <BottomSheet scroll open onClose={onClose} title={t('approval.needed.title')}>
       <View style={styles.body}>
         <Text tone="secondary">{t('approval.needed.body')}</Text>
 

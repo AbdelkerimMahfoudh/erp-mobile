@@ -284,6 +284,7 @@ function MistakeSheet({ open, onClose, id }: { open: boolean; onClose: () => voi
   };
   return (
     <BottomSheet
+      scroll
       open={open}
       onClose={onClose}
       title={t('agent.mistake.action')}
@@ -324,6 +325,7 @@ function ReverseSheet({ open, onClose, id }: { open: boolean; onClose: () => voi
   };
   return (
     <BottomSheet
+      scroll
       open={open}
       onClose={onClose}
       title={t('agent.reverse.action')}

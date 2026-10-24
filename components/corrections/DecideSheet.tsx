@@ -35,6 +35,7 @@ export function DecideSheet({ pending, date, onClose }: { pending: PendingCorrec
 
   return (
     <BottomSheet
+      scroll
       open
       onClose={onClose}
       title={t(pendingKey(pending) as never)}

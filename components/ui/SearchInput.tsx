@@ -7,6 +7,7 @@ import { useTranslation } from '../../lib/i18n';
 import { haptics } from '../../lib/haptics';
 import { usePressed } from './use-pressed';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { APP_FIELD_MARKER, fieldInk, fieldRing, FocusRing, NO_NATIVE_OUTLINE } from './field-chrome';
 
 /**
  * The search input.
@@ -81,13 +82,12 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
     <View
       style={[
         styles.well,
-        {
-          borderColor: focused ? colors.border.focus : colors.border.default,
-          borderWidth: focused ? 1.5 : StyleSheet.hairlineWidth,
-        },
+        // Always a hairline; focus is the ring drawn over it (`field-chrome.tsx`), so nothing moves.
+        { borderColor: colors.border.default, borderWidth: StyleSheet.hairlineWidth },
         style,
       ]}
     >
+      <FocusRing ring={fieldRing({ focused, error: false, editable: true })} radius={radius.md} colors={colors} />
       <Search color={focused ? colors.text.accent : colors.text.tertiary} size={18} />
 
       <TextInput
@@ -111,8 +111,11 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(function Sear
         // next scan instead of dismissing on submit.
         blurOnSubmit={false}
         autoCapitalize={identifier ? 'characters' : 'none'}
+        {...APP_FIELD_MARKER}
         style={[
           styles.input,
+          NO_NATIVE_OUTLINE,
+          fieldInk(colors.text.primary),
           { textAlign: identifier ? 'left' : textAlign('start'), writingDirection: writingDirection(identifier) },
           identifier ? styles.identifierInput : null,
         ]}

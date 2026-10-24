@@ -288,6 +288,7 @@ function EditSheet({
 
   return (
     <BottomSheet
+      scroll
       open={user !== null}
       onClose={onClose}
       title={t('team.editTitle')}

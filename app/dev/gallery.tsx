@@ -815,6 +815,7 @@ function GalleryScreen() {
       </Section>
 
       <BottomSheet
+        scroll
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title="Bottom sheet"

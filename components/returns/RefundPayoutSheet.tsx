@@ -105,6 +105,7 @@ export function RefundPayoutSheet({
 
   return (
     <BottomSheet
+      scroll
       open={open}
       onClose={onClose}
       title={t(mode === 'report' ? 'refund.report.title' : 'refund.correct.title')}

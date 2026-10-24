@@ -124,6 +124,7 @@ export function CorrectionSheet({
 
   return (
     <BottomSheet
+      scroll
       open
       onClose={onClose}
       title={t(actionKey(action) as never)}

@@ -21,9 +21,14 @@ import { notStartedView } from '../lib/trial-setup';
  * that can be made to decide wrongly, and a shopkeeper told the wrong reason
  * makes the wrong phone call.
  *
- * Five situations, deliberately distinct: pending approval, not started,
- * refused, suspended, and ended (cancelled). Telling a brand-new business that
- * something ended would be both confusing and untrue.
+ * Six situations, deliberately distinct: no active access yet, not
+ * started, refused, suspended, and ended (cancelled). Telling a brand-new
+ * business that something ended would be both confusing and untrue — and
+ * telling an Owner who redeemed a setup code that they are "waiting for
+ * approval" would be untrue too (2026-10-24): their account is active the
+ * moment the code is spent; what is missing is an entitlement, so `pending`
+ * says exactly that. And an answer without a state this build knows is
+ * `unknown` — the access could not be read — never `pending`.
  *
  * Not started (0095) is a business eligible for its one free trial. Its Owner
  * is shown what the server says about the trial's setup instructions
@@ -49,7 +54,7 @@ export default function AccessClosed() {
 
   const [checking, setChecking] = useState(false);
 
-  // One of five, from the server. If the state is something else entirely, the
+  // One of six, from the server. If the state is something else entirely, the
   // app should not be on this screen at all.
   const reason = closedReason(entitlement?.state);
   // Asked only while not started: the Owner's card, or the server's refusal for everybody else.

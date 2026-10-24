@@ -44,6 +44,7 @@ import {
 import { reconcileTacs, useTacResolution, type TacResolution } from '../../lib/tac';
 import type { ScanResult } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { ModalBoundary } from '../overlay/ModalBoundary';
 
 /**
  * The camera scanner.
@@ -730,7 +731,7 @@ export function ScannerSheet({
   const cameraSupported = Platform.OS !== 'web';
   return (
     <Modal visible transparent={false} statusBarTranslucent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.root}>
+      <ModalBoundary style={styles.root}>
         {/*
           UNMOUNTED, not merely deactivated.
 
@@ -1342,7 +1343,7 @@ export function ScannerSheet({
             </View>
           </>
         )}
-      </View>
+      </ModalBoundary>
     </Modal>
   );
 }

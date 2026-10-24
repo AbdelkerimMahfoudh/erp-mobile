@@ -215,7 +215,7 @@ export function CorrectionSection({
         onPress={() => setSheetOpen(true)}
       />
 
-      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)}>
+      <BottomSheet scroll open={sheetOpen} onClose={() => setSheetOpen(false)}>
         <View style={styles.sheet}>
           <Text variant="title">{t('correction.request.title')}</Text>
           <Text variant="body" tone="secondary">

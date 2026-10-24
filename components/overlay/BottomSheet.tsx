@@ -3,6 +3,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -29,6 +30,7 @@ import { IconButton } from '../ui/IconButton';
 import { Text } from '../ui/Text';
 import { makeStyles } from '../../lib/design/theme';
 import { SheetDialogLayer } from './DialogHost';
+import { ModalBoundary } from './ModalBoundary';
 
 /**
  * Bottom sheet — the app's standard way to ask for one thing without leaving
@@ -75,6 +77,13 @@ export interface BottomSheetProps {
   dismissible?: boolean;
   /** Remove content padding for edge-to-edge lists. */
   padded?: boolean;
+  /**
+   * The content scrolls inside the sheet (2026-10-24). For a form that brings no scrolling container of its own: with
+   * the keyboard up the sheet keeps less room than the form needs, and every field and its action must still be
+   * reachable. Taps on a field or a choice land while the keyboard is up (`keyboardShouldPersistTaps="handled"`).
+   * Sheets holding their own list or `ScrollView` leave it off — a list inside a scroll view is a nested one.
+   */
+  scroll?: boolean;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -90,6 +99,7 @@ export function BottomSheet({
   footer,
   dismissible = true,
   padded = true,
+  scroll = false,
   children,
   style,
 }: BottomSheetProps) {
@@ -224,7 +234,8 @@ export function BottomSheet({
       animationType="none"
       onRequestClose={dismissible ? animateOut : undefined}
     >
-      <View style={StyleSheet.absoluteFill}>
+      {/* A tap inside the sheet stops here, as at a native modal's edge — never at the screen behind (web). */}
+      <ModalBoundary>
         <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -282,13 +293,24 @@ export function BottomSheet({
             </View>
           </GestureDetector>
 
-          <View style={[styles.body, padded ? styles.bodyPadded : null]}>{children}</View>
+          {scroll ? (
+            <ScrollView
+              style={styles.body}
+              contentContainerStyle={padded ? styles.bodyPadded : null}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={[styles.body, padded ? styles.bodyPadded : null]}>{children}</View>
+          )}
 
           {footer ? <View style={styles.footer}>{footer}</View> : null}
         </Animated.View>
 
         <SheetDialogLayer sheetId={sheetId} />
-      </View>
+      </ModalBoundary>
     </Modal>
   );
 }

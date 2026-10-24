@@ -8,6 +8,7 @@ import { isTopSheet, useSheetStack } from '../../lib/sheet-stack';
 import { useKeyboardHeight } from '../../lib/use-keyboard-height';
 import { useTranslation } from '../../lib/i18n';
 import { Button } from '../ui/Button';
+import { ModalBoundary } from './ModalBoundary';
 import { TextField } from '../ui/Field';
 import { Text } from '../ui/Text';
 import { makeStyles } from '../../lib/design/theme';
@@ -38,7 +39,9 @@ export function DialogHost() {
   const cancel = () => resolveTop({ confirmed: false });
   return (
     <Modal visible transparent statusBarTranslucent animationType="none" onRequestClose={cancel}>
-      <DialogCard />
+      <ModalBoundary>
+        <DialogCard />
+      </ModalBoundary>
     </Modal>
   );
 }

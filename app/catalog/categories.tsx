@@ -177,6 +177,7 @@ function CategorySheet({
 
   return (
     <BottomSheet
+      scroll
       open={category !== null}
       onClose={onClose}
       title={t(isNew ? 'categories.newTitle' : 'categories.editTitle')}

@@ -497,14 +497,21 @@ function AccountSheet({
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<{ label?: string; providerName?: string }>({});
 
+  /*
+   * The form is reset when a different account is opened — keyed by which account, never by the object: a background
+   * refetch hands the same account in as a new object, and resetting on that erased whatever was being typed.
+   */
+  const openedKey = account === null ? null : account === 'new' ? 'new' : account.id;
   useEffect(() => {
-    if (!account) return;
+    if (!openedKey) return;
     setProvider(existing?.provider ?? 'bankily');
     setProviderName(existing?.providerName ?? '');
     setLabel(existing?.label ?? '');
     setIsActive(existing?.isActive ?? true);
     setErrors({});
-  }, [account, existing]);
+    // `existing` is read for the opening only; a refetched copy of the same account must not reset the form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openedKey]);
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -547,6 +554,7 @@ function AccountSheet({
 
   return (
     <BottomSheet
+      scroll
       open={account !== null}
       onClose={onClose}
       title={t(isNew ? 'settings.accounts.newTitle' : 'settings.accounts.editTitle')}

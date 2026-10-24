@@ -37,7 +37,7 @@ type Role = 'store_employee' | 'store_manager';
 export function CreateMemberSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   return (
-    <BottomSheet open={open} onClose={onClose} title={t('team.create.title')}>
+    <BottomSheet scroll open={open} onClose={onClose} title={t('team.create.title')}>
       {/* Mounted only while open, so every opening starts from a clean form. */}
       {open ? <CreateMemberForm onClose={onClose} /> : null}
     </BottomSheet>

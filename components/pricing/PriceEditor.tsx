@@ -142,7 +142,7 @@ export function PriceEditor({
         : t('pricing.editor.invalid');
 
   return (
-    <BottomSheet open={open} onClose={requestClose} title={t('pricing.section')}>
+    <BottomSheet scroll open={open} onClose={requestClose} title={t('pricing.section')}>
       <View style={styles.body}>
         <Card>
           <View style={styles.row}>
