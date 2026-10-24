@@ -168,7 +168,12 @@ describe('the closed screen’s reason', () => {
     assert.equal(closedReason('suspended'), 'suspended');
     assert.equal(closedReason('rejected'), 'rejected');
     assert.equal(closedReason('cancelled'), 'ended');
-    assert.equal(closedReason(undefined), 'pending');
+    assert.equal(closedReason('expired'), 'ended');
+    assert.equal(closedReason('trial_expired'), 'ended');
+    // No state, or one this build does not know, is never "pending" (2026-10-24).
+    assert.equal(closedReason(undefined), 'unknown');
+    assert.equal(closedReason(null), 'unknown');
+    assert.equal(closedReason('some_future_state'), 'unknown');
   });
 });
 

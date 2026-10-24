@@ -97,16 +97,24 @@ export function accessNotice(access: BusinessAccess, mayManageStaff: boolean): A
   return 'none';
 }
 
-/** The closed screen's words, from the server's state — never from a date. */
-export type ClosedReason = 'pending' | 'not_started' | 'suspended' | 'rejected' | 'ended';
+/**
+ * The closed screen's words, from the server's state — never from a date.
+ *
+ * `unknown` (2026-10-24): no state, or one this build does not know, is said as exactly that — the access could not be
+ * read — never as `pending`. A missing or failed answer used to fall back to `pending`, and so masqueraded as a business
+ * waiting for somebody, which is untrue twice over: nobody is deciding anything, and the business may well be open.
+ */
+export type ClosedReason = 'pending' | 'not_started' | 'suspended' | 'rejected' | 'ended' | 'unknown';
 
-export function closedReason(state: EntitlementState | undefined): ClosedReason {
-  if (state === undefined || state === 'pending') return 'pending';
+export function closedReason(state: EntitlementState | string | null | undefined): ClosedReason {
+  // Never activated and nothing granted: what is missing is a subscription or access, not an approval.
+  if (state === 'pending') return 'pending';
   // Eligible for its free trial, not started (0095): nothing ever began, so nothing has "ended".
   if (state === 'trial_available') return 'not_started';
   if (state === 'suspended') return 'suspended';
   if (state === 'rejected') return 'rejected';
-  return 'ended';
+  if (state === 'expired' || state === 'cancelled' || state === 'trial_expired') return 'ended';
+  return 'unknown';
 }
 
 /**

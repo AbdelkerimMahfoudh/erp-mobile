@@ -18,6 +18,7 @@ import { IconButton } from './IconButton';
 import { Text } from './Text';
 import type { IconComponent } from './Button';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { APP_FIELD_MARKER, fieldInk, fieldRing, FocusRing, NO_NATIVE_OUTLINE } from './field-chrome';
 
 /**
  * Text inputs.
@@ -85,11 +86,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   const isSecure = Boolean(secureTextEntry);
   const hideText = isSecure && !revealed;
 
-  const borderColor = error
-    ? colors.intent.danger.solid
-    : focused
-      ? colors.brand[600]
-      : colors.border.default;
+  // One ring, drawn over the well (`field-chrome.tsx`): focus, an error, or both — never a second browser outline.
+  const ring = fieldRing({ focused, error: Boolean(error), editable });
 
   return (
     <View style={[styles.group, containerStyle]}>
@@ -110,15 +108,15 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         style={[
           styles.well,
           {
-            borderColor,
+            borderColor: colors.border.default,
             backgroundColor: editable ? colors.surface.card : colors.surface.sunken,
-            // A second ring on focus rather than a thicker border, so the field
-            // does not resize and shove the layout when it gains focus.
-            borderWidth: focused || error ? 1.5 : StyleSheet.hairlineWidth,
+            // Always a hairline: focus and errors are the ring's, drawn over it, so nothing moves.
+            borderWidth: StyleSheet.hairlineWidth,
           },
         ]}
       >
-        {Icon ? <Icon color={focused ? colors.brand[600] : colors.text.tertiary} size={18} /> : null}
+        <FocusRing ring={ring} radius={radius.md} colors={colors} />
+        {Icon ? <Icon color={focused ? colors.border.focus : colors.text.tertiary} size={18} /> : null}
         <TextInput
           ref={ref}
           editable={editable}
@@ -132,8 +130,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             onBlur?.(e);
           }}
           secureTextEntry={hideText}
+          {...APP_FIELD_MARKER}
           style={[
             styles.input,
+            NO_NATIVE_OUTLINE,
+            fieldInk(editable ? colors.text.primary : colors.text.disabled),
             {
               color: editable ? colors.text.primary : colors.text.disabled,
               textAlign: isIdentifier ? 'left' : textAlign('start'),

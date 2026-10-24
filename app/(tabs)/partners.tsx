@@ -429,7 +429,7 @@ function AddStoreSheet({ open, onClose }: { open: boolean; onClose: () => void }
   const blockedFromRequesting = relationship && ['accepted', 'pending'].includes(relationship.status);
 
   return (
-    <BottomSheet open={open} onClose={close} title={t('partners.add.title')}>
+    <BottomSheet scroll open={open} onClose={close} title={t('partners.add.title')}>
       <View style={styles.sheet}>
         {sent ? (
           <>

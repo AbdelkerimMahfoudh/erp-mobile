@@ -40,6 +40,7 @@ export function PayerNumberSheet({ saleId, payment, onClose }: { saleId: string;
 
   return (
     <BottomSheet
+      scroll
       open
       onClose={onClose}
       title={t('saleDetail.payer.title')}

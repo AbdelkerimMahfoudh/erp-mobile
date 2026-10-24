@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * The app's own text inputs (components/ui/field-chrome.tsx) on the web, and nothing else: they carry
+ * `data-app-field`. A browser's autofill tints the <input> itself, which drew a second, coloured box inside the
+ * field's rounded well — the "two nested inputs" a phone's browser showed — and paints the text in its own colour
+ * (black, even on a dark field). The tint is held off (its background transition never completes) and the text keeps
+ * the field's own colour, handed over as `--app-field-ink`. No global outline rule: the outline is removed inline on
+ * these inputs only, where the app draws its focus ring instead.
+ */
+input[data-app-field]:-webkit-autofill,
+input[data-app-field]:-webkit-autofill:hover,
+input[data-app-field]:-webkit-autofill:focus {
+  transition: background-color 86400s ease-in-out 0s, color 86400s ease-in-out 0s;
+  -webkit-text-fill-color: var(--app-field-ink, currentColor);
+  caret-color: var(--app-field-ink, currentColor);
+}

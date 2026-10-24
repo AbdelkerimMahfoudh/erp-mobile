@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, SegmentedControl, Text, TextField, Toggle } from '../ui';
 import { BottomSheet } from '../overlay';
@@ -37,7 +37,7 @@ type Role = 'store_employee' | 'store_manager';
 export function CreateMemberSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   return (
-    <BottomSheet open={open} onClose={onClose} title={t('team.create.title')}>
+    <BottomSheet scroll open={open} onClose={onClose} title={t('team.create.title')}>
       {/* Mounted only while open, so every opening starts from a clean form. */}
       {open ? <CreateMemberForm onClose={onClose} /> : null}
     </BottomSheet>
@@ -106,11 +106,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
   const toggleStore = (id: string, on: boolean) => setStores((s) => (on ? [...new Set([...s, id])] : s.filter((x) => x !== id)));
 
   return (
-    /*
-      Scrolls inside the sheet, as the other form sheets do: in French or Arabic, or with larger text, the form is taller
-      than the sheet may grow, and "Add to the team" must still be reachable (owner's review, 2026-10-24).
-    */
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheet}>
+    <View style={styles.sheet}>
       {result ? (
         <>
           <Outcome result={result} />
@@ -161,7 +157,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
           <Button title={t('team.create.submit')} onPress={submit} loading={create.isPending} disabled={create.isPending} fullWidth />
         </>
       )}
-    </ScrollView>
+    </View>
   );
 }
 

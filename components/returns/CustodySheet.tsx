@@ -46,7 +46,7 @@ export function CustodySheet({
 
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} title={t('returns.custody.confirm')}>
+      <BottomSheet scroll open={open} onClose={onClose} title={t('returns.custody.confirm')}>
         <View style={styles.body}>
           <Text variant="body" tone="secondary">
             {t('returns.custody.body')}
