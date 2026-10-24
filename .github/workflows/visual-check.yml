@@ -99,13 +99,25 @@ jobs:
           echo "ROUTES=$(cd "$WORK/app-dist" && find . -name '*.html' | sed 's#^\./##; s#\.html$##' | grep -vE '^\(|^\+|_sitemap|^(login|register|setup|join|verify)$|^dev/' | sed 's#^index$##' | sed 's#\[[a-z]*\]#00000000-0000-4000-8000-000000000000#g' | tr '\n' ' ')" >> "$GITHUB_ENV"
       - name: Expo Doctor on the target
         if: ${{ !cancelled() }}
-        run: (cd app && npx expo-doctor)
+        run: |
+          mkdir -p "$WORK/results"
+          set -o pipefail
+          (cd app && npx expo-doctor 2>&1) | tee "$WORK/results/expo-doctor.txt"
       - name: WebKit
         if: ${{ !cancelled() }}
-        run: BROWSER=webkit OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs
+        run: |
+          set -o pipefail
+          BROWSER=webkit OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/webkit.txt"
       - name: Chromium
         if: ${{ !cancelled() }}
-        run: BROWSER=chromium OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs
+        run: |
+          set -o pipefail
+          BROWSER=chromium OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/chromium.txt"
+      - name: Summary
+        if: always()
+        run: |
+          echo "== Expo Doctor"; grep -E "checks passed|✖|^  |patch|expected" "$WORK/results/expo-doctor.txt" 2>/dev/null | head -30 || true
+          for b in webkit chromium; do echo "== $b"; grep -E "^FAIL|checks passed" "$WORK/results/$b.txt" 2>/dev/null | tail -15 || true; done
       - name: Keep the results
         if: always()
         run: |
