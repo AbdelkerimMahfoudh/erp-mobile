@@ -63,6 +63,7 @@ jobs:
           (cd app && npm ci --no-audit --no-fund > "$WORK/app-install.log" 2>&1)
           (cd tools/verify && npm init -y > /dev/null && npm i --no-audit --no-fund playwright@1.63.0 > "$WORK/pw-install.log" 2>&1)
           (cd tools/verify && npx playwright install --with-deps webkit chromium > "$WORK/pw-browsers.log" 2>&1)
+          (cd tools/browser-input && npm install --no-audit --no-fund > "$WORK/bi-install.log" 2>&1 && npx playwright install --with-deps webkit chromium > "$WORK/bi-browsers.log" 2>&1)
       - name: The database, the API, an administrator with MFA and one fictional test business
         run: |
           umask 077
@@ -90,34 +91,66 @@ jobs:
           nohup node dist/src/main.js > "$WORK/api.log" 2>&1 &
           for _ in $(seq 1 60); do curl -sf http://127.0.0.1:3410/api/health > /dev/null && break; sleep 1; done
           curl -sf http://127.0.0.1:3410/api/health/ready; echo
-          cd .. && node tools/verify/seed.mjs
+          cd ..
+          # The D219 verifier's enrolment first (it keeps the authenticator key); the seed then signs in with it.
+          (cd tools/browser-input && WORK="$WORK" node verify/enrol.mjs)
+          node tools/verify/seed.mjs
       - name: The app's web export against this API
         run: |
           (cd app && EXPO_PUBLIC_API_ORIGIN=${API%/api/v1} EXPO_PUBLIC_LEGAL_ORIGIN=https://legal.example.invalid npx expo export --platform web --clear --output-dir "$WORK/app-dist" > "$WORK/app-export.log" 2>&1)
           nohup node tools/verify/static-serve.mjs "$WORK/app-dist" 4320 > "$WORK/app-serve.log" 2>&1 &
           for _ in $(seq 1 30); do curl -sf -o /dev/null "$APP/" && break; sleep 1; done
-          echo "ROUTES=$(cd "$WORK/app-dist" && find . -name '*.html' | sed 's#^\./##; s#\.html$##' | grep -vE '^\(|^\+|_sitemap|^(login|register|setup|join|verify)$|^dev/' | sed 's#^index$##' | sed 's#\[[a-z]*\]#00000000-0000-4000-8000-000000000000#g' | tr '\n' ' ')" >> "$GITHUB_ENV"
+          # Every exported page: `x/index` is visited as `x`, the home page as `?`, and one unknown address for the 404 page.
+          echo "ROUTES=? $(cd "$WORK/app-dist" && find . -name '*.html' | sed 's#^\./##; s#\.html$##' | grep -vE '^\(|^\+|_sitemap|^(login|register|setup|join|verify)$|^dev/' | sed -E 's#(^|/)index$##' | sed 's#\[[a-z]*\]#00000000-0000-4000-8000-000000000000#g' | sort -u | tr '\n' ' ') no-such-page" >> "$GITHUB_ENV"
       - name: Expo Doctor on the target
         if: ${{ !cancelled() }}
+        # One finding is documented and accepted (docs/75 §15.6, docs/71): Expo packages a few patch versions behind the
+        # SDK, `expo-camera` pinned by the app's native patch — an owed upgrade that needs a native build, not a web
+        # fix. This step passes with that finding alone and fails on any other.
         run: |
           mkdir -p "$WORK/results"
+          (cd app && npx expo-doctor 2>&1) | tee "$WORK/results/expo-doctor.txt" || true
+          failed=$(grep -E '^✖ ' "$WORK/results/expo-doctor.txt" | sort -u || true)
+          known='✖ Check that packages match versions required by installed Expo SDK'
+          if [ -z "$failed" ]; then echo "Expo Doctor: every check passed"
+          elif [ "$failed" = "$known" ]; then echo "Expo Doctor: only the documented exception (docs/75 §15.6): $known"
+          else echo "Expo Doctor: an undocumented finding:"; echo "$failed"; exit 1; fi
+      - name: D219 regression — the access journey and the input matrix (copied verifier), WebKit then Chromium
+        if: ${{ !cancelled() }}
+        run: |
           set -o pipefail
-          (cd app && npx expo-doctor 2>&1) | tee "$WORK/results/expo-doctor.txt"
+          mkdir -p "$WORK/results"
+          cd tools/browser-input
+          for b in webkit chromium; do
+            WORK="$WORK" APP="$APP" API="$API" APPDIR="$GITHUB_WORKSPACE/app" BROWSER=$b node verify/access-journey.mjs 2>&1 | tee "$WORK/results/d219-journey-$b.txt"
+            WORK="$WORK" APP="$APP" API="$API" APPDIR="$GITHUB_WORKSPACE/app" BROWSER=$b node verify/ui-input.mjs 2>&1 | tee "$WORK/results/d219-input-$b.txt"
+          done
+      - name: Businesses before the browsers
+        run: echo "COMPANIES_BEFORE=$(mysql -h 127.0.0.1 -P 3306 --protocol=TCP -u root -N -e 'SELECT COUNT(*) FROM vc.companies')" >> "$GITHUB_ENV"
       - name: WebKit
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
-          BROWSER=webkit OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/webkit.txt"
+          API_ORIGIN=${API%/api/v1} BROWSER=webkit OWNER="$WORK/vc-owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/webkit.txt"
       - name: Chromium
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
-          BROWSER=chromium OWNER="$WORK/owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/chromium.txt"
+          API_ORIGIN=${API%/api/v1} BROWSER=chromium OWNER="$WORK/vc-owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/chromium.txt"
+      - name: No business was created by the browsers (registration sent once, and refused while activation is closed)
+        if: ${{ !cancelled() }}
+        run: |
+          after=$(mysql -h 127.0.0.1 -P 3306 --protocol=TCP -u root -N -e 'SELECT COUNT(*) FROM vc.companies')
+          echo "businesses before $COMPANIES_BEFORE, after $after" | tee "$WORK/results/businesses.txt"
+          [ "$after" = "$COMPANIES_BEFORE" ]
       - name: Summary
         if: always()
         run: |
-          echo "== Expo Doctor"; grep -E "checks passed|✖|^  |patch|expected" "$WORK/results/expo-doctor.txt" 2>/dev/null | head -30 || true
+          echo "== Expo Doctor"; grep -E "checks passed|^✖" "$WORK/results/expo-doctor.txt" 2>/dev/null | sort -u || true
+          sed -n '/package *expected *found/,/^$/p' "$WORK/results/expo-doctor.txt" 2>/dev/null | head -20 || true
+          echo "== Businesses"; cat "$WORK/results/businesses.txt" 2>/dev/null || true
           for b in webkit chromium; do echo "== $b"; grep -E "^FAIL|checks passed" "$WORK/results/$b.txt" 2>/dev/null | tail -15 || true; done
+          for f in "$WORK"/results/d219-*.txt; do echo "== $(basename "$f" .txt)"; grep -E "^FAIL|checks passed" "$f" | tail -15 || true; done
       - name: Keep the results
         if: always()
         run: |

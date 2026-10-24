@@ -1,0 +1,9 @@
+{
+  "name": "verify-browser-input",
+  "private": true,
+  "type": "module",
+  "description": "Tooling only: browser checks of the protected ERP test app (ops/verify-browser-input).",
+  "dependencies": {
+    "playwright": "1.64.0"
+  }
+}

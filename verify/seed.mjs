@@ -1,8 +1,8 @@
 // A fictional test business on the runner's disposable API: the administrator enrols MFA from the server-issued token,
 // creates a test business with a no-payment grant, and its Owner chooses a password with the setup code. The Owner's
-// sign-in goes to $WORK/owner.json (mode 600) for the browser check. Prints statuses only, never a secret or a code.
+// sign-in goes to $WORK/vc-owner.json (mode 600) for the browser check. Prints statuses only, never a secret or a code.
 import { createHmac, randomUUID } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 const W = `${process.env.WORK}/`;
 const API = process.env.API ?? 'http://127.0.0.1:3410/api/v1';
 const ADMIN_PW = readFileSync(`${W}admin.pw`, 'utf8').trim();
@@ -26,14 +26,20 @@ async function call(method, path, body) {
 }
 const step = (what, status) => { console.log(`${what}: ${status}`); if (status >= 300) process.exit(1); };
 step('admin sign-in', (await call('POST', 'platform/admin/sign-in', { email: 'ops@example.test', password: ADMIN_PW })).status);
-const enrol = await call('POST', 'platform/admin/mfa/enrolment/start', { enrolmentToken: ENROL });
-SECRET = enrol.json?.secret ?? '';
-step('MFA enrolment', enrol.status);
-step('MFA confirmed', (await call('POST', 'platform/admin/mfa/enrolment/confirm', { code: await fresh() })).status);
+if (existsSync(`${W}totp.secret`)) {
+  // Already enrolled (browser-input/verify/enrol.mjs ran first): its key, and the second factor of this sign-in.
+  SECRET = readFileSync(`${W}totp.secret`, 'utf8').trim();
+  step('MFA', (await call('POST', 'platform/admin/mfa/verify', { code: await fresh() })).status);
+} else {
+  const enrol = await call('POST', 'platform/admin/mfa/enrolment/start', { enrolmentToken: ENROL });
+  SECRET = enrol.json?.secret ?? '';
+  step('MFA enrolment', enrol.status);
+  step('MFA confirmed', (await call('POST', 'platform/admin/mfa/enrolment/confirm', { code: await fresh() })).status);
+}
 step('step-up', (await call('POST', 'platform/admin/step-up', { password: ADMIN_PW, code: await fresh() })).status);
 const made = await call('POST', 'platform/businesses', { idempotencyKey: randomUUID(), ownerName: 'Mariem Test', businessName: 'Boutique Démo Tevragh', phone: '+22241999001', branchName: 'Tevragh Zeina', language: 'fr', isTest: true, reason: 'Visual check (fictional)', confirmPassword: ADMIN_PW });
 step('test business', made.status);
 step('no-payment grant', (await call('POST', `platform/businesses/${made.json.companyId}/activate-grant`, { days: 30, reason: 'Test access', confirmPassword: ADMIN_PW })).status);
 const password = `demo-${randomUUID()}`;
 step('Owner setup', (await call('POST', 'auth/owner-setup', { token: made.json.invitation.token, password })).status);
-writeFileSync(`${W}owner.json`, JSON.stringify({ identifier: '+22241999001', password }), { mode: 0o600 });
+writeFileSync(`${W}vc-owner.json`, JSON.stringify({ identifier: '+22241999001', password }), { mode: 0o600 });
