@@ -301,6 +301,11 @@ if (OWNER) {
     if (await add.count()) {
       await add.click();
       await page.waitForTimeout(900);
+      // Typing into the sheet: the tap focuses the field, and what is typed stays (the shared sheet-input fix).
+      const field = page.locator('[aria-modal="true"] input').first();
+      await field.click();
+      await page.keyboard.type('Sidi Exemple');
+      check(`team sheet ${lang} ${theme} ${width}: a tapped field takes and keeps typing`, (await field.inputValue()) === 'Sidi Exemple');
       const submit = page.locator('[role="button"]').filter({ hasText: /Add to the team|Ajouter à l’équipe|إضافة إلى الفريق/ }).last();
       await submit.scrollIntoViewIfNeeded().catch(() => {});
       const b = await submit.boundingBox();
