@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { Text } from './Text';
 import { useTranslation } from '../../lib/i18n';
@@ -36,6 +36,16 @@ export interface ToggleProps {
   flat?: boolean;
   style?: StyleProp<ViewStyle>;
 }
+
+/**
+ * The switch itself laid out left to right in a browser, in every language.
+ *
+ * React Native Web places the knob with logical `start`/`marginStart`, resolved from its own direction context, while the
+ * track follows the page's CSS direction. In Arabic the two disagreed and the knob was drawn outside its track, over the
+ * state words beside it (owner's review, 2026-10-24). A `dir` on the wrapper gives the switch one direction for both.
+ * Native platforms mirror their own switch and are left alone.
+ */
+const SWITCH_DIRECTION = (Platform.OS === 'web' ? { dir: 'ltr' } : {}) as object;
 
 export function Toggle({
   label,
@@ -89,7 +99,7 @@ export function Toggle({
         </Text>
         {/* `pointerEvents="none"`: the row owns the gesture, so a tap on the
             switch itself cannot fire the change twice. */}
-        <View pointerEvents="none">
+        <View pointerEvents="none" {...SWITCH_DIRECTION}>
           <Switch
             value={value}
             onValueChange={onValueChange}
@@ -102,6 +112,8 @@ export function Toggle({
             trackColor={{ false: colors.border.strong, true: colors.intent.info.solid }}
             thumbColor={colors.surface.card}
             ios_backgroundColor={colors.border.strong}
+            // React Native Web paints an "on" knob with `activeThumbColor` (its own teal) and ignores `thumbColor`.
+            {...(Platform.OS === 'web' ? ({ activeThumbColor: colors.surface.card } as object) : null)}
           />
         </View>
       </View>
