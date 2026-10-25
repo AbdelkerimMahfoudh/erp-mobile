@@ -117,9 +117,12 @@ export default function RegisterScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const inputs = useRef<Partial<Record<keyof RegistrationProblems | 'city', TextInput | null>>>({});
 
-  useEffect(() => {
-    if (params.r !== undefined) router.setParams({ r: undefined } as never);
-  }, [params.r, router]);
+  // Out of the address once the navigator holds this screen: before that, on a first load in a browser, it is ignored.
+  useFocusEffect(
+    useCallback(() => {
+      if (params.r !== undefined) router.setParams({ r: undefined } as never);
+    }, [params.r, router]),
+  );
 
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),
