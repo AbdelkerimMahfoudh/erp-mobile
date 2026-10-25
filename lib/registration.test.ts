@@ -175,15 +175,16 @@ it('any field the server receives, edited after a failure, makes a new attempt',
 
 it('the screen renews its key when the form changed since it was sent, and keeps it otherwise', () => {
   const register = code('app/(auth)/register.tsx');
-  assert.match(register, /if \(attempt\.current\.sent && !sameRegistration\(attempt\.current\.sent, draft\)\) attempt\.current = \{ key: uuidv4\(\), sent: null \};\s*attempt\.current\.sent = draft;/);
-  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\)\)/);
+  // Edited since it was sent — the form, or where it came from (0103): a new attempt with a new key.
+  assert.match(register, /if \(attempt\.current\.sent && \(!sameRegistration\(attempt\.current\.sent, draft\) \|\| attempt\.current\.source !== source\)\) \{\s*attempt\.current = \{ key: uuidv4\(\), sent: null, source: '' \};\s*\}\s*attempt\.current\.sent = draft;\s*attempt\.current\.source = source;/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\), claim\)/);
 });
 
 it('the language sent is the one the person is reading, so the code arrives in it', () => {
   assert.equal(registrationPayload(withPhone, 'k', 'ar').language, 'ar');
   const register = code('app/(auth)/register.tsx');
   assert.match(register, /const \{ t, language \} = useTranslation\(\);/);
-  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\)\)/);
+  assert.match(register, /registrationPayload\(draft, attempt\.current\.key, language, consentFields\(copy\.data, draft\.whatsappConsent\), claim\)/);
   assert.match(code('app/(auth)/verify.tsx'), /\{ continuation, language \}/);
 });
 
@@ -268,7 +269,9 @@ it('a refused submission names the first step with something to fix', () => {
 it('the steps reach the server once, at the end: no request between steps', () => {
   const register = code('app/(auth)/register.tsx');
   assert.equal([...register.matchAll(/api\.post/g)].length, 1);
-  assert.doesNotMatch(register, /setParams|searchParams|localStorage|setItem\(/, 'the draft is never put in the address or in storage');
+  // The one route change: the registration address arrived with (0103) is taken OUT of the route, never anything put in.
+  assert.deepEqual([...register.matchAll(/setParams\(([^)]*)\)/g)].map((m) => m[1]), ['{ r: undefined } as never']);
+  assert.doesNotMatch(register.replace('router.setParams({ r: undefined } as never)', ''), /setParams|searchParams|localStorage|setItem\(/, 'the draft is never put in the address or in storage');
 });
 
 console.log('\n' + passed + ' passed');

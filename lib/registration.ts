@@ -24,6 +24,7 @@
  */
 
 import type { Language } from './i18n';
+import type { AcquisitionClaim } from './acquisition';
 
 export interface RegistrationDraft {
   ownerName: string;
@@ -126,6 +127,8 @@ export function registrationPayload(
   idempotencyKey: string,
   language: Language,
   consent: Record<string, string> = {},
+  /** Where the business came from, if anywhere (0103): one promo code or one registration address, never both. */
+  acquisition: AcquisitionClaim = null,
 ): Record<string, string> {
   const body: Record<string, string> = {
     idempotencyKey,
@@ -138,7 +141,7 @@ export function registrationPayload(
   };
   if (draft.city.trim()) body.city = draft.city.trim();
   if (draft.email.trim()) body.email = draft.email.trim();
-  return draft.whatsappConsent ? { ...body, ...consent } : body;
+  return { ...(draft.whatsappConsent ? { ...body, ...consent } : body), ...(acquisition ?? {}) };
 }
 
 /**

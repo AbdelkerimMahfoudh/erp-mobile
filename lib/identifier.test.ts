@@ -269,7 +269,7 @@ it('one idempotency key per attempt, reused across retries', () => {
     after a failure is a new attempt (lib/registration.test.ts holds the rule).
   */
   const code = withoutComments(source('app/(auth)/register.tsx'));
-  assert.match(code, /const attempt = useRef<\{ key: string; sent: RegistrationDraft \| null \}>\(\{ key: uuidv4\(\), sent: null \}\)/);
+  assert.match(code, /const attempt = useRef<\{ key: string; sent: RegistrationDraft \| null; source: string \}>\(\{ key: uuidv4\(\), sent: null, source: '' \}\)/);
   assert.match(code, /attempt\.current\.key/);
 });
 

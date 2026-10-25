@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, TextInput, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { AuthPage } from '../../components/auth/AuthChrome';
 import { AuthLanguageSwitch, Button, Card, TextField } from '../../components/ui';
 import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
+import { PromoCodeField, useAcquisition } from '../../components/registration/PromoCodeField';
+import { acquisitionPending, claimOf } from '../../lib/acquisition';
 import { Text } from '../../components/ui/Text';
 import { api, ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
@@ -74,6 +76,14 @@ import type { RegistrationStarted, WhatsAppConsentCopy } from '../../types/api';
  * to the previous step, and leaving from the first step with something typed
  * asks first. Switching language or theme re-renders in place and keeps all of
  * it; a reload starts clean, as before, after the browser asks.
+ *
+ * ## Where the business came from (0103, D221)
+ *
+ * An optional promo code on the first step, and the registration address the person may have arrived with
+ * (`dukan.tsxmr.com/join?r=…` opens this screen with `r`): a promoter's card prefills its code and display name, an
+ * invitation says so. The address is read once and taken out of the route, then held in this screen's memory like
+ * the rest of the draft. At most one source goes with the one submission; the server checks it again, and a source
+ * that stopped being usable refuses the registration with nothing saved — the person removes it and sends again.
  */
 const STEP_COUNT = REGISTRATION_STEPS.length;
 const STEP_TITLES = ['register.section.business', 'register.section.owner', 'register.section.contact'] as const;
@@ -86,6 +96,10 @@ export default function RegisterScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const styles = useStyles();
+  const params = useLocalSearchParams<{ r?: string }>();
+  /** The registration address arrived with (0103): read once, then out of the route — memory only from here. */
+  const [arrived] = useState(() => (typeof params.r === 'string' && params.r.length <= 64 ? params.r : null));
+  const acquisition = useAcquisition(arrived);
 
   const [draft, setDraft] = useState<RegistrationDraft>(emptyRegistration);
   const [step, setStep] = useState(0);
@@ -95,13 +109,17 @@ export default function RegisterScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  /** One identity per attempt, however many times it is retried — and the form it was sent with. */
-  const attempt = useRef<{ key: string; sent: RegistrationDraft | null }>({ key: uuidv4(), sent: null });
+  /** One identity per attempt, however many times it is retried — and the form and source it was sent with. */
+  const attempt = useRef<{ key: string; sent: RegistrationDraft | null; source: string }>({ key: uuidv4(), sent: null, source: '' });
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
   const consentRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
   const inputs = useRef<Partial<Record<keyof RegistrationProblems | 'city', TextInput | null>>>({});
+
+  useEffect(() => {
+    if (params.r !== undefined) router.setParams({ r: undefined } as never);
+  }, [params.r, router]);
 
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),
@@ -227,9 +245,19 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Edited since it was last sent: a new attempt.
-    if (attempt.current.sent && !sameRegistration(attempt.current.sent, draft)) attempt.current = { key: uuidv4(), sent: null };
+    // A source still being checked, or an invitation and a code both kept: the field says which, and nothing is sent.
+    if (acquisitionPending(acquisition.state)) {
+      goToStep(0);
+      return;
+    }
+    const claim = claimOf(acquisition.state);
+    const source = JSON.stringify(claim);
+    // Edited since it was last sent — the form or its source: a new attempt.
+    if (attempt.current.sent && (!sameRegistration(attempt.current.sent, draft) || attempt.current.source !== source)) {
+      attempt.current = { key: uuidv4(), sent: null, source: '' };
+    }
     attempt.current.sent = draft;
+    attempt.current.source = source;
 
     inFlight.current = true;
     setSubmitting(true);
@@ -237,7 +265,7 @@ export default function RegisterScreen() {
     try {
       const started = await api.post<RegistrationStarted>(
         '/auth/register',
-        registrationPayload(draft, attempt.current.key, language, consentFields(copy.data, draft.whatsappConsent)),
+        registrationPayload(draft, attempt.current.key, language, consentFields(copy.data, draft.whatsappConsent), claim),
       );
 
       /*
@@ -267,6 +295,13 @@ export default function RegisterScreen() {
         const found = { whatsappConsent: outdated ? 'consent.problem.outdated' : 'register.problem.whatsappConsent' };
         setProblems(found);
         focusFirst(found);
+        return;
+      }
+      // The source stopped being usable since it was checked (0103): nothing was saved; back to it, to remove it.
+      if (e instanceof ApiError && (e.code === 'acquisition_unavailable' || e.code === 'acquisition_conflict')) {
+        acquisition.refused();
+        goToStep(0);
+        setFailure(t('register.promo.unavailableNow'));
         return;
       }
       /*
@@ -372,6 +407,7 @@ export default function RegisterScreen() {
                 returnKeyType="next"
                 onSubmitEditing={next}
               />
+              <PromoCodeField acquisition={acquisition} disabled={submitting} />
             </>
           ) : null}
 

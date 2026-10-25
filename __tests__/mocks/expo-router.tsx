@@ -15,6 +15,7 @@ import { Text } from 'react-native';
 export const push = jest.fn();
 export const replace = jest.fn();
 export const back = jest.fn();
+export const setParams = jest.fn();
 
 export function Stack({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
@@ -52,12 +53,12 @@ export function Link({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export const useRouter = () => ({ push, replace, back, navigate: push });
+export const useRouter = () => ({ push, replace, back, navigate: push, setParams });
 export const useLocalSearchParams = () => ({});
 export const useGlobalSearchParams = () => ({});
 export const useSegments = () => [];
 export const usePathname = () => '/';
 export const useFocusEffect = () => undefined;
 export const useNavigation = () => ({ setOptions: jest.fn(), canGoBack: () => false, goBack: back });
-export const router = { push, replace, back, navigate: push };
+export const router = { push, replace, back, navigate: push, setParams };
 export const Redirect = () => null;

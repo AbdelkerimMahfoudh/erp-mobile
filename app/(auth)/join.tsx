@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { AuthLanguageSwitch, Button, InlineNotice, TextField } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
@@ -31,6 +31,17 @@ import type { JoinConfirmResult, OpenedInvitation, WhatsAppConsentCopy } from '.
  * Every unusable reference — unknown, expired, replaced, used — reads the same: ask the business owner for a new one.
  */
 export default function JoinScreen() {
+  const { r, ref } = useLocalSearchParams<{ r?: string; ref?: string }>();
+  /*
+   * A registration address (0103, D221) — `dukan.tsxmr.com/join?r=…`, a promoter's card or a business's invitation —
+   * shares this path with the team's own link (`?ref=`). It is a new business, not a new team member: the
+   * registration takes it, and nothing here reads it.
+   */
+  if (typeof r === 'string' && r !== '' && ref === undefined) return <Redirect href={{ pathname: '/(auth)/register', params: { r } }} />;
+  return <TeamJoin />;
+}
+
+function TeamJoin() {
   const { t, language } = useTranslation();
   const router = useRouter();
   const colors = useColors();
