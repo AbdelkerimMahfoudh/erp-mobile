@@ -1,0 +1,6 @@
+high     node-forge                   build and test tooling only  GHSA-86w9-cpqp-85rv
+high     zod                          build and test tooling only  GHSA-mrhx-c7xc-m3w5
+moderate postcss-selector-parser      build and test tooling only  GHSA-rj75-hqrm-r3gf
+
+npm audit (production tree): 0 critical, 5 high, 1 moderate, 0 low; 3 package(s) with an advisory of their own; 92 source map(s), 9361 module(s), 78 package(s) shipped
+no package with a high or critical advisory is shipped in the app
