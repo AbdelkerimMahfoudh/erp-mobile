@@ -234,13 +234,13 @@ export function BottomSheet({
       animationType="none"
       onRequestClose={dismissible ? animateOut : undefined}
     >
-      {/*
-        A Modal is a root of its own, outside the app's GestureHandlerRootView: the sheet's drag needs one here.
-        Gesture Handler 3 (SDK 58) refuses a GestureDetector without it rather than ignoring the gesture.
-      */}
-      <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-        {/* A tap inside the sheet stops here, as at a native modal's edge — never at the screen behind (web). */}
-        <ModalBoundary>
+      {/* A tap inside the sheet stops here, as at a native modal's edge — never at the screen behind (web). */}
+      <ModalBoundary>
+        {/*
+          A Modal is a root of its own, outside the app's GestureHandlerRootView: the sheet's drag needs one here.
+          Gesture Handler 3 (SDK 58) refuses a GestureDetector without it rather than ignoring the gesture.
+        */}
+        <GestureHandlerRootView style={StyleSheet.absoluteFill}>
           <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
             <Pressable
               style={StyleSheet.absoluteFill}
@@ -315,8 +315,8 @@ export function BottomSheet({
           </Animated.View>
 
           <SheetDialogLayer sheetId={sheetId} />
-        </ModalBoundary>
-      </GestureHandlerRootView>
+        </GestureHandlerRootView>
+      </ModalBoundary>
     </Modal>
   );
 }
