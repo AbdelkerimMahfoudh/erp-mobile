@@ -1,0 +1,1741 @@
+FAIL __tests__/registration.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/legal/LegalPages.tsx:4:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../login.tsx:4:1)
+      at Object.require (__tests__/registration.test.tsx:83:1)
+
+FAIL __tests__/access-trial.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/access/AccessNotice.tsx:5:1)
+      at Object.require (components/access/index.ts:2:1)
+      at Object.require (app/access-closed.tsx:4:1)
+      at Object.require (__tests__/access-trial.test.tsx:54:1)
+
+FAIL __tests__/agent-closing.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/closing/index.tsx:7:1)
+      at Object.require (__tests__/agent-closing.test.tsx:53:1)
+
+FAIL __tests__/agent-money.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../money-hub.tsx:5:1)
+      at Object.require (__tests__/agent-money.test.tsx:70:1)
+
+FAIL __tests__/agent-screens.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../index.tsx:7:1)
+      at Object.require (__tests__/agent-screens.test.tsx:64:1)
+
+FAIL __tests__/agent-counter.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/agent/new.tsx:5:1)
+      at Object.require (__tests__/agent-counter.test.tsx:83:1)
+
+FAIL __tests__/queued-exchange.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/agent/QueuedExchange.tsx:3:1)
+      at Object.require (__tests__/queued-exchange.test.tsx:24:1)
+
+FAIL __tests__/communication-preferences.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/communication.tsx:6:1)
+      at Object.require (__tests__/communication-preferences.test.tsx:40:1)
+
+FAIL __tests__/team-refusals.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (__tests__/team-refusals.test.tsx:24:1)
+
+FAIL __tests__/navigation.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../more.tsx:5:1)
+      at Object.require (__tests__/navigation.test.tsx:45:1)
+
+FAIL __tests__/account-whatsapp.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/index.tsx:6:1)
+      at Object.require (__tests__/account-whatsapp.test.tsx:42:1)
+
+FAIL __tests__/tab-bar.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../_layout.tsx:8:1)
+      at Object.require (__tests__/tab-bar.test.tsx:49:1)
+
+FAIL __tests__/access-grace.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/access.tsx:4:1)
+      at Object.require (__tests__/access-grace.test.tsx:34:1)
+
+FAIL __tests__/sale-debt-sheet.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/sell/PaymentSheet.tsx:10:1)
+      at Object.require (__tests__/sale-debt-sheet.test.tsx:38:1)
+
+FAIL __tests__/agent-reports.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/agent/AgentReportView.tsx:5:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../agent-reports.tsx:2:1)
+      at Object.require (__tests__/agent-reports.test.tsx:39:1)
+
+FAIL __tests__/payment-sheet.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/sell/PaymentSheet.tsx:10:1)
+      at Object.require (__tests__/payment-sheet.test.tsx:33:1)
+
+FAIL __tests__/join-team.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../join.tsx:6:1)
+      at Object.require (__tests__/join-team.test.tsx:39:1)
+
+FAIL __tests__/team-invitation.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/team/CreateMemberSheet.tsx:4:1)
+      at Object.require (__tests__/team-invitation.test.tsx:42:1)
+
+FAIL __tests__/money-card.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/money/ExpectedMoneyCard.tsx:4:1)
+      at Object.require (__tests__/money-card.test.tsx:14:1)
+
+FAIL __tests__/notifications.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/notifications.tsx:5:1)
+      at Object.require (__tests__/notifications.test.tsx:44:1)
+
+FAIL __tests__/partner-payment-keys.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/loans/[id].tsx:4:1)
+      at Object.require (__tests__/partner-payment-keys.test.tsx:40:1)
+
+FAIL __tests__/review-sale-cards.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/sell/DiscountCard.tsx:9:1)
+      at Object.require (__tests__/review-sale-cards.test.tsx:15:1)
+
+PASS __tests__/deep-links.test.tsx (6.828 s)
+PASS __tests__/agent-signout.test.tsx
+FAIL __tests__/no-browser.test.tsx
+  ● every way out reaches the phone without the guard, and none does with it
+
+    The imperative router is unavailable before the first render has finished.
+
+    [0m [90m 21 |[39m   [36mawait[39m [33mLinking[39m[33m.[39mopenURL([32m'https://example.invalid/a'[39m)[33m;[39m
+     [90m 22 |[39m   [36mawait[39m [33mExpoLinking[39m[33m.[39mopenURL([32m'https://example.invalid/b'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 23 |[39m   router[33m.[39mpush([32m'https://example.invalid/c'[39m)[33m;[39m
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 24 |[39m   [36mawait[39m settle()[33m;[39m
+     [90m 25 |[39m   expect(phone[33m.[39mmock[33m.[39mcalls[33m.[39mmap(([url]) [33m=>[39m url))[33m.[39mtoEqual([[32m'https://example.invalid/a'[39m[33m,[39m [32m'https://example.invalid/b'[39m[33m,[39m [32m'https://example.invalid/c'[39m])[33m;[39m
+     [90m 26 |[39m[0m
+
+      at Object.throwBeforeFirstRender (node_modules/expo-router/build/global-state/global-state/router.ts:326:9)
+      at Object.push (node_modules/expo-router/build/global-state/global-state/router.ts:361:77)
+      at Object.push (__tests__/no-browser.test.tsx:23:10)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/legal-pages.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/index.tsx:6:1)
+      at Object.require (__tests__/legal-pages.test.tsx:43:1)
+
+FAIL __tests__/sale-detail-payer.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/corrections/CorrectionSheet.tsx:4:1)
+      at Object.require (app/sales/[id].tsx:5:1)
+      at Object.require (__tests__/sale-detail-payer.test.tsx:40:1)
+
+PASS __tests__/api-client-answers.test.tsx
+FAIL __tests__/scanner-ordinary-barcode.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/scanner/ScannerSheet.tsx:6:1)
+      at Object.require (__tests__/scanner-ordinary-barcode.test.tsx:56:1)
+
+FAIL __tests__/field-focus-ring.test.tsx
+  ● the field ring › normal: no ring, a hairline well
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 39 |[39m     [36mawait[39m act([36masync[39m () [33m=>[39m {})[33m;[39m
+     [90m 40 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 41 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 42 |[39m   })[33m;[39m
+     [90m 43 |[39m
+     [90m 44 |[39m   it([32m'focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:41:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 50 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m2[39m)[33m;[39m
+     [90m 51 |[39m     expect(ringStyle()[33m.[39mpointerEvents)[33m.[39mtoBe([32m'none'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 52 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 53 |[39m     [36mawait[39m fireEvent(input()[33m,[39m [32m'blur'[39m)[33m;[39m
+     [90m 54 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+     [90m 55 |[39m   })[33m;[39m[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:52:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › invalid: the danger ring, with the problem in words underneath
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 62 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m1.5[39m)[33m;[39m
+     [90m 63 |[39m     expect(screen[33m.[39mgetByText([32m'Name the account so staff can recognise it.'[39m))[33m.[39mtoBeTruthy()[33m;[39m
+    [31m[1m>[22m[39m[90m 64 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m
+     [90m 67 |[39m   it([32m'focused and invalid: still the danger colour — never mistaken for a valid field — and drawn thicker'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:64:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › focused and invalid: still the danger colour — never mistaken for a valid field — and drawn thicker
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 72 |[39m     expect(ringStyle()[33m.[39mborderColor)[33m.[39mtoBe(light[33m.[39mintent[33m.[39mdanger[33m.[39msolid)[33m;[39m
+     [90m 73 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m2.5[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 74 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 75 |[39m   })[33m;[39m
+     [90m 76 |[39m
+     [90m 77 |[39m   it([32m'disabled: no focus ring, the sunken surface, and the text in the disabled colour'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:74:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › disabled: no focus ring, the sunken surface, and the text in the disabled colour
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "#F1F3F6"
+    Received: undefined
+
+    [0m [90m 80 |[39m     [36mawait[39m fireEvent(input()[33m,[39m [32m'focus'[39m)[33m;[39m
+     [90m 81 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     expect(([33mStyleSheet[39m[33m.[39mflatten(input()[33m.[39mparent[33m![39m[33m.[39mparent[33m![39m[33m.[39mprops[33m.[39mstyle) [36mas[39m { backgroundColor[33m:[39m string })[33m.[39mbackgroundColor)[33m.[39mtoBe(light[33m.[39msurface[33m.[39msunken)[33m;[39m
+     [90m    |[39m                                                                                                                      [31m[1m^[22m[39m
+     [90m 83 |[39m     expect(([33mStyleSheet[39m[33m.[39mflatten(input()[33m.[39mprops[33m.[39mstyle) [36mas[39m { color[33m:[39m string })[33m.[39mcolor)[33m.[39mtoBe(light[33m.[39mtext[33m.[39mdisabled)[33m;[39m
+     [90m 84 |[39m   })[33m;[39m
+     [90m 85 |[39m[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:82:118)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/owner-setup.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../setup.tsx:5:1)
+      at Object.require (__tests__/owner-setup.test.tsx:38:1)
+
+FAIL __tests__/account-delete-poll.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/delete.tsx:7:1)
+      at Object.require (__tests__/account-delete-poll.test.tsx:41:1)
+
+PASS __tests__/sale-payment-lost-answer.test.tsx
+PASS __tests__/session-offline-launch.test.tsx
+PASS __tests__/refresh-transient.test.tsx
+FAIL __tests__/approval-request-keys.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/sell/ApprovalRequestSheet.tsx:3:1)
+      at Object.require (__tests__/approval-request-keys.test.tsx:18:1)
+
+FAIL __tests__/home-header.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/home/HomeHeader.tsx:4:1)
+      at Object.require (__tests__/home-header.test.tsx:15:1)
+
+FAIL __tests__/release-origin-refused.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/overlay/index.ts:10:1)
+      at Object.require (app/_layout.tsx:11:1)
+      at Object.require (__tests__/release-origin-refused.test.tsx:23:1)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+Summary of all failing tests
+FAIL __tests__/registration.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/legal/LegalPages.tsx:4:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../login.tsx:4:1)
+      at Object.require (__tests__/registration.test.tsx:83:1)
+
+FAIL __tests__/access-trial.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/access/AccessNotice.tsx:5:1)
+      at Object.require (components/access/index.ts:2:1)
+      at Object.require (app/access-closed.tsx:4:1)
+      at Object.require (__tests__/access-trial.test.tsx:54:1)
+
+FAIL __tests__/agent-closing.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/closing/index.tsx:7:1)
+      at Object.require (__tests__/agent-closing.test.tsx:53:1)
+
+FAIL __tests__/agent-money.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../money-hub.tsx:5:1)
+      at Object.require (__tests__/agent-money.test.tsx:70:1)
+
+FAIL __tests__/agent-screens.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../index.tsx:7:1)
+      at Object.require (__tests__/agent-screens.test.tsx:64:1)
+
+FAIL __tests__/agent-counter.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/agent/new.tsx:5:1)
+      at Object.require (__tests__/agent-counter.test.tsx:83:1)
+
+FAIL __tests__/queued-exchange.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/agent/QueuedExchange.tsx:3:1)
+      at Object.require (__tests__/queued-exchange.test.tsx:24:1)
+
+FAIL __tests__/communication-preferences.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/communication.tsx:6:1)
+      at Object.require (__tests__/communication-preferences.test.tsx:40:1)
+
+FAIL __tests__/team-refusals.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (__tests__/team-refusals.test.tsx:24:1)
+
+FAIL __tests__/navigation.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../more.tsx:5:1)
+      at Object.require (__tests__/navigation.test.tsx:45:1)
+
+FAIL __tests__/account-whatsapp.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/index.tsx:6:1)
+      at Object.require (__tests__/account-whatsapp.test.tsx:42:1)
+
+FAIL __tests__/tab-bar.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../_layout.tsx:8:1)
+      at Object.require (__tests__/tab-bar.test.tsx:49:1)
+
+FAIL __tests__/access-grace.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/access.tsx:4:1)
+      at Object.require (__tests__/access-grace.test.tsx:34:1)
+
+FAIL __tests__/sale-debt-sheet.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/sell/PaymentSheet.tsx:10:1)
+      at Object.require (__tests__/sale-debt-sheet.test.tsx:38:1)
+
+FAIL __tests__/agent-reports.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/agent/AgentReportView.tsx:5:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(tabs)../../../../../../agent-reports.tsx:2:1)
+      at Object.require (__tests__/agent-reports.test.tsx:39:1)
+
+FAIL __tests__/payment-sheet.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/sell/PaymentSheet.tsx:10:1)
+      at Object.require (__tests__/payment-sheet.test.tsx:33:1)
+
+FAIL __tests__/join-team.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../join.tsx:6:1)
+      at Object.require (__tests__/join-team.test.tsx:39:1)
+
+FAIL __tests__/team-invitation.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/team/CreateMemberSheet.tsx:4:1)
+      at Object.require (__tests__/team-invitation.test.tsx:42:1)
+
+FAIL __tests__/money-card.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/money/ExpectedMoneyCard.tsx:4:1)
+      at Object.require (__tests__/money-card.test.tsx:14:1)
+
+FAIL __tests__/notifications.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/notifications.tsx:5:1)
+      at Object.require (__tests__/notifications.test.tsx:44:1)
+
+FAIL __tests__/partner-payment-keys.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/loans/[id].tsx:4:1)
+      at Object.require (__tests__/partner-payment-keys.test.tsx:40:1)
+
+FAIL __tests__/review-sale-cards.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/sell/DiscountCard.tsx:9:1)
+      at Object.require (__tests__/review-sale-cards.test.tsx:15:1)
+
+FAIL __tests__/no-browser.test.tsx
+  ● every way out reaches the phone without the guard, and none does with it
+
+    The imperative router is unavailable before the first render has finished.
+
+    [0m [90m 21 |[39m   [36mawait[39m [33mLinking[39m[33m.[39mopenURL([32m'https://example.invalid/a'[39m)[33m;[39m
+     [90m 22 |[39m   [36mawait[39m [33mExpoLinking[39m[33m.[39mopenURL([32m'https://example.invalid/b'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 23 |[39m   router[33m.[39mpush([32m'https://example.invalid/c'[39m)[33m;[39m
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 24 |[39m   [36mawait[39m settle()[33m;[39m
+     [90m 25 |[39m   expect(phone[33m.[39mmock[33m.[39mcalls[33m.[39mmap(([url]) [33m=>[39m url))[33m.[39mtoEqual([[32m'https://example.invalid/a'[39m[33m,[39m [32m'https://example.invalid/b'[39m[33m,[39m [32m'https://example.invalid/c'[39m])[33m;[39m
+     [90m 26 |[39m[0m
+
+      at Object.throwBeforeFirstRender (node_modules/expo-router/build/global-state/global-state/router.ts:326:9)
+      at Object.push (node_modules/expo-router/build/global-state/global-state/router.ts:361:77)
+      at Object.push (__tests__/no-browser.test.tsx:23:10)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/legal-pages.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/index.tsx:6:1)
+      at Object.require (__tests__/legal-pages.test.tsx:43:1)
+
+FAIL __tests__/sale-detail-payer.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/corrections/CorrectionSheet.tsx:4:1)
+      at Object.require (app/sales/[id].tsx:5:1)
+      at Object.require (__tests__/sale-detail-payer.test.tsx:40:1)
+
+FAIL __tests__/scanner-ordinary-barcode.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/scanner/ScannerSheet.tsx:6:1)
+      at Object.require (__tests__/scanner-ordinary-barcode.test.tsx:56:1)
+
+FAIL __tests__/field-focus-ring.test.tsx
+  ● the field ring › normal: no ring, a hairline well
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 39 |[39m     [36mawait[39m act([36masync[39m () [33m=>[39m {})[33m;[39m
+     [90m 40 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 41 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 42 |[39m   })[33m;[39m
+     [90m 43 |[39m
+     [90m 44 |[39m   it([32m'focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:41:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 50 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m2[39m)[33m;[39m
+     [90m 51 |[39m     expect(ringStyle()[33m.[39mpointerEvents)[33m.[39mtoBe([32m'none'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 52 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 53 |[39m     [36mawait[39m fireEvent(input()[33m,[39m [32m'blur'[39m)[33m;[39m
+     [90m 54 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+     [90m 55 |[39m   })[33m;[39m[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:52:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › invalid: the danger ring, with the problem in words underneath
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 62 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m1.5[39m)[33m;[39m
+     [90m 63 |[39m     expect(screen[33m.[39mgetByText([32m'Name the account so staff can recognise it.'[39m))[33m.[39mtoBeTruthy()[33m;[39m
+    [31m[1m>[22m[39m[90m 64 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m
+     [90m 67 |[39m   it([32m'focused and invalid: still the danger colour — never mistaken for a valid field — and drawn thicker'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:64:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › focused and invalid: still the danger colour — never mistaken for a valid field — and drawn thicker
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0.5
+    Received: undefined
+
+    [0m [90m 72 |[39m     expect(ringStyle()[33m.[39mborderColor)[33m.[39mtoBe(light[33m.[39mintent[33m.[39mdanger[33m.[39msolid)[33m;[39m
+     [90m 73 |[39m     expect(ringStyle()[33m.[39mborderWidth)[33m.[39mtoBe([35m2.5[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 74 |[39m     expect(wellBorder())[33m.[39mtoBe([33mStyleSheet[39m[33m.[39mhairlineWidth)[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 75 |[39m   })[33m;[39m
+     [90m 76 |[39m
+     [90m 77 |[39m   it([32m'disabled: no focus ring, the sunken surface, and the text in the disabled colour'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:74:26)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● the field ring › disabled: no focus ring, the sunken surface, and the text in the disabled colour
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "#F1F3F6"
+    Received: undefined
+
+    [0m [90m 80 |[39m     [36mawait[39m fireEvent(input()[33m,[39m [32m'focus'[39m)[33m;[39m
+     [90m 81 |[39m     expect(rings())[33m.[39mtoHaveLength([35m0[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 82 |[39m     expect(([33mStyleSheet[39m[33m.[39mflatten(input()[33m.[39mparent[33m![39m[33m.[39mparent[33m![39m[33m.[39mprops[33m.[39mstyle) [36mas[39m { backgroundColor[33m:[39m string })[33m.[39mbackgroundColor)[33m.[39mtoBe(light[33m.[39msurface[33m.[39msunken)[33m;[39m
+     [90m    |[39m                                                                                                                      [31m[1m^[22m[39m
+     [90m 83 |[39m     expect(([33mStyleSheet[39m[33m.[39mflatten(input()[33m.[39mprops[33m.[39mstyle) [36mas[39m { color[33m:[39m string })[33m.[39mcolor)[33m.[39mtoBe(light[33m.[39mtext[33m.[39mdisabled)[33m;[39m
+     [90m 84 |[39m   })[33m;[39m
+     [90m 85 |[39m[0m
+
+      at Object.toBe (__tests__/field-focus-ring.test.tsx:82:118)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/owner-setup.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (/home/runner/work/erp-mobile/erp-mobile/app/app/(auth)../../../../../../setup.tsx:5:1)
+      at Object.require (__tests__/owner-setup.test.tsx:38:1)
+
+FAIL __tests__/account-delete-poll.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (app/account/delete.tsx:7:1)
+      at Object.require (__tests__/account-delete-poll.test.tsx:41:1)
+
+FAIL __tests__/approval-request-keys.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/sell/ApprovalRequestSheet.tsx:3:1)
+      at Object.require (__tests__/approval-request-keys.test.tsx:18:1)
+
+FAIL __tests__/home-header.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/ui/Button.tsx:12:1)
+      at Object.require (components/ui/index.ts:22:1)
+      at Object.require (components/home/HomeHeader.tsx:4:1)
+      at Object.require (__tests__/home-header.test.tsx:15:1)
+
+FAIL __tests__/release-origin-refused.test.tsx
+  ● Test suite failed to run
+
+    [Reanimated] `setCSSEventHandler` is not available in JSReanimated.
+
+    [0m [90m 12 |[39m jest[33m.[39mmock([32m'react-native-worklets'[39m[33m,[39m () [33m=>[39m require([32m'react-native-worklets/lib/module/mock'[39m))[33m;[39m
+     [90m 13 |[39m jest[33m.[39mmock([32m'react-native-reanimated'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 14 |[39m   [36mconst[39m mock [33m=[39m require([32m'react-native-reanimated/mock'[39m)[33m;[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 15 |[39m   [36mreturn[39m {
+     [90m 16 |[39m     [33m...[39mmock[33m,[39m
+     [90m 17 |[39m     useReducedMotion[33m:[39m () [33m=>[39m [36mfalse[39m[33m,[39m[0m
+
+      at JSReanimated.setCSSEventHandler (node_modules/react-native-reanimated/src/ReanimatedModule/js-reanimated/JSReanimated.ts:286:11)
+      at setCSSEventHandler (node_modules/react-native-reanimated/src/css/native/proxy.ts:21:20)
+      at initializeReanimatedModule (node_modules/react-native-reanimated/src/initializers.native.ts:21:21)
+      at Object.<anonymous> (node_modules/react-native-reanimated/src/index.ts:11:27)
+      at Object.require (node_modules/react-native-reanimated/src/mock.ts:21:1)
+      at Object.require (node_modules/react-native-reanimated/mock.js:1:20)
+      at require (__tests__/setup.ts:14:16)
+      at Object.require (components/overlay/BottomSheet.tsx:14:1)
+      at Object.require (components/overlay/index.ts:10:1)
+      at Object.require (app/_layout.tsx:11:1)
+      at Object.require (__tests__/release-origin-refused.test.tsx:23:1)
+
+
+Test Suites: 32 failed, 6 passed, 38 total
+Tests:       6 failed, 61 passed, 67 total
+Snapshots:   0 total
+Time:        72.525 s
+Ran all test suites.
+Test results written to: ../tools/evidence/711912b-40348280789/jest.json
