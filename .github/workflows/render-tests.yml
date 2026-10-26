@@ -73,6 +73,14 @@ jobs:
           npm audit --omit=dev --json > "$RUNNER_TEMP/audit.json"
           node scripts/audit-shipped-deps.js "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios" > "$EV/audit-shipped-deps.txt" 2>&1; echo "audit-shipped-deps $?" >> "$EV/audit-exit.txt"
           cat "$EV/audit-exit.txt"; tail -40 "$EV/audit-bundle.txt"
+      # What the web export shows in Chromium: page errors, console, text, test ids and a screenshot of three pages.
+      - name: Web smoke
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/pw" && (cd "$RUNNER_TEMP/pw" && npm init -y > /dev/null && npm i --no-audit --no-fund playwright@1.63.0 > "$EV/pw-install.log" 2>&1 && npx playwright install --with-deps chromium >> "$EV/pw-install.log" 2>&1)
+          node tools/web-smoke.mjs "$RUNNER_TEMP/pw/node_modules/playwright" "$RUNNER_TEMP/export-web" "$EV/web-smoke" > /dev/null 2>"$EV/web-smoke-stderr.txt"
+          echo "web smoke $?" >> "$EV/audit-exit.txt"
+          head -80 "$EV/web-smoke/web-smoke.txt" 2>/dev/null || cat "$EV/web-smoke-stderr.txt"
       - name: Rendered tests
         run: |
           set +e
