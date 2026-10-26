@@ -61,6 +61,18 @@ jobs:
           done
           echo "pure files: $pass passed, $fail failed" | tee "$EV/pure-summary.txt"
           cat "$EV/pure-failed.txt" 2>/dev/null || true
+      # The security workflow's bundle checks, exactly as it runs them, with their output kept.
+      - name: Exports and bundle audits
+        run: |
+          set +e
+          cd app
+          export EXPO_PUBLIC_API_ORIGIN=https://example.invalid EXPO_PUBLIC_LEGAL_ORIGIN=https://legal.example.invalid
+          npx expo export --platform web --source-maps --clear --output-dir "$RUNNER_TEMP/export-web" > "$EV/export-web.log" 2>&1; echo "web export $?" > "$EV/audit-exit.txt"
+          npx expo export --platform ios --no-bytecode --source-maps --output-dir "$RUNNER_TEMP/export-ios" > "$EV/export-ios.log" 2>&1; echo "ios export $?" >> "$EV/audit-exit.txt"
+          node scripts/audit-bundle.js "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios" > "$EV/audit-bundle.txt" 2>&1; echo "audit-bundle $?" >> "$EV/audit-exit.txt"
+          npm audit --omit=dev --json > "$RUNNER_TEMP/audit.json"
+          node scripts/audit-shipped-deps.js "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios" > "$EV/audit-shipped-deps.txt" 2>&1; echo "audit-shipped-deps $?" >> "$EV/audit-exit.txt"
+          cat "$EV/audit-exit.txt"; tail -40 "$EV/audit-bundle.txt"
       - name: Rendered tests
         run: |
           set +e
@@ -87,4 +99,4 @@ jobs:
           git commit -qm "evidence: rendered tests on ${MOBILE:0:7} (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3 4 5; do git push -q origin HEAD:ops/render-tests && break; git pull -q --rebase origin ops/render-tests; done
       - name: The verdict
-        run: grep -q '^exit 0$' "$EV/exit.txt" && [ ! -s "$EV/pure-failed.txt" ]
+        run: grep -q '^exit 0$' "$EV/exit.txt" && [ ! -s "$EV/pure-failed.txt" ] && ! grep -qv ' 0$' "$EV/audit-exit.txt"
