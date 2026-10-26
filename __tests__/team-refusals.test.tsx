@@ -115,11 +115,12 @@ function field(label: string) {
 }
 
 /** Open Sara's sheet, change what `edit` changes, press Save, and let the refusal land. */
-async function saveRefused(refusal: Error, edit: () => void) {
+async function saveRefused(refusal: Error, edit: () => Promise<unknown>) {
   (api.patch as jest.Mock).mockRejectedValueOnce(refusal);
   await mount();
   await fireEvent.press(await screen.findByText('Sara'));
-  edit();
+  // RNTL 14: an edit is a fireEvent, and so a promise — the change lands before Save is pressed.
+  await edit();
   await act(async () => {
     await fireEvent.press(screen.getByText(t('action.save')));
   });
