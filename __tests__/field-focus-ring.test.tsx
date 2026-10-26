@@ -31,7 +31,7 @@ const input = () => textInput();
 const rings = () => screen.queryAllByTestId('field-ring', { includeHiddenElements: true });
 const ringStyle = () => StyleSheet.flatten(rings()[0].props.style) as { borderColor: string; borderWidth: number; pointerEvents?: string };
 /** The well: the input's parent view. Its border is the only thing that could move the layout. */
-const wellBorder = () => (StyleSheet.flatten(input().parent!.parent!.props.style) as { borderWidth: number }).borderWidth;
+const wellBorder = () => (StyleSheet.flatten(input().parent!.props.style) as { borderWidth: number }).borderWidth;
 
 describe('the field ring', () => {
   it('normal: no ring, a hairline well', async () => {
@@ -79,7 +79,7 @@ describe('the field ring', () => {
     await act(async () => {});
     await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(0);
-    expect((StyleSheet.flatten(input().parent!.parent!.props.style) as { backgroundColor: string }).backgroundColor).toBe(light.surface.sunken);
+    expect((StyleSheet.flatten(input().parent!.props.style) as { backgroundColor: string }).backgroundColor).toBe(light.surface.sunken);
     expect((StyleSheet.flatten(input().props.style) as { color: string }).color).toBe(light.text.disabled);
   });
 

@@ -10,6 +10,13 @@ jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => requi
 // Worklets and Reanimated through their own Jest mocks: animations resolve at once, on the JS thread. The
 // Reanimated mock predates a few hooks the app uses; they are completed here with their resting values.
 jest.mock('react-native-worklets', () => require('react-native-worklets/lib/module/mock'));
+// Reanimated 4.7 (SDK 58) under Jest: the iOS preset resolves its native initializer, which hands a CSS event handler to
+// the JS module Jest gets instead of the native one — and that module throws by design. The platform-neutral
+// initializer is the one that fits Jest: it registers nothing native.
+const reanimatedSrc = require('path').join(require('path').dirname(require.resolve('react-native-reanimated/package.json')), 'src');
+jest.doMock(require('path').join(reanimatedSrc, 'initializers'), () =>
+  jest.requireActual(require('path').join(reanimatedSrc, 'initializers.ts')),
+);
 jest.mock('react-native-reanimated', () => {
   const mock = require('react-native-reanimated/mock');
   return {

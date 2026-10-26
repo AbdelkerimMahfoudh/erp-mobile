@@ -11,8 +11,14 @@ import { Linking, Platform } from 'react-native';
 import * as ExpoLinking from 'expo-linking';
 import { refuseBrowser } from '../lib/navigation/no-browser';
 
-// The real router, not the suite's mock: its external branch is the one a server's value would take.
-const router = jest.requireActual('expo-router/build/global-state/router') as { push: (href: string) => void };
+// The real router, not the suite's mock: its external branch is the one a server's value would take. Since expo-router
+// 58 the module's own `router` is bound only once a navigator has rendered, so the same router is built here around a
+// queue that records navigation; an external address must never reach it.
+const { createImperativeRouter } = jest.requireActual('expo-router/build/global-state/router') as {
+  createImperativeRouter: (enqueue: (intent: unknown) => void, setTransitionMode: (mode: unknown) => void) => { push: (href: string) => void };
+};
+const queued: unknown[] = [];
+const router = createImperativeRouter((intent) => queued.push(intent), () => {});
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -39,6 +45,7 @@ it('every way out reaches the phone without the guard, and none does with it', a
   await settle();
   expect(refused.mock.calls).toEqual([['https://example.invalid/c'], ['https://example.invalid/d']]);
   expect(phone).not.toHaveBeenCalled();
+  expect(queued).toEqual([]);
 });
 
 it('on the web build a new tab opens only for the app’s own blob page', () => {
