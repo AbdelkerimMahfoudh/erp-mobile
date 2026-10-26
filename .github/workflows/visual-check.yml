@@ -24,6 +24,8 @@ jobs:
   browsers:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    permissions:
+      contents: write # only to commit the results back to this branch (evidence/runs/)
     services:
       mysql:
         image: mysql:8.4.11@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
@@ -154,8 +156,21 @@ jobs:
       - name: Keep the results
         if: always()
         run: |
+          # The export and static-server logs travel with the results (they hold no secret; the check below proves it).
+          cp "$WORK/app-export.log" "$WORK/app-serve.log" "$WORK/results/" 2>/dev/null || true
           # Statuses and results only: nothing secret leaves the runner.
           if grep -rlE "$(cat "$WORK/admin.pw")|$(cat "$WORK/app.pw")" "$WORK/results" > /dev/null 2>&1; then echo "a secret reached the results"; exit 1; fi
+      - name: Commit the results to this branch
+        if: always()
+        run: |
+          [ -d "$WORK/results" ] || exit 0
+          if grep -rlE "$(cat "$WORK/admin.pw")|$(cat "$WORK/app.pw")" "$WORK/results" > /dev/null 2>&1; then echo "a secret reached the results"; exit 1; fi
+          dest="tools/evidence/runs/${MOBILE:0:7}-$GITHUB_RUN_ID"; mkdir -p "$dest"; cp -r "$WORK/results/." "$dest/"
+          cd tools
+          git config user.name "visual-check"; git config user.email "visual-check@users.noreply.github.com"
+          git add evidence/runs
+          git commit -qm "evidence: visual-check on ${MOBILE:0:7} (run $GITHUB_RUN_ID) [skip ci]" || exit 0
+          for i in 1 2 3 4 5; do git push -q origin HEAD:ops/visual-check && break; git pull -q --rebase origin ops/visual-check; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
