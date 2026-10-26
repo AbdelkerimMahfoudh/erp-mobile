@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, TextInput, View, type ViewInstance, type ScrollViewInstance, type TextInputInstance } from 'react-native';
+import { Platform, View, type ScrollViewInstance, type TextInputInstance, type ViewInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { AuthPage } from '../../components/auth/AuthChrome';

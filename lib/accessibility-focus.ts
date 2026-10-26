@@ -1,4 +1,4 @@
-import { AccessibilityInfo, Platform, type View, type ViewInstance } from 'react-native';
+import { AccessibilityInfo, Platform, type ViewInstance } from 'react-native';
 
 /**
  * Take a screen reader to a view — the unticked consent box a person must fix first.
