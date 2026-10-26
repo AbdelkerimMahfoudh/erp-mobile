@@ -1,0 +1,56 @@
+suites 37/38, tests 356/364, failed 8
+FAIL __tests__/team-refusals.test.tsx :: letting somebody back in when no seat is free for them (409 SEAT_LIMIT_REACHED) says so beside "Can use the app" — never that the phone is taken, never the server’s English
+  Error: Unable to find an element with text: No seat is free for this person right now, so they cannot use the app. Nothing was saved.
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0mThe people who can use this shop’s app.[0m
+FAIL __tests__/team-refusals.test.tsx :: letting somebody back in when no seat is free for them (409 SEAT_LIMIT_REACHED) during a free trial, with a seat bought for the store waiting for the trial’s end: the same neutral words
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: letting somebody back in when no seat is free for them (409 SEAT_LIMIT_REACHED) in French and in Arabic, in the person’s own words — nothing priced, paid, bought or activated in either
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: the contacts a number another member already uses (409, the phone changed): beside the phone, as before
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: the contacts an email changed without the Owner’s own password (403): beside the email, in the app’s words — the phone is not blamed
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: the contacts the same refusal in French: the server’s English is not what the Owner reads
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: the contacts a clash on the email (409, the email changed) is never read as the phone
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/team-refusals.test.tsx :: a business whose access has ended (403 ENTITLEMENT_WRITE_BLOCKED) is told so in the app’s own words, beside no field
+  Error: Unable to find an element with text: Sara
+      at findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/team-refusals.test.tsx:121:38)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
