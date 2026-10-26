@@ -18,6 +18,8 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
+// SDK 58: Metro writes indexed source maps; read as plain maps, or no shipped module would be seen (D222).
+const { flatten } = require('./source-map-flat.cjs');
 
 const [auditFile, ...exportDirs] = process.argv.slice(2);
 if (!auditFile || exportDirs.length === 0) {
@@ -64,7 +66,7 @@ for (const dir of exportDirs) {
   for (const file of walk(root)) {
     if (!file.endsWith('.map')) continue;
     const platform = path.relative(root, file).match(/^_expo[\\/]static[\\/]js[\\/](\w+)[\\/]/)?.[1] ?? path.basename(root);
-    const map = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const map = flatten(JSON.parse(fs.readFileSync(file, 'utf8')));
     maps += 1;
     for (const source of map.sources ?? []) {
       modules += 1;

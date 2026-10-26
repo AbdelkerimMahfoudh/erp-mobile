@@ -78,6 +78,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const rules = require('./boundary-rules.cjs');
+// SDK 58: Metro writes indexed source maps; read as plain maps, or the module checks below would check nothing (D222).
+const { flatten } = require('./source-map-flat.cjs');
 
 // Metro's own parser: wherever the app can be bundled, it is installed.
 let parse = null;
@@ -595,7 +597,7 @@ function audit(dirs, apiOrigin = (process.env.EXPO_PUBLIC_API_ORIGIN ?? '').trim
       if (!rel.endsWith('.js')) continue;
 
       const mapFile = `${file}.map`;
-      const map = fs.existsSync(mapFile) ? JSON.parse(fs.readFileSync(mapFile, 'utf8')) : null;
+      const map = fs.existsSync(mapFile) ? flatten(JSON.parse(fs.readFileSync(mapFile, 'utf8'))) : null;
       if (!map && own) problems.push(`${rel}: no source map — export with --source-maps, so every bundled module can be checked`);
       if (map) {
         map.sources.forEach((source, i) => {
