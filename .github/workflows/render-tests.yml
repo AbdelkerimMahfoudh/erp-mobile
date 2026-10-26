@@ -47,6 +47,20 @@ jobs:
           mkdir -p "$EV"
           [ "$(git -C app rev-parse HEAD)" = "$MOBILE" ] || { echo "the checkout is not $MOBILE"; exit 1; }
           (cd app && npm ci --no-audit --no-fund) > "$EV/install.log" 2>&1
+      # The pure suites, every file run even after a failure (the security workflow stops at the first), each with
+      # its own output. Two of them read the backend beside the checkout, as the security workflow provides it.
+      - name: Pure tests
+        run: |
+          git clone -q --depth 1 --branch reports-export https://github.com/AbdelkerimMahfoudh/erp-backend.git erp-backend
+          mkdir -p "$EV/pure"
+          pass=0; fail=0
+          cd app
+          for f in $(find lib components -name '*.test.ts' | sort); do
+            out="$EV/pure/$(echo "$f" | tr '/' '_').txt"
+            if node "$f" > "$out" 2>&1; then pass=$((pass+1)); rm -f "$out"; else fail=$((fail+1)); echo "$f" >> "$EV/pure-failed.txt"; fi
+          done
+          echo "pure files: $pass passed, $fail failed" | tee "$EV/pure-summary.txt"
+          cat "$EV/pure-failed.txt" 2>/dev/null || true
       - name: Rendered tests
         run: |
           set +e
@@ -73,4 +87,4 @@ jobs:
           git commit -qm "evidence: rendered tests on ${MOBILE:0:7} (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3 4 5; do git push -q origin HEAD:ops/render-tests && break; git pull -q --rebase origin ops/render-tests; done
       - name: The verdict
-        run: grep -q '^exit 0$' "$EV/exit.txt"
+        run: grep -q '^exit 0$' "$EV/exit.txt" && [ ! -s "$EV/pure-failed.txt" ]
