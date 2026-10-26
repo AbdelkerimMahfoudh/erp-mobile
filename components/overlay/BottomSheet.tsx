@@ -10,7 +10,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -234,83 +234,89 @@ export function BottomSheet({
       animationType="none"
       onRequestClose={dismissible ? animateOut : undefined}
     >
-      {/* A tap inside the sheet stops here, as at a native modal's edge — never at the screen behind (web). */}
-      <ModalBoundary>
-        <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            accessibilityRole="button"
-            accessibilityLabel={t('action.close')}
-            onPress={dismissible ? animateOut : undefined}
-          />
-        </Animated.View>
+      {/*
+        A Modal is a root of its own, outside the app's GestureHandlerRootView: the sheet's drag needs one here.
+        Gesture Handler 3 (SDK 58) refuses a GestureDetector without it rather than ignoring the gesture.
+      */}
+      <GestureHandlerRootView style={StyleSheet.absoluteFill}>
+        {/* A tap inside the sheet stops here, as at a native modal's edge — never at the screen behind (web). */}
+        <ModalBoundary>
+          <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              accessibilityRole="button"
+              accessibilityLabel={t('action.close')}
+              onPress={dismissible ? animateOut : undefined}
+            />
+          </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              maxHeight,
-              // Lift clear of the keyboard; fall back to the home indicator.
-              paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
-            },
-            sheetStyle,
-            style,
-          ]}
-        >
-          {/*
-            The drag gesture covers the handle and header only, not the whole
-            sheet. Sheets contain scrollable lists, and a pan over the content
-            would compete with the list's own scroll — pulling the sheet down
-            when the user meant to scroll up through suppliers.
-          */}
-          <GestureDetector gesture={pan}>
-            <View>
-              {dismissible ? <View style={styles.handle} /> : null}
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                maxHeight,
+                // Lift clear of the keyboard; fall back to the home indicator.
+                paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
+              },
+              sheetStyle,
+              style,
+            ]}
+          >
+            {/*
+              The drag gesture covers the handle and header only, not the whole
+              sheet. Sheets contain scrollable lists, and a pan over the content
+              would compete with the list's own scroll — pulling the sheet down
+              when the user meant to scroll up through suppliers.
+            */}
+            <GestureDetector gesture={pan}>
+              <View>
+                {dismissible ? <View style={styles.handle} /> : null}
 
-              {title ? (
-                <View style={styles.header}>
-                  <View style={styles.headerText}>
-                    <Text variant="heading" numberOfLines={titleLines}>
-                      {title}
-                    </Text>
-                    {subtitle ? (
-                      <Text variant="caption" tone="tertiary" numberOfLines={2}>
-                        {subtitle}
+                {title ? (
+                  <View style={styles.header}>
+                    <View style={styles.headerText}>
+                      <Text variant="heading" numberOfLines={titleLines}>
+                        {title}
                       </Text>
+                      {subtitle ? (
+                        <Text variant="caption" tone="tertiary" numberOfLines={2}>
+                          {subtitle}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {dismissible ? (
+                      /* A full 48-point target: at 36 it was the one control under the minimum on the review's item sheet (docs/55 D49). */
+                      <IconButton
+                        icon={X}
+                        accessibilityLabel={t('action.close')}
+                        onPress={animateOut}
+                        size={touch.min}
+                      />
                     ) : null}
                   </View>
-                  {dismissible ? (
-                    /* A full 48-point target: at 36 it was the one control under the minimum on the review's item sheet (docs/55 D49). */
-                    <IconButton
-                      icon={X}
-                      accessibilityLabel={t('action.close')}
-                      onPress={animateOut}
-                      size={touch.min}
-                    />
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-          </GestureDetector>
+                ) : null}
+              </View>
+            </GestureDetector>
 
-          {scroll ? (
-            <ScrollView
-              style={styles.body}
-              contentContainerStyle={padded ? styles.bodyPadded : null}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="none"
-            >
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={[styles.body, padded ? styles.bodyPadded : null]}>{children}</View>
-          )}
+            {scroll ? (
+              <ScrollView
+                style={styles.body}
+                contentContainerStyle={padded ? styles.bodyPadded : null}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="none"
+              >
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={[styles.body, padded ? styles.bodyPadded : null]}>{children}</View>
+            )}
 
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </Animated.View>
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
+          </Animated.View>
 
-        <SheetDialogLayer sheetId={sheetId} />
-      </ModalBoundary>
+          <SheetDialogLayer sheetId={sheetId} />
+        </ModalBoundary>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

@@ -4,6 +4,8 @@
  * implementation under Jest. Nothing here changes a screen's own logic.
  */
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
+// Gesture Handler 3's own Jest setup: its native module and detectors, mocked as the library ships them.
+require('react-native-gesture-handler/jestSetup');
 jest.mock('expo-router', () => require('./mocks/expo-router'));
 // The preset's ScrollView mock, plus the scroll context the real one provides (see mocks/ScrollView.tsx).
 jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => require('./mocks/ScrollView'));
