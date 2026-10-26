@@ -1,20 +1,20 @@
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
-index 999a22c..6959333 100644
+index a676d64..98a45ea 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/ExpoCameraView.kt
-@@ -554,7 +554,10 @@ class ExpoCameraView(
+@@ -573,7 +573,10 @@ class ExpoCameraView(
+       .also { analyzer ->
+         if (shouldScanBarcodes && CameraUtils.isMLKitBarcodeScannerAvailable()) {
            try {
-             analyzer.setAnalyzer(
-               ContextCompat.getMainExecutor(context),
--              BarcodeAnalyzer(barcodeFormats) {
-+              // PATCHED (PhoneStoreERP): the analyzer needs the PreviewView to
-+              // build CameraX's CoordinateTransform. A provider, because
-+              // `outputTransform` is null until the preview is laid out.
-+              BarcodeAnalyzer(barcodeFormats, { previewView }) {
-                 onBarcodeScanned(it)
-               }
-             )
-@@ -798,8 +801,21 @@ class ExpoCameraView(
+-            barcodeAnalyzer = BarcodeAnalyzer(barcodeFormats) {
++            // PATCHED (PhoneStoreERP): the analyzer needs the PreviewView to
++            // build CameraX's CoordinateTransform. A provider, because
++            // `outputTransform` is null until the preview is laid out.
++            barcodeAnalyzer = BarcodeAnalyzer(barcodeFormats, { previewView }) {
+               onBarcodeScanned(it)
+             }.also {
+               analyzer.setAnalyzer(ContextCompat.getMainExecutor(context), it)
+@@ -832,8 +835,21 @@ class ExpoCameraView(
  
    private fun onBarcodeScanned(barcode: BarCodeScannerResult) {
      if (shouldScanBarcodes) {
@@ -38,7 +38,7 @@ index 999a22c..6959333 100644
        val (cornerPoints, boundingBox) = getCornerPointsAndBoundingBox(
          barcode.cornerPoints,
          barcode.boundingBox
-@@ -813,7 +829,14 @@ class ExpoCameraView(
+@@ -847,7 +863,14 @@ class ExpoCameraView(
            type = BarcodeType.mapFormatToString(barcode.type),
            cornerPoints = cornerPoints,
            bounds = boundingBox,
@@ -55,10 +55,10 @@ index 999a22c..6959333 100644
        )
      }
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
-index 00a70f6..dae00c7 100644
+index bbe51c0..6823ebf 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/analyzers/BarcodeAnalyzer.kt
-@@ -5,14 +5,53 @@ import androidx.annotation.OptIn
+@@ -5,6 +5,10 @@ import androidx.annotation.OptIn
  import androidx.camera.core.ExperimentalGetImage
  import androidx.camera.core.ImageAnalysis
  import androidx.camera.core.ImageProxy
@@ -66,11 +66,12 @@ index 00a70f6..dae00c7 100644
 +import androidx.camera.view.TransformExperimental
 +import androidx.camera.view.transform.CoordinateTransform
 +import androidx.camera.view.transform.ImageProxyTransformFactory
+ import com.google.mlkit.vision.barcode.BarcodeScanner
  import com.google.mlkit.vision.barcode.BarcodeScannerOptions
  import com.google.mlkit.vision.barcode.BarcodeScanning
- import com.google.mlkit.vision.common.InputImage
- import expo.modules.camera.records.BarcodeType
+@@ -13,20 +17,78 @@ import expo.modules.camera.records.BarcodeType
  import expo.modules.camera.utils.BarCodeScannerResult
+ import java.io.Closeable
  
 +/**
 + * PATCHED (PhoneStoreERP). Two changes, both required for a strict scan region.
@@ -89,18 +90,17 @@ index 00a70f6..dae00c7 100644
 + * has improved since this patch was first written — as of 57.0.4 it computes a
 + * centre offset per scale type, and the transposed read in the emitter is
 + * fixed. **But it still ignores rotation entirely**, and there is no rotation
-+ * term anywhere in that path. A scale-and-offset model cannot express rotation
-+ * without becoming a matrix, at which point it is a worse `CoordinateTransform`.
-+ * So the mapping still belongs here.
++ * term anywhere in that path (unchanged in 58.0.12). A scale-and-offset model
++ * cannot express rotation without becoming a matrix, at which point it is a
++ * worse `CoordinateTransform`. So the mapping still belongs here.
 + *
 + * Every emitted result carries `coordinateSpace`, so JavaScript can tell a
 + * patched binary from an unpatched one and only enforce a hard region when the
 + * coordinates are actually trustworthy.
 + */
  @OptIn(ExperimentalGetImage::class)
--class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScannerResult) -> Unit) : ImageAnalysis.Analyzer {
-+class BarcodeAnalyzer(
-+  formats: List<BarcodeType>,
+ class BarcodeAnalyzer(
+   private val barcodeScanner: BarcodeScanner,
 +  /**
 +   * The view the coordinates must end up in.
 +   *
@@ -108,14 +108,22 @@ index 00a70f6..dae00c7 100644
 +   * layout pass, and `outputTransform` is null until the preview is ready.
 +   */
 +  private val previewViewProvider: () -> PreviewView? = { null },
-+  val onComplete: (BarCodeScannerResult) -> Unit
-+) : ImageAnalysis.Analyzer {
-   private val barcodeFormats = if (formats.isEmpty()) {
-     0
-   } else {
-@@ -26,6 +65,27 @@ class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScanne
-       .build()
-   private var barcodeScanner = BarcodeScanning.getClient(barcodeScannerOptions)
+   val onComplete: (BarCodeScannerResult) -> Unit
+ ) : ImageAnalysis.Analyzer, Closeable {
+-  constructor(formats: List<BarcodeType>, onComplete: (BarCodeScannerResult) -> Unit) : this(
++  constructor(
++    formats: List<BarcodeType>,
++    previewViewProvider: () -> PreviewView? = { null },
++    onComplete: (BarCodeScannerResult) -> Unit
++  ) : this(
+     BarcodeScanning.getClient(
+       BarcodeScannerOptions.Builder()
+         .setBarcodeFormats(barcodeFormats(formats))
+         .build()
+     ),
++    previewViewProvider,
+     onComplete
+   )
  
 +  /**
 +   * Distinguishes barcodes seen in the same frame from ones seen in successive
@@ -141,7 +149,7 @@ index 00a70f6..dae00c7 100644
    override fun analyze(imageProxy: ImageProxy) {
      val mediaImage = imageProxy.image
  
-@@ -44,31 +104,65 @@ class BarcodeAnalyzer(formats: List<BarcodeType>, val onComplete: (BarCodeScanne
+@@ -53,31 +115,65 @@ class BarcodeAnalyzer(
            if (barcodes.isEmpty()) {
              return@addOnSuccessListener
            }
@@ -231,7 +239,7 @@ index 00a70f6..dae00c7 100644
          .addOnFailureListener {
            Log.d("SCANNER", it.cause?.message ?: "Barcode scanning failed")
 diff --git a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
-index f31d513..fb8432d 100644
+index cf47511..4f4d0aa 100644
 --- a/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
 +++ b/node_modules/expo-camera/android/src/main/java/expo/modules/camera/common/CommonEvents.kt
 @@ -13,7 +13,26 @@ class BarcodeScannedEvent(

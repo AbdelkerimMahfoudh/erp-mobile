@@ -28,8 +28,15 @@ const PKG = 'expo-camera';
  * 57.0.6 (re-cut 2026-10-19): byte-identical hunks — `android/src` is
  * identical between 57.0.5 and 57.0.6; upstream changed only iOS (a scanner
  * leak and barcode scanning without the companion pod) and version numbers.
+ * 58.0.12 (re-cut 2026-10-26, SDK 58): the same four changes, re-applied by
+ * hand. Upstream gave `BarcodeAnalyzer` a primary constructor taking the ML Kit
+ * client plus a secondary one taking the formats, and made it `Closeable`; the
+ * PreviewView provider is added to both. `ExpoCameraView` now keeps the
+ * analyzer in a field to release it; only the call's arguments change. The
+ * analysis body, the emitter and `CommonEvents`' barcode event are unchanged
+ * upstream (a recording-progress event was appended). Not yet run on a device.
  */
-const PATCHED_VERSION = '57.0.6';
+const PATCHED_VERSION = '58.0.12';
 
 const red = (s) => `[31m${s}[0m`;
 const problems = [];
