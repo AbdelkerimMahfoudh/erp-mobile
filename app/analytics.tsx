@@ -131,7 +131,7 @@ export default function AnalyticsScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={colors.semantic.primary} />
+          <RefreshControl refreshing={isFetching} onRefresh={() => void refetch()} tintColor={colors.semantic.primary} />
         }
       >
         {isLoading ? (

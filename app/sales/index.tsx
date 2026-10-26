@@ -170,7 +170,7 @@ export default function SalesScreen() {
               <Text variant="caption" tone="tertiary" style={styles.end}>
                 {t('sales.endOfResults')}
               </Text>
-            ) : null
+            ) : undefined
           }
         />
       )}

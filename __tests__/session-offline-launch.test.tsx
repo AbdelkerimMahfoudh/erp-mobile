@@ -60,13 +60,13 @@ function Probe() {
   return <Text>{user ? `signed in: ${user.name}` : 'signed out'}</Text>;
 }
 
-function launch(meFails: unknown) {
+async function launch(meFails: unknown) {
   (api.get as jest.Mock).mockImplementation(async (path: string) => {
     if (path.startsWith('/auth/me')) throw meFails;
     throw new TypeError('Network request failed');
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  render(
+  await render(
     <QueryClientProvider client={client}>
       <AuthProvider>
         <Probe />
@@ -92,13 +92,13 @@ it.each([
   ['a server error', new ApiError('Internal server error', 500)],
   ['a gateway that did not answer', new ApiError('Bad gateway', 502)],
 ])('launched with %s, the person stays signed in and the session is kept', async (_case, failure) => {
-  launch(failure);
+  await launch(failure);
   expect(await screen.findByText('signed in: Owner Boutique 1')).toBeTruthy();
   expect(clearSession).not.toHaveBeenCalled();
 });
 
 it.each([401, 403])('the server refusing the session (%i) still signs the person out', async (status) => {
-  launch(new ApiError('Session no longer valid', status));
+  await launch(new ApiError('Session no longer valid', status));
   expect(await screen.findByText('signed out')).toBeTruthy();
   expect(clearSession).toHaveBeenCalled();
 });

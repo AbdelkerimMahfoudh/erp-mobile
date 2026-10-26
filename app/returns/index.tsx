@@ -156,7 +156,7 @@ export default function ReturnsScreen() {
               <Text variant="caption" tone="tertiary" style={styles.end}>
                 {t('returns.endOfResults')}
               </Text>
-            ) : null
+            ) : undefined
           }
         />
       )}

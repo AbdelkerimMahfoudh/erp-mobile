@@ -106,7 +106,7 @@ beforeEach(() => {
 
 it('signing out empties the queue in memory — items and scope — so the next person never sees them', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  render(
+  await render(
     <QueryClientProvider client={client}>
       <AuthProvider>
         <Probe />
@@ -119,7 +119,7 @@ it('signing out empties the queue in memory — items and scope — so the next 
   expect(useQueue.getState().scope).toEqual({ companyId: 'c1', branchId: 'b1', userId: 'u1' });
 
   await act(async () => {
-    fireEvent.press(screen.getByText('Sign out'));
+    await fireEvent.press(screen.getByText('Sign out'));
   });
   expect(await screen.findByText('signed out')).toBeTruthy();
   expect(useQueue.getState().items).toEqual([]);

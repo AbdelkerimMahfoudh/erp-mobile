@@ -26,7 +26,8 @@ test('the padding is the navigator’s own', () => {
   if (!existsSync(item)) return; // no installed dependencies: nothing to compare with
   const block = readFileSync(item, 'utf8').match(/tabVerticalUiKit: \{([^}]*)\}/);
   assert.ok(block, 'the navigator’s vertical tab style');
-  assert.match(block[1], new RegExp(`padding: ${TAB_ITEM_PADDING},`));
+  // The value, not the build's punctuation: expo-router 58 emits the last property without a comma.
+  assert.match(block[1], new RegExp(`padding: ${TAB_ITEM_PADDING}\\b(?!\\.)`));
 });
 
 test('a name that fits is drawn as designed; one not measured yet too', () => {

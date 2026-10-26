@@ -88,7 +88,7 @@ function serve(path: string): unknown {
   return new Promise(() => undefined);
 }
 
-function mount(node: React.ReactElement) {
+async function mount(node: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -113,7 +113,7 @@ beforeEach(async () => {
 describe('the counter’s reports', () => {
   it('the day: exchanges and commission; reversals and rebalancings on their own lines; by provider and employee; floats and counts', async () => {
     signIn(OWNER);
-    mount(<AgentReportsTab />);
+    await mount(<AgentReportsTab />);
     const head = await screen.findByTestId('agent-report-totals');
     expect(within(head).getByText('13')).toBeTruthy();
     expect(within(head).getByText(t('agent.reports.commission'))).toBeTruthy();
@@ -136,31 +136,31 @@ describe('the counter’s reports', () => {
 
   it('a year is shown month by month', async () => {
     signIn(OWNER);
-    mount(<AgentReportsScreen />);
+    await mount(<AgentReportsScreen />);
     await screen.findByTestId('agent-report-totals');
-    fireEvent.press(screen.getByText(t('agent.reports.period.year')));
+    await fireEvent.press(screen.getByText(t('agent.reports.period.year')));
     expect(await screen.findByTestId('agent-report-month-2026-10')).toBeTruthy();
     expect(reportCalls()).toContain('/agent/reports?period=year');
   });
 
   it('steps back a period and forward again — never past the business day', async () => {
     signIn(OWNER);
-    mount(<AgentReportsScreen />);
+    await mount(<AgentReportsScreen />);
     await screen.findByTestId('agent-report-totals');
     // The current period offers nothing later.
     expect(screen.getByLabelText(t('agent.reports.later')).props.accessibilityState?.disabled).toBe(true);
-    fireEvent.press(screen.getByLabelText(t('agent.reports.earlier')));
+    await fireEvent.press(screen.getByLabelText(t('agent.reports.earlier')));
     await waitFor(() => expect(reportCalls()).toContain('/agent/reports?period=day&date=2026-10-08'));
     expect(await screen.findByText(t('agent.reports.count'))).toBeTruthy();
     // The same date in another period: the week holding the 8th is the current week, so the current one is asked.
-    fireEvent.press(screen.getByText(t('agent.reports.period.week')));
+    await fireEvent.press(screen.getByText(t('agent.reports.period.week')));
     await waitFor(() => expect(reportCalls()).toContain('/agent/reports?period=week'));
     expect(reportCalls().some((p) => p.includes('period=week&date='))).toBe(false);
   });
 
   it('only those who read the reports see them', async () => {
     signIn(EMPLOYEE);
-    mount(<AgentReportsTab />);
+    await mount(<AgentReportsTab />);
     expect(await screen.findByText(t('agent.reports.permission'))).toBeTruthy();
     expect(reportCalls()).toEqual([]);
   });
@@ -170,7 +170,7 @@ describe('the counter’s reports', () => {
     const rtl = jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
     try {
       signIn(OWNER);
-      mount(<AgentReportsTab />);
+      await mount(<AgentReportsTab />);
       const head = await screen.findByTestId('agent-report-totals');
       expect(within(head).getByText('العمولة المكتسبة')).toBeTruthy();
       expect(within(screen.getByTestId('agent-report-provider-bankily')).getByText(/^10 مبادلات · \u2066.+\u2069$/)).toBeTruthy();

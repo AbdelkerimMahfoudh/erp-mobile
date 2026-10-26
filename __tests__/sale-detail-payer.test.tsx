@@ -90,7 +90,7 @@ beforeEach(() => {
 
 it('shows the payer number under its own payment, apart from the reference, and never on cash', async () => {
   signInAs(['sale.view', 'sale.create'] as Permission[]);
-  render(
+  await render(
     <Harness>
       <SaleDetailScreen />
     </Harness>,
@@ -106,7 +106,7 @@ it('shows the payer number under its own payment, apart from the reference, and 
 
 it('the Owner and the Store Manager may correct it — on the non-cash payment only — and only the number is sent', async () => {
   signInAs(['sale.view', 'sale.create', 'financial.correction.request'] as Permission[]);
-  render(
+  await render(
     <Harness>
       <SaleDetailScreen />
     </Harness>,
@@ -114,12 +114,12 @@ it('the Owner and the Store Manager may correct it — on the non-cash payment o
   await screen.findByText(PAYER_LINE);
   const actions = screen.getAllByText(t('saleDetail.payer.correct'));
   expect(actions).toHaveLength(1);
-  fireEvent.press(actions[0]);
+  await fireEvent.press(actions[0]);
   expect(await screen.findByText(t('saleDetail.payer.body'))).toBeTruthy();
   const field = screen.getByLabelText(t('sell.payment.payerNumber'));
   expect(field.props.value).toBe('+22236123456');
-  fireEvent.changeText(field, '36 99-99-99');
-  fireEvent.press(screen.getByText(t('saleDetail.payer.save')));
+  await fireEvent.changeText(field, '36 99-99-99');
+  await fireEvent.press(screen.getByText(t('saleDetail.payer.save')));
   await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
   expect(api.post).toHaveBeenCalledWith('/sales/s1/payments/p-bankily/payer-number', { payerNumber: '36999999' });
 });

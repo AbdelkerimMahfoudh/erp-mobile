@@ -9,7 +9,6 @@
  * password finish it. Every unusable reference reads the same; nothing here calls an Owner's route.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -38,11 +37,12 @@ jest.mock('../lib/api-client', () => {
 
 import { api, ApiError } from '../lib/api-client';
 import JoinScreen from '../app/(auth)/join';
+import { textInputs } from './tree';
 
 const REF = 'K7QM-9XRT-2CHD';
 const OPENED = { business: 'Boutique Aicha', name: 'Fatima', numberEnding: '66', expiresAt: '2026-10-22T08:00:00.000Z' };
 
-function renderScreen() {
+async function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -53,10 +53,10 @@ function renderScreen() {
   );
 }
 
-const inputs = () => screen.UNSAFE_getAllByType(TextInput);
+const inputs = () => textInputs();
 const press = async (label: string) => {
   await act(async () => {
-    fireEvent.press(screen.getByText(label));
+    await fireEvent.press(screen.getByText(label));
   });
 };
 
@@ -71,10 +71,10 @@ function server(confirm: unknown = { verified: true, business: 'Boutique Aicha',
 
 /** Reference typed, the invitation opened, the number typed. */
 async function openAndType(number = '+222 33 44 55 66') {
-  renderScreen();
-  fireEvent.changeText(inputs()[0], REF);
+  await renderScreen();
+  await fireEvent.changeText(inputs()[0], REF);
   await press(t('join.continue'));
-  fireEvent.changeText(inputs()[0], number);
+  await fireEvent.changeText(inputs()[0], number);
 }
 
 beforeEach(() => {
@@ -89,15 +89,15 @@ afterEach(() => jest.restoreAllMocks());
 describe('the reference', () => {
   it('the app’s link only fills it in: nothing is opened, accepted or sent until the person presses Continue', async () => {
     jest.spyOn(router, 'useLocalSearchParams').mockReturnValue({ ref: 'k7qm 9xrt 2chd' });
-    renderScreen();
+    await renderScreen();
     expect(inputs()[0].props.value).toBe(REF);
     expect(api.post).not.toHaveBeenCalled();
     expect(screen.queryByTestId('whatsapp-consent-check')).toBeNull();
   });
 
   it('what cannot be a reference is said so, and nothing is requested', async () => {
-    renderScreen();
-    fireEvent.changeText(inputs()[0], 'K7QM-9XRT');
+    await renderScreen();
+    await fireEvent.changeText(inputs()[0], 'K7QM-9XRT');
     await press(t('join.continue'));
     expect(screen.getByText(t('join.problem.reference'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
@@ -105,8 +105,8 @@ describe('the reference', () => {
 
   it('an unusable invitation — unknown, expired, replaced or used — reads the one way', async () => {
     (api.post as jest.Mock).mockRejectedValue(new ApiError('This invitation cannot be used.', 400, 'invitation_unavailable'));
-    renderScreen();
-    fireEvent.changeText(inputs()[0], REF);
+    await renderScreen();
+    await fireEvent.changeText(inputs()[0], REF);
     await press(t('join.continue'));
     expect(api.post).toHaveBeenCalledWith('/staff/join/open', { reference: REF });
     expect(screen.getByText(t('join.unavailable'))).toBeTruthy();
@@ -130,7 +130,7 @@ describe('the consent and the code', () => {
   it('ticked: the request carries the reference, the typed number, the consent’s version and language; the code and a first password finish it', async () => {
     server();
     await openAndType();
-    fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+    await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
     await press(t('join.send'));
     expect(api.post).toHaveBeenLastCalledWith('/staff/join/request-code', {
       reference: REF,
@@ -141,8 +141,8 @@ describe('the consent and the code', () => {
     });
     expect(screen.getByText(t('join.sent'))).toBeTruthy();
     const [code, password] = inputs();
-    fireEvent.changeText(code, '123456');
-    fireEvent.changeText(password, 'Secret-pass-1');
+    await fireEvent.changeText(code, '123456');
+    await fireEvent.changeText(password, 'Secret-pass-1');
     await press(t('join.confirm'));
     expect(api.post).toHaveBeenLastCalledWith('/staff/join/confirm', { reference: REF, code: '123456', password: 'Secret-pass-1' });
     expect(screen.getByText(t('join.done.ready', { business: 'Boutique Aicha' }))).toBeTruthy();
@@ -159,7 +159,7 @@ describe('the consent and the code', () => {
       throw new ApiError('That is not the WhatsApp number your business Owner entered.', 400, 'number_mismatch');
     });
     await openAndType('+22299999999');
-    fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+    await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
     await press(t('join.send'));
     expect(screen.getByText(t('join.problem.number'))).toBeTruthy();
     expect(screen.queryByText(t('join.sent'))).toBeNull();
@@ -168,12 +168,12 @@ describe('the consent and the code', () => {
   it('an agreement that expired before the code was confirmed: back to the consent, unticked, said why', async () => {
     server();
     await openAndType();
-    fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+    await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
     await press(t('join.send'));
     (api.post as jest.Mock).mockRejectedValueOnce(new ApiError('Your agreement expired.', 400, 'consent_expired'));
     const [code, password] = inputs();
-    fireEvent.changeText(code, '123456');
-    fireEvent.changeText(password, 'Secret-pass-1');
+    await fireEvent.changeText(code, '123456');
+    await fireEvent.changeText(password, 'Secret-pass-1');
     await press(t('join.confirm'));
     expect(screen.getByText(t('join.problem.consentExpired'))).toBeTruthy();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
@@ -182,11 +182,11 @@ describe('the consent and the code', () => {
   it('no seat yet: the number is confirmed and the account waits for the business owner', async () => {
     server({ verified: true, business: 'Boutique Aicha', name: 'Fatima', activated: false, pending: ['seat_payment'] });
     await openAndType();
-    fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+    await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
     await press(t('join.send'));
     const [code, password] = inputs();
-    fireEvent.changeText(code, '123456');
-    fireEvent.changeText(password, 'Secret-pass-1');
+    await fireEvent.changeText(code, '123456');
+    await fireEvent.changeText(password, 'Secret-pass-1');
     await press(t('join.confirm'));
     expect(screen.getByText(t('join.done.waiting', { business: 'Boutique Aicha' }))).toBeTruthy();
   });

@@ -8,7 +8,6 @@
  * a strip in words on every screen; any other business carries none.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ThemeProvider } from '../lib/design/theme';
 import { t } from '../lib/i18n';
@@ -38,17 +37,18 @@ jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => authStat
 import { api, ApiError } from '../lib/api-client';
 import OwnerSetupScreen from '../app/(auth)/setup';
 import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
+import { textInputs } from './tree';
 
 const CODE = 'Z3VhcmQtdGhpcy1zZXR1cC1jb2RlLW9uY2UtMDEyMzQ1';
 
-const inputs = () => screen.UNSAFE_getAllByType(TextInput);
+const inputs = () => textInputs();
 const press = async (label: string) => {
   await act(async () => {
-    fireEvent.press(screen.getByText(label));
+    await fireEvent.press(screen.getByText(label));
   });
 };
 
-function renderSetup() {
+async function renderSetup() {
   return render(
     <ThemeProvider>
       <OwnerSetupScreen />
@@ -64,9 +64,9 @@ beforeEach(() => {
 describe('the Owner’s setup code', () => {
   it('sends the pasted code — spaces removed — and the chosen password, and nothing else; then offers sign-in', async () => {
     (api.post as jest.Mock).mockResolvedValue({ publicStoreId: 'AB12CD34EF', businessName: 'Labo Test', next: 'sign_in' });
-    renderSetup();
-    fireEvent.changeText(inputs()[0], ` ${CODE.slice(0, 20)} ${CODE.slice(20)} `);
-    fireEvent.changeText(inputs()[1], 'my-own-password');
+    await renderSetup();
+    await fireEvent.changeText(inputs()[0], ` ${CODE.slice(0, 20)} ${CODE.slice(20)} `);
+    await fireEvent.changeText(inputs()[1], 'my-own-password');
     await press(t('setup.confirm'));
     expect(api.post).toHaveBeenCalledTimes(1);
     expect(api.post).toHaveBeenCalledWith('/auth/owner-setup', { token: CODE, password: 'my-own-password' });
@@ -76,13 +76,13 @@ describe('the Owner’s setup code', () => {
   });
 
   it('says a short password and a short code before anything is sent', async () => {
-    renderSetup();
-    fireEvent.changeText(inputs()[0], 'too-short');
-    fireEvent.changeText(inputs()[1], 'my-own-password');
+    await renderSetup();
+    await fireEvent.changeText(inputs()[0], 'too-short');
+    await fireEvent.changeText(inputs()[1], 'my-own-password');
     await press(t('setup.confirm'));
     expect(screen.getByText(t('setup.problem.code'))).toBeTruthy();
-    fireEvent.changeText(inputs()[0], CODE);
-    fireEvent.changeText(inputs()[1], 'short');
+    await fireEvent.changeText(inputs()[0], CODE);
+    await fireEvent.changeText(inputs()[1], 'short');
     await press(t('setup.confirm'));
     expect(screen.getByText(t('setup.problem.password'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
@@ -90,9 +90,9 @@ describe('the Owner’s setup code', () => {
 
   it('an unusable code — unknown, expired, used, replaced or not yet allowed — reads the one way', async () => {
     (api.post as jest.Mock).mockRejectedValue(new ApiError('That invitation cannot be used.', 400));
-    renderSetup();
-    fireEvent.changeText(inputs()[0], CODE);
-    fireEvent.changeText(inputs()[1], 'my-own-password');
+    await renderSetup();
+    await fireEvent.changeText(inputs()[0], CODE);
+    await fireEvent.changeText(inputs()[1], 'my-own-password');
     await press(t('setup.confirm'));
     expect(screen.getByText(t('setup.unavailable'))).toBeTruthy();
     expect(screen.queryByText('That invitation cannot be used.')).toBeNull();
@@ -100,24 +100,24 @@ describe('the Owner’s setup code', () => {
 });
 
 describe('the test business strip', () => {
-  const renderBanner = () =>
+  const renderBanner = async () =>
     render(
       <ThemeProvider>
         <TestBusinessBanner />
       </ThemeProvider>,
     );
 
-  it('is in words for a test business, and absent for any other', () => {
+  it('is in words for a test business, and absent for any other', async () => {
     authState.user = { isTestBusiness: true };
-    renderBanner();
+    await renderBanner();
     expect(screen.getByText(t('testBusiness.banner'))).toBeTruthy();
-    screen.unmount();
+    await screen.unmount();
     authState.user = { isTestBusiness: false };
-    renderBanner();
+    await renderBanner();
     expect(screen.queryByText(t('testBusiness.banner'))).toBeNull();
-    screen.unmount();
+    await screen.unmount();
     authState.user = {};
-    renderBanner();
+    await renderBanner();
     expect(screen.queryByText(t('testBusiness.banner'))).toBeNull();
   });
 });

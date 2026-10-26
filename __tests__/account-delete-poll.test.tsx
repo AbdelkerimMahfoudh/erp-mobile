@@ -6,7 +6,6 @@
  * it (and so forget the login on this phone). It asks again; only the 401 brings the result.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -40,6 +39,7 @@ jest.mock('../hooks/useAuth', () => ({
 
 import { api, ApiError } from '../lib/api-client';
 import DeleteAccountScreen from '../app/account/delete';
+import { textInputs } from './tree';
 
 const request = (status: DeletionRequestView['status']): DeletionRequestView => ({
   id: 'd1', kind: 'personal_login', status, destinationMasked: '+222••••0000', language: 'en', createdAt: '2026-10-16T09:00:00.000Z',
@@ -74,7 +74,7 @@ it('a lost answer while the deletion is carried out is asked again, never report
   });
 
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  render(
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <DeleteAccountScreen />
@@ -82,8 +82,8 @@ it('a lost answer while the deletion is carried out is asked again, never report
     </ThemeProvider>,
   );
   await screen.findByText(t('account.delete.confirm'));
-  fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
-  fireEvent.press(screen.getByText(t('account.delete.confirm')));
+  await fireEvent.changeText(textInputs()[0], '123456');
+  await fireEvent.press(screen.getByText(t('account.delete.confirm')));
 
   // The timeout (after 1.5 s) and the 503 (3 s later) are each followed by another read, and say nothing.
   await waitFor(() => expect(answers).toHaveLength(1), { timeout: 8000 });

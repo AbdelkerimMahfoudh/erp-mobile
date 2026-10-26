@@ -79,7 +79,7 @@ describe('the legal pages (the owner’s brief of 2026-10-16)', () => {
 
   it('open in the phone’s own browser at their exact in-app address — and every other address stays refused', async () => {
     const { guard, linking } = load(ORIGIN);
-    const phone = jest.fn(async (_url: string) => true);
+    const phone = jest.fn(async (_url: string) => {});
     linking.openURL = phone;
     guard.refuseBrowser();
     await guard.openLegalPage('privacy', 'en');
@@ -104,7 +104,7 @@ describe('the legal pages (the owner’s brief of 2026-10-16)', () => {
   it('open nothing, and show nothing to open, when the build has no https origin for them', async () => {
     for (const origin of [undefined, 'http://www.company-domain.mr', 'https://www.company-domain.mr/privacy']) {
       const { guard, linking } = load(origin);
-      const phone = jest.fn(async (_url: string) => true);
+      const phone = jest.fn(async (_url: string) => {});
       linking.openURL = phone;
       guard.refuseBrowser();
       expect(guard.legalPagesAvailable()).toBe(false);

@@ -380,7 +380,8 @@ it('the cached copy is checked before it is sent', () => {
 it('a workbook is recognised by its first four bytes, not its name alone', () => {
   const src = code(read('./file-receiving.ts'));
   assert.match(src, /0x50, 0x4b, 0x03, 0x04/, 'PK\\x03\\x04');
-  assert.match(src, /readBytes\(length\)/, 'only the head is read, not the whole workbook');
+  // SDK 58 made `readBytes` asynchronous; `readBytesSync` is the same read of only the head.
+  assert.match(src, /readBytesSync\(length\)/, 'only the head is read, not the whole workbook');
 });
 
 it('the phone uploads through the platform, not through a JavaScript multipart body', () => {

@@ -125,7 +125,7 @@ function serve(path: string): unknown {
   return { rows: [], nextCursor: null };
 }
 
-function mount(node: React.ReactElement) {
+async function mount(node: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -146,7 +146,7 @@ const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 
-const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+const settle = async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
 
 beforeEach(async () => {
   await useI18n.getState().setLanguage('en');
@@ -157,12 +157,12 @@ beforeEach(async () => {
   dayView = { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'open' };
   useQueue.setState({ items: [], running: false, scope: { companyId: 'c1', branchId: 'b1', userId: 'u-emp' } });
 });
-afterEach(() => settle());
+afterEach(async () => settle());
 
 describe('Home', () => {
   it('an agent-only branch: one big New exchange, today’s count and commission, the drawer and the floats — nothing of the store', async () => {
     signIn('owner', OWNER, 'money_agent');
-    mount(<HomeScreen />);
+    await mount(<HomeScreen />);
     expect(await screen.findByText(t('nav.agent.new'))).toBeTruthy();
     expect(screen.queryByText(t('home.shortcut.sell'))).toBeNull();
     expect(screen.queryByText(t('home.shortcut.receive'))).toBeNull();
@@ -182,7 +182,7 @@ describe('Home', () => {
   it('while an exchange waits on the phone, the figures say Provisional and include it', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
     useQueue.setState({ items: [queued()] });
-    mount(<HomeScreen />);
+    await mount(<HomeScreen />);
     expect(await screen.findByTestId('positions-provisional')).toBeTruthy();
     expect(screen.getByText(t('agent.today.pending', { count: 1 }))).toBeTruthy();
     // Give cash 5 000 / receive Bankily credit, 100 commission typed (D164): the drawer 99 400 − 5 000 + 100; the float 12 490 + 5 000.
@@ -196,7 +196,7 @@ describe('Home', () => {
 
   it('a combined branch: Receive and Sell side by side, New exchange on its own row', async () => {
     signIn('owner', OWNER, 'both');
-    mount(<HomeScreen />);
+    await mount(<HomeScreen />);
     expect(await screen.findByText(t('nav.agent.new'))).toBeTruthy();
     expect(screen.getByText(t('home.shortcut.sell'))).toBeTruthy();
     expect(screen.getByText(t('home.shortcut.receive'))).toBeTruthy();
@@ -205,14 +205,14 @@ describe('Home', () => {
   it('a counter not opened yet says what waits in its own words — exchanges, never selling or receiving', async () => {
     signIn('owner', OWNER, 'money_agent');
     dayView = { businessDate: '2026-10-09', localDate: '2026-10-09', door: 'never_opened', standing: 'open' };
-    mount(<HomeScreen />);
+    await mount(<HomeScreen />);
     expect(await screen.findByText('The counter has not been opened for 9 Oct 2026. Open it to record exchanges.')).toBeTruthy();
     expect(screen.queryByText(/to sell or receive/)).toBeNull();
   });
 
   it('a shop: nothing of the counter', async () => {
     signIn('owner', OWNER, 'electronics');
-    mount(<HomeScreen />);
+    await mount(<HomeScreen />);
     expect(await screen.findByText(t('home.shortcut.sell'))).toBeTruthy();
     await settle();
     expect(screen.queryByText(t('nav.agent.new'))).toBeNull();
@@ -224,7 +224,7 @@ describe('the exchanges', () => {
   it('the phone’s own come first as Pending synchronization; the server’s are masked; the search sends the last four digits only', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
     useQueue.setState({ items: [queued()] });
-    mount(<AgentTransactionsTab />);
+    await mount(<AgentTransactionsTab />);
     expect(await screen.findByText(t('agent.list.onThisPhone'))).toBeTruthy();
     expect(screen.getByText(t('agent.pending'))).toBeTruthy();
     expect(screen.getByText('Gave cash, received Bankily credit')).toBeTruthy();
@@ -233,10 +233,10 @@ describe('the exchanges', () => {
     // Today, on the server's business day.
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/agent/transactions?from=2026-10-09&to=2026-10-09'));
 
-    fireEvent.changeText(screen.getByPlaceholderText(t('agent.search.number')), '3456');
+    await fireEvent.changeText(screen.getByPlaceholderText(t('agent.search.number')), '3456');
     await waitFor(() => expect((api.get as jest.Mock).mock.calls.some(([p]) => String(p).includes('last4=3456'))).toBe(true), { timeout: 3000 });
     // A whole number is never sent: the list stays masked.
-    fireEvent.changeText(screen.getByPlaceholderText(t('agent.search.number')), '36123456');
+    await fireEvent.changeText(screen.getByPlaceholderText(t('agent.search.number')), '36123456');
     expect(await screen.findByText(t('agent.search.number.hint'), {}, { timeout: 3000 })).toBeTruthy();
     expect((api.get as jest.Mock).mock.calls.some(([p]) => String(p).includes('36123456'))).toBe(false);
   });
@@ -245,7 +245,7 @@ describe('the exchanges', () => {
 describe('one exchange', () => {
   it('for the counter: the number masked, a mistake may be reported, no reversal', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
-    mount(<ExchangeDetailScreen />);
+    await mount(<ExchangeDetailScreen />);
     expect(await screen.findByText('•••• 1234')).toBeTruthy();
     expect(screen.queryByText('00001234')).toBeNull();
     // Awaited: the action waits for the entitlement's activity, which may answer after the exchange (seen under load).
@@ -267,7 +267,7 @@ describe('one exchange', () => {
         { account: 'cash', providerId: null, direction: 'inflow', amount: 150, kind: 'commission' },
       ],
     });
-    mount(<ExchangeDetailScreen />);
+    await mount(<ExchangeDetailScreen />);
     expect(await screen.findByText(t('agent.review.commission'))).toBeTruthy();
     expect(screen.getByText(t('agent.detail.commission.manualNote'))).toBeTruthy();
     expect(screen.queryByText(t('agent.detail.commission.legacyNote'))).toBeNull();
@@ -277,7 +277,7 @@ describe('one exchange', () => {
   it('for a Manager the server sends the number whole, and the exchange may be reversed once', async () => {
     signIn('store_manager', MANAGER, 'both');
     detail = tx({ customerNumber: '00001234' });
-    mount(<ExchangeDetailScreen />);
+    await mount(<ExchangeDetailScreen />);
     expect(await screen.findByText('00001234')).toBeTruthy();
     expect(screen.getByText(t('agent.detail.numberRevealed'))).toBeTruthy();
     // Awaited for the same reason: the action waits for the entitlement's activity.
@@ -288,7 +288,7 @@ describe('one exchange', () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
     // What a Manager's read left in a cache: the whole number. The Employee is shown the masked one.
     detail = tx({ customerNumber: '00001234' });
-    mount(<ExchangeDetailScreen />);
+    await mount(<ExchangeDetailScreen />);
     expect(await screen.findByText('•••• 1234')).toBeTruthy();
     expect(screen.queryByText('00001234')).toBeNull();
     expect(screen.queryByText(t('agent.detail.numberRevealed'))).toBeNull();
@@ -306,7 +306,7 @@ describe('one exchange', () => {
         { account: 'provider', providerId: 'bankily', direction: 'inflow', amount: 10000, kind: 'reversal' },
       ],
     });
-    mount(<ExchangeDetailScreen />);
+    await mount(<ExchangeDetailScreen />);
     expect(await screen.findByTestId('exchange-reversal')).toBeTruthy();
     expect(screen.getByText(t('agent.detail.reversalReason', { reason: 'wrong direction' }))).toBeTruthy();
     expect(within(screen.getByTestId('exchange-reversal')).getAllByText(t('agent.leg.kind.reversal'))).toHaveLength(3);
@@ -320,7 +320,7 @@ describe('an exchange whose answer was lost (D161)', () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
     const item = queued({ state: 'uncertain', attempts: 1, lastError: { kind: 'timeout_uncertain', message: 'timeout' } });
     useQueue.setState({ items: [item] });
-    mount(<QueuedExchange item={item} />);
+    await mount(<QueuedExchange item={item} />);
     expect(await screen.findByText(t('agent.state.uncertain'))).toBeTruthy();
     expect(screen.getByText(t('agent.outcome.uncertain.body'))).toBeTruthy();
     expect(screen.getByText(t('agent.action.checkAgain'))).toBeTruthy();
@@ -332,7 +332,7 @@ describe('an exchange whose answer was lost (D161)', () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
     const item = queued({ state: 'rejected_reenter', attempts: 2, lastError: { kind: 'conflict', message: 'conflict', status: 409, code: 'idempotency_conflict' } });
     useQueue.setState({ items: [item] });
-    mount(<QueuedExchange item={item} onPrepareAgain={() => undefined} />);
+    await mount(<QueuedExchange item={item} onPrepareAgain={() => undefined} />);
     expect(await screen.findByText(t('agent.refusal.idempotency_conflict'))).toBeTruthy();
     expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
     for (const absent of ['agent.action.reviewAndSend', 'agent.action.editAndSend', 'agent.action.sendAgain', 'agent.action.cancel'] as const) {

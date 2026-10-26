@@ -118,7 +118,7 @@ function serve(path: string): unknown {
   return new Promise(() => undefined);
 }
 
-function mount() {
+async function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
   return render(
     <ThemeProvider>
@@ -140,7 +140,7 @@ const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 
-const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+const settle = async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
 
 beforeEach(async () => {
   await useI18n.getState().setLanguage('en');
@@ -152,12 +152,12 @@ beforeEach(async () => {
   moved = { money: false, cash: false, bankily: false };
   useQueue.setState({ items: [], running: false, scope: { companyId: 'c1', branchId: 'b1', userId: 'u-owner' } });
 });
-afterEach(() => settle());
+afterEach(async () => settle());
 
 describe('the closing of an agent branch', () => {
   it('the floats beside the drawer: expected or Unknown, not counted yet; the counter’s cash said inside the drawer’s line', async () => {
     signIn('owner', OWNER);
-    mount();
+    await mount();
     const card = await screen.findByTestId('closing-floats');
     const bankily = within(card).getByTestId('float-count-bankily');
     expect(within(bankily).getByText(t('agent.positions.float', { provider: 'Bankily' }))).toBeTruthy();
@@ -173,21 +173,21 @@ describe('the closing of an agent branch', () => {
   it('a store employee counts a float — why it differs asked only when it does — or skips one with its reason', async () => {
     signIn('store_employee', EMPLOYEE);
     (api.post as jest.Mock).mockImplementation(async () => ({ ...view(), float: null }));
-    mount();
+    await mount();
     const bankily = await screen.findByTestId('float-count-bankily');
     const field = within(bankily).getByLabelText(`${t('agent.positions.float', { provider: 'Bankily' })}, ${t('closing.float.prompt', { provider: 'Bankily' })}`);
-    fireEvent.changeText(field, '12490');
+    await fireEvent.changeText(field, '12490');
     expect(within(bankily).queryByPlaceholderText(t('closing.float.explanation'))).toBeNull();
-    fireEvent.changeText(field, '12390');
-    fireEvent.changeText(within(bankily).getByPlaceholderText(t('closing.float.explanation')), 'app shows 12 390');
-    fireEvent.press(within(bankily).getByText(t('closing.row.save')));
+    await fireEvent.changeText(field, '12390');
+    await fireEvent.changeText(within(bankily).getByPlaceholderText(t('closing.float.explanation')), 'app shows 12 390');
+    await fireEvent.press(within(bankily).getByText(t('closing.row.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect((api.post as jest.Mock).mock.calls[0]).toEqual(['/closings/2026-10-09/float-counts', { providerId: 'bankily', counted: 12390, explanation: 'app shows 12 390' }]);
 
     const masrvi = screen.getByTestId('float-count-masrvi');
-    fireEvent.press(within(masrvi).getByText(t('closing.float.skip')));
-    fireEvent.changeText(within(masrvi).getByPlaceholderText(t('closing.float.skipReason')), 'not used today');
-    fireEvent.press(within(masrvi).getByText(t('closing.float.skipSave')));
+    await fireEvent.press(within(masrvi).getByText(t('closing.float.skip')));
+    await fireEvent.changeText(within(masrvi).getByPlaceholderText(t('closing.float.skipReason')), 'not used today');
+    await fireEvent.press(within(masrvi).getByText(t('closing.float.skipSave')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
     expect((api.post as jest.Mock).mock.calls[1]).toEqual(['/closings/2026-10-09/float-counts', { providerId: 'masrvi', skip: true, skipReason: 'not used today' }]);
     // Counting is not closing: an employee is still told the close is not theirs.
@@ -200,7 +200,7 @@ describe('the closing of an agent branch', () => {
       float('masrvi', 'Masrvi', null, { isSkipped: true, skipReason: 'not used at the annex today', countedAt: '2026-10-09T11:11:05.958Z', countedByName: 'Manager Boutique 2' }),
     ];
     signIn('owner', OWNER);
-    mount();
+    await mount();
     const bankily = await screen.findByTestId('float-count-bankily');
     expect(within(bankily).getByText(t('agent.difference.short'))).toBeTruthy();
     expect(within(bankily).getByText(t('agent.count.explanationShown', { explanation: 'provider app shows 15 000' }))).toBeTruthy();
@@ -210,12 +210,12 @@ describe('the closing of an agent branch', () => {
   it('while this phone holds an exchange the day is not closed and no float is counted — and the screen says why', async () => {
     signIn('owner', OWNER);
     useQueue.setState({ items: [queued({ state: 'needs_attention' })] });
-    mount();
+    await mount();
     const notice = await screen.findByTestId('closing-queue');
     expect(within(notice).getByText(t('closing.queue.body', { count: 1 }))).toBeTruthy();
     expect(within(notice).getByText(t('closing.queue.see'))).toBeTruthy();
     const close = screen.getByText(t('dailyReport.closeDay'));
-    fireEvent.press(close);
+    await fireEvent.press(close);
     await settle();
     // The close never opened.
     expect(screen.queryByText(t('closeDay.question'))).toBeNull();
@@ -229,7 +229,7 @@ describe('the closing of an agent branch', () => {
     (api.get as jest.Mock).mockImplementation(async () => {
       throw new ApiError('Network request failed', 0, 'network');
     });
-    mount();
+    await mount();
     const notice = await screen.findByTestId('closing-queue');
     expect(within(notice).getByText(t('closing.queue.body', { count: 1 }))).toBeTruthy();
     expect(within(notice).getByText(t('closing.queue.see'))).toBeTruthy();
@@ -239,9 +239,9 @@ describe('the closing of an agent branch', () => {
 
   it('the close waits for every float: counted or skipped, never covered by the person’s word', async () => {
     signIn('owner', OWNER);
-    mount();
-    fireEvent.press(await screen.findByText(t('dailyReport.closeDay')));
-    fireEvent.press(await screen.findByText(t('closeDay.checked')));
+    await mount();
+    await fireEvent.press(await screen.findByText(t('dailyReport.closeDay')));
+    await fireEvent.press(await screen.findByText(t('closeDay.checked')));
     const floatsLine = await screen.findByTestId('close-floats');
     expect(within(floatsLine).getByText(t('closing.floats.waiting', { names: 'Bankily · Masrvi' }))).toBeTruthy();
     expect(within(floatsLine).getByText(t('closing.floats.count'))).toBeTruthy();
@@ -254,7 +254,7 @@ describe('the closing of an agent branch', () => {
     floats = [];
     agentCash = { agentIn: 0, agentOut: 0 };
     signIn('owner', OWNER);
-    mount();
+    await mount();
     expect(await screen.findByText(t('dailyReport.movements'))).toBeTruthy();
     expect(screen.queryByTestId('closing-floats')).toBeNull();
     expect(screen.queryByTestId('closing-agent-cash')).toBeNull();
@@ -296,13 +296,13 @@ describe('money that moved after counting began (D159)', () => {
       }
       throw new Error(`unexpected POST ${path}`);
     });
-    mount();
-    fireEvent.press(await screen.findByText(t('dailyReport.closeDay')));
-    fireEvent.press(await screen.findByText(t('closeDay.checked')));
+    await mount();
+    await fireEvent.press(await screen.findByText(t('dailyReport.closeDay')));
+    await fireEvent.press(await screen.findByText(t('closeDay.checked')));
     await settle();
     const first = screen.getAllByLabelText(t('dailyReport.closeDay'));
     await act(async () => {
-      fireEvent.press(first[first.length - 1]);
+      await fireEvent.press(first[first.length - 1]);
     });
     expect(closes).toHaveLength(1);
     expect(closes[0]).toEqual(expect.objectContaining({ date: '2026-10-09', reportVersion: 'v1' }));
@@ -324,26 +324,26 @@ describe('money that moved after counting began (D159)', () => {
     expect(screen.getAllByText(t('closing.moved.stale')).length).toBeGreaterThanOrEqual(2);
 
     // The drawer counted again, then the float.
-    fireEvent.changeText(screen.getByLabelText(`${t('closing.channel.cash')}, ${t('closing.countedLabel')}`), '99400');
+    await fireEvent.changeText(screen.getByLabelText(`${t('closing.channel.cash')}, ${t('closing.countedLabel')}`), '99400');
     await act(async () => {
-      fireEvent.press(screen.getByLabelText(`${t('closing.row.save')}, ${t('closing.channel.cash')}`));
+      await fireEvent.press(screen.getByLabelText(`${t('closing.row.save')}, ${t('closing.channel.cash')}`));
     });
     const field = within(sheetFloat()).getByLabelText(`${t('agent.positions.float', { provider: 'Bankily' })}, ${t('closing.float.prompt', { provider: 'Bankily' })}`);
-    fireEvent.changeText(field, '12490');
+    await fireEvent.changeText(field, '12490');
     await act(async () => {
-      fireEvent.press(within(sheetFloat()).getByText(t('closing.row.save')));
+      await fireEvent.press(within(sheetFloat()).getByText(t('closing.row.save')));
     });
     await waitFor(() => expect(screen.queryByTestId('closing-moved')).toBeNull());
 
     // Then the close again — on the new version, under the same key.
-    fireEvent.press(screen.getByText(t('closeDay.count.continue')));
+    await fireEvent.press(screen.getByText(t('closeDay.count.continue')));
     await waitFor(() => {
       const buttons = screen.getAllByLabelText(t('dailyReport.closeDay'));
       expect(buttons[buttons.length - 1].props.accessibilityState?.disabled).toBe(false);
     });
     const again = screen.getAllByLabelText(t('dailyReport.closeDay'));
     await act(async () => {
-      fireEvent.press(again[again.length - 1]);
+      await fireEvent.press(again[again.length - 1]);
     });
     expect(closes).toHaveLength(2);
     expect(closes[1].reportVersion).toBe('v3');
@@ -354,7 +354,7 @@ describe('money that moved after counting began (D159)', () => {
     floats = [float('bankily', 'Bankily', 12490, { counted: 12490, difference: 0, countedAt: '2026-10-09T11:21:00.000Z', countedByName: 'Owner Boutique 2' }), float('masrvi', 'Masrvi', null)];
     moved = { money: true, cash: true, bankily: true };
     signIn('owner', OWNER);
-    mount();
+    await mount();
     const bankily = await screen.findByTestId('float-count-bankily');
     expect(within(bankily).getByText(t('closing.moved.stale'))).toBeTruthy();
     expect(screen.getByText(t('dailyReport.warning.money_moved_after_count', { count: 2 }))).toBeTruthy();

@@ -10,7 +10,6 @@
  * The real screens; the server is mocked.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -40,6 +39,7 @@ jest.mock('../lib/api-client', () => {
 import { api } from '../lib/api-client';
 import LoanDetailScreen from '../app/loans/[id]';
 import ConsignmentDetailScreen from '../app/consignments/[id]';
+import { textInputs } from './tree';
 
 const LOAN = (direction: LoanDetail['direction']): LoanDetail => ({
   id: 'x1', status: 'active', group: 'accepted', statusText: 'Active', direction, otherParty: 'Boutique 3',
@@ -82,14 +82,14 @@ beforeEach(() => {
 /** The screen's fields, in order, once its button is there (the money fields carry no label of their own). */
 async function fields(button: string) {
   await screen.findByText(button);
-  return screen.UNSAFE_getAllByType(TextInput);
+  return textInputs();
 }
 
 async function pressTwice(title: string) {
   const button = await screen.findByText(title);
   await act(async () => {
-    fireEvent.press(button);
-    fireEvent.press(button);
+    await fireEvent.press(button);
+    await fireEvent.press(button);
   });
 }
 
@@ -105,8 +105,8 @@ async function answer(i: number, ok: boolean, button: string) {
 it('a loan payment report: one request per tap burst, the same key after a lost answer, a new key once recorded', async () => {
   signInAs(['loan.payment.report']);
   (api.get as jest.Mock).mockReset().mockResolvedValue(LOAN('we_owe_them'));
-  render(<Harness><LoanDetailScreen /></Harness>);
-  fireEvent.changeText((await fields(t('loans.reportPayment')))[0], '2000');
+  await render(<Harness><LoanDetailScreen /></Harness>);
+  await fireEvent.changeText((await fields(t('loans.reportPayment')))[0], '2000');
 
   await pressTwice(t('loans.reportPayment'));
   expect(posted()).toHaveLength(1);
@@ -127,10 +127,10 @@ it('a loan payment report: one request per tap burst, the same key after a lost 
 it('a loan write-off tapped twice is sent once', async () => {
   signInAs(['loan.forgive']);
   (api.get as jest.Mock).mockReset().mockResolvedValue(LOAN('they_owe_us'));
-  render(<Harness><LoanDetailScreen /></Harness>);
+  await render(<Harness><LoanDetailScreen /></Harness>);
   const [amount, reason] = await fields(t('loans.forgive'));
-  fireEvent.changeText(amount, '1000');
-  fireEvent.changeText(reason, 'They closed the shop');
+  await fireEvent.changeText(amount, '1000');
+  await fireEvent.changeText(reason, 'They closed the shop');
 
   await pressTwice(t('loans.forgive'));
   expect(posted().filter((p) => p.path === '/loans/x1/forgive')).toHaveLength(1);
@@ -139,8 +139,8 @@ it('a loan write-off tapped twice is sent once', async () => {
 it('a consignment payment report carries a key, kept after a lost answer; a write-off tapped twice is sent once', async () => {
   signInAs(['consignment.payment.report']);
   (api.get as jest.Mock).mockReset().mockResolvedValue(CONSIGNMENT);
-  const view = render(<Harness><ConsignmentDetailScreen /></Harness>);
-  fireEvent.changeText((await fields(t('consignment.reportPayment')))[0], '5000');
+  const view = await render(<Harness><ConsignmentDetailScreen /></Harness>);
+  await fireEvent.changeText((await fields(t('consignment.reportPayment')))[0], '5000');
 
   await pressTwice(t('consignment.reportPayment'));
   expect(posted()).toHaveLength(1);
@@ -151,14 +151,14 @@ it('a consignment payment report carries a key, kept after a lost answer; a writ
   expect(typeof first.body.clientUuid).toBe('string');
   expect(again.body.clientUuid).toBe(first.body.clientUuid);
   await answer(1, true, t('consignment.reportPayment'));
-  view.unmount();
+  await view.unmount();
 
   signInAs(['consignment.forgive']);
   (api.get as jest.Mock).mockResolvedValue({ ...CONSIGNMENT, side: 'source' });
-  render(<Harness><ConsignmentDetailScreen /></Harness>);
+  await render(<Harness><ConsignmentDetailScreen /></Harness>);
   const [amount, reason] = await fields(t('consignment.forgive'));
-  fireEvent.changeText(amount, '1000');
-  fireEvent.changeText(reason, 'Shop closed for good');
+  await fireEvent.changeText(amount, '1000');
+  await fireEvent.changeText(reason, 'Shop closed for good');
   await pressTwice(t('consignment.forgive'));
   expect(posted().filter((p) => p.path === '/consignments/x1/forgive')).toHaveLength(1);
 });

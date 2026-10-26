@@ -81,7 +81,7 @@ afterEach(() => jest.restoreAllMocks());
 async function hold(code: string) {
   const width = 400;
   const height = 800;
-  act(() => camera.props?.onLayout?.({ nativeEvent: { layout: { x: 0, y: 0, width, height } } }));
+  await act(() => camera.props?.onLayout?.({ nativeEvent: { layout: { x: 0, y: 0, width, height } } }));
   const corners = [
     { x: 120, y: 380 },
     { x: 280, y: 380 },
@@ -98,7 +98,7 @@ async function hold(code: string) {
 it('a product barcode reaches a caller that is not booking a phone in', async () => {
   const onResult = jest.fn();
   const onClose = jest.fn();
-  render(
+  await render(
     <Harness>
       <ScannerSheet open onClose={onClose} onResult={onResult} />
     </Harness>,
@@ -118,7 +118,7 @@ it('a product barcode reaches a caller that is not booking a phone in', async ()
 it('an IMEI intake still explains a product barcode and submits nothing', async () => {
   const onResult = jest.fn();
   const onImeiAccepted = jest.fn();
-  render(
+  await render(
     <Harness>
       <ScannerSheet open onClose={jest.fn()} onResult={onResult} onImeiAccepted={onImeiAccepted} />
     </Harness>,
@@ -136,7 +136,7 @@ it('an IMEI intake still explains a product barcode and submits nothing', async 
 
 it('an IMEI intake still shows the IMEI it read, ready to use', async () => {
   const onImeiAccepted = jest.fn();
-  render(
+  await render(
     <Harness>
       <ScannerSheet open onClose={jest.fn()} onResult={jest.fn()} onImeiAccepted={onImeiAccepted} />
     </Harness>,

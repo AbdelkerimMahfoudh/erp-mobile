@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, TextInput, View } from 'react-native';
+import { Platform, ScrollView, TextInput, View, type ViewInstance, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { AuthPage } from '../../components/auth/AuthChrome';
@@ -99,9 +99,9 @@ export default function RegisterScreen() {
   const attempt = useRef<{ key: string; sent: RegistrationDraft | null }>({ key: uuidv4(), sent: null });
   /** Synchronous, because two taps can land before a render. */
   const inFlight = useRef(false);
-  const consentRef = useRef<View>(null);
-  const scrollRef = useRef<ScrollView>(null);
-  const inputs = useRef<Partial<Record<keyof RegistrationProblems | 'city', TextInput | null>>>({});
+  const consentRef = useRef<ViewInstance>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const inputs = useRef<Partial<Record<keyof RegistrationProblems | 'city', TextInputInstance | null>>>({});
 
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),

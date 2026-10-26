@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewInstance } from 'react-native';
 import { Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageCircle } from 'lucide-react-native';
@@ -74,7 +74,7 @@ function ConsentSection({ view }: { view: WhatsAppConsentView }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const boxRef = useRef<View>(null);
+  const boxRef = useRef<ViewInstance>(null);
 
   const settle = async (next: WhatsAppConsentView) => {
     queryClient.setQueryData([...qk.whatsappConsent, language], next);

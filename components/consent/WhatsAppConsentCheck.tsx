@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewInstance } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { Button, InlineNotice, Text } from '../ui';
 import { LegalPageButtons } from '../legal/LegalPages';
@@ -32,7 +32,7 @@ export interface WhatsAppConsentCheckProps {
   disabled?: boolean;
 }
 
-export const WhatsAppConsentCheck = forwardRef<View, WhatsAppConsentCheckProps>(function WhatsAppConsentCheck(
+export const WhatsAppConsentCheck = forwardRef<ViewInstance, WhatsAppConsentCheckProps>(function WhatsAppConsentCheck(
   { copy, loading, failed, onRetry, checked, onChange, error, explain = true, disabled = false },
   ref,
 ) {

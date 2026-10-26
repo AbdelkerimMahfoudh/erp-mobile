@@ -19,8 +19,8 @@ import { t } from '../lib/i18n';
 const flat = (style: unknown) => (StyleSheet.flatten(style as never) ?? {}) as Record<string, unknown>;
 
 describe('HomeHeader', () => {
-  it('keeps the tint on an unpadded card and the padding on the content inside it', () => {
-    render(
+  it('keeps the tint on an unpadded card and the padding on the content inside it', async () => {
+    await render(
       <ThemeProvider>
         <HomeHeader context="Boutique 1" title="Hello, Owner" subtitle="Ready when you are." date="Tue 6 Oct" note={null} />
       </ThemeProvider>,
@@ -37,8 +37,8 @@ describe('HomeHeader', () => {
     expect(content.padding).toBe(space.base);
   });
 
-  it('places the bell, the date and the greeting inside the padded content', () => {
-    render(
+  it('places the bell, the date and the greeting inside the padded content', async () => {
+    await render(
       <ThemeProvider>
         <HomeHeader context="Boutique 1" title="Hello, Owner" subtitle="Ready when you are." date="Tue 6 Oct" note="Sales still count for 5 Oct until 06:00" />
       </ThemeProvider>,

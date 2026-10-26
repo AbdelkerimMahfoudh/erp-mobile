@@ -60,11 +60,11 @@ it('a second phone asked about in the same session gets its own key; a retried t
       <QueryClientProvider client={client}>{node}</QueryClientProvider>
     </ThemeProvider>
   );
-  const view = render(wrap(sheet(phone('unit-a', 25000))));
+  const view = await render(wrap(sheet(phone('unit-a', 25000))));
   await act(async () => fireEvent.press(await screen.findByText(t('approval.ask'))));
   await act(async () => fireEvent.press(await screen.findByText(t('approval.ask'))));
 
-  view.rerender(wrap(sheet(phone('unit-b', 26000))));
+  await view.rerender(wrap(sheet(phone('unit-b', 26000))));
   await act(async () => fireEvent.press(await screen.findByText(t('approval.ask'))));
 
   const [a1, a2, b] = asked();

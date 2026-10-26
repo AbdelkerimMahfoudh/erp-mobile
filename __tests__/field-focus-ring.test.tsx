@@ -8,16 +8,17 @@
  * a real browser by `ops/verify-browser-input`.
  */
 import React from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ThemeProvider } from '../lib/design/theme';
 import { PALETTES } from '../lib/design/colors';
 import { TextField } from '../components/ui/Field';
 import { fieldRing } from '../components/ui/field-chrome';
+import { textInput } from './tree';
 
 const light = PALETTES.light;
 
-function renderField(props: Partial<React.ComponentProps<typeof TextField>> = {}) {
+async function renderField(props: Partial<React.ComponentProps<typeof TextField>> = {}) {
   return render(
     <ThemeProvider>
       <TextField label="Name staff will see" value="" onChangeText={() => {}} {...props} />
@@ -25,7 +26,7 @@ function renderField(props: Partial<React.ComponentProps<typeof TextField>> = {}
   );
 }
 
-const input = () => screen.UNSAFE_getByType(TextInput);
+const input = () => textInput();
 // The ring is hidden from assistive technology on purpose (decoration), so it is queried with hidden elements included.
 const rings = () => screen.queryAllByTestId('field-ring', { includeHiddenElements: true });
 const ringStyle = () => StyleSheet.flatten(rings()[0].props.style) as { borderColor: string; borderWidth: number; pointerEvents?: string };
@@ -34,27 +35,27 @@ const wellBorder = () => (StyleSheet.flatten(input().parent!.parent!.props.style
 
 describe('the field ring', () => {
   it('normal: no ring, a hairline well', async () => {
-    renderField();
+    await renderField();
     await act(async () => {});
     expect(rings()).toHaveLength(0);
     expect(wellBorder()).toBe(StyleSheet.hairlineWidth);
   });
 
   it('focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch', async () => {
-    renderField();
+    await renderField();
     await act(async () => {});
-    fireEvent(input(), 'focus');
+    await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(1);
     expect(ringStyle().borderColor).toBe(light.border.focus);
     expect(ringStyle().borderWidth).toBe(2);
     expect(ringStyle().pointerEvents).toBe('none');
     expect(wellBorder()).toBe(StyleSheet.hairlineWidth);
-    fireEvent(input(), 'blur');
+    await fireEvent(input(), 'blur');
     expect(rings()).toHaveLength(0);
   });
 
   it('invalid: the danger ring, with the problem in words underneath', async () => {
-    renderField({ error: 'Name the account so staff can recognise it.' });
+    await renderField({ error: 'Name the account so staff can recognise it.' });
     await act(async () => {});
     expect(rings()).toHaveLength(1);
     expect(ringStyle().borderColor).toBe(light.intent.danger.solid);
@@ -64,9 +65,9 @@ describe('the field ring', () => {
   });
 
   it('focused and invalid: still the danger colour — never mistaken for a valid field — and drawn thicker', async () => {
-    renderField({ error: 'Required' });
+    await renderField({ error: 'Required' });
     await act(async () => {});
-    fireEvent(input(), 'focus');
+    await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(1);
     expect(ringStyle().borderColor).toBe(light.intent.danger.solid);
     expect(ringStyle().borderWidth).toBe(2.5);
@@ -74,9 +75,9 @@ describe('the field ring', () => {
   });
 
   it('disabled: no focus ring, the sunken surface, and the text in the disabled colour', async () => {
-    renderField({ editable: false, value: 'Cannot edit' });
+    await renderField({ editable: false, value: 'Cannot edit' });
     await act(async () => {});
-    fireEvent(input(), 'focus');
+    await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(0);
     expect((StyleSheet.flatten(input().parent!.parent!.props.style) as { backgroundColor: string }).backgroundColor).toBe(light.surface.sunken);
     expect((StyleSheet.flatten(input().props.style) as { color: string }).color).toBe(light.text.disabled);
@@ -89,10 +90,10 @@ describe('the field ring', () => {
 
   it('typing after a validation error is never blocked', async () => {
     const onChangeText = jest.fn();
-    renderField({ error: 'Required', onChangeText });
+    await renderField({ error: 'Required', onChangeText });
     await act(async () => {});
-    fireEvent(input(), 'focus');
-    fireEvent.changeText(input(), 'Bankily caisse');
+    await fireEvent(input(), 'focus');
+    await fireEvent.changeText(input(), 'Bankily caisse');
     expect(onChangeText).toHaveBeenCalledWith('Bankily caisse');
   });
 });

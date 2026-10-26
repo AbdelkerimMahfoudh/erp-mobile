@@ -13,7 +13,6 @@
  * The real AuthProvider; the server, storage and the device are mocked.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -85,6 +84,7 @@ import LoginScreen from '../app/(auth)/login';
 import RegisterScreen from '../app/(auth)/register';
 import VerifyScreen from '../app/(auth)/verify';
 import { CONSENT_COPY, CONSENT_VERSION, consentCopyFor } from './mocks/whatsapp-consent';
+import { textInputs } from './tree';
 
 const CONTINUATION = 'continuation-0123456789abcdef';
 const OWNER = { id: 'u-new', companyId: 'c-new', name: 'Aicha', login: 'aicha', publicStoreId: 'S-NEW' };
@@ -92,8 +92,8 @@ const OWNER = { id: 'u-new', companyId: 'c-new', name: 'Aicha', login: 'aicha', 
 /** Nothing on these screens names a trial, a price, a payment or a website — in words a person reads. */
 const UNSAID = /trial|essai|تجريب|price|\bpay|paiement|MRU|website|\bsite\b|موقع|https?:|www\./i;
 
-function renderWith(node: React.ReactElement, client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })) {
-  render(
+async function renderWith(node: React.ReactElement, client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })) {
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <AuthProvider>{node}</AuthProvider>
@@ -120,33 +120,33 @@ function screenText(): string {
 }
 
 /** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
-function toLastStep() {
-  const [business, branch] = screen.UNSAFE_getAllByType(TextInput);
-  fireEvent.changeText(business, 'Nour Electronics');
-  fireEvent.changeText(branch, 'Main Store');
-  fireEvent.press(screen.getByText(t('register.next')));
-  fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Aicha');
-  fireEvent.press(screen.getByText(t('register.next')));
+async function toLastStep() {
+  const [business, branch] = textInputs();
+  await fireEvent.changeText(business, 'Nour Electronics');
+  await fireEvent.changeText(branch, 'Main Store');
+  await fireEvent.press(screen.getByText(t('register.next')));
+  await fireEvent.changeText(textInputs()[0], 'Aicha');
+  await fireEvent.press(screen.getByText(t('register.next')));
 }
 
 /** The last step: the WhatsApp number (required) first among the contacts, no email address, the password twice. */
-function fillLastStep() {
-  const [phone, , password, again] = screen.UNSAFE_getAllByType(TextInput);
-  fireEvent.changeText(phone, '+22236000001');
-  fireEvent.changeText(password, 'correct horse');
-  fireEvent.changeText(again, 'correct horse');
+async function fillLastStep() {
+  const [phone, , password, again] = textInputs();
+  await fireEvent.changeText(phone, '+22236000001');
+  await fireEvent.changeText(password, 'correct horse');
+  await fireEvent.changeText(again, 'correct horse');
 }
 
 /** The whole form, step by step. */
-function fillFields() {
-  toLastStep();
-  fillLastStep();
+async function fillFields() {
+  await toLastStep();
+  await fillLastStep();
 }
 
 /** …and ticks the WhatsApp consent beside the number, once the server's copy is shown. */
 async function fillForm() {
-  fillFields();
-  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+  await fillFields();
+  await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
 }
 
 beforeEach(() => {
@@ -167,8 +167,8 @@ beforeEach(() => {
 
 describe('the sign-in screen', () => {
   it('offers Create a business account, a screen of this app, and says who creates an employee’s account', async () => {
-    renderWith(<LoginScreen />);
-    fireEvent.press(await screen.findByText(t('auth.action.createAccount')));
+    await renderWith(<LoginScreen />);
+    await fireEvent.press(await screen.findByText(t('auth.action.createAccount')));
     expect(routerPush).toHaveBeenCalledWith('/(auth)/register');
     expect(screen.getByText(t('auth.accounts.managed'))).toBeTruthy();
     expect(t('auth.accounts.managed')).toBe('Employee accounts are set up by your business owner.');
@@ -176,7 +176,7 @@ describe('the sign-in screen', () => {
 
   it('forgets a registration left unfinished: whoever is at sign-in is not in the middle of a code check', async () => {
     mockStore.set('erp.registration.continuation', CONTINUATION);
-    renderWith(<LoginScreen />);
+    await renderWith(<LoginScreen />);
     await waitFor(() => expect(mockStore.has('erp.registration.continuation')).toBe(false));
   });
 });
@@ -184,7 +184,7 @@ describe('the sign-in screen', () => {
 describe('the form', () => {
   it('starts clean: a continuation left by an unfinished registration is forgotten', async () => {
     mockStore.set('erp.registration.continuation', 'continuation-left-behind');
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await waitFor(() => expect(mockStore.has('erp.registration.continuation')).toBe(false));
   });
 
@@ -195,10 +195,10 @@ describe('the form', () => {
       continuation: { token: CONTINUATION, expiresAt: '2026-10-13T09:15:00.000Z', expiresInSeconds: 900 },
       next: 'verify_contact',
     });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
 
     expect(api.post).toHaveBeenCalledTimes(1);
@@ -226,18 +226,18 @@ describe('the form', () => {
         continuation: { token: CONTINUATION, expiresAt: '2026-10-13T09:15:00.000Z', expiresInSeconds: 900 },
         next: 'verify_contact',
       });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     // The answer is lost, and the person taps again with nothing changed: the same attempt.
     for (let i = 0; i < 2; i++) {
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.submit')));
+        await fireEvent.press(screen.getByText(t('register.submit')));
       });
     }
     // Then they notice the number was wrong and correct it: a new attempt.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '+22236000002');
+    await fireEvent.changeText(textInputs()[0], '+22236000002');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
 
     const [first, retry, corrected] = (api.post as jest.Mock).mock.calls.map(([, body]) => body);
@@ -252,10 +252,10 @@ describe('the form', () => {
     (api.post as jest.Mock).mockRejectedValue(
       new ApiError('Registration cannot be completed right now: no verification code can be sent. Nothing was saved.', 503, 'registration_unavailable'),
     );
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
 
     expect(await screen.findByText(t('register.unavailable'))).toBeTruthy();
@@ -265,13 +265,13 @@ describe('the form', () => {
   });
 
   it('without the WhatsApp number nothing is sent: the number is required, said beside it — an email address alone is not enough', async () => {
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
-    const inputs = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(inputs[0], '');
-    fireEvent.changeText(inputs[1], 'aicha@example.invalid');
+    const inputs = textInputs();
+    await fireEvent.changeText(inputs[0], '');
+    await fireEvent.changeText(inputs[1], 'aicha@example.invalid');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
 
     expect(await screen.findByText(t('register.problem.phoneRequired'))).toBeTruthy();
@@ -281,77 +281,77 @@ describe('the form', () => {
 });
 
 describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
-  const value = (i: number) => screen.UNSAFE_getAllByType(TextInput)[i].props.value;
+  const value = (i: number) => textInputs()[i].props.value;
 
   it('says which step of three, and checks only that step’s fields before moving on — nothing is sent', async () => {
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('register.next')));
+    await fireEvent.press(screen.getByText(t('register.next')));
     expect(screen.getByText(t('register.problem.businessName'))).toBeTruthy();
     expect(screen.getByText(t('register.problem.branchName'))).toBeTruthy();
     // Still the business step: no Owner field yet, and nothing about a password not yet asked for.
     expect(screen.queryByText(t('register.field.ownerName'))).toBeNull();
     expect(screen.queryByText(t('register.problem.password'))).toBeNull();
     // Typing into a refused field is never blocked: the correction is taken and its message cleared.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Nour Electronics');
+    await fireEvent.changeText(textInputs()[0], 'Nour Electronics');
     expect(value(0)).toBe('Nour Electronics');
     expect(screen.queryByText(t('register.problem.businessName'))).toBeNull();
     expect(api.post).not.toHaveBeenCalled();
   });
 
   it('keeps every value going back and forward, by its own button or by the way back', async () => {
-    renderWith(<RegisterScreen />);
-    const [business, branch, city] = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(business, 'Nour Electronics');
-    fireEvent.changeText(branch, 'Main Store');
-    fireEvent.changeText(city, 'Rosso');
-    fireEvent.press(screen.getByText(t('register.next')));
+    await renderWith(<RegisterScreen />);
+    const [business, branch, city] = textInputs();
+    await fireEvent.changeText(business, 'Nour Electronics');
+    await fireEvent.changeText(branch, 'Main Store');
+    await fireEvent.changeText(city, 'Rosso');
+    await fireEvent.press(screen.getByText(t('register.next')));
     expect(screen.getByText(t('register.step', { current: 2, total: 3 }))).toBeTruthy();
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'Aicha');
+    await fireEvent.changeText(textInputs()[0], 'Aicha');
 
-    fireEvent.press(screen.getByText(t('register.previous')));
+    await fireEvent.press(screen.getByText(t('register.previous')));
     expect([value(0), value(1), value(2)]).toEqual(['Nour Electronics', 'Main Store', 'Rosso']);
-    fireEvent.press(screen.getByText(t('register.next')));
+    await fireEvent.press(screen.getByText(t('register.next')));
     expect(value(0)).toBe('Aicha');
 
     // The header arrow, the browser's Back or the gesture: one step back, never off the form.
     expect(mockPrevent.enabled).toBe(true);
-    act(() => mockPrevent.leave?.({ data: { action: { type: 'GO_BACK' } } }));
+    await act(() => mockPrevent.leave?.({ data: { action: { type: 'GO_BACK' } } }));
     expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
     expect(value(0)).toBe('Nour Electronics');
     expect(api.post).not.toHaveBeenCalled();
   });
 
   it('a clean first step may be left without a question; a typed one is guarded', async () => {
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(mockPrevent.enabled).toBe(false);
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[2], 'Rosso');
+    await fireEvent.changeText(textInputs()[2], 'Rosso');
     expect(mockPrevent.enabled).toBe(true);
   });
 
   it('switching the theme keeps the step and everything typed', async () => {
-    renderWith(
+    await renderWith(
       <>
         <ThemeToggle />
         <RegisterScreen />
       </>,
     );
-    toLastStep();
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '+22236000001');
+    await toLastStep();
+    await fireEvent.changeText(textInputs()[0], '+22236000001');
     await act(async () => {
-      fireEvent.press(screen.getByTestId('theme-toggle'));
+      await fireEvent.press(screen.getByTestId('theme-toggle'));
     });
     expect(screen.getByText(t('register.step', { current: 3, total: 3 }))).toBeTruthy();
     expect(value(0)).toBe('+22236000001');
-    fireEvent.press(screen.getByText(t('register.previous')));
+    await fireEvent.press(screen.getByText(t('register.previous')));
     expect(value(0)).toBe('Aicha');
   });
 });
 
 describe('the WhatsApp consent beside the number (D213)', () => {
   it('shows the server’s copy beside the number with a box that starts unticked, and the privacy page', async () => {
-    renderWith(<RegisterScreen />);
-    toLastStep();
+    await renderWith(<RegisterScreen />);
+    await toLastStep();
     const box = await screen.findByTestId('whatsapp-consent-check');
     expect(box.props.accessibilityRole).toBe('checkbox');
     expect(box.props.accessibilityState).toMatchObject({ checked: false });
@@ -360,37 +360,37 @@ describe('the WhatsApp consent beside the number (D213)', () => {
     expect(screen.getByText(CONSENT_COPY.en.body)).toBeTruthy();
     expect(api.get).toHaveBeenCalledWith('/messaging/whatsapp/consent?language=en');
     // Typing the number ticks nothing.
-    fillLastStep();
+    await fillLastStep();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
   });
 
   it('unticked, nothing is sent: the problem is said under the box, read with it, and the screen reader is taken there', async () => {
     const { AccessibilityInfo } = jest.requireActual('react-native') as typeof import('react-native');
     const focus = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation(() => undefined);
-    renderWith(<RegisterScreen />);
-    toLastStep();
+    await renderWith(<RegisterScreen />);
+    await toLastStep();
     await screen.findByTestId('whatsapp-consent-check');
-    fillLastStep();
+    await fillLastStep();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(api.post).not.toHaveBeenCalled();
     expect(screen.getByText(t('register.problem.whatsappConsent'))).toBeTruthy();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityHint).toBe(t('register.problem.whatsappConsent'));
     expect(focus).toHaveBeenCalledWith(expect.anything(), 'focus');
     // Ticking it clears the problem.
-    fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
+    await fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
     expect(screen.queryByText(t('register.problem.whatsappConsent'))).toBeNull();
     focus.mockRestore();
   });
 
   it('an updated copy refused by the server: the box is unticked again and the new copy is fetched — nothing moves on', async () => {
     (api.post as jest.Mock).mockRejectedValue(new ApiError('The WhatsApp consent shown is not the current one.', 400, 'whatsapp_consent_outdated'));
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     const reads = (api.get as jest.Mock).mock.calls.filter(([p]) => String(p).startsWith('/messaging/whatsapp/consent')).length;
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(await screen.findByText(t('consent.problem.outdated'))).toBeTruthy();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
@@ -400,10 +400,10 @@ describe('the WhatsApp consent beside the number (D213)', () => {
 
   it('a modified client that sends no consent is refused by the server, and the screen asks for it', async () => {
     (api.post as jest.Mock).mockRejectedValue(new ApiError('Agree to receive operational Dukan ERP messages on WhatsApp to continue.', 400, 'whatsapp_consent_required'));
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(await screen.findByText(t('register.problem.whatsappConsent'))).toBeTruthy();
     expect(routerReplace).not.toHaveBeenCalled();
@@ -414,8 +414,8 @@ describe('the WhatsApp consent beside the number (D213)', () => {
       if (consentCopyFor(path)) throw new TypeError('Network request failed');
       return {};
     });
-    renderWith(<RegisterScreen />);
-    toLastStep();
+    await renderWith(<RegisterScreen />);
+    await toLastStep();
     expect(await screen.findByText(t('consent.loadFailed'))).toBeTruthy();
     expect(screen.queryByTestId('whatsapp-consent-check')).toBeNull();
     expect(screen.getByText(t('action.retry'))).toBeTruthy();
@@ -425,13 +425,13 @@ describe('the WhatsApp consent beside the number (D213)', () => {
     await useI18n.getState().setLanguage(lang);
     try {
       (api.post as jest.Mock).mockResolvedValue({ status: 'pending_activation', created: true, publicStoreId: 'S', verification: null, continuation: null, next: 'sign_in' });
-      renderWith(<RegisterScreen />);
-      toLastStep();
+      await renderWith(<RegisterScreen />);
+      await toLastStep();
       expect(await screen.findByText(CONSENT_COPY[lang].agreement)).toBeTruthy();
-      fillLastStep();
-      fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
+      await fillLastStep();
+      await fireEvent.press(screen.getByTestId('whatsapp-consent-check'));
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.submit')));
+        await fireEvent.press(screen.getByText(t('register.submit')));
       });
       expect((api.post as jest.Mock).mock.calls[0][1]).toEqual(expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: lang, language: lang }));
     } finally {
@@ -456,13 +456,13 @@ describe('the code check', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
     client.setQueryData(['sales', 'b-old'], { rows: ['somebody else’s sale'] });
 
-    renderWith(<VerifyScreen />, client);
+    await renderWith(<VerifyScreen />, client);
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: 'en' }));
     expect(screen.getByText(t('register.verify.sent', { destination: 'a•••@example.com' }))).toBeTruthy();
 
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+    await fireEvent.changeText(textInputs()[0], '123456');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      await fireEvent.press(screen.getByText(t('register.verify.confirm')));
     });
 
     await waitFor(() => expect(routerReplace).toHaveBeenLastCalledWith('/access-closed'));
@@ -490,11 +490,11 @@ describe('the code check', () => {
       if (path === '/auth/register/verify/start') return { delivery: 'sent' };
       return confirm();
     });
-    renderWith(<VerifyScreen />);
+    await renderWith(<VerifyScreen />);
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: getLanguage() }));
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+    await fireEvent.changeText(textInputs()[0], '123456');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      await fireEvent.press(screen.getByText(t('register.verify.confirm')));
     });
   }
 
@@ -505,7 +505,7 @@ describe('the code check', () => {
     expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
     expect(t('register.verify.timeout')).toBe('We could not confirm in time. If the code was right, your account is ready — sign in with your password.');
     expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
-    fireEvent.press(screen.getByText(t('auth.action.signIn')));
+    await fireEvent.press(screen.getByText(t('auth.action.signIn')));
     expect(routerReplace).toHaveBeenLastCalledWith('/(auth)/login');
   });
 
@@ -516,7 +516,7 @@ describe('the code check', () => {
     expect(await screen.findByText(t('state.error.offline.body'))).toBeTruthy();
     expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
     expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
-    screen.unmount();
+    await screen.unmount();
 
     await confirmWith(() => {
       throw new ApiError('That code did not match.', 400);
@@ -540,16 +540,16 @@ describe('the code check', () => {
     expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      await fireEvent.press(screen.getByText(t('register.verify.confirm')));
     });
     expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
     expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
     expect(screen.queryByText('That code did not match.')).toBeNull();
 
     // Another code: the server's refusal is said, and sign-in stays offered for the code whose answer was lost.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '654321');
+    await fireEvent.changeText(textInputs()[0], '654321');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      await fireEvent.press(screen.getByText(t('register.verify.confirm')));
     });
     expect(await screen.findByText(t('register.verify.wrong'))).toBeTruthy();
     expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
@@ -565,7 +565,7 @@ describe('the code check', () => {
       expect(await screen.findByText(t('register.verify.wrong'))).toBeTruthy();
       expect(t('register.verify.wrong')).not.toMatch(/did not match/);
       expect(screen.queryByText(/That code did not match/)).toBeNull();
-      screen.unmount();
+      await screen.unmount();
       (api.post as jest.Mock).mockReset();
     }
     await useI18n.getState().setLanguage('en');
@@ -584,13 +584,13 @@ describe('the code check', () => {
       expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
       expect(screen.queryByText(/Gateway/)).toBeNull();
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+        await fireEvent.press(screen.getByText(t('register.verify.confirm')));
       });
       expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
       expect(screen.getByText(t('register.verify.timeout'))).toBeTruthy();
-      fireEvent.press(screen.getByText(t('auth.action.signIn')));
+      await fireEvent.press(screen.getByText(t('auth.action.signIn')));
       expect(routerReplace).toHaveBeenLastCalledWith('/(auth)/login');
-      screen.unmount();
+      await screen.unmount();
       (api.post as jest.Mock).mockReset();
     }
   });
@@ -608,20 +608,20 @@ describe('the code check', () => {
         }
         throw new ApiError('That code did not match.', 400);
       });
-      renderWith(<VerifyScreen />);
+      await renderWith(<VerifyScreen />);
       await waitFor(() => expect(api.post).toHaveBeenCalledWith('/auth/register/verify/start', { continuation: CONTINUATION, language: getLanguage() }));
-      fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+      await fireEvent.changeText(textInputs()[0], '123456');
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+        await fireEvent.press(screen.getByText(t('register.verify.confirm')));
       });
       expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
       expect(mockStore.has('erp.accessToken')).toBe(false);
       expect(routerReplace).not.toHaveBeenCalledWith('/access-closed');
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.verify.confirm')));
+        await fireEvent.press(screen.getByText(t('register.verify.confirm')));
       });
       expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
-      screen.unmount();
+      await screen.unmount();
       (api.post as jest.Mock).mockReset();
     }
   });
@@ -641,7 +641,7 @@ describe('the code check', () => {
     expect(await screen.findByText(t('register.verify.timeout'))).toBeTruthy();
     expect(screen.queryByText(t('state.error.offline.body'))).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.verify.confirm')));
+      await fireEvent.press(screen.getByText(t('register.verify.confirm')));
     });
     expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
     expect(screen.getByText(t('auth.action.signIn'))).toBeTruthy();
@@ -653,12 +653,12 @@ describe('the code check', () => {
     });
     expect(await screen.findByText(t('auth.error.unknown'))).toBeTruthy();
     expect(screen.queryByText(t('register.verify.timeout'))).toBeNull();
-    screen.unmount();
+    await screen.unmount();
     (api.post as jest.Mock).mockReset();
 
     mockStore.set('erp.registration.continuation', CONTINUATION);
     (api.post as jest.Mock).mockRejectedValue(new ApiError('Gateway Timeout', 504));
-    renderWith(<VerifyScreen />);
+    await renderWith(<VerifyScreen />);
     expect(await screen.findByText(t('register.verify.sendUnknown'))).toBeTruthy();
     expect(screen.queryByText(t('register.verify.notSent'))).toBeNull();
   });
@@ -669,12 +669,12 @@ describe('the code check', () => {
       mockStore.set('erp.registration.continuation', CONTINUATION);
       // The server's one sentence for every refused code request: an expired or spent sign-up, a code limit reached.
       (api.post as jest.Mock).mockRejectedValue(new ApiError('That registration cannot be continued.', 400));
-      renderWith(<VerifyScreen />);
+      await renderWith(<VerifyScreen />);
       expect(await screen.findByText(t('register.verify.notSent'))).toBeTruthy();
       expect(t('register.verify.notSent')).not.toMatch(/code was not sent|cannot be continued/);
       expect(screen.queryByText(/cannot be continued/)).toBeNull();
       expect(screen.queryByText(t('register.failed'))).toBeNull();
-      screen.unmount();
+      await screen.unmount();
       (api.post as jest.Mock).mockReset();
     }
     await useI18n.getState().setLanguage('en');
@@ -696,7 +696,7 @@ describe('the code check', () => {
         },
       ];
       (api.post as jest.Mock).mockImplementation(async () => answers.shift()!());
-      renderWith(<VerifyScreen />);
+      await renderWith(<VerifyScreen />);
       await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
       // Send again waits a minute after a code was sent.
       for (let second = 0; second <= 60; second++) {
@@ -705,18 +705,18 @@ describe('the code check', () => {
         });
       }
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.verify.resend')));
+        await fireEvent.press(screen.getByText(t('register.verify.resend')));
       });
       expect(await screen.findByText(t('register.verify.tooMany'))).toBeTruthy();
       expect(screen.queryByText(/ThrottlerException|Too Many Requests/)).toBeNull();
       await act(async () => {
-        fireEvent.press(screen.getByText(t('register.verify.resend')));
+        await fireEvent.press(screen.getByText(t('register.verify.resend')));
       });
       expect(await screen.findByText(t('register.verify.notSent'))).toBeTruthy();
       expect(screen.queryByText(t('register.verify.tooMany'))).toBeNull();
       expect(screen.queryByText(/Too many codes requested/)).toBeNull();
       expect(api.post).toHaveBeenCalledTimes(3);
-      screen.unmount();
+      await screen.unmount();
     } finally {
       jest.useRealTimers();
       await useI18n.getState().setLanguage('en');
@@ -726,7 +726,7 @@ describe('the code check', () => {
   it('a code request with no answer is not a refusal: the code may be on its way, and nothing says it was not sent', async () => {
     mockStore.set('erp.registration.continuation', CONTINUATION);
     (api.post as jest.Mock).mockRejectedValue(new RequestTimeout());
-    renderWith(<VerifyScreen />);
+    await renderWith(<VerifyScreen />);
     expect(await screen.findByText(t('register.verify.sendUnknown'))).toBeTruthy();
     expect(t('register.verify.sendUnknown')).toBe('We could not tell whether the code was sent. If it does not arrive in a few minutes, try again.');
     expect(screen.queryByText(t('register.verify.notSent'))).toBeNull();
@@ -741,7 +741,7 @@ describe('the code check', () => {
     expect(await screen.findByText(t('register.verify.tooMany'))).toBeTruthy();
     expect(screen.queryByText(/ThrottlerException/)).toBeNull();
     expect(screen.queryByText(t('register.verify.wrong'))).toBeNull();
-    screen.unmount();
+    await screen.unmount();
     (api.post as jest.Mock).mockReset();
 
     await useI18n.getState().setLanguage('fr');
@@ -750,7 +750,7 @@ describe('the code check', () => {
     });
     expect(await screen.findByText(t('auth.error.unknown'))).toBeTruthy();
     expect(screen.queryByText(/Forbidden resource/)).toBeNull();
-    screen.unmount();
+    await screen.unmount();
     await useI18n.getState().setLanguage('en');
   });
 });

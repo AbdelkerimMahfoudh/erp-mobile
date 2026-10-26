@@ -180,7 +180,7 @@ export default function TransfersScreen() {
               <Text variant="caption" tone="tertiary" style={styles.end}>
                 {t('transfers.endOfResults')}
               </Text>
-            ) : null
+            ) : undefined
           }
         />
       )}

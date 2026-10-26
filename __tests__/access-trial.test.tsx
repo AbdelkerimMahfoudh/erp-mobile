@@ -19,7 +19,8 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import type { ReactTestInstance } from 'react-test-renderer';
+import type { TestInstance as ReactTestInstance } from 'test-renderer';
+import { componentsWithin, type ComponentNode } from './tree';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import * as layoutDirection from '../lib/design/layout-direction';
@@ -102,7 +103,7 @@ function serve(entitlement: object, trialSetup: TrialSetupStatus | Error) {
   });
 }
 
-function renderScreen(node: React.ReactElement) {
+async function renderScreen(node: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -118,14 +119,15 @@ function textOf(node: ReactTestInstance | string): string {
 }
 
 /** Anything that reacts to a press, or presents itself as a button or a link. */
-function pressables(node: ReactTestInstance): ReactTestInstance[] {
-  return node.findAll(
-    (n) =>
-      typeof n.props.onPress === 'function' ||
-      typeof n.props.onLongPress === 'function' ||
-      ['button', 'link', 'imagebutton', 'togglebutton'].includes(n.props.accessibilityRole) ||
-      ['button', 'link'].includes(n.props.role) ||
-      n.props.href !== undefined,
+function pressables(node: ReactTestInstance): ComponentNode[] {
+  return componentsWithin(
+    node,
+    (props) =>
+      typeof props.onPress === 'function' ||
+      typeof props.onLongPress === 'function' ||
+      ['button', 'link', 'imagebutton', 'togglebutton'].includes(props.accessibilityRole) ||
+      ['button', 'link'].includes(props.role) ||
+      props.href !== undefined,
   );
 }
 
@@ -143,7 +145,7 @@ beforeEach(() => {
 describe('the Owner of a business that has not started', () => {
   it('sees the display-only card — eligible, not started, the server’s days, the masked contacts — and that the instructions were sent', async () => {
     serve(notStarted, setup({ delivery: 'sent' }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
 
     const card = await screen.findByTestId('trial-setup-card');
     expect(screen.getByText('Your business is eligible for a 7-day free trial')).toBeTruthy();
@@ -167,33 +169,33 @@ describe('the Owner of a business that has not started', () => {
   it('is not sent to an organisation administrator: the card names Dukan ERP support, and the organisation’s lines are left out', async () => {
     for (const over of [{ delivery: 'sent' }, { delivery: 'failed', failureReason: 'no_email', lastSentAt: null }, { delivery: 'not_sent', ...nothingSent }] as const) {
       serve(notStarted, setup(over));
-      const view = renderScreen(<AccessClosed />);
+      const view = await renderScreen(<AccessClosed />);
       await screen.findByTestId('trial-setup-card');
       expect(screen.queryByText(t('access.managed'))).toBeNull();
       expect(screen.queryByText(t('access.mistake'))).toBeNull();
-      view.unmount();
+      await view.unmount();
     }
   });
 
   it('keeps only the screen’s three general actions — none of them about the trial — and never writes anything', async () => {
     serve(notStarted, setup({ delivery: 'sent' }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     await screen.findByTestId('trial-setup-card');
 
     const labels = screen.getAllByRole('button').map((n) => textOf(n).replace(/\s+/g, ' ').trim());
     expect(labels).toEqual([t('access.recheck'), t('action.signOut'), t('account.delete.link')]);
-    expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
+    expect(textOf(screen.container)).not.toMatch(TRIAL_ACTION);
     expect(api.post).not.toHaveBeenCalled();
   });
 
   it('Check again reads the business’s access and the instructions’ status again — reads only', async () => {
     serve(notStarted, setup({ delivery: 'failed', failureReason: 'no_email', lastSentAt: null }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     await screen.findByText('The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.');
 
     serve(notStarted, setup({ delivery: 'sent' }));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('access.recheck')));
+      await fireEvent.press(screen.getByText(t('access.recheck')));
     });
     expect(await screen.findByText(SENT_BY_WHATSAPP)).toBeTruthy();
     const reads = (api.get as jest.Mock).mock.calls.map(([path]) => path);
@@ -204,7 +206,7 @@ describe('the Owner of a business that has not started', () => {
 
   it('waiting for the WhatsApp number: the instructions go automatically once it is verified — nothing to press', async () => {
     serve(notStarted, setup({ delivery: 'waiting_for_contact', missingContacts: ['phone'], destinations: [{ channel: 'email', masked: 'a•••@example.com' }], ...nothingSent }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     expect(screen.getByText('The instructions will be sent automatically once your WhatsApp number is verified.')).toBeTruthy();
     expect(screen.queryByText('Verified contact: +222••••1234')).toBeNull();
@@ -213,42 +215,42 @@ describe('the Owner of a business that has not started', () => {
 
   it('waiting for the email address — a business that registered with one before the number was required — says so in its own words', async () => {
     serve(notStarted, setup({ delivery: 'waiting_for_contact', requiredContacts: ['email'], missingContacts: ['email'], destinations: [], ...nothingSent }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     expect(await screen.findByText('The instructions will be sent automatically once your email address is verified.')).toBeTruthy();
   });
 
   it('being sent — asked for, not yet handed to a provider: says so, beside the verified contacts, with nothing to press', async () => {
     serve(notStarted, setup({ delivery: 'sending', lastSentAt: null }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     expect(screen.getByText('We are sending the instructions for completing your business setup to your verified contact.')).toBeTruthy();
     expect(screen.getByText('Verified contact: +222••••1234')).toBeTruthy();
     expect(pressables(card)).toHaveLength(0);
-    expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
+    expect(textOf(screen.container)).not.toMatch(TRIAL_ACTION);
     expect(api.post).not.toHaveBeenCalled();
   });
 
   it('carried by nothing: could not be sent — whatever the reason the server recorded, which the app does not repeat', async () => {
     for (const failureReason of ['no_email', 'email_unavailable', 'opted_out'] as const) {
       serve(notStarted, setup({ delivery: 'failed', failureReason, lastSentAt: null }));
-      const view = renderScreen(<AccessClosed />);
+      const view = await renderScreen(<AccessClosed />);
       const card = await screen.findByTestId('trial-setup-card');
       expect(screen.getByText('The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.')).toBeTruthy();
       expect(textOf(card)).not.toMatch(new RegExp(failureReason));
       expect(pressables(card)).toHaveLength(0);
-      view.unmount();
+      await view.unmount();
     }
   });
 
   it('never attempted: have not been sent', async () => {
     serve(notStarted, setup({ delivery: 'not_sent', ...nothingSent }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     expect(await screen.findByText('The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.')).toBeTruthy();
   });
 
   it('the number of days is the server’s, never one the app works out', async () => {
     serve(notStarted, setup({ durationDays: 9 }));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     expect(await screen.findByText('Duration after activation: 9 days')).toBeTruthy();
   });
 });
@@ -269,7 +271,7 @@ describe('instructions that were sent — by which channel, to which contact, on
   /** The card, read once it shows. */
   async function cardFor(over: Parameters<typeof setup>[0]) {
     serve(notStarted, setup(over));
-    const view = renderScreen(<AccessClosed />);
+    const view = await renderScreen(<AccessClosed />);
     const card = await screen.findByTestId('trial-setup-card');
     return { card, view };
   }
@@ -303,11 +305,11 @@ describe('instructions that were sent — by which channel, to which contact, on
     for (const key of ['channel', 'destination', 'lastSentAt', 'fallbackReason', 'failureReason']) delete olderServer[key];
     for (const answer of [setup({ channel: null, destination: null }), setup({ lastSentAt: null }), olderServer as TrialSetupStatus]) {
       serve(notStarted, answer);
-      const view = renderScreen(<AccessClosed />);
+      const view = await renderScreen(<AccessClosed />);
       const card = await screen.findByTestId('trial-setup-card');
       expect(screen.getByText(SENT_GENERAL)).toBeTruthy();
       expect(textOf(card)).not.toMatch(/by WhatsApp|by email| on \d/);
-      view.unmount();
+      await view.unmount();
     }
   });
 
@@ -316,11 +318,11 @@ describe('instructions that were sent — by which channel, to which contact, on
     for (const key of ['channel', 'destination', 'lastSentAt']) delete olderServer[key];
     for (const answer of [setup({ delivery: 'not_sent', ...nothingSent }), olderServer as TrialSetupStatus]) {
       serve(notStarted, answer);
-      const view = renderScreen(<AccessClosed />);
+      const view = await renderScreen(<AccessClosed />);
       const card = await screen.findByTestId('trial-setup-card');
       expect(screen.getByText(NEVER)).toBeTruthy();
       expect(textOf(card)).not.toMatch(/were sent|latest/);
-      view.unmount();
+      await view.unmount();
     }
   });
 
@@ -344,13 +346,13 @@ describe('instructions that were sent — by which channel, to which contact, on
       screen.getByText('Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par WhatsApp au +222••••1234 le 13 oct. 2026 · 19:00 (heure normale du Japon).'),
     ).toBeTruthy();
     expect(textOf(whatsapp.card)).not.toMatch(LINK);
-    whatsapp.view.unmount();
+    await whatsapp.view.unmount();
 
     const email = await cardFor({ channel: 'email', destination: 'a•••@example.com', fallbackReason: 'whatsapp_disabled' });
     expect(
       screen.getByText('Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par e-mail à a•••@example.com le 13 oct. 2026 · 19:00 (heure normale du Japon).'),
     ).toBeTruthy();
-    email.view.unmount();
+    await email.view.unmount();
 
     const latest = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
     expect(
@@ -371,7 +373,7 @@ describe('instructions that were sent — by which channel, to which contact, on
     expect(screen.getByText(`أرسلنا تعليمات إكمال إعداد نشاطك التجاري عبر واتساب إلى ${number} في ${day}.`)).toBeTruthy();
     expect(textOf(whatsapp.card)).not.toMatch(LINK);
     expect(textOf(whatsapp.card)).not.toMatch(TRIAL_ACTION);
-    whatsapp.view.unmount();
+    await whatsapp.view.unmount();
 
     const latest = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
     expect(screen.getByText(`أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في ${day}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
@@ -382,12 +384,12 @@ describe('instructions that were sent — by which channel, to which contact, on
 describe('staff of a business that has not started', () => {
   it('are refused the Owner’s status (403) and see only the neutral words — never the trial or its instructions', async () => {
     serve(notStarted, new ApiError('Only the business owner can see this.', 403, 'owner_only'));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
 
     expect(await screen.findByText('The business owner is finishing the setup. Check again later.')).toBeTruthy();
     expect(screen.getByText('Access has not started yet')).toBeTruthy();
     expect(screen.queryByTestId('trial-setup-card')).toBeNull();
-    expect(textOf(screen.root)).not.toMatch(/trial|instructions|verified contact/i);
+    expect(textOf(screen.container)).not.toMatch(/trial|instructions|verified contact/i);
     // Staff keep the organisation's lines: their Owner is the one to ask.
     expect(screen.getByText(t('access.managed'))).toBeTruthy();
     expect(screen.getByText(t('access.mistake'))).toBeTruthy();
@@ -398,7 +400,7 @@ describe('staff of a business that has not started', () => {
 describe('a business closed for another reason', () => {
   it('keeps the organisation’s lines, whoever reads them', async () => {
     serve({ ...base, state: 'pending', canRead: false, canWrite: false, trial: null }, new Error('not asked'));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     expect(await screen.findByText(t('access.closed.pending.body'))).toBeTruthy();
     expect(screen.getByText(t('access.managed'))).toBeTruthy();
     expect(screen.getByText(t('access.mistake'))).toBeTruthy();
@@ -408,7 +410,7 @@ describe('a business closed for another reason', () => {
 describe('before the server has answered', () => {
   it('the closed screen waits for its word rather than guess a reason', async () => {
     (api.get as jest.Mock).mockImplementation(() => new Promise(() => undefined));
-    renderScreen(<AccessClosed />);
+    await renderScreen(<AccessClosed />);
     await act(async () => undefined);
     for (const key of ['access.closed.pending.title', 'access.closed.not_started.title', 'access.closed.ended.title'] as const) {
       expect(screen.queryByText(t(key))).toBeNull();
@@ -419,20 +421,20 @@ describe('before the server has answered', () => {
 describe('a running free trial', () => {
   it('says "Free trial" and its exact end on the business’s clock with the clock’s name — not this machine’s', async () => {
     serve(running('Asia/Tokyo'), new Error('not asked'));
-    renderScreen(<AccessScreen />);
+    await renderScreen(<AccessScreen />);
 
     const line = await screen.findByText('Ends 20 Oct 2026 · 19:30 (Japan Standard Time)');
     expect(line.props.accessibilityLabel).toBe('Free trial: active, ends 20 Oct 2026 · 19:30 (Japan Standard Time)');
     expect(screen.getAllByText('Free trial').length).toBeGreaterThan(0);
     // Whatever zone this machine is in, its own reading of the instant is not what is shown (unless it is Tokyo's).
     const machine = format(new Date(ENDS), 'HH:mm');
-    if (machine !== '19:30') expect(textOf(screen.root)).not.toContain(machine);
-    expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
+    if (machine !== '19:30') expect(textOf(screen.container)).not.toContain(machine);
+    expect(textOf(screen.container)).not.toMatch(TRIAL_ACTION);
   });
 
   it('the same instant in Nouakchott reads on that clock — the server’s zone decides, nothing written in the app', async () => {
     serve(running('Africa/Nouakchott'), new Error('not asked'));
-    renderScreen(<AccessScreen />);
+    await renderScreen(<AccessScreen />);
     expect(await screen.findByText('Ends 20 Oct 2026 · 10:30 (Greenwich Mean Time)')).toBeTruthy();
   });
 
@@ -440,7 +442,7 @@ describe('a running free trial', () => {
     for (const kind of ['paid', 'granted'] as const) {
       const trial = { ...running('Asia/Tokyo').trial, accessAfterTrial: { kind, startsAt: ENDS } };
       serve({ ...running('Asia/Tokyo'), status: 'activated', trial }, new Error('not asked'));
-      const view = renderScreen(
+      const view = await renderScreen(
         <>
           <AccessNotice />
           <AccessScreen />
@@ -448,8 +450,8 @@ describe('a running free trial', () => {
       );
       expect(await screen.findByText('Ends 20 Oct 2026 · 19:30 (Japan Standard Time)')).toBeTruthy();
       for (const key of ['access.readOnly.body', 'access.readOnly.notice', 'access.readOnly.kept'] as const) expect(screen.queryByText(t(key))).toBeNull();
-      expect(textOf(screen.root)).not.toMatch(/read-only|read and export|ended/i);
-      view.unmount();
+      expect(textOf(screen.container)).not.toMatch(/read-only|read and export|ended/i);
+      await view.unmount();
     }
   });
 });
@@ -457,7 +459,7 @@ describe('a running free trial', () => {
 describe('an ended free trial', () => {
   it('is read-only and says when it ended, on the access screen and in the tabs’ notice', async () => {
     serve(ended('America/New_York'), new Error('not asked'));
-    renderScreen(
+    await renderScreen(
       <>
         <AccessNotice />
         <AccessScreen />
@@ -466,6 +468,6 @@ describe('an ended free trial', () => {
     const sentence = 'The free trial ended on 20 Oct 2026 · 06:30 (Eastern Daylight Time). You can still read and export everything.';
     await waitFor(() => expect(screen.getAllByText(sentence)).toHaveLength(2));
     expect(screen.getAllByText('Free trial ended').length).toBeGreaterThan(0);
-    expect(textOf(screen.root)).not.toMatch(TRIAL_ACTION);
+    expect(textOf(screen.container)).not.toMatch(TRIAL_ACTION);
   });
 });

@@ -157,7 +157,7 @@ export default function CatalogScreen() {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={page.isRefetching} onRefresh={() => page.refetch()} tintColor={colors.brand[600]} />
+            <RefreshControl refreshing={page.isRefetching} onRefresh={() => void page.refetch()} tintColor={colors.brand[600]} />
           }
           ListHeaderComponent={
             rows.length > 0 ? (
@@ -165,7 +165,7 @@ export default function CatalogScreen() {
               <AppText variant="caption" tone="secondary" style={styles.count}>
                 {total === 1 ? t('catalog.count.one') : t('catalog.count', { count: total })}
               </AppText>
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             page.isLoading ? (
@@ -189,7 +189,7 @@ export default function CatalogScreen() {
           onEndReached={() => {
             if (page.hasNextPage && !page.isFetchingNextPage) void page.fetchNextPage();
           }}
-          ListFooterComponent={page.isFetchingNextPage ? <ActivityIndicator color={colors.brand[600]} /> : null}
+          ListFooterComponent={page.isFetchingNextPage ? <ActivityIndicator color={colors.brand[600]} /> : undefined}
         />
       )}
 
@@ -202,7 +202,7 @@ export default function CatalogScreen() {
         >
           <Plus size={26} color={colors.semantic.onPrimary} />
         </Pressable>
-      ) : null}
+      ) : undefined}
     </SafeAreaView>
   );
 }

@@ -6,7 +6,7 @@
  * shown once. A WhatsApp number is required.
  */
 import React from 'react';
-import { Share, TextInput } from 'react-native';
+import { Share } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
@@ -41,12 +41,13 @@ import { api } from '../lib/api-client';
 import { dialog } from '../lib/dialog';
 import { CreateMemberSheet } from '../components/team/CreateMemberSheet';
 import { PendingPanel } from '../components/team/PendingPanel';
+import { textInputs } from './tree';
 
 const REF = 'K7QM-9XRT-2CHD';
 const ISSUED = { reference: REF, link: `dukanerp://join?ref=${REF}`, expiresAt: '2026-10-22T08:00:00.000Z' };
 
-function wrap(node: React.ReactNode) {
-  render(
+async function wrap(node: React.ReactNode) {
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { gcTime: 0 } } })}>{node}</QueryClientProvider>
     </ThemeProvider>,
@@ -54,7 +55,7 @@ function wrap(node: React.ReactNode) {
 }
 const press = async (label: string) => {
   await act(async () => {
-    fireEvent.press(screen.getByText(label));
+    await fireEvent.press(screen.getByText(label));
   });
 };
 
@@ -69,13 +70,13 @@ afterEach(() => jest.restoreAllMocks());
 
 describe('adding a person', () => {
   async function fill(phone: string) {
-    wrap(<CreateMemberSheet open onClose={() => undefined} />);
+    await wrap(<CreateMemberSheet open onClose={() => undefined} />);
     await screen.findByText('Main');
-    const [name, number] = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(name, 'Fatima');
-    fireEvent.changeText(number, phone);
+    const [name, number] = textInputs();
+    await fireEvent.changeText(name, 'Fatima');
+    await fireEvent.changeText(number, phone);
     await act(async () => {
-      fireEvent(screen.getByText('Main'), 'press');
+      await fireEvent(screen.getByText('Main'), 'press');
     });
   }
 
@@ -144,8 +145,8 @@ describe('a pending account', () => {
       pending: { phone: 'awaiting', email: 'awaiting', invitation: { state, expiresAt: state === 'none' ? null : ISSUED.expiresAt }, seats: [] },
     }) as unknown as TeamUser;
 
-  it('shows where the invitation stands — never the reference — and offers no code to send', () => {
-    wrap(<PendingPanel user={fatima('code_requested')} onCancelled={() => undefined} />);
+  it('shows where the invitation stands — never the reference — and offers no code to send', async () => {
+    await wrap(<PendingPanel user={fatima('code_requested')} onCancelled={() => undefined} />);
     expect(screen.getByText(t('team.pending.invitation.code_requested'))).toBeTruthy();
     expect(screen.queryByText(REF)).toBeNull();
     expect(screen.getByText(`fatima@shop.test · ${t('team.pending.email.optional')}`)).toBeTruthy();
@@ -154,7 +155,7 @@ describe('a pending account', () => {
 
   it('a new invitation replaces a live one only once confirmed, and its reference is shown this once', async () => {
     (api.post as jest.Mock).mockResolvedValue({ invitation: ISSUED });
-    wrap(<PendingPanel user={fatima('open')} onCancelled={() => undefined} />);
+    await wrap(<PendingPanel user={fatima('open')} onCancelled={() => undefined} />);
     await press(t('team.pending.invitation.new'));
     expect(dialog.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: t('team.pending.invitation.newConfirm.title') }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/users/u-fatima/invitation'));
@@ -164,7 +165,7 @@ describe('a pending account', () => {
 
   it('an account from before invitations, or an expired one: a new invitation is issued without a confirmation', async () => {
     (api.post as jest.Mock).mockResolvedValue({ invitation: ISSUED });
-    wrap(<PendingPanel user={fatima('none')} onCancelled={() => undefined} />);
+    await wrap(<PendingPanel user={fatima('none')} onCancelled={() => undefined} />);
     expect(screen.getByText(t('team.pending.invitation.none'))).toBeTruthy();
     await press(t('team.pending.invitation.new'));
     expect(dialog.confirm).not.toHaveBeenCalled();
@@ -174,7 +175,7 @@ describe('a pending account', () => {
   it('withdrawing the account asks first, then ends it on the server', async () => {
     (api.post as jest.Mock).mockResolvedValue({ cancelled: true });
     const done = jest.fn();
-    wrap(<PendingPanel user={fatima('open')} onCancelled={done} />);
+    await wrap(<PendingPanel user={fatima('open')} onCancelled={done} />);
     await press(t('team.pending.cancel'));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/users/u-fatima/cancel-invitation'));
     expect(done).toHaveBeenCalled();

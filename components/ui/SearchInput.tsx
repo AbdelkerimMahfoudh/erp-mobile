@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle, type TextInputInstance } from 'react-native';
 import { ScanLine, Search, X } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
 import { textAlign, writingDirection } from '../../lib/design/direction';
@@ -39,7 +39,7 @@ export interface SearchInputProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const SearchInput = forwardRef<TextInput, SearchInputProps>(function SearchInput(
+export const SearchInput = forwardRef<TextInputInstance, SearchInputProps>(function SearchInput(
   {
     value,
     onChangeText,

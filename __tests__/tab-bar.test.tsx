@@ -100,7 +100,7 @@ async function mountBar(activity: Activity | null, granted: readonly Permission[
   useBranch.setState({ branchId: 'b1', branchName: 'Boutique 2', role: 'owner' });
   usePermissionStore.setState({ granted: new Set(granted), branchId: 'b1', status: 'ready', error: null });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  render(
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <TabsLayout />
@@ -165,10 +165,10 @@ describe('the names fit, measured, at 320 and 393 points', () => {
     const base = width < 360 ? 10 : 11;
     const column = (base === 10 ? 0 : 1) + (text === 'large' ? 2 : 0);
     // The device reports each hidden name's width; here, the measured one.
-    const measures = screen.UNSAFE_root.findAll((n) => typeof n.props.onLayout === 'function' && typeof n.props.children === 'string' && n.props.children in WIDTHS);
+    const measures = screen.container.queryAll((n) => typeof n.props.onLayout === 'function' && typeof n.props.children === 'string' && n.props.children in WIDTHS);
     expect(measures.length).toBeGreaterThan(0);
     await act(async () => {
-      for (const node of measures) fireEvent(node, 'layout', { nativeEvent: { layout: { width: WIDTHS[node.props.children as string][column], height: 14 } } });
+      for (const node of measures) await fireEvent(node, 'layout', { nativeEvent: { layout: { width: WIDTHS[node.props.children as string][column], height: 14 } } });
     });
     const shown = bar();
     expect(shown).toHaveLength(5);

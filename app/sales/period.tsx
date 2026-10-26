@@ -92,7 +92,7 @@ export default function SalesForPeriodScreen() {
       <Text variant="caption" tone="tertiary" style={styles.hint}>
         {t('salesPeriod.tapSale')}
       </Text>
-    ) : null;
+    ) : undefined;
 
   return (
     <Screen scroll={false}>

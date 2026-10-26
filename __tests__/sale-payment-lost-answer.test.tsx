@@ -56,11 +56,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 /** One payment screen: mount, send once, settle, leave. */
 async function attempt(saleId = SALE) {
-  const screen = renderHook(() => useRecordSalePayment(saleId), { wrapper });
+  const screen = await renderHook(() => useRecordSalePayment(saleId), { wrapper });
   await act(async () => {
     await screen.result.current.mutateAsync(INPUT).catch(() => undefined);
   });
-  screen.unmount();
+  await screen.unmount();
 }
 
 beforeEach(() => {

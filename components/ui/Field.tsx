@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
+  type TextInputInstance,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
@@ -49,7 +50,7 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField(
+export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function TextField(
   {
     label,
     hint,
@@ -189,7 +190,7 @@ export interface MoneyFieldProps extends Omit<TextFieldProps, 'keyboardType' | '
  * Money input. Sanitises as you type so a price can never carry a stray letter
  * into a sale, and shows the currency inline so nobody has to wonder.
  */
-export const MoneyField = forwardRef<TextInput, MoneyFieldProps>(function MoneyField(
+export const MoneyField = forwardRef<TextInputInstance, MoneyFieldProps>(function MoneyField(
   { showCurrency = true, allowNegative = false, onChangeText, trailing, ...rest },
   ref,
 ) {

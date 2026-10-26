@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, Store } from 'lucide-react-native';
@@ -110,7 +110,7 @@ export interface AuthPageProps {
   /** Below the main content and visibly apart from it: language, help and policies. */
   footer?: React.ReactNode;
   /** For a page that moves between steps and starts each at the top. */
-  scrollRef?: React.Ref<ScrollView>;
+  scrollRef?: React.Ref<ScrollViewInstance>;
 }
 
 /**

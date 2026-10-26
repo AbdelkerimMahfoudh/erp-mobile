@@ -121,7 +121,7 @@ function serve(path: string): unknown {
   return new Promise(() => undefined);
 }
 
-function mount(node: React.ReactElement) {
+async function mount(node: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } } });
   return render(
     <ThemeProvider>
@@ -142,9 +142,9 @@ const queued = (over: Partial<QueueItem> = {}): QueueItem => ({
   state: 'waiting_for_connection', createdAt: 1, lastAttemptAt: null, attempts: 0, summary: 'Cash out, credit in · 5 000 MRU · Bankily', lastError: null, ...over,
 });
 
-const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+const settle = async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
 /** A sheet's step waits for the one before it to be gone (`BottomSheet`'s dismissal report, at most 800 ms). */
-const sheetGone = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 900)));
+const sheetGone = async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 900)));
 
 beforeEach(async () => {
   await useI18n.getState().setLanguage('en');
@@ -153,12 +153,12 @@ beforeEach(async () => {
   useQueue.setState({ items: [], running: false, scope: { companyId: 'c1', branchId: 'b1', userId: 'u-owner' } });
   mockParams.id = undefined;
 });
-afterEach(() => settle());
+afterEach(async () => settle());
 
 describe('Money on an agent branch', () => {
   it('the floats on their own card: each provider apart, Unknown with its day, below zero in words — the drawer left to the top card', async () => {
     signIn('owner', OWNER, 'money_agent');
-    mount(<MoneyTabScreen />);
+    await mount(<MoneyTabScreen />);
     const card = await screen.findByTestId('money-floats');
     expect(within(card).getByText(t('agent.money.title'))).toBeTruthy();
     expect(await within(card).findByText(t('agent.positions.float', { provider: 'Bankily' }))).toBeTruthy();
@@ -178,7 +178,7 @@ describe('Money on an agent branch', () => {
 
   it('without the figures, the floats card carries the drawer itself; nobody but the Owner sets a float', async () => {
     signIn('store_employee', EMPLOYEE, 'money_agent');
-    mount(<MoneyTabScreen />);
+    await mount(<MoneyTabScreen />);
     const card = await screen.findByTestId('money-floats');
     expect(await within(card).findByTestId('position-cash')).toBeTruthy();
     expect(within(card).queryByText(t('agent.setFloat.action'))).toBeNull();
@@ -187,7 +187,7 @@ describe('Money on an agent branch', () => {
   it('while an exchange waits on the phone the floats say Provisional and include it', async () => {
     signIn('owner', OWNER, 'both');
     useQueue.setState({ items: [queued()] });
-    mount(<MoneyTabScreen />);
+    await mount(<MoneyTabScreen />);
     const card = await screen.findByTestId('money-floats');
     expect(await within(card).findByTestId('positions-provisional')).toBeTruthy();
     // Give cash 5 000 / receive Bankily credit, 100 commission typed (D164): the float 12 490 + 5 000 — the commission is the drawer’s.
@@ -196,7 +196,7 @@ describe('Money on an agent branch', () => {
 
   it('a shop shows no float at all', async () => {
     signIn('owner', OWNER, 'electronics');
-    mount(<MoneyTabScreen />);
+    await mount(<MoneyTabScreen />);
     await settle();
     await settle();
     expect(screen.queryByTestId('money-floats')).toBeNull();
@@ -207,19 +207,19 @@ describe('Money on an agent branch', () => {
 describe('the Owner sets a float', () => {
   it('this branch’s float, from the provider’s app; a retry after a lost answer is the same record', async () => {
     signIn('owner', OWNER, 'money_agent');
-    mount(<MoneyTabScreen />);
-    fireEvent.press(await screen.findByText(t('agent.setFloat.action')));
+    await mount(<MoneyTabScreen />);
+    await fireEvent.press(await screen.findByText(t('agent.setFloat.action')));
     // The list: each float and each held commission, Unknown kept Unknown — never the drawer.
     expect(await screen.findByText(t('agent.setFloat.title'))).toBeTruthy();
-    fireEvent.press(screen.getAllByText(t('agent.positions.float', { provider: 'Masrvi' })).slice(-1)[0]);
+    await fireEvent.press(screen.getAllByText(t('agent.positions.float', { provider: 'Masrvi' })).slice(-1)[0]);
     await sheetGone();
     expect(await screen.findByText(t('agent.setFloat.branchOnly', { provider: 'Masrvi' }))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('agent.setFloat.amount'), { exact: false }), '1500');
+    await fireEvent.changeText(screen.getByLabelText(t('agent.setFloat.amount'), { exact: false }), '1500');
     (api.post as jest.Mock).mockRejectedValueOnce(new RequestTimeout()).mockResolvedValueOnce({ position: {}, float: positions.floats[1] });
-    fireEvent.press(screen.getByText(t('moneyTab.anchor.save')));
+    await fireEvent.press(screen.getByText(t('moneyTab.anchor.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     await settle();
-    fireEvent.press(screen.getByText(t('moneyTab.anchor.save')));
+    await fireEvent.press(screen.getByText(t('moneyTab.anchor.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
     const [[path, first], [, second]] = (api.post as jest.Mock).mock.calls;
     expect(path).toBe('/agent/positions');
@@ -232,14 +232,14 @@ describe('rebalancing', () => {
   it('buying float with cash: the amount typed once, balanced, sent as two legs', async () => {
     signIn('store_manager', MANAGER, 'money_agent');
     (api.post as jest.Mock).mockResolvedValue({ rebalancing: { id: 'r1' } });
-    mount(<AgentRebalanceScreen />);
+    await mount(<AgentRebalanceScreen />);
     expect(await screen.findByTestId('rebalance-line-1')).toBeTruthy();
-    fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'Bought float with cash');
-    fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '10000');
+    await fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'Bought float with cash');
+    await fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '10000');
     // The other line follows: one amount, typed once.
     expect(within(screen.getByTestId('rebalance-line-1')).getByDisplayValue(/10\s?000/)).toBeTruthy();
     expect(within(screen.getByTestId('rebalance-balance')).getByText(t('agent.rebalance.balanced'))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('agent.rebalance.save')));
+    await fireEvent.press(screen.getByText(t('agent.rebalance.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/agent/rebalancings');
@@ -256,18 +256,18 @@ describe('rebalancing', () => {
   it('money from outside: the outside is named for exactly the difference, never typed', async () => {
     signIn('owner', OWNER, 'money_agent');
     (api.post as jest.Mock).mockResolvedValue({ rebalancing: { id: 'r2' } });
-    mount(<AgentRebalanceScreen />);
+    await mount(<AgentRebalanceScreen />);
     expect(await screen.findByTestId('rebalance-line-1')).toBeTruthy();
-    fireEvent.press(within(screen.getByTestId('rebalance-line-1')).getByText(t('agent.rebalance.removeLine')));
-    fireEvent.press(within(screen.getByTestId('rebalance-line-0')).getByText(t('agent.rebalance.in')));
-    fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '50000');
-    fireEvent.press(screen.getByText(t('agent.rebalance.reasons.cashIn')));
+    await fireEvent.press(within(screen.getByTestId('rebalance-line-1')).getByText(t('agent.rebalance.removeLine')));
+    await fireEvent.press(within(screen.getByTestId('rebalance-line-0')).getByText(t('agent.rebalance.in')));
+    await fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '50000');
+    await fireEvent.press(screen.getByText(t('agent.rebalance.reasons.cashIn')));
     // Unbalanced: sending is refused until the outside is named.
-    fireEvent.press(screen.getByText(t('agent.rebalance.save')));
+    await fireEvent.press(screen.getByText(t('agent.rebalance.save')));
     expect(await screen.findByTestId('rebalance-problems')).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByText(t('agent.rebalance.outside.owner_capital')));
-    fireEvent.press(screen.getByText(t('agent.rebalance.save')));
+    await fireEvent.press(screen.getByText(t('agent.rebalance.outside.owner_capital')));
+    await fireEvent.press(screen.getByText(t('agent.rebalance.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect((api.post as jest.Mock).mock.calls[0][1]).toEqual({
       clientUuid: expect.any(String),
@@ -283,14 +283,14 @@ describe('rebalancing', () => {
     (api.post as jest.Mock)
       .mockRejectedValueOnce(new ApiError('Cash would go to -65000 MRU', 409, 'rebalancing_negative', { code: 'rebalancing_negative', problems: [{ account: 'cash', providerId: null, position: 35000, after: -65000 }] }))
       .mockResolvedValueOnce({ rebalancing: { id: 'r3' } });
-    mount(<AgentRebalanceScreen />);
+    await mount(<AgentRebalanceScreen />);
     expect(await screen.findByTestId('rebalance-line-1')).toBeTruthy();
-    fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'buy float');
-    fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '100000');
-    fireEvent.press(screen.getByText(t('agent.rebalance.save')));
+    await fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'buy float');
+    await fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '100000');
+    await fireEvent.press(screen.getByText(t('agent.rebalance.save')));
     const notice = await screen.findByTestId('rebalance-negative');
     expect(within(notice).getByText(/Cash in the drawer would go to/)).toBeTruthy();
-    fireEvent.press(within(notice).getByText(t('agent.rebalance.negative.confirm')));
+    await fireEvent.press(within(notice).getByText(t('agent.rebalance.negative.confirm')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
     const [[, refused], [, confirmed]] = (api.post as jest.Mock).mock.calls;
     expect(refused.confirmNegative).toBeUndefined();
@@ -301,13 +301,13 @@ describe('rebalancing', () => {
   it('a Manager is told only the Owner can record it below zero', async () => {
     signIn('store_manager', MANAGER, 'money_agent');
     (api.post as jest.Mock).mockRejectedValueOnce(new ApiError('x', 409, 'rebalancing_negative', { problems: [{ account: 'provider', providerId: 'bankily', position: 10, after: -90 }] }));
-    mount(<AgentRebalanceScreen />);
+    await mount(<AgentRebalanceScreen />);
     expect(await screen.findByTestId('rebalance-line-1')).toBeTruthy();
-    fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'sell float');
-    fireEvent.press(within(screen.getByTestId('rebalance-line-0')).getByText(t('agent.rebalance.in')));
-    fireEvent.press(within(screen.getByTestId('rebalance-line-1')).getByText(t('agent.rebalance.out')));
-    fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '100');
-    fireEvent.press(screen.getByText(t('agent.rebalance.save')));
+    await fireEvent.changeText(screen.getByPlaceholderText(t('agent.rebalance.reason.placeholder')), 'sell float');
+    await fireEvent.press(within(screen.getByTestId('rebalance-line-0')).getByText(t('agent.rebalance.in')));
+    await fireEvent.press(within(screen.getByTestId('rebalance-line-1')).getByText(t('agent.rebalance.out')));
+    await fireEvent.changeText(within(screen.getByTestId('rebalance-line-0')).getByPlaceholderText(t('agent.amount')), '100');
+    await fireEvent.press(screen.getByText(t('agent.rebalance.save')));
     const notice = await screen.findByTestId('rebalance-negative');
     expect(within(notice).getByText(/Bankily float would go to/)).toBeTruthy();
     expect(within(notice).queryByText(t('agent.rebalance.negative.confirm'))).toBeNull();
@@ -317,7 +317,7 @@ describe('rebalancing', () => {
 describe('providers', () => {
   it('each with how it stands: active with its reference rule — one never configured too — or switched off; never a rate (D164)', async () => {
     signIn('owner', OWNER, 'money_agent');
-    mount(<AgentProvidersScreen />);
+    await mount(<AgentProvidersScreen />);
     expect(await screen.findByText('Blank Co')).toBeTruthy();
     expect(screen.getAllByText(t('agent.providers.status.active')).length).toBe(3);
     expect(screen.getByText(t('agent.providers.status.switched_off'))).toBeTruthy();
@@ -329,7 +329,7 @@ describe('providers', () => {
 
   it('a Manager does not configure providers', async () => {
     signIn('store_manager', MANAGER, 'money_agent');
-    mount(<AgentProvidersScreen />);
+    await mount(<AgentProvidersScreen />);
     expect(await screen.findByText(t('agent.providers.permission'))).toBeTruthy();
     expect(api.get).not.toHaveBeenCalledWith('/agent/providers');
   });
@@ -338,23 +338,23 @@ describe('providers', () => {
     signIn('owner', OWNER, 'money_agent');
     mockParams.id = 'blank';
     (api.post as jest.Mock).mockResolvedValue({ config: config({ referenceRule: 'required' }), provider: { ...providers.providers[1], referenceRule: 'required' } });
-    mount(<AgentProviderScreen />);
+    await mount(<AgentProviderScreen />);
     const fields = await screen.findByTestId('provider-config');
     expect(within(fields).getByText(t('agent.config.referenceRule.optional'))).toBeTruthy();
     expect(within(fields).getByText(t('agent.config.commissionNote', { provider: 'Blank Co' }))).toBeTruthy();
     expect(within(fields).queryByText(/%/)).toBeNull();
-    fireEvent.press(screen.getByText(t('agent.config.change')));
+    await fireEvent.press(screen.getByText(t('agent.config.change')));
     expect(await screen.findByText(t('agent.config.explain', { provider: 'Blank Co' }))).toBeTruthy();
     // No rate is ever typed: no decimal field, no destination, no fee mode.
     expect(screen.queryByText(/Rate|rate —/)).toBeNull();
     // The chip comes first; the reason field's own Required marker follows it.
-    fireEvent.press(screen.getAllByText(t('agent.config.referenceRule.required'))[0]);
-    fireEvent.press(screen.getByText(t('agent.config.save')));
+    await fireEvent.press(screen.getAllByText(t('agent.config.referenceRule.required'))[0]);
+    await fireEvent.press(screen.getByText(t('agent.config.save')));
     // Every version carries its reason.
     expect(await screen.findByText(t('agent.config.problem.reason_missing'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
-    fireEvent.changeText(screen.getByLabelText(t('agent.config.reason'), { exact: false }), 'Gives a reference now');
-    fireEvent.press(screen.getByText(t('agent.config.save')));
+    await fireEvent.changeText(screen.getByLabelText(t('agent.config.reason'), { exact: false }), 'Gives a reference now');
+    await fireEvent.press(screen.getByText(t('agent.config.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     expect((api.post as jest.Mock).mock.calls[0]).toEqual([
       '/agent/providers/blank/configs',
@@ -366,7 +366,7 @@ describe('providers', () => {
   it('a version written before D164 shows its rates as history only — never applied', async () => {
     signIn('owner', OWNER, 'money_agent');
     mockParams.id = 'sedad';
-    mount(<AgentProviderScreen />);
+    await mount(<AgentProviderScreen />);
     const fields = await screen.findByTestId('provider-config');
     expect(within(fields).getByText(t('agent.config.referenceRule.required'))).toBeTruthy();
     expect(within(fields).getByText(t('agent.config.legacy.title'))).toBeTruthy();
@@ -377,16 +377,16 @@ describe('providers', () => {
     signIn('owner', OWNER, 'money_agent');
     const created = { ...providers.providers[1], id: 'p-new', label: 'Sedad', kind: 'sedad' };
     (api.post as jest.Mock).mockRejectedValueOnce(new RequestTimeout()).mockResolvedValueOnce({ ...created, replayed: true });
-    mount(<AgentProvidersScreen />);
-    fireEvent.press(await screen.findByText(t('agent.providers.add')));
+    await mount(<AgentProvidersScreen />);
+    await fireEvent.press(await screen.findByText(t('agent.providers.add')));
     // The sheet's chip (the list behind it names a Sedad too); choosing it fills its own name.
     await screen.findByText(t('agent.providers.kind.other'));
-    fireEvent.press(screen.getAllByText(t('agent.providers.kind.sedad')).at(-1)!);
-    fireEvent.press(screen.getByText(t('agent.providers.add.save')));
+    await fireEvent.press(screen.getAllByText(t('agent.providers.kind.sedad')).at(-1)!);
+    await fireEvent.press(screen.getByText(t('agent.providers.add.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
     await settle();
     // The answer was lost: Save again is the same submission, under the same key.
-    fireEvent.press(screen.getByText(t('agent.providers.add.save')));
+    await fireEvent.press(screen.getByText(t('agent.providers.add.save')));
     await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
     const [[path, first], [, second]] = (api.post as jest.Mock).mock.calls;
     expect(path).toBe('/agent/providers');

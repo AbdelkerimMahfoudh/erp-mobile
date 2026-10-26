@@ -223,7 +223,7 @@ export function SelectSheet<T>({
                 }}
                 style={{ marginTop: space.md }}
               />
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }) => {
             const key = keyExtractor(item);

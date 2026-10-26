@@ -40,7 +40,8 @@ jest.mock('expo-linking', () => {
 
 import { ExpoRoot } from 'expo-router/build/ExpoRoot';
 import { Slot } from 'expo-router/build/views/Navigator';
-import { store } from 'expo-router/build/global-state/router-store';
+import { getRouteInfoFromState, type StrictState } from 'expo-router/build/global-state/getRouteInfoFromState';
+import { navigationRef } from 'expo-router/build/global-state/navigationRef';
 import { getMockContext } from 'expo-router/build/testing-library/mock-config';
 import { ACCESS_CLOSED, APP_HOME, LOGIN, SELECT_BRANCH, entryRoute, type EntryState } from '../lib/navigation/entry';
 
@@ -71,11 +72,12 @@ function routes() {
 }
 
 /** Opens the app from `url` as a cold start does and returns where Expo Router put it. */
-function open(url: string) {
+async function open(url: string) {
   mockLink.url = url;
-  const view = render(<ExpoRoot context={routes()} />);
-  const info = store.getRouteInfo();
-  view.unmount();
+  const view = await render(<ExpoRoot context={routes()} />);
+  // How expo-router's own `renderRouter` reads where it is (SDK 58 removed the router store).
+  const info = getRouteInfoFromState(navigationRef.getRootState() as StrictState);
+  await view.unmount();
   return { pathname: info.pathname, segments: [...info.segments], params: { ...info.params } as Record<string, unknown> };
 }
 
@@ -106,19 +108,19 @@ describe('a dukanerp:// link opens the screen it names', () => {
     ['unit/356938035643809', '/unit/356938035643809', ['unit', '[identifier]'], { identifier: '356938035643809' }],
     ['agent/0190ab12-0000-7000-8000-000000000002', '/agent/0190ab12-0000-7000-8000-000000000002', ['agent', '[id]'], { id: '0190ab12-0000-7000-8000-000000000002' }],
     ['hub/money', '/hub/money', ['hub', '[id]'], { id: 'money' }],
-  ])('%s', (path, pathname, segments, params) => {
-    const where = open(link(path));
+  ])('%s', async (path, pathname, segments, params) => {
+    const where = await open(link(path));
     expect(where.pathname).toBe(pathname);
     expect(where.segments).toEqual(segments);
     expect(where.params).toEqual(params);
   });
 
-  it('the bare scheme opens the start screen', () => {
-    expect(open(link('')).pathname).toBe('/');
+  it('the bare scheme opens the start screen', async () => {
+    expect((await open(link(''))).pathname).toBe('/');
   });
 
-  it('an address the app does not have lands on the not-found screen', () => {
-    const where = open(link('no-such-screen'));
+  it('an address the app does not have lands on the not-found screen', async () => {
+    const where = await open(link('no-such-screen'));
     expect(where.segments).toEqual(['+not-found']);
   });
 });
@@ -134,8 +136,8 @@ describe('every destination a server notification carries opens as a link', () =
     [`/catalog/${ID}?unit=${ID}`, ['catalog', '[id]']],
     [`/returns/${ID}`, ['returns', '[id]']],
     [`/transfers/${ID}`, ['transfers', '[id]']],
-  ])('%s', (destination, segments) => {
-    const where = open(link(destination.slice(1)));
+  ])('%s', async (destination, segments) => {
+    const where = await open(link(destination.slice(1)));
     expect(where.segments).toEqual(segments);
     expect(where.segments).not.toContain('+not-found');
   });
@@ -155,37 +157,37 @@ describe('the sign-in guard decides where a link lands', () => {
   });
   const RECORD = 'sales/0190ab12-0000-7000-8000-000000000001';
 
-  it('signed out: every link goes to sign-in first', () => {
+  it('signed out: every link goes to sign-in first', async () => {
     for (const path of [RECORD, 'account/delete', 'select-branch', 'notifications', 'hub/money']) {
-      expect(entryRoute(state({ signedIn: false, branchChosen: false }, open(link(path))))).toBe(LOGIN);
+      expect(entryRoute(state({ signedIn: false, branchChosen: false }, await open(link(path))))).toBe(LOGIN);
     }
   });
 
-  it('signed out: the sign-in link itself stays on sign-in', () => {
-    expect(entryRoute(state({ signedIn: false, branchChosen: false }, open(link('login'))))).toBeNull();
+  it('signed out: the sign-in link itself stays on sign-in', async () => {
+    expect(entryRoute(state({ signedIn: false, branchChosen: false }, await open(link('login'))))).toBeNull();
   });
 
-  it('signed in without a branch: a record link asks for the branch first', () => {
-    expect(entryRoute(state({ branchChosen: false }, open(link(RECORD))))).toBe(SELECT_BRANCH);
+  it('signed in without a branch: a record link asks for the branch first', async () => {
+    expect(entryRoute(state({ branchChosen: false }, await open(link(RECORD))))).toBe(SELECT_BRANCH);
   });
 
-  it('signed in with a branch: a record link opens the record', () => {
-    expect(entryRoute(state({}, open(link(RECORD))))).toBeNull();
+  it('signed in with a branch: a record link opens the record', async () => {
+    expect(entryRoute(state({}, await open(link(RECORD))))).toBeNull();
   });
 
-  it('signed in: the sign-in and branch links move on to the app', () => {
-    expect(entryRoute(state({}, open(link('login'))))).toBe(APP_HOME);
-    expect(entryRoute(state({}, open(link('select-branch'))))).toBe(APP_HOME);
+  it('signed in: the sign-in and branch links move on to the app', async () => {
+    expect(entryRoute(state({}, await open(link('login'))))).toBe(APP_HOME);
+    expect(entryRoute(state({}, await open(link('select-branch'))))).toBe(APP_HOME);
   });
 
-  it('a closed business: a record link shows the refusal, the person’s own account stays open', () => {
-    expect(entryRoute(state({ closed: true }, open(link(RECORD))))).toBe(ACCESS_CLOSED);
-    expect(entryRoute(state({ closed: true }, open(link('account'))))).toBeNull();
-    expect(entryRoute(state({ closed: true }, open(link('account/delete'))))).toBeNull();
+  it('a closed business: a record link shows the refusal, the person’s own account stays open', async () => {
+    expect(entryRoute(state({ closed: true }, await open(link(RECORD))))).toBe(ACCESS_CLOSED);
+    expect(entryRoute(state({ closed: true }, await open(link('account'))))).toBeNull();
+    expect(entryRoute(state({ closed: true }, await open(link('account/delete'))))).toBeNull();
   });
 
-  it('while the saved session is being restored, nothing moves', () => {
-    expect(entryRoute(state({ bootstrapping: true, signedIn: false }, open(link(RECORD))))).toBeNull();
+  it('while the saved session is being restored, nothing moves', async () => {
+    expect(entryRoute(state({ bootstrapping: true, signedIn: false }, await open(link(RECORD))))).toBeNull();
   });
 });
 

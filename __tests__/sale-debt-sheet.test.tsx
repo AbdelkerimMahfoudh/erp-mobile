@@ -50,9 +50,9 @@ function Harness({ children }: { children: React.ReactNode }) {
   );
 }
 
-function openSheet(presetCustomer: { id: string; name: string | null; phone?: string | null } | null = null, total = 1000) {
+async function openSheet(presetCustomer: { id: string; name: string | null; phone?: string | null } | null = null, total = 1000) {
   const onComplete = jest.fn<void, Sent>();
-  render(
+  await render(
     <Harness>
       <PaymentSheet open onClose={() => undefined} total={total} onComplete={onComplete} accounts={[]} presetCustomer={presetCustomer} />
     </Harness>,
@@ -63,7 +63,7 @@ function openSheet(presetCustomer: { id: string; name: string | null; phone?: st
 const confirmButton = () => screen.getByRole('button', { name: t('sell.payment.confirm') });
 const confirm = async () => {
   await act(async () => {
-    fireEvent.press(screen.getByText(t('sell.payment.confirm')));
+    await fireEvent.press(screen.getByText(t('sell.payment.confirm')));
   });
 };
 const asked = () => useDialogStore.getState().queue[0];
@@ -72,7 +72,7 @@ const answer = async (record: boolean) => {
     useDialogStore.getState().resolveTop({ confirmed: record });
   });
 };
-const received = (text: string) => fireEvent.changeText(screen.getByLabelText(t('sell.payment.receivedNow')), text);
+const received = async (text: string) => fireEvent.changeText(screen.getByLabelText(t('sell.payment.receivedNow')), text);
 const owes = (amount: number) => t('sellDebt.ask.body', { amount: isolateLtr(formatMoney(amount, { decimals: 0 })) });
 const disabled = () => confirmButton().props.accessibilityState?.disabled === true;
 
@@ -83,7 +83,7 @@ afterEach(() => {
 
 describe('a full payment', () => {
   it('confirms in one tap: no question, no debt card, nobody owes anything', async () => {
-    const onComplete = openSheet();
+    const onComplete = await openSheet();
     expect(screen.queryByText(t('sellDebt.card.title'))).toBeNull();
     await confirm();
     expect(asked()).toBeUndefined();
@@ -97,8 +97,8 @@ describe('a full payment', () => {
 
 describe('a partial payment', () => {
   it('asks in words; Go back keeps everything typed and sends nothing', async () => {
-    const onComplete = openSheet();
-    received('900');
+    const onComplete = await openSheet();
+    await received('900');
     expect(screen.getByText(t('sellDebt.remaining'), { exact: false })).toBeTruthy();
     await confirm();
     expect(asked()).toMatchObject({
@@ -114,8 +114,8 @@ describe('a partial payment', () => {
   });
 
   it('Record outstanding balance opens the debt card, which holds Confirm until name, phone and days are valid', async () => {
-    const onComplete = openSheet();
-    received('900');
+    const onComplete = await openSheet();
+    await received('900');
     await confirm();
     await answer(true);
     expect(screen.getByText(t('sellDebt.card.title'))).toBeTruthy();
@@ -124,18 +124,18 @@ describe('a partial payment', () => {
     expect(disabled()).toBe(true);
     expect(screen.getByText(t('sellDebt.problem.debtor_required', { amount: isolateLtr(formatMoney(100, { decimals: 0 })) }))).toBeTruthy();
 
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Sidi Ahmed');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Sidi Ahmed');
     expect(screen.getByText(t('sellDebt.problem.customer_phone_required'))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '1234');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '1234');
     expect(screen.getByText(t('sellDebt.problem.customer_phone_invalid'))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '22 33 44 55');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '22 33 44 55');
     expect(screen.getByText(t('sellDebt.problem.due_days_required'))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '400');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '400');
     expect(screen.getByText(t('sellDebt.problem.due_days_invalid'))).toBeTruthy();
     expect(disabled()).toBe(true);
 
     // Only digits reach the field; a quick choice fills it.
-    fireEvent.press(screen.getByText(t('returns.window.days', { count: 7 })));
+    await fireEvent.press(screen.getByText(t('returns.window.days', { count: 7 })));
     expect(screen.getByText(t('sellDebt.dueOn', { date: formatDate(dueDatePreview(7)) }))).toBeTruthy();
     expect(disabled()).toBe(false);
 
@@ -148,15 +148,15 @@ describe('a partial payment', () => {
   });
 
   it('a changed amount recalculates what is owed and asks again before anything is sent', async () => {
-    const onComplete = openSheet();
-    received('900');
+    const onComplete = await openSheet();
+    await received('900');
     await confirm();
     await answer(true);
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Sidi Ahmed');
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '22334455');
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '15');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Sidi Ahmed');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '22334455');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '15');
 
-    received('700');
+    await received('700');
     // The card stays, with what was typed in it, and shows the new balance at once…
     expect(screen.getByText(t('sellDebt.card.title'))).toBeTruthy();
     expect(screen.getByText(t('sellDebt.onlyReceived', { amount: isolateLtr(formatMoney(700, { decimals: 0 })) }))).toBeTruthy();
@@ -173,11 +173,11 @@ describe('a partial payment', () => {
   });
 
   it('paying in full after agreeing a balance drops the card and the debt', async () => {
-    const onComplete = openSheet();
-    received('900');
+    const onComplete = await openSheet();
+    await received('900');
     await confirm();
     await answer(true);
-    received('1000');
+    await received('1000');
     expect(screen.queryByText(t('sellDebt.card.title'))).toBeNull();
     await confirm();
     expect(asked()).toBeUndefined();
@@ -187,14 +187,14 @@ describe('a partial payment', () => {
 
 describe('nothing received now', () => {
   it('is said as such, and the whole total becomes the debt with no payment sent', async () => {
-    const onComplete = openSheet();
-    received('0');
+    const onComplete = await openSheet();
+    await received('0');
     await confirm();
     expect(asked()?.message).toBe(t('sellDebt.ask.bodyNothing', { amount: isolateLtr(formatMoney(1000, { decimals: 0 })) }));
     await answer(true);
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Mariem');
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '+222 36 00 00 00');
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '30');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.name')), 'Mariem');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phone')), '+222 36 00 00 00');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '30');
     await confirm();
     const [payments, debtor, due] = onComplete.mock.calls[0];
     expect(payments).toEqual([]);
@@ -205,8 +205,8 @@ describe('nothing received now', () => {
 
 describe('more than the total', () => {
   it('is never a negative debt: Confirm is held and nothing is asked', async () => {
-    const onComplete = openSheet();
-    received('1200');
+    const onComplete = await openSheet();
+    await received('1200');
     expect(disabled()).toBe(true);
     expect(screen.getByText(t('sell.payment.exactOnly'))).toBeTruthy();
     expect(screen.queryByText(t('sellDebt.remaining'), { exact: false })).toBeNull();
@@ -218,15 +218,15 @@ describe('more than the total', () => {
 
 describe('an existing customer', () => {
   it('with a saved phone: the details are filled in and only the days are asked', async () => {
-    const onComplete = openSheet({ id: 'cus-1', name: 'Fatimetou', phone: '22445566' });
-    received('600');
+    const onComplete = await openSheet({ id: 'cus-1', name: 'Fatimetou', phone: '22445566' });
+    await received('600');
     await confirm();
     await answer(true);
     expect(screen.getByText(t('sellDebt.chosen', { name: 'Fatimetou' }))).toBeTruthy();
     expect(screen.getByText(t('sellDebt.savedPhone', { phone: isolateLtr('22445566') }))).toBeTruthy();
     expect(screen.queryByLabelText(t('sellDebt.phoneFor', { name: 'Fatimetou' }))).toBeNull();
     expect(screen.getByText(t('sellDebt.problem.due_days_required'))).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '٣');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '٣');
     expect(screen.getByDisplayValue('3')).toBeTruthy();
     await confirm();
     expect(onComplete.mock.calls[0].slice(1)).toEqual([
@@ -236,22 +236,22 @@ describe('an existing customer', () => {
   });
 
   it('with no phone saved: one is required before the sale goes', async () => {
-    const onComplete = openSheet({ id: 'cus-2', name: 'Brahim', phone: null });
-    received('500');
+    const onComplete = await openSheet({ id: 'cus-2', name: 'Brahim', phone: null });
+    await received('500');
     await confirm();
     await answer(true);
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '7');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.days')), '7');
     expect(screen.getByText(t('sellDebt.problem.customer_phone_required'))).toBeTruthy();
     expect(disabled()).toBe(true);
-    fireEvent.changeText(screen.getByLabelText(t('sellDebt.phoneFor', { name: 'Brahim' })), '36 11 22 33');
+    await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phoneFor', { name: 'Brahim' })), '36 11 22 33');
     await confirm();
     expect(onComplete.mock.calls[0][1]).toEqual({ kind: 'customer_existing', customerId: 'cus-2', name: 'Brahim', phone: null, typedPhone: '36 11 22 33' });
   });
 });
 
 describe('the sheet', () => {
-  it('names the final action Confirm payment and keeps split payment as its own control', () => {
-    openSheet();
+  it('names the final action Confirm payment and keeps split payment as its own control', async () => {
+    await openSheet();
     expect(screen.getByText(t('sell.payment.confirm'))).toBeTruthy();
     expect(screen.getByText(t('sell.payment.split'))).toBeTruthy();
     expect(screen.queryByText(t('sell.discount'))).toBeNull();

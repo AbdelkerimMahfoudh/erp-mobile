@@ -42,6 +42,7 @@ jest.mock('../lib/api-client', () => {
 
 import { api } from '../lib/api-client';
 import NotificationsScreen from '../app/notifications';
+import { componentOfType, componentsOfType } from './tree';
 
 const NESTING = /VirtualizedLists should never be nested/;
 const row = (id: string, isRead = false) => ({
@@ -94,8 +95,8 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
     jest.restoreAllMocks();
   });
 
-  it('control: React Native raises the nesting warning here when a FlatList sits in a same-direction ScrollView', () => {
-    render(
+  it('control: React Native raises the nesting warning here when a FlatList sits in a same-direction ScrollView', async () => {
+    await render(
       <ScrollView>
         <FlatList data={['a']} keyExtractor={(x) => x} renderItem={({ item }) => <Text>{item}</Text>} />
       </ScrollView>,
@@ -105,12 +106,12 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
 
   it('loaded with rows: no ScrollView above the list, and no warning', async () => {
     (api.get as jest.Mock).mockResolvedValue({ rows: [row('n1'), row('n2', true)], nextCursor: null });
-    render(
+    await render(
       <Harness>
         <NotificationsScreen />
       </Harness>,
     );
-    const list = await waitFor(() => screen.UNSAFE_getByType(FlatList));
+    const list = await waitFor(() => componentOfType(FlatList));
     expect(await screen.findByText('Transfer n1')).toBeTruthy();
     const above = ancestorNames(list);
     expect(above.filter(isScrollView)).toEqual([]);
@@ -121,12 +122,12 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
 
   it('empty: the list renders its empty state itself, still without a ScrollView above it', async () => {
     (api.get as jest.Mock).mockResolvedValue({ rows: [], nextCursor: null });
-    render(
+    await render(
       <Harness>
         <NotificationsScreen />
       </Harness>,
     );
-    const list = await waitFor(() => screen.UNSAFE_getByType(FlatList));
+    const list = await waitFor(() => componentOfType(FlatList));
     expect(ancestorNames(list).filter(isScrollView)).toEqual([]);
     // Translated words, never a raw key.
     expect(await screen.findByText(t('notifications.empty'))).toBeTruthy();
@@ -136,26 +137,26 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
   it('error: a translated error state with a retry, no list and no warning', async () => {
     const failure = new Error('offline');
     (api.get as jest.Mock).mockRejectedValue(failure);
-    render(
+    await render(
       <Harness>
         <NotificationsScreen />
       </Harness>,
     );
     // The same words the screen derives from the failure — never a raw message or a key.
     expect(await screen.findByText(toFriendlyError(failure).title, {}, { timeout: 4000 })).toBeTruthy();
-    expect(screen.UNSAFE_queryAllByType(FlatList)).toHaveLength(0);
+    expect(componentsOfType(FlatList)).toHaveLength(0);
     expect(errors.filter((e) => NESTING.test(e))).toEqual([]);
   });
 
   it('tapping an unread row marks it read on the server', async () => {
     (api.get as jest.Mock).mockResolvedValue({ rows: [row('n1')], nextCursor: null });
     (api.post as jest.Mock).mockResolvedValue({});
-    render(
+    await render(
       <Harness>
         <NotificationsScreen />
       </Harness>,
     );
-    fireEvent.press(await screen.findByText('Transfer n1'));
+    await fireEvent.press(await screen.findByText('Transfer n1'));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/notifications/n1/read'));
   });
 
@@ -169,23 +170,23 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
       ],
       nextCursor: null,
     });
-    render(
+    await render(
       <Harness>
         <NotificationsScreen />
       </Harness>,
     );
-    fireEvent.press(await screen.findByText('Transfer n1'));
-    fireEvent.press(screen.getByText('Transfer n2'));
-    fireEvent.press(screen.getByText('Transfer n3'));
+    await fireEvent.press(await screen.findByText('Transfer n1'));
+    await fireEvent.press(screen.getByText('Transfer n2'));
+    await fireEvent.press(screen.getByText('Transfer n3'));
     expect(routerPush.mock.calls).toEqual([['/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a']]);
   });
 });
 
 // The structural guard, independent of Notifications: the page wrapper with `scroll={false}` is a View.
 describe('Screen with scroll={false}', () => {
-  it('mounts its body in a plain View — the branch every self-scrolling list relies on', () => {
+  it('mounts its body in a plain View — the branch every self-scrolling list relies on', async () => {
     const { Screen } = require('../components/ui/Screen') as typeof import('../components/ui/Screen');
-    render(
+    await render(
       <ThemeProvider>
         <Screen scroll={false}>
           <View testID="body" />

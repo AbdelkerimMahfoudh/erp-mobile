@@ -37,7 +37,7 @@ const held = (methods: TrackedMethod[], accountsVisible = true): TrackedMoney =>
 /** Boutique 2 as reported: cash set to 1 000, Bankily and Sedad never set, one 20 000 sale through Sedad. */
 const reported = held([cash, unknown('b', 'Bankily', movement(0)), unknown('s', 'Sedad', movement(20000))]);
 
-const mount = (money: TrackedMoney, props: Partial<React.ComponentProps<typeof ExpectedMoneyCard>> = {}) =>
+const mount = async (money: TrackedMoney, props: Partial<React.ComponentProps<typeof ExpectedMoneyCard>> = {}) =>
   render(
     <ThemeProvider>
       <ExpectedMoneyCard held={money} canReview dayOpen onReview={() => undefined} onSetAccounts={() => undefined} {...props} />
@@ -52,8 +52,8 @@ describe('an unknown account that received money today', () => {
     await useI18n.getState().setLanguage('en');
   });
 
-  it('stays Unknown, says what was recorded, and names what prevents the total', () => {
-    mount(reported);
+  it('stays Unknown, says what was recorded, and names what prevents the total', async () => {
+    await mount(reported);
     expect(screen.getByText(t('moneyTab.expected.unknown', { names: 'Bankily · Sedad' }))).toBeTruthy();
     expect(movedLine('account:s')).toBe(`Starting amount unknown · +20${nb}000${nb}MRU recorded today`);
     // No line under an account nothing moved through, nor under the known drawer.
@@ -64,24 +64,24 @@ describe('an unknown account that received money today', () => {
     expect(screen.queryByText(/^20\s000/)).toBeNull();
   });
 
-  it('offers the Owner the company-account sheet', () => {
+  it('offers the Owner the company-account sheet', async () => {
     const onSetAccounts = jest.fn();
-    mount(reported, { onSetAccounts });
-    fireEvent.press(screen.getByText(t('moneyTab.expected.setAccounts')));
+    await mount(reported, { onSetAccounts });
+    await fireEvent.press(screen.getByText(t('moneyTab.expected.setAccounts')));
     expect(onSetAccounts).toHaveBeenCalledTimes(1);
   });
 
-  it('offers nobody else that sheet, and nobody at all when every account is known', () => {
-    const first = mount(reported, { canReview: false });
+  it('offers nobody else that sheet, and nobody at all when every account is known', async () => {
+    const first = await mount(reported, { canReview: false });
     expect(screen.queryByText(t('moneyTab.expected.setAccounts'))).toBeNull();
     expect(screen.getByTestId('moved-account:s')).toBeTruthy();
-    first.unmount();
-    mount(held([cash, known('b', 'Bankily', 25000, movement(20000))]));
+    await first.unmount();
+    await mount(held([cash, known('b', 'Bankily', 25000, movement(20000))]));
     expect(screen.queryByText(t('moneyTab.expected.setAccounts'))).toBeNull();
   });
 
-  it('a known account shows its figure and no movement line; an explicit zero is 0, not Unknown', () => {
-    mount(held([cash, known('b', 'Bankily', 25000, movement(20000)), known('s', 'Sedad', 0, movement(0), 0)]));
+  it('a known account shows its figure and no movement line; an explicit zero is 0, not Unknown', async () => {
+    await mount(held([cash, known('b', 'Bankily', 25000, movement(20000)), known('s', 'Sedad', 0, movement(0), 0)]));
     expect(screen.queryByTestId('moved-account:b')).toBeNull();
     expect(screen.queryByTestId('moved-account:s')).toBeNull();
     expect(screen.queryByText(t('moneyTab.held.unknown'))).toBeNull();
@@ -93,7 +93,7 @@ describe('an unknown account that received money today', () => {
 
   it('French', async () => {
     await useI18n.getState().setLanguage('fr');
-    mount(reported);
+    await mount(reported);
     expect(movedLine('account:s')).toBe(`Montant de départ inconnu · +20${nb}000${nb}MRU enregistré aujourd’hui`);
     expect(screen.getByText('Fixer les montants des comptes')).toBeTruthy();
   });
@@ -102,7 +102,7 @@ describe('an unknown account that received money today', () => {
     await useI18n.getState().setLanguage('ar');
     const rtl = jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
     try {
-      mount(held([cash, unknown('s', 'Sedad', movement(0, 5000))]));
+      await mount(held([cash, unknown('s', 'Sedad', movement(0, 5000))]));
       expect(movedLine('account:s')).toBe(`المبلغ الابتدائي غير معروف · \u2066−5${nb}000${nb}MRU\u2069 مسجَّل اليوم`);
       expect(screen.getByText('تحديد مبالغ الحسابات')).toBeTruthy();
     } finally {
@@ -112,7 +112,7 @@ describe('an unknown account that received money today', () => {
 
   it('Arabic before the restart that flips the layout: the same words, no isolates needed', async () => {
     await useI18n.getState().setLanguage('ar');
-    mount(reported);
+    await mount(reported);
     expect(movedLine('account:s')).toBe(`المبلغ الابتدائي غير معروف · +20${nb}000${nb}MRU مسجَّل اليوم`);
   });
 });
@@ -120,20 +120,20 @@ describe('an unknown account that received money today', () => {
 describe('an opening awaiting the Owner’s review (D159)', () => {
   const awaiting = held([{ ...cash, anchor: { ...cash.anchor!, awaitingOwnerReview: true } } as TrackedMethod]);
 
-  it('offers the review while the day is open', () => {
-    mount(awaiting);
+  it('offers the review while the day is open', async () => {
+    await mount(awaiting);
     expect(screen.getByText(t('moneyTab.expected.review'))).toBeTruthy();
   });
 
-  it('a closed day refuses the review, so it is not offered — and the card says when it will be', () => {
+  it('a closed day refuses the review, so it is not offered — and the card says when it will be', async () => {
     // Closed with the drawer attested, not counted: the opening is still the anchor, still awaiting its review.
-    mount(awaiting, { dayOpen: false });
+    await mount(awaiting, { dayOpen: false });
     expect(screen.queryByText(t('moneyTab.expected.review'))).toBeNull();
     expect(screen.getByText(t('moneyTab.expected.reviewClosed'))).toBeTruthy();
   });
 
-  it('nobody but the Owner is offered either', () => {
-    mount(awaiting, { canReview: false, dayOpen: false });
+  it('nobody but the Owner is offered either', async () => {
+    await mount(awaiting, { canReview: false, dayOpen: false });
     expect(screen.queryByText(t('moneyTab.expected.review'))).toBeNull();
     expect(screen.queryByText(t('moneyTab.expected.reviewClosed'))).toBeNull();
   });

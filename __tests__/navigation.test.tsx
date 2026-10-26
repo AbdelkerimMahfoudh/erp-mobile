@@ -89,7 +89,7 @@ function signInAs(role: string, granted: readonly Permission[]) {
 const IMPORT_LABEL = t('nav.imports');
 
 /** Lets the cached reads resolve inside act: the entitlement decides what More lists (D157). */
-const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+const settle = async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
 
 beforeEach(() => {
   (api.get as jest.Mock).mockReset();
@@ -99,7 +99,7 @@ beforeEach(() => {
 describe.each(ROLES)('More for the %s', (role, granted) => {
   it('lists no Import stock row, and no section is left empty', async () => {
     signInAs(role, granted);
-    render(
+    await render(
       <Harness>
         <MoreScreen />
       </Harness>,
@@ -144,7 +144,7 @@ describe.each(ROLES)('More for the %s, per activity', (role, granted) => {
   it('an agent-only branch lists nothing of the store', async () => {
     serveActivity('money_agent');
     signInAs(role, all);
-    render(
+    await render(
       <Harness>
         <MoreScreen />
       </Harness>,
@@ -159,7 +159,7 @@ describe.each(ROLES)('More for the %s, per activity', (role, granted) => {
   it('a combined branch lists Partner stores for whoever the Partners tab was for; a shop does not repeat the tab', async () => {
     serveActivity('both');
     signInAs(role, all);
-    const view = render(
+    const view = await render(
       <Harness>
         <MoreScreen />
       </Harness>,
@@ -167,10 +167,10 @@ describe.each(ROLES)('More for the %s, per activity', (role, granted) => {
     expect(await screen.findByText(t('nav.account'))).toBeTruthy();
     if (all.includes('consignment.view') || all.includes('connection.manage')) expect(await screen.findByText(t('nav.stores'))).toBeTruthy();
     else expect(screen.queryByText(t('nav.stores'))).toBeNull();
-    view.unmount();
+    await view.unmount();
 
     serveActivity('electronics');
-    render(
+    await render(
       <Harness>
         <MoreScreen />
       </Harness>,
@@ -184,7 +184,7 @@ describe.each(ROLES)('More for the %s, per activity', (role, granted) => {
 describe('the Stock tab header', () => {
   it.each(ROLES)('offers Import stock to the %s only when the role holds import.run', async (role, granted) => {
     signInAs(role, granted);
-    render(
+    await render(
       <Harness>
         <InventoryScreen />
       </Harness>,
@@ -204,7 +204,7 @@ describe('Import stock reached directly without the permission', () => {
       if (path.startsWith('/imports')) throw new ApiError('Forbidden', 403, 'forbidden');
       return serve(path);
     });
-    render(
+    await render(
       <Harness>
         <ImportsScreen />
       </Harness>,

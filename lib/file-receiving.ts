@@ -63,7 +63,7 @@ function head(file: File, length: number): Uint8Array | null {
   try {
     const handle = file.open(FileMode.ReadOnly);
     try {
-      return handle.readBytes(length);
+      return handle.readBytesSync(length);
     } finally {
       handle.close();
     }

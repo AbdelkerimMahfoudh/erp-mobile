@@ -392,7 +392,7 @@ export function StockPicker({
             <EmptyState icon={Package} title={t('pick.stock.none')} />
           )
         }
-        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.more} /> : null}
+        ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.more} /> : undefined}
       />
 
       <StockFilterSheet

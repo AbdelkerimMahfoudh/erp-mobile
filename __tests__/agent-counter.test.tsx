@@ -107,7 +107,7 @@ const recorded = (clientUuidBody: { amount: number }) => ({
   legs: [], businessDate: '2026-10-09', recordedAt: '2026-10-09T11:11:02.660Z', deviceRecordedAt: null, recordedBy: { id: 'u1', name: 'Employee Boutique 2' }, status: 'completed', reversal: null, mistakes: [],
 });
 
-function mount() {
+async function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -120,11 +120,11 @@ function mount() {
 
 /** Direction, provider, amount, commission and number — the whole form, as a person fills it. */
 async function fillForm() {
-  fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
-  fireEvent.press(await screen.findByText('Bankily'));
-  fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
-  fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '200');
-  fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
+  await fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
+  await fireEvent.press(await screen.findByText('Bankily'));
+  await fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
+  await fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '200');
+  await fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
 }
 
 beforeEach(async () => {
@@ -151,33 +151,33 @@ beforeEach(async () => {
 });
 
 // Lets the cached reads settle inside act, so nothing updates after a test has ended.
-afterEach(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
+afterEach(async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
 
 describe('the counter flow', () => {
   it('direction first in words, any provider switched on, the commission typed, one review, then Confirm — the number and the commission reach the server, never a person', async () => {
     (api.post as jest.Mock).mockImplementation(async (_path: string, body: { amount: number }) => recorded(body));
-    mount();
+    await mount();
     // Two cards, each a whole sentence with the money arrows.
     expect(await screen.findByText('Receive cash → send digital credit')).toBeTruthy();
     expect(screen.getByText('Give cash → receive digital credit')).toBeTruthy();
-    fireEvent.press(screen.getByText('Receive cash → send digital credit'));
+    await fireEvent.press(screen.getByText('Receive cash → send digital credit'));
 
     // Every provider switched on is offered — one never configured too; one switched off is not.
     expect(await screen.findByText('Sedad')).toBeTruthy();
     expect(screen.queryByText('Moov')).toBeNull();
-    fireEvent.press(screen.getByText('Bankily'));
+    await fireEvent.press(screen.getByText('Bankily'));
     // The cards now name the provider.
     expect(await screen.findByText('Receive cash → send Bankily credit')).toBeTruthy();
 
-    fireEvent.changeText(screen.getByLabelText(t('agent.amount')), '10000');
-    fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
+    await fireEvent.changeText(screen.getByLabelText(t('agent.amount')), '10000');
+    await fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
     // No commission typed: no review — an empty field is never zero.
-    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await fireEvent.press(screen.getByText(t('agent.review.action')));
     expect(screen.queryByText(t('agent.review.confirm'))).toBeNull();
     // Digits only: whatever else is typed is dropped as typed.
-    fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '2a00');
+    await fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '2a00');
     expect(screen.getByDisplayValue('200')).toBeTruthy();
-    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await fireEvent.press(screen.getByText(t('agent.review.action')));
 
     // One review: the amount, the commission the customer pays, the cash received and the credit sent.
     expect(await screen.findByText(t('agent.review.cashReceived'))).toBeTruthy();
@@ -189,7 +189,7 @@ describe('the counter flow', () => {
     expect(screen.getByText(NUMBER)).toBeTruthy();
 
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.review.confirm')));
+      await fireEvent.press(screen.getByText(t('agent.review.confirm')));
     });
 
     // Recorded, with the server's own time and day — never the phone's.
@@ -216,11 +216,11 @@ describe('the counter flow', () => {
 
   it('offline, the exchange waits as Pending synchronization — kept apart in SecureStore, never shown as recorded', async () => {
     useConnectivity.setState({ online: false });
-    mount();
+    await mount();
     await fillForm();
-    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await fireEvent.press(screen.getByText(t('agent.review.action')));
     await act(async () => {
-      fireEvent.press(await screen.findByText(t('agent.review.confirm')));
+      await fireEvent.press(await screen.findByText(t('agent.review.confirm')));
     });
     expect(await screen.findByText(t('agent.pending'))).toBeTruthy();
     expect(screen.queryByText(t('agent.outcome.recorded.title'))).toBeNull();
@@ -232,9 +232,9 @@ describe('the counter flow', () => {
     for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|customerNumber/);
 
     // A mistake noticed before it is sent: cancelled, asked twice; nothing is sent and the number leaves the phone.
-    fireEvent.press(screen.getByText(t('agent.action.cancel')));
+    await fireEvent.press(screen.getByText(t('agent.action.cancel')));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.cancelConfirm')));
+      await fireEvent.press(screen.getByText(t('agent.action.cancelConfirm')));
     });
     expect(useQueue.getState().items[0].state).toBe('cancelled');
     expect(await screen.findByText(t('agent.outcome.cancelled'))).toBeTruthy();
@@ -250,13 +250,13 @@ describe('the counter flow', () => {
       if (path.startsWith('/entitlement')) return entitlement;
       return {};
     });
-    mount();
+    await mount();
     await fillForm();
     expect(readKeptProviders).toHaveBeenCalledWith('b1');
     expect(screen.getByText(t('agent.provider.kept', { when: `${formatDate('2026-10-11T04:00:00.000Z')} ${formatTime('2026-10-11T04:00:00.000Z')}` }))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await fireEvent.press(screen.getByText(t('agent.review.action')));
     await act(async () => {
-      fireEvent.press(await screen.findByText(t('agent.review.confirm')));
+      await fireEvent.press(await screen.findByText(t('agent.review.confirm')));
     });
     expect(await screen.findByText(t('agent.pending'))).toBeTruthy();
     expect(useQueue.getState().items[0].state).toBe('waiting_for_connection');
@@ -270,26 +270,26 @@ describe('the counter flow', () => {
       if (path.startsWith('/entitlement')) return entitlement;
       return {};
     });
-    mount();
-    fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
+    await mount();
+    await fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
     await waitFor(() => expect(screen.queryByText('Bankily')).toBeNull());
     expect(readKeptProviders).not.toHaveBeenCalled();
   });
 
   it('each list the server sends is kept for the branch', async () => {
-    mount();
-    fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
+    await mount();
+    await fireEvent.press(await screen.findByText('Receive cash → send digital credit'));
     await screen.findByText('Bankily');
     expect(keepProviders).toHaveBeenCalledWith('b1', providers.providers);
   });
 
   it('a refusal is said in the counter’s words — Not recorded, with Edit and send — and prepared again under a new key with its number and commission (D161)', async () => {
     (api.post as jest.Mock).mockRejectedValue(new ApiError('Bankily issues a reference for every exchange.', 400, 'reference_required'));
-    mount();
+    await mount();
     await fillForm();
-    fireEvent.press(screen.getByText(t('agent.review.action')));
+    await fireEvent.press(screen.getByText(t('agent.review.action')));
     await act(async () => {
-      fireEvent.press(await screen.findByText(t('agent.review.confirm')));
+      await fireEvent.press(await screen.findByText(t('agent.review.confirm')));
     });
     expect(await screen.findByText(t('agent.refusal.reference_required'))).toBeTruthy();
     const refused = useQueue.getState().items[0];
@@ -301,7 +301,7 @@ describe('the counter flow', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
+      await fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
     });
     // Back on the form with the same words and figures — the commission too — and the number carried to the new key.
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();
@@ -312,13 +312,13 @@ describe('the counter flow', () => {
   });
 
   it('the unsent form survives a restart, its number restored from SecureStore — and the draft file never holds it', async () => {
-    const first = mount();
+    const first = await mount();
     await fillForm();
     await waitFor(() => expect([...mockStore.keys()].some((k) => k.startsWith('agent.exchange.number.'))).toBe(true));
     await waitFor(() => expect(mockDrafts.get('agent.exchange')).toMatch(/"amount":"10000"/));
-    first.unmount();
+    await first.unmount();
 
-    mount();
+    await mount();
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();
     expect(await screen.findByDisplayValue('36 12 34 56')).toBeTruthy();
     expect(screen.getByText(t('draft.restored.hint'))).toBeTruthy();
@@ -331,7 +331,7 @@ describe('the counter flow', () => {
       if (path.startsWith('/entitlement')) return entitlement;
       return providers;
     });
-    mount();
+    await mount();
     expect(await screen.findByText(t('gate.closed.title'))).toBeTruthy();
     expect(screen.queryByText('Receive cash → send digital credit')).toBeNull();
   });
@@ -340,17 +340,17 @@ describe('the counter flow', () => {
     await useI18n.getState().setLanguage('ar');
     const rtl = jest.spyOn(layoutDirection, 'layoutIsRTL').mockReturnValue(true);
     try {
-      mount();
+      await mount();
       // The money arrow points the reading way: ←, never →.
       const card = await screen.findByText('استلام النقد ← إرسال رصيد رقمي');
-      fireEvent.press(card);
-      fireEvent.press(await screen.findByText('Bankily'));
-      fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
+      await fireEvent.press(card);
+      await fireEvent.press(await screen.findByText('Bankily'));
+      await fireEvent.changeText(await screen.findByLabelText(t('agent.amount')), '10000');
       // Arabic-Indic digits are the same digits.
-      fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '٢٠٠');
+      await fireEvent.changeText(screen.getByLabelText(t('agent.commission')), '٢٠٠');
       expect(screen.getByDisplayValue('200')).toBeTruthy();
-      fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
-      fireEvent.press(screen.getByText(t('agent.review.action')));
+      await fireEvent.changeText(screen.getByLabelText(t('agent.number')), '36 12 34 56');
+      await fireEvent.press(screen.getByText(t('agent.review.action')));
       expect(await screen.findByText(t('agent.review.cashReceived'))).toBeTruthy();
       expect(screen.getByText(`\u2066${NUMBER}\u2069`)).toBeTruthy();
       expect(screen.getByText('العمولة التي يدفعها الزبون')).toBeTruthy();
@@ -363,7 +363,7 @@ describe('the counter flow', () => {
     (api.get as jest.Mock).mockImplementation(async (path: string) =>
       path.startsWith('/entitlement') ? { ...entitlement, seatsByStore: [{ branchId: 'b1', name: 'Boutique 1', activity: 'electronics', activityNext: null }] } : providers,
     );
-    mount();
+    await mount();
     expect(await screen.findByText(t('agent.notSubscribed.title'))).toBeTruthy();
     expect(screen.queryByText('Receive cash → send digital credit')).toBeNull();
   });

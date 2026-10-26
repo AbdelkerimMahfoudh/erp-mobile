@@ -15,7 +15,6 @@
  * - the business's access ended (403 `ENTITLEMENT_WRITE_BLOCKED`): the app's own words, as everywhere.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -52,6 +51,7 @@ jest.mock('../hooks/useAuth', () => ({
 
 import { api, ApiError } from '../lib/api-client';
 import TeamScreen from '../app/team';
+import { componentsOfType, textInputWithin } from './tree';
 
 /** Sara, switched off a while ago: the Owner opens her row to let her back in. */
 const SARA: TeamUser = {
@@ -96,7 +96,7 @@ function serve(entitlement: object, users: TeamUser[] = [SARA]) {
   });
 }
 
-function mount() {
+async function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -109,23 +109,23 @@ function mount() {
 
 /** A field of the edit sheet, by its label: its input, and what it says under it. */
 function field(label: string) {
-  const found = screen.UNSAFE_getAllByType(TextField).find((f) => f.props.label === label);
+  const found = componentsOfType(TextField).find((f) => f.props.label === label);
   if (!found) throw new Error(`no field labelled ${label}`);
-  return { input: found.findByType(TextInput), error: found.props.error as string | undefined };
+  return { input: textInputWithin(found), error: found.props.error as string | undefined };
 }
 
 /** Open Sara's sheet, change what `edit` changes, press Save, and let the refusal land. */
 async function saveRefused(refusal: Error, edit: () => void) {
   (api.patch as jest.Mock).mockRejectedValueOnce(refusal);
-  mount();
-  fireEvent.press(await screen.findByText('Sara'));
+  await mount();
+  await fireEvent.press(await screen.findByText('Sara'));
   edit();
   await act(async () => {
-    fireEvent.press(screen.getByText(t('action.save')));
+    await fireEvent.press(screen.getByText(t('action.save')));
   });
 }
 
-const letBackIn = () => fireEvent.press(screen.getByRole('switch', { name: t('team.field.active') }));
+const letBackIn = async () => fireEvent.press(screen.getByRole('switch', { name: t('team.field.active') }));
 const toasts = () => useToastStore.getState().toasts.map((toast) => toast.message);
 
 const NO_SEAT = new ApiError('All 1 staff places are in use. Deactivate somebody, or add places, before re-enabling this account.', 409, 'SEAT_LIMIT_REACHED');
@@ -184,7 +184,7 @@ describe('letting somebody back in when no seat is free for them (409 SEAT_LIMIT
       expect(await screen.findByText(said[language])).toBeTruthy();
       expect(said[language]).not.toMatch(SELLING);
       expect(screen.queryByText(t('team.error.phoneTaken'))).toBeNull();
-      screen.unmount();
+      await screen.unmount();
     }
   });
 });
@@ -192,7 +192,7 @@ describe('letting somebody back in when no seat is free for them (409 SEAT_LIMIT
 describe('the contacts', () => {
   it('a number another member already uses (409, the phone changed): beside the phone, as before', async () => {
     serve(ACTIVE, [{ ...SARA, isActive: true, status: 'active' }]);
-    await saveRefused(new ApiError('Another user in this company already uses that WhatsApp number', 409), () =>
+    await saveRefused(new ApiError('Another user in this company already uses that WhatsApp number', 409), async () =>
       fireEvent.changeText(field(t('team.field.phone')).input, '+22236999999'),
     );
 
@@ -203,7 +203,7 @@ describe('the contacts', () => {
 
   it('an email changed without the Owner’s own password (403): beside the email, in the app’s words — the phone is not blamed', async () => {
     serve(ACTIVE, [{ ...SARA, isActive: true, status: 'active' }]);
-    await saveRefused(new ApiError('Confirm your password to change a login contact.', 403, 'password_confirmation_required'), () =>
+    await saveRefused(new ApiError('Confirm your password to change a login contact.', 403, 'password_confirmation_required'), async () =>
       fireEvent.changeText(field(t('team.field.email')).input, 'sara@boutique.test'),
     );
 
@@ -219,7 +219,7 @@ describe('the contacts', () => {
       await useI18n.getState().setLanguage('fr');
     });
     serve(ACTIVE, [{ ...SARA, isActive: true, status: 'active' }]);
-    await saveRefused(new ApiError('Confirm your password to change a login contact.', 403, 'password_confirmation_required'), () =>
+    await saveRefused(new ApiError('Confirm your password to change a login contact.', 403, 'password_confirmation_required'), async () =>
       fireEvent.changeText(field(t('team.field.phone')).input, '+22236999999'),
     );
 
@@ -230,7 +230,7 @@ describe('the contacts', () => {
 
   it('a clash on the email (409, the email changed) is never read as the phone', async () => {
     serve(ACTIVE, [{ ...SARA, isActive: true, status: 'active' }]);
-    await saveRefused(new ApiError('Another user in this company already uses that email address', 409), () =>
+    await saveRefused(new ApiError('Another user in this company already uses that email address', 409), async () =>
       fireEvent.changeText(field(t('team.field.email')).input, 'taken@boutique.test'),
     );
 

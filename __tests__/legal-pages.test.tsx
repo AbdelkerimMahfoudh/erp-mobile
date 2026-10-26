@@ -50,7 +50,7 @@ const me: AccountView = {
   emailVerifiedAt: null, whatsappVerified: true, deletionKind: 'personal_login', deletion: null,
 };
 
-const phone = jest.fn(async (_url: string) => true);
+const phone = jest.fn(async (_url: string) => {});
 beforeAll(() => {
   Linking.openURL = phone;
   refuseBrowser();
@@ -66,7 +66,7 @@ beforeEach(() => {
   });
 });
 
-function show(element: React.ReactElement) {
+async function show(element: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -79,18 +79,18 @@ function show(element: React.ReactElement) {
 const COMMERCE = /\bMRU\b|أوقية|\bprice\b|\bprix\b|\bpay\b|\bpayer\b|paiement|الدفع|subscri|abonne|اشتراك|\btrial\b|\bessai\b|تجريب|\bbuy\b|\bacheter\b|\bapply\b/i;
 
 it('Your account: the four pages, each opened at its exact address, beside the way to delete the account', async () => {
-  show(<AccountScreen />);
+  await show(<AccountScreen />);
   expect((await screen.findAllByText(t('account.delete.row'))).length).toBeGreaterThan(0);
   for (const key of ['legal.privacy', 'legal.terms', 'legal.support', 'legal.accountDeletion'] as const) expect(screen.getByText(t(key))).toBeTruthy();
-  fireEvent.press(screen.getByText(t('legal.privacy')));
-  fireEvent.press(screen.getByText(t('legal.accountDeletion')));
+  await fireEvent.press(screen.getByText(t('legal.privacy')));
+  await fireEvent.press(screen.getByText(t('legal.accountDeletion')));
   await waitFor(() => expect(phone).toHaveBeenCalledTimes(2));
   expect(phone.mock.calls.map(([url]) => url)).toEqual([`${ORIGIN}/in-app/privacy`, `${ORIGIN}/in-app/account-deletion`]);
   expect(push).not.toHaveBeenCalled();
 });
 
 it('the deletion screen: how deletion works, privacy and support — and no price, payment, subscription or trial', async () => {
-  show(<DeleteAccountScreen />);
+  await show(<DeleteAccountScreen />);
   await screen.findByText(t('account.delete.heading'));
   for (const key of ['legal.accountDeletion', 'legal.privacy', 'legal.support'] as const) expect(screen.getByText(t(key))).toBeTruthy();
   expect(screen.queryByText(t('legal.terms'))).toBeNull();
@@ -98,15 +98,15 @@ it('the deletion screen: how deletion works, privacy and support — and no pric
   const pressable = screen.getAllByRole('button').map((b) => String(b.props.accessibilityLabel ?? ''));
   expect(pressable.length).toBeGreaterThan(3);
   expect(pressable.filter((label) => COMMERCE.test(label))).toEqual([]);
-  fireEvent.press(screen.getByText(t('legal.support')));
+  await fireEvent.press(screen.getByText(t('legal.support')));
   await waitFor(() => expect(phone).toHaveBeenCalledWith(`${ORIGIN}/in-app/support`));
 });
 
 it('a login assigned to no branch reaches its own account — and so its deletion — and the pages', async () => {
-  show(<SelectBranch />);
+  await show(<SelectBranch />);
   await screen.findByText(t('branch.select.none.title'));
-  fireEvent.press(screen.getByText(t('nav.account')));
+  await fireEvent.press(screen.getByText(t('nav.account')));
   expect(push).toHaveBeenCalledWith('/account');
-  fireEvent.press(screen.getByText(t('legal.terms')));
+  await fireEvent.press(screen.getByText(t('legal.terms')));
   await waitFor(() => expect(phone).toHaveBeenCalledWith(`${ORIGIN}/in-app/terms`));
 });

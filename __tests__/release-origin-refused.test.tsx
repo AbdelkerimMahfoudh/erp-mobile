@@ -23,7 +23,7 @@ jest.mock('../hooks/useAuth', () => ({
 import RootLayout from '../app/_layout';
 
 it('a release without its https API shows why, before sign-in, and mounts nothing else', async () => {
-  render(<RootLayout />);
+  await render(<RootLayout />);
   expect(await screen.findByText(t('release.originRefused.title'))).toBeTruthy();
   expect(screen.getByText(t('release.originRefused.body'))).toBeTruthy();
 });

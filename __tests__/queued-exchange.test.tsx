@@ -77,7 +77,7 @@ const recordedAnswer = (over: Record<string, unknown> = {}) => ({
 });
 
 /** One exchange in the queue, its number sealed under its scoped key, and its block on screen. */
-function show(item: QueueItem, onPrepareAgain?: () => void) {
+async function show(item: QueueItem, onPrepareAgain?: () => void) {
   useQueue.setState({ items: [item] });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   function Live() {
@@ -110,20 +110,20 @@ beforeEach(async () => {
     throw new Error(`unexpected GET ${path}`);
   });
 });
-afterEach(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
+afterEach(async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
 
 describe('pending and synchronizing', () => {
   it('pending: Pending synchronization, cancelled only after a second tap — nothing is sent, its number leaves the phone', async () => {
     useConnectivity.setState({ online: false });
-    show(queued());
+    await show(queued());
     expect(screen.getByTestId('exchange-pending')).toBeTruthy();
     expect(screen.getByText(t('agent.pending'))).toBeTruthy();
     expect(screen.getByText(t('agent.outcome.pending.body'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.remove'))).toBeNull();
-    fireEvent.press(screen.getByText(t('agent.action.cancel')));
+    await fireEvent.press(screen.getByText(t('agent.action.cancel')));
     expect(stateOf().state).toBe('waiting_for_connection');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.cancelConfirm')));
+      await fireEvent.press(screen.getByText(t('agent.action.cancelConfirm')));
     });
     expect(stateOf().state).toBe('cancelled');
     expect(await screen.findByText(t('agent.outcome.cancelled'))).toBeTruthy();
@@ -131,8 +131,8 @@ describe('pending and synchronizing', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('synchronizing: on its way, nothing to cancel', () => {
-    show(queued({ state: 'sending', attempts: 1, lastAttemptAt: 1 }));
+  it('synchronizing: on its way, nothing to cancel', async () => {
+    await show(queued({ state: 'sending', attempts: 1, lastAttemptAt: 1 }));
     expect(screen.getByText(t('agent.pending'))).toBeTruthy();
     expect(screen.getByText(t('agent.outcome.sending'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
@@ -141,8 +141,8 @@ describe('pending and synchronizing', () => {
 });
 
 describe('confirmed', () => {
-  it('the server’s record: its time, business day, recorder and commission — no action left', () => {
-    show(queued({ state: 'synced', result: { id: 't-9', recordedAt: '2026-10-10T09:00:02.000Z', businessDate: '2026-10-10', recordedByName: 'Employee Boutique 2', commission: 200 } }));
+  it('the server’s record: its time, business day, recorder and commission — no action left', async () => {
+    await show(queued({ state: 'synced', result: { id: 't-9', recordedAt: '2026-10-10T09:00:02.000Z', businessDate: '2026-10-10', recordedByName: 'Employee Boutique 2', commission: 200 } }));
     expect(screen.getByTestId('exchange-recorded')).toBeTruthy();
     expect(screen.getByText(t('agent.outcome.recorded.title'))).toBeTruthy();
     expect(screen.getByText(/Recorded by the server at \d\d:\d\d, business day 10 Oct 2026, by Employee Boutique 2\./)).toBeTruthy();
@@ -160,11 +160,11 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
       if (path === `/agent/transactions/client/${KEY}`) return { recorded: true, transaction: serverTx() };
       return { branchId: 'b1', permissions: EMPLOYEE };
     });
-    show(uncertain());
+    await show(uncertain());
     expect(screen.getByText(t('agent.state.uncertain'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.cancel'))).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
+      await fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
     });
     expect(api.get).toHaveBeenCalledWith(`/agent/transactions/client/${KEY}`);
     expect(api.post).not.toHaveBeenCalled();
@@ -180,9 +180,9 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
       return { branchId: 'b1', permissions: EMPLOYEE };
     });
     (api.post as jest.Mock).mockResolvedValue(recordedAnswer());
-    show(uncertain());
+    await show(uncertain());
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
+      await fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
     });
     await waitFor(() => expect(stateOf().state).toBe('synced'));
     expect(api.post).toHaveBeenCalledTimes(1);
@@ -197,9 +197,9 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
       if (path.startsWith('/agent/transactions/client/')) return { recorded: true, transaction: serverTx({ amount: 9000, customerNumberMasked: '•••• 9999' }) };
       return { branchId: 'b1', permissions: EMPLOYEE };
     });
-    show(uncertain());
+    await show(uncertain());
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
+      await fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
     });
     expect(stateOf().state).toBe('rejected_reenter');
     expect(stateOf().lastError?.code).toBe('idempotency_conflict');
@@ -215,9 +215,9 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
       if (path.startsWith('/agent/transactions/client/')) throw new TypeError('Network request failed');
       return { branchId: 'b1', permissions: EMPLOYEE };
     });
-    show(uncertain());
+    await show(uncertain());
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
+      await fireEvent.press(screen.getByText(t('agent.action.checkAgain')));
     });
     expect(stateOf().state).toBe('uncertain');
     expect(await screen.findByText(t('agent.uncertain.unreachable'))).toBeTruthy();
@@ -226,11 +226,11 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
   });
 
   it('removed from this phone only after a second tap', async () => {
-    show(uncertain());
-    fireEvent.press(screen.getByText(t('agent.action.remove')));
+    await show(uncertain());
+    await fireEvent.press(screen.getByText(t('agent.action.remove')));
     expect(stateOf().state).toBe('uncertain');
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.removeConfirm')));
+      await fireEvent.press(screen.getByText(t('agent.action.removeConfirm')));
     });
     expect(stateOf().state).toBe('cancelled');
     expect(stateOf().result?.removed).toBe(1);
@@ -242,40 +242,40 @@ describe('uncertain — the status lookup decides, never a blind resend', () => 
 describe('rejected — to fix and send', () => {
   it('a closed store: Not recorded, Send again resends it unchanged under the same key', async () => {
     (api.post as jest.Mock).mockResolvedValue(recordedAnswer());
-    show(queued({ state: 'rejected_resubmit', attempts: 1, lastAttemptAt: 1, lastError: { kind: 'conflict', status: 409, code: 'store_closed', message: 'closed' } }));
+    await show(queued({ state: 'rejected_resubmit', attempts: 1, lastAttemptAt: 1, lastError: { kind: 'conflict', status: 409, code: 'store_closed', message: 'closed' } }));
     expect(screen.getByTestId('exchange-rejected-resubmit')).toBeTruthy();
     expect(screen.getByText(t('agent.refusal.title'))).toBeTruthy();
     expect(screen.getByText(t('agent.refusal.store_closed'))).toBeTruthy();
     expect(screen.queryByText(t('agent.pending'))).toBeNull();
     expect(screen.queryByText(t('agent.action.reviewAndSend'))).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.sendAgain')));
+      await fireEvent.press(screen.getByText(t('agent.action.sendAgain')));
     });
     await waitFor(() => expect(stateOf().state).toBe('synced'));
     expect((api.post as jest.Mock).mock.calls[0][1].clientUuid).toBe(KEY);
   });
 
-  it('a conflict — an earlier build’s stale rate included: Review and send prepares it again; an unaccepted number or a missing commission: Edit and send — never sent unchanged', () => {
+  it('a conflict — an earlier build’s stale rate included: Review and send prepares it again; an unaccepted number or a missing commission: Edit and send — never sent unchanged', async () => {
     const prepare = jest.fn();
     // Refused by an earlier server for a rate that changed: the code is retired (D164), read as the conflict it was.
-    const view = show(queued({ state: 'rejected_resubmit', lastError: { kind: 'conflict', status: 409, code: 'stale_configuration', message: 'stale' } }), prepare);
+    const view = await show(queued({ state: 'rejected_resubmit', lastError: { kind: 'conflict', status: 409, code: 'stale_configuration', message: 'stale' } }), prepare);
     expect(screen.getByText(t('agent.refusal.conflict'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
-    fireEvent.press(screen.getByText(t('agent.action.reviewAndSend')));
+    await fireEvent.press(screen.getByText(t('agent.action.reviewAndSend')));
     expect(prepare).toHaveBeenCalledTimes(1);
-    view.unmount();
+    await view.unmount();
 
     // An exchange an earlier build queued with no commission: the server asks for it; the person types it (D164).
-    const missing = show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'commission_required', message: 'required' } }), prepare);
+    const missing = await show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'commission_required', message: 'required' } }), prepare);
     expect(screen.getByText(t('agent.refusal.commission_required'))).toBeTruthy();
     expect(screen.queryByText(t('agent.action.sendAgain'))).toBeNull();
-    fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
+    await fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
     expect(prepare).toHaveBeenCalledTimes(2);
-    missing.unmount();
+    await missing.unmount();
 
-    show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'customer_number_invalid', message: 'bad' } }), prepare);
+    await show(queued({ state: 'rejected_resubmit', lastError: { kind: 'validation', status: 400, code: 'customer_number_invalid', message: 'bad' } }), prepare);
     expect(screen.getByText(t('agent.refusal.customer_number_invalid'))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
+    await fireEvent.press(screen.getByText(t('agent.action.editAndSend')));
     expect(prepare).toHaveBeenCalledTimes(3);
     expect(screen.getByText(t('agent.action.remove'))).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
@@ -284,7 +284,7 @@ describe('rejected — to fix and send', () => {
 
 describe('rejected — to enter elsewhere', () => {
   it('a permission removed: Not recorded here, why and what to do, its details (never the full number), removed after a second tap', async () => {
-    show(queued({ state: 'rejected_reenter', lastError: { kind: 'permission_denied', status: 403, code: 'permission_denied', message: 'no' } }));
+    await show(queued({ state: 'rejected_reenter', lastError: { kind: 'permission_denied', status: 403, code: 'permission_denied', message: 'no' } }));
     expect(screen.getByText(t('agent.state.rejectedHere'))).toBeTruthy();
     expect(screen.getByText(t('agent.refusal.permission_denied'))).toBeTruthy();
     const details = screen.getByTestId('exchange-details');
@@ -294,9 +294,9 @@ describe('rejected — to enter elsewhere', () => {
     for (const absent of ['agent.action.sendAgain', 'agent.action.reviewAndSend', 'agent.action.editAndSend', 'agent.action.cancel', 'agent.action.checkAgain'] as const) {
       expect(screen.queryByText(t(absent))).toBeNull();
     }
-    fireEvent.press(screen.getByText(t('agent.action.remove')));
+    await fireEvent.press(screen.getByText(t('agent.action.remove')));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('agent.action.removeConfirm')));
+      await fireEvent.press(screen.getByText(t('agent.action.removeConfirm')));
     });
     expect(stateOf().state).toBe('cancelled');
     await waitFor(() => expect(mockStore.has(numberKey(SCOPE, KEY))).toBe(false));
@@ -308,7 +308,7 @@ describe('rejected — to enter elsewhere', () => {
       if (path.startsWith('/agent/transactions/client/')) return { recorded: true, transaction: serverTx({ amount: 7000 }) };
       return { branchId: 'b1', permissions: EMPLOYEE };
     });
-    show(queued());
+    await show(queued());
     await act(async () => {
       await useQueue.getState().process();
     });
@@ -320,7 +320,7 @@ describe('rejected — to enter elsewhere', () => {
 
   it('a timeout leaves it uncertain — never resent on its own; a suspended business answers Send again once access is back', async () => {
     (api.post as jest.Mock).mockRejectedValueOnce(Object.assign(new Error('timeout'), { name: 'TimeoutError' }));
-    show(queued());
+    await show(queued());
     await act(async () => {
       await useQueue.getState().process();
     });

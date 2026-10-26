@@ -66,7 +66,7 @@ function serve(current: { now: WhatsAppConsentView }) {
   });
 }
 
-function renderScreen(node: React.ReactElement = <CommunicationScreen />) {
+async function renderScreen(node: React.ReactElement = <CommunicationScreen />) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -86,13 +86,13 @@ beforeEach(() => {
 describe('an account without a consent', () => {
   it('is asked, with an unticked box; agreeing without ticking records nothing', async () => {
     serve({ now: view() });
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(t('consent.request.body'))).toBeTruthy();
     expect(screen.getByText(t('consent.state.none'))).toBeTruthy();
     const box = screen.getByTestId('whatsapp-consent-check');
     expect(box.props.accessibilityState).toMatchObject({ checked: false });
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.agree')));
+      await fireEvent.press(screen.getByText(t('consent.agree')));
     });
     expect(api.post).not.toHaveBeenCalled();
     expect(screen.getByText(t('consent.problem.required'))).toBeTruthy();
@@ -102,10 +102,10 @@ describe('an account without a consent', () => {
     const current = { now: view() };
     serve(current);
     (api.post as jest.Mock).mockImplementation(async () => (current.now = view(GRANTED)));
-    renderScreen();
-    fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.agree')));
+      await fireEvent.press(screen.getByText(t('consent.agree')));
     });
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/consent?language=en', { version: CONSENT_VERSION, locale: 'en' });
     await waitFor(() => expect(toasts()).toEqual([`success: ${t('consent.agreed')}`]));
@@ -115,7 +115,7 @@ describe('an account without a consent', () => {
 
   it('an outdated consent asks again, in its own words', async () => {
     serve({ now: view({ state: 'outdated', grantedVersion: 'wa-consent-2026-10-17' }) });
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(t('consent.request.outdated'))).toBeTruthy();
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: false });
   });
@@ -126,19 +126,19 @@ describe('withdrawing', () => {
     const current = { now: view(GRANTED) };
     serve(current);
     (api.post as jest.Mock).mockImplementation(async () => (current.now = view({ state: 'withdrawn', withdrawnAt: '2026-10-19T09:00:00.000Z', grantedVersion: CONSENT_VERSION })));
-    renderScreen();
-    fireEvent.press(await screen.findByText(t('consent.withdraw')));
+    await renderScreen();
+    await fireEvent.press(await screen.findByText(t('consent.withdraw')));
     expect(screen.getByText(t('consent.withdraw.explain'))).toBeTruthy();
     expect(screen.getByText(t('consent.withdraw.onlyContact'))).toBeTruthy();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
+      await fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
     });
     expect(api.post).not.toHaveBeenCalled();
     expect(screen.getByText(t('consent.withdraw.needsAck'))).toBeTruthy();
 
-    fireEvent.press(screen.getByText(t('consent.withdraw.acknowledge')));
+    await fireEvent.press(screen.getByText(t('consent.withdraw.acknowledge')));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
+      await fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
     });
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/consent/withdraw?language=en', { acknowledgeSupportRecovery: true });
     expect(await screen.findByText(t('consent.withdrawn.body'))).toBeTruthy();
@@ -151,11 +151,11 @@ describe('withdrawing', () => {
     const current = { now: view({ ...GRANTED, onlyVerifiedContact: false }) };
     serve(current);
     (api.post as jest.Mock).mockImplementation(async () => (current.now = view({ state: 'withdrawn', onlyVerifiedContact: false })));
-    renderScreen();
-    fireEvent.press(await screen.findByText(t('consent.withdraw')));
+    await renderScreen();
+    await fireEvent.press(await screen.findByText(t('consent.withdraw')));
     expect(screen.queryByText(t('consent.withdraw.onlyContact'))).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
+      await fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
     });
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/consent/withdraw?language=en', {});
   });
@@ -163,11 +163,11 @@ describe('withdrawing', () => {
   it('a refusal the server gives is said in the app’s words', async () => {
     serve({ now: view(GRANTED) });
     (api.post as jest.Mock).mockRejectedValue(new ApiError('WhatsApp is your only verified contact.', 409, 'withdrawal_needs_acknowledgement'));
-    renderScreen();
-    fireEvent.press(await screen.findByText(t('consent.withdraw')));
-    fireEvent.press(screen.getByText(t('consent.withdraw.acknowledge')));
+    await renderScreen();
+    await fireEvent.press(await screen.findByText(t('consent.withdraw')));
+    await fireEvent.press(screen.getByText(t('consent.withdraw.acknowledge')));
     await act(async () => {
-      fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
+      await fireEvent.press(screen.getByText(t('consent.withdraw.confirm')));
     });
     expect(await screen.findByText(t('consent.withdraw.needsAck'))).toBeTruthy();
   });
@@ -185,7 +185,7 @@ describe('what the screen shows', () => {
         ],
       }),
     });
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(t('consent.history'))).toBeTruthy();
     const lines = screen.getAllByText(/ · /).map((n) => String(n.props.children));
     expect(lines.some((l) => l.startsWith(t('consent.event.active')) && l.endsWith(t('consent.source.account')))).toBe(true);
@@ -196,7 +196,7 @@ describe('what the screen shows', () => {
 
   it('one consent, operational — no marketing control, and it says so', async () => {
     serve({ now: view() });
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(t('consent.notMarketing'))).toBeTruthy();
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);
     expect(screen.queryAllByRole('switch')).toHaveLength(0);
@@ -208,7 +208,7 @@ describe('what the screen shows', () => {
     await useI18n.getState().setLanguage('ar');
     try {
       serve({ now: view(GRANTED, 'ar') });
-      renderScreen();
+      await renderScreen();
       expect(await screen.findByText(CONSENT_COPY.ar.agreement)).toBeTruthy();
       expect(screen.getByText(t('consent.state.active'))).toBeTruthy();
       expect(screen.getByText(`⁦${MASKED}⁩`)).toBeTruthy();
@@ -223,7 +223,7 @@ describe('what the screen shows', () => {
     await useI18n.getState().setLanguage('fr');
     try {
       serve({ now: view({}, 'fr') });
-      renderScreen();
+      await renderScreen();
       expect(await screen.findByText(CONSENT_COPY.fr.agreement)).toBeTruthy();
       expect(screen.getByText(t('consent.request.body'))).toBeTruthy();
     } finally {
@@ -248,7 +248,7 @@ describe('Your account', () => {
 
   it('asks an account without a consent for it — beside everything else, which stays usable', async () => {
     serveAccount(view());
-    renderScreen(<AccountScreen />);
+    await renderScreen(<AccountScreen />);
     expect(await screen.findByText(t('account.consent.request'))).toBeTruthy();
     expect(screen.getByText(t('consent.title'))).toBeTruthy();
     expect(screen.getAllByText(t('account.delete.row')).length).toBeGreaterThan(0);
@@ -257,7 +257,7 @@ describe('Your account', () => {
 
   it('says nothing more once the consent is given', async () => {
     serveAccount(view(GRANTED));
-    renderScreen(<AccountScreen />);
+    await renderScreen(<AccountScreen />);
     expect(await screen.findByText(t('consent.state.active'))).toBeTruthy();
     expect(screen.queryByText(t('account.consent.request'))).toBeNull();
   });

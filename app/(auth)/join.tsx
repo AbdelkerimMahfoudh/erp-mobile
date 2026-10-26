@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -52,7 +52,7 @@ export default function JoinScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<JoinConfirmResult | null>(null);
-  const consentRef = useRef<View>(null);
+  const consentRef = useRef<ViewInstance>(null);
 
   const copy = useQuery({
     queryKey: qk.whatsappConsentCopy(language),

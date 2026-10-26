@@ -10,7 +10,6 @@
  * is said to be unread, and read again on request. A refusal the server did give — a wrong code — is still said as one.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
@@ -42,6 +41,7 @@ jest.mock('../lib/api-client', () => {
 import { api, ApiError } from '../lib/api-client';
 import AccountScreen from '../app/account';
 import { CONSENT_VERSION, consentCopyFor } from './mocks/whatsapp-consent';
+import { textInputs } from './tree';
 
 const none: AccountView = {
   id: 'u1', name: 'Aicha', login: 'aicha', personalId: 'P-1', phone: null, phoneVerifiedAt: null, email: 'aicha@example.invalid',
@@ -66,7 +66,7 @@ function server(account: { now: AccountView }, onConfirm: () => void) {
   });
 }
 
-function renderScreen() {
+async function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -79,18 +79,18 @@ function renderScreen() {
 
 /** Opens the number form, types the number as a person would, asks for a code and types it, then confirms. */
 async function confirmNumber(open: string, typed: string) {
-  fireEvent.press(await screen.findByText(open));
-  const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
-  fireEvent.changeText(phone, typed);
-  fireEvent.changeText(password, 'correct horse');
+  await fireEvent.press(await screen.findByText(open));
+  const [phone, password] = textInputs();
+  await fireEvent.changeText(phone, typed);
+  await fireEvent.changeText(password, 'correct horse');
   // The new number's own consent, ticked by the person (D213).
-  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+  await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
   await act(async () => {
-    fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+    await fireEvent.press(screen.getByText(t('account.whatsapp.send')));
   });
-  fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+  await fireEvent.changeText(textInputs()[0], '123456');
   await act(async () => {
-    fireEvent.press(screen.getByText(t('account.whatsapp.confirm')));
+    await fireEvent.press(screen.getByText(t('account.whatsapp.confirm')));
   });
 }
 
@@ -105,7 +105,7 @@ beforeEach(() => {
 it('a lost answer for a first number the server did verify is done: the account holds it, verified', async () => {
   const account = { now: none };
   server(account, () => (account.now = verified('+22249998877')));
-  renderScreen();
+  await renderScreen();
   await confirmNumber(t('account.whatsapp.verify'), '4999 8877');
 
   await waitFor(() => expect(toasts()).toEqual([`success: ${t('account.whatsapp.done')}`]));
@@ -120,7 +120,7 @@ it('a lost answer for a first number the server did verify is done: the account 
 it('changing a verified number: a lost answer the server never committed is not confirmed — beside the old, still verified number', async () => {
   const account = { now: verified('+22241111111') };
   server(account, () => undefined);
-  renderScreen();
+  await renderScreen();
   await confirmNumber(t('account.whatsapp.change'), '4999 8877');
 
   expect(await screen.findByText(t('account.whatsapp.notConfirmed'))).toBeTruthy();
@@ -128,15 +128,15 @@ it('changing a verified number: a lost answer the server never committed is not 
   expect(toasts()).toEqual([]);
   // Try again is the way on: the form again, with the number already typed.
   expect(screen.queryByText(t('account.whatsapp.change'))).toBeNull();
-  fireEvent.press(screen.getByText(t('action.retry')));
-  expect(screen.UNSAFE_getAllByType(TextInput)[0].props.value).toBe('4999 8877');
+  await fireEvent.press(screen.getByText(t('action.retry')));
+  expect(textInputs()[0].props.value).toBe('4999 8877');
   expect(screen.queryByText(t('account.whatsapp.notConfirmed'))).toBeNull();
 });
 
 it('changing a verified number: a lost answer the server did commit is done', async () => {
   const account = { now: verified('+22241111111') };
   server(account, () => (account.now = verified('+22249998877')));
-  renderScreen();
+  await renderScreen();
   await confirmNumber(t('account.whatsapp.change'), '+222 4999 8877');
 
   await waitFor(() => expect(toasts()).toEqual([`success: ${t('account.whatsapp.done')}`]));
@@ -147,8 +147,8 @@ it('changing a verified number: a lost answer the server did commit is done', as
 it('an account that cannot be read again is said to be unread, and Try again reads it again', async () => {
   const account = { now: none };
   server(account, () => (account.now = verified('+22249998877')));
-  renderScreen();
-  fireEvent.press(await screen.findByText(t('account.whatsapp.verify')));
+  await renderScreen();
+  await fireEvent.press(await screen.findByText(t('account.whatsapp.verify')));
   // The connection drops with the confirmation: its answer is lost, then so is the account read just after it.
   const read = api.get as jest.Mock;
   const answer = read.getMockImplementation()!;
@@ -156,22 +156,22 @@ it('an account that cannot be read again is said to be unread, and Try again rea
     if (path === '/account' && read.mock.calls.filter(([p]) => p === '/account').length === 2) throw new TypeError('Network request failed');
     return answer(path);
   });
-  const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
-  fireEvent.changeText(phone, '49998877');
-  fireEvent.changeText(password, 'correct horse');
-  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+  const [phone, password] = textInputs();
+  await fireEvent.changeText(phone, '49998877');
+  await fireEvent.changeText(password, 'correct horse');
+  await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
   await act(async () => {
-    fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+    await fireEvent.press(screen.getByText(t('account.whatsapp.send')));
   });
-  fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '123456');
+  await fireEvent.changeText(textInputs()[0], '123456');
   await act(async () => {
-    fireEvent.press(screen.getByText(t('account.whatsapp.confirm')));
+    await fireEvent.press(screen.getByText(t('account.whatsapp.confirm')));
   });
 
   expect(await screen.findByText(t('account.whatsapp.unread'))).toBeTruthy();
   expect(toasts()).toEqual([]);
   await act(async () => {
-    fireEvent.press(screen.getByText(t('action.retry')));
+    await fireEvent.press(screen.getByText(t('action.retry')));
   });
   await waitFor(() => expect(toasts()).toEqual([`success: ${t('account.whatsapp.done')}`]));
   expect(screen.queryByText(t('account.whatsapp.unread'))).toBeNull();
@@ -184,7 +184,7 @@ it('a code the server refused is still said to be wrong', async () => {
     if (path === '/account/whatsapp/verify/start') return started;
     throw new ApiError('That code is not right.', 400, 'invalid_code', { attemptsRemaining: 4 });
   });
-  renderScreen();
+  await renderScreen();
   await confirmNumber(t('account.whatsapp.verify'), '+22249998877');
 
   expect(await screen.findByText(t('account.code.wrong', { left: '4' }))).toBeTruthy();
@@ -196,23 +196,23 @@ describe('a new number’s own consent (D213)', () => {
   it('starts unticked; without it no code is asked for; ticked, the server’s version and the language shown go with the number', async () => {
     const account = { now: verified('+22249998877') };
     server(account, () => undefined);
-    renderScreen();
-    fireEvent.press(await screen.findByText(t('account.whatsapp.change')));
-    const [phone, password] = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(phone, '36001122');
-    fireEvent.changeText(password, 'correct horse');
+    await renderScreen();
+    await fireEvent.press(await screen.findByText(t('account.whatsapp.change')));
+    const [phone, password] = textInputs();
+    await fireEvent.changeText(phone, '36001122');
+    await fireEvent.changeText(password, 'correct horse');
     const box = await screen.findByTestId('whatsapp-consent-check');
     expect(box.props.accessibilityState).toMatchObject({ checked: false });
     await act(async () => {
-      fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+      await fireEvent.press(screen.getByText(t('account.whatsapp.send')));
     });
     expect(api.post).not.toHaveBeenCalled();
     expect(screen.getByText(t('consent.problem.required'))).toBeTruthy();
 
-    fireEvent.press(box);
+    await fireEvent.press(box);
     expect(screen.getByTestId('whatsapp-consent-check').props.accessibilityState).toMatchObject({ checked: true });
     await act(async () => {
-      fireEvent.press(screen.getByText(t('account.whatsapp.send')));
+      await fireEvent.press(screen.getByText(t('account.whatsapp.send')));
     });
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/verify/start', expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: 'en' }));
   });

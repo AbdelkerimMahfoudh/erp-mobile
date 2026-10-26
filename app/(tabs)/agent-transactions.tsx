@@ -222,7 +222,7 @@ export default function AgentTransactionsTab() {
               <Text variant="caption" tone="tertiary" style={styles.end}>
                 {t('agent.list.end')}
               </Text>
-            ) : null
+            ) : undefined
           }
         />
       )}

@@ -12,7 +12,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { act, render, screen, waitFor } from '@testing-library/react-native';
-import type { ReactTestInstance } from 'react-test-renderer';
+import type { TestInstance as ReactTestInstance } from 'test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import { t, useI18n } from '../lib/i18n';
@@ -74,7 +74,7 @@ function serve(entitlement: object) {
   });
 }
 
-function renderScreen() {
+async function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
     <ThemeProvider>
@@ -108,20 +108,20 @@ describe('a grace that runs', () => {
 
   it('says its deadline on the business’s clock — the access screen and the tabs’ notice alike — and the allowance as the server counts it', async () => {
     serve(inGrace());
-    renderScreen();
+    await renderScreen();
 
     expect(await screen.findByText(`Your business is in its grace period. Changes are accepted until ${DEADLINE}.`)).toBeTruthy();
     expect(screen.getByText(`Grace period — changes are accepted until ${DEADLINE}.`)).toBeTruthy();
     expect(screen.getByText('Grace periods left: 2 of 3 in any 12 months.')).toBeTruthy();
     // The business's clock, not this machine's (unless this machine reads Tokyo's).
     const machine = format(new Date(GRACE_ENDS), 'HH:mm');
-    if (machine !== '19:00') expect(textOf(screen.root)).not.toContain(machine);
-    expect(textOf(screen.root)).not.toMatch(COMMERCE);
+    if (machine !== '19:00') expect(textOf(screen.container)).not.toContain(machine);
+    expect(textOf(screen.container)).not.toMatch(COMMERCE);
   });
 
   it('the zone the server names decides the hour, and is named: the same instant in New York', async () => {
     serve(inGrace({}, 'America/New_York'));
-    renderScreen();
+    await renderScreen();
     const deadline = '21 Oct 2026 · 06:00 (Eastern Daylight Time)';
     expect(await screen.findByText(`Your business is in its grace period. Changes are accepted until ${deadline}.`)).toBeTruthy();
     expect(screen.getByText(`Grace period — changes are accepted until ${deadline}.`)).toBeTruthy();
@@ -129,12 +129,12 @@ describe('a grace that runs', () => {
 
   it('the count is the server’s: the last one in use says none left, and a count it did not make is not shown', async () => {
     serve(inGrace({ usesInWindow: 3, usesRemaining: 0 }));
-    const view = renderScreen();
+    const view = await renderScreen();
     expect(await screen.findByText('Grace periods left: 0 of 3 in any 12 months.')).toBeTruthy();
-    view.unmount();
+    await view.unmount();
 
     serve(inGrace({ usesInWindow: null, usesRemaining: null }));
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(`Your business is in its grace period. Changes are accepted until ${DEADLINE}.`)).toBeTruthy();
     expect(screen.queryByText(/Grace periods left/)).toBeNull();
   });
@@ -142,7 +142,7 @@ describe('a grace that runs', () => {
   it('a server too old to send the grace or the zone: the deadline on the phone’s clock, as before, and no allowance', async () => {
     const { grace: _grace, timeZone: _zone, ...older } = inGrace();
     serve(older);
-    renderScreen();
+    await renderScreen();
     const phone = format(new Date(GRACE_ENDS), 'd MMM yyyy · HH:mm');
     expect(await screen.findByText(`Your business is in its grace period. Changes are accepted until ${phone}.`)).toBeTruthy();
     expect(screen.queryByText(/Grace periods left/)).toBeNull();
@@ -151,14 +151,14 @@ describe('a grace that runs', () => {
   it('in French and in Arabic, the allowance in each language, its numbers the server’s', async () => {
     serve(inGrace());
     await useI18n.getState().setLanguage('fr');
-    const fr = renderScreen();
+    const fr = await renderScreen();
     expect(await screen.findByText('Périodes de grâce restantes : 2 sur 3 par période de 12 mois.')).toBeTruthy();
-    fr.unmount();
+    await fr.unmount();
 
     await act(async () => {
       await useI18n.getState().setLanguage('ar');
     });
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText('فترات السماح المتبقية: 2 من 3 خلال أي 12 شهرًا.')).toBeTruthy();
   });
 });
@@ -166,16 +166,16 @@ describe('a grace that runs', () => {
 describe('a paid period that ended', () => {
   it('with the allowance used: read-only, and no grace followed — said beside the read-only words, nothing to press', async () => {
     serve(expired({ status: 'unavailable', usesInWindow: 3, usesRemaining: 0 }));
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText('No grace period followed: the 3 grace periods of the last 12 months are used.')).toBeTruthy();
     expect(screen.getByText(t('access.readOnly.body'))).toBeTruthy();
     expect(screen.getByText(t('access.readOnly.kept'))).toBeTruthy();
-    expect(textOf(screen.root)).not.toMatch(COMMERCE);
+    expect(textOf(screen.container)).not.toMatch(COMMERCE);
   });
 
   it('after a grace that ran out: read-only, and nothing about the allowance', async () => {
     serve(expired({ status: 'ended', endsAt: GRACE_ENDS, usesInWindow: 1, usesRemaining: 2 }));
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText(t('access.readOnly.body'))).toBeTruthy();
     expect(screen.queryByText(/grace period/i)).toBeNull();
   });
@@ -183,7 +183,7 @@ describe('a paid period that ended', () => {
   it('an ended free trial is never told about grace, whatever the server sends beside it', async () => {
     const trial = { status: 'expired', durationHours: 168, durationDays: 7, claimedAt: '2026-10-10T10:00:00.000Z', startedAt: '2026-10-10T10:00:00.000Z', endsAt: '2026-10-17T10:00:00.000Z', timeZone: 'Asia/Tokyo' };
     serve({ ...expired({ status: 'unavailable', usesInWindow: 3, usesRemaining: 0 }), state: 'trial_expired', status: 'pending_activation', periodEnd: null, trial });
-    renderScreen();
+    await renderScreen();
     await waitFor(() => expect(screen.getAllByText(/The free trial ended on/).length).toBeGreaterThan(0));
     expect(screen.queryByText(/grace period/i)).toBeNull();
   });
@@ -192,18 +192,18 @@ describe('a paid period that ended', () => {
 describe('a paid period that runs', () => {
   it('whose end would open no grace: says so, plainly — no action', async () => {
     serve(active({ availableAtPeriodEnd: false, usesInWindow: 3, usesRemaining: 0 }));
-    renderScreen();
+    await renderScreen();
     expect(await screen.findByText('If access ends before it is extended, no grace period follows: the 3 of the last 12 months are used.')).toBeTruthy();
-    expect(textOf(screen.root)).not.toMatch(COMMERCE);
+    expect(textOf(screen.container)).not.toMatch(COMMERCE);
   });
 
   it('whose end would open one — or whose server does not say — says nothing about grace', async () => {
     for (const availableAtPeriodEnd of [true, null]) {
       serve(active({ availableAtPeriodEnd }));
-      const view = renderScreen();
+      const view = await renderScreen();
       expect(await screen.findByText(t('access.active.until', { date: '18 Nov 2026' }))).toBeTruthy();
       expect(screen.queryByText(/grace period/i)).toBeNull();
-      view.unmount();
+      await view.unmount();
     }
   });
 });
