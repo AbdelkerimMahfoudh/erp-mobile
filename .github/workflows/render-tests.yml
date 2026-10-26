@@ -1,0 +1,76 @@
+# The app's rendered (Jest) suite on a Linux runner, with its output kept (D222).
+#
+# Since Expo SDK 58 the owner's PC cannot run it: Jest 30 resolves modules with `unrs-resolver`, whose native binary
+# Windows Smart App Control blocks. The `security` workflow runs the same suite but its job log is not readable
+# without repository rights, so this commits Jest's own report to this branch under evidence/<commit>-<run>/.
+# Tooling only: it builds nothing, deploys nothing, touches no secret. Edit target.env and push to run it again.
+name: render-tests
+
+on:
+  push:
+    branches: [ops/render-tests]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-tests
+  cancel-in-progress: false
+
+jobs:
+  jest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write # only to commit the evidence back to this branch
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: tools
+      - name: The target
+        run: |
+          set -a; source tools/target.env; set +a
+          [[ "$MOBILE" =~ ^[0-9a-f]{40}$ ]] || { echo "MOBILE must be a full SHA"; exit 1; }
+          echo "MOBILE=$MOBILE" >> "$GITHUB_ENV"
+          echo "EV=$GITHUB_WORKSPACE/tools/evidence/${MOBILE:0:7}-$GITHUB_RUN_ID" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with: { repository: AbdelkerimMahfoudh/erp-mobile, ref: '${{ env.MOBILE }}', path: app }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: |
+          mkdir -p "$EV"
+          [ "$(git -C app rev-parse HEAD)" = "$MOBILE" ] || { echo "the checkout is not $MOBILE"; exit 1; }
+          (cd app && npm ci --no-audit --no-fund) > "$EV/install.log" 2>&1
+      - name: Rendered tests
+        run: |
+          set +e
+          (cd app && npx jest --maxWorkers=2 --json --outputFile="$EV/jest.json") > "$EV/jest.txt" 2>&1
+          echo "exit $?" > "$EV/exit.txt"
+          set -e
+          node -e '
+            const r = require(process.argv[1]);
+            const lines = [`suites ${r.numPassedTestSuites}/${r.numTotalTestSuites}, tests ${r.numPassedTests}/${r.numTotalTests}, failed ${r.numFailedTests}`];
+            for (const s of r.testResults) for (const t of s.assertionResults) if (t.status === "failed")
+              lines.push(`FAIL ${s.name.replace(/.*\/app\//, "")} :: ${t.fullName}\n  ${(t.failureMessages[0] || "").split("\n").slice(0, 12).join("\n  ")}`);
+            for (const s of r.testResults) if (s.status === "failed" && !s.assertionResults.some((t) => t.status === "failed"))
+              lines.push(`SUITE FAIL ${s.name.replace(/.*\/app\//, "")}\n  ${(s.message || "").split("\n").slice(0, 20).join("\n  ")}`);
+            require("fs").writeFileSync(process.argv[2], lines.join("\n") + "\n");
+          ' "$EV/jest.json" "$EV/summary.txt" || true
+          cat "$EV/summary.txt" || true
+      - name: Keep the evidence
+        if: always()
+        run: |
+          cd tools
+          git config user.name "render-tests"
+          git config user.email "render-tests@users.noreply.github.com"
+          git add evidence
+          git commit -qm "evidence: rendered tests on ${MOBILE:0:7} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4 5; do git push -q origin HEAD:ops/render-tests && break; git pull -q --rebase origin ops/render-tests; done
+      - name: The verdict
+        run: grep -q '^exit 0$' "$EV/exit.txt"
