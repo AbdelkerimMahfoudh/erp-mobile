@@ -112,8 +112,9 @@ const LINKING_ALLOWED = new Map([[GUARD, new Set(['Linking'])]]);
  * expo-router's for an external redirect or link, React Native's and
  * react-native-web's Linking (whose web `openURL`s set `window.location`),
  * react-native-svg's `href` on an SVG element, React DOM's own (an SVG
- * `xlinkHref` prop, and the Navigation API it restores a page's scroll
- * through) — the guard that makes `openURL` refuse (twice: it keeps the phone's own opener, for the four legal pages
+ * `xlinkHref` prop, the Navigation API it restores a page's scroll
+ * through, and — since React 19.3 (SDK 58) — the Navigation API's pending
+ * transition it waits for inside a view transition, read and never started) — the guard that makes `openURL` refuse (twice: it keeps the phone's own opener, for the four legal pages
  * alone, then refuses), and on the web build the report's and the receipt's preview (`lib/browser-tab.ts` opens
  * the page already in memory in a new tab) and the CSV download
  * (`lib/report-export.ts` hands the browser a `blob:` file through a link: the
@@ -133,7 +134,7 @@ const CALL_SITES = {
     navigation: {
       '/lib/report-export.ts': 2,
       'node_modules/expo-linking/build/RNLinking.web.js': 1,
-      'node_modules/react-dom/cjs/react-dom-client.production.js': 10,
+      'node_modules/react-dom/cjs/react-dom-client.production.js': 12,
       'node_modules/react-native-svg/lib/module/web/utils/prepare.js': 1,
       'node_modules/react-native-web/dist/exports/Linking/index.js': 1,
     },
