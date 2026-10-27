@@ -4463,4 +4463,13 @@ export const fr: Catalogue = {
   'setup.done': '{business} : votre mot de passe est défini. Connectez-vous avec votre numéro WhatsApp et ce mot de passe.',
   'setup.signIn': 'Aller à la connexion',
   'testBusiness.banner': 'Entreprise de test — pour les tests uniquement, pas une vraie boutique',
+  'catalog.intake.notice': 'Rien n\'est encore enregistré. Le produit est créé en même temps que son stock, au moment de l\'ajout au stock.',
+  'catalog.intake.next': 'Suivant : ajouter au stock',
+  'catalog.intake.usingExisting': 'Ce produit existe déjà. L\'article y sera ajouté.',
+  'catalog.new.noStock': 'Créer un produit n\'ajoute pas de stock. Réceptionnez-le pour ajouter du stock.',
+  'receive.draftSelected': 'Saisissez le coût d\'achat, puis créez le produit et ajoutez-le au stock.',
+  'receive.createAndAdd': 'Créer le produit et ajouter au stock',
+  'receive.newProductBadge': 'Nouveau produit : créé lors de l\'ajout au stock',
+  'receive.productExists': 'Ce produit existe déjà. Choisissez-le, puis ajoutez au stock.',
+  'receive.createdAndAdded': '{product} créé et ajouté au stock',
 };

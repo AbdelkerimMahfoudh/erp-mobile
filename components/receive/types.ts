@@ -1,4 +1,5 @@
 import type { TrackingType } from '../../types/api';
+import type { NewProductDraft } from '../../lib/receive-outcome';
 
 /**
  * One product line in the delivery being staged.
@@ -13,7 +14,10 @@ import type { TrackingType } from '../../types/api';
  */
 export interface StagedItem {
   key: string;
+  /** Empty while the line creates its product (D223). */
   productId: string;
+  /** The product this delivery creates with this line, in the same request. */
+  newProduct?: NewProductDraft;
   label: string;
   variant: string | null;
   trackingType: TrackingType;

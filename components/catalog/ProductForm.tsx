@@ -75,6 +75,10 @@ export interface ProductFormProps {
   footerExtra?: React.ReactNode;
   /** Called when a scan resolves to a product that already exists. */
   onKnownBarcode?: (productId: string, label: string) => void;
+  /** The save button's words, when they are not "Save" — intake says what happens next. */
+  submitLabel?: string;
+  /** Shown above the fields: what saving this form does, and does not, do. */
+  notice?: React.ReactNode;
 }
 
 export const emptyProductForm: ProductFormValues = {
@@ -97,6 +101,8 @@ export function ProductForm({
   onSubmit,
   footerExtra,
   onKnownBarcode,
+  submitLabel,
+  notice,
 }: ProductFormProps) {
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -207,7 +213,7 @@ export function ProductForm({
       footer={
         <View style={styles.footer}>
           <Button
-            title={t(mode === 'create' ? 'catalog.form.save' : 'catalog.form.saveChanges')}
+            title={submitLabel ?? t(mode === 'create' ? 'catalog.form.save' : 'catalog.form.saveChanges')}
             onPress={submit}
             loading={submitting}
             disabled={submitting || (mode === 'edit' && !dirty)}
@@ -217,6 +223,7 @@ export function ProductForm({
         </View>
       }
     >
+      {notice}
       {/* 1 ── Category — chosen first, because it decides everything below ── */}
       <Section title={t('catalog.form.section.category')}>
         <ListRow

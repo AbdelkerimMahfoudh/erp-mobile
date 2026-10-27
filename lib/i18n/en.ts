@@ -4289,4 +4289,13 @@ export const en = {
   'setup.done': '{business}: your password is set. Sign in with your WhatsApp number and this password.',
   'setup.signIn': 'Go to sign in',
   'testBusiness.banner': 'Test business — for testing only, not a real shop',
+  'catalog.intake.notice': 'Nothing is saved yet. The product is created together with its stock, when you add it to stock.',
+  'catalog.intake.next': 'Next: add to stock',
+  'catalog.intake.usingExisting': 'This product already exists. The item will be added to it.',
+  'catalog.new.noStock': 'Creating a product does not add stock. Receive it to add stock.',
+  'receive.draftSelected': 'Enter the buying cost, then create the product and add it to stock.',
+  'receive.createAndAdd': 'Create product and add to stock',
+  'receive.newProductBadge': 'New product: created when added to stock',
+  'receive.productExists': 'That product already exists. Choose it, then add to stock.',
+  'receive.createdAndAdded': '{product} created and added to stock',
 } as const;

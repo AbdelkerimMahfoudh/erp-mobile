@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Stack, useRouter , useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
-import { notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
+import { notePendingDraft, notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
+import type { NewProductDraft } from '../../lib/receive-outcome';
 import { suggestedTracking } from '../../lib/scan/suggested-tracking';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, ErrorState, Screen } from '../../components/ui';
+import { Button, ErrorState, InlineNotice, Screen } from '../../components/ui';
 import {
   ProductForm,
   emptyProductForm,
@@ -79,6 +80,16 @@ export default function NewProductScreen() {
    */
   const linkingGroup = typeof link === 'string' && link ? link : null;
 
+  /**
+   * Opened from a scan waiting in Receive (D223): this form saves NOTHING.
+   * It hands the product back as a draft, and "Create product and add to
+   * stock" on the intake screen sends it with the unit or quantity in one
+   * request — so a product can never exist without the stock it was made for,
+   * and no success is shown before the server commits both.
+   */
+  const forIntake = Boolean(held) && !linkingGroup;
+  const [handingBack, setHandingBack] = useState(false);
+
   const asCatalogue = (p: { id: string; brand: string; model: string; variant: string | null; trackingType: string }): CatalogueProduct => ({
     id: p.id,
     brand: p.brand,
@@ -99,7 +110,7 @@ export default function NewProductScreen() {
   };
 
   /** Find the product a 409 was actually about, so we can offer to open — or use — it. */
-  const resolveExisting = async (values: ProductFormValues): Promise<CatalogueProduct | null> => {
+  const resolveExisting = async (values: ProductFormValues, exactOnly = false): Promise<CatalogueProduct | null> => {
     const term = values.barcode.trim() || [values.brand, values.model, values.variant].filter(Boolean).join(' ');
     try {
       const page = await api.get<ProductPage>(`/products?active=all&q=${encodeURIComponent(term)}`);
@@ -110,7 +121,7 @@ export default function NewProductScreen() {
             r.model.toLowerCase() === values.model.trim().toLowerCase() &&
             (r.variant ?? '').toLowerCase() === values.variant.trim().toLowerCase()),
       );
-      const hit = exact ?? page.rows[0];
+      const hit = exact ?? (exactOnly ? undefined : page.rows[0]);
       return hit ? asCatalogue(hit) : null;
     } catch {
       return null;
@@ -172,6 +183,28 @@ export default function NewProductScreen() {
     },
   });
 
+  /** Back to the waiting Receive screen, with the product to create — or the one that already exists. */
+  const handBack = async (values: ProductFormValues) => {
+    setErrors({});
+    setHandingBack(true);
+    try {
+      const found = await resolveExisting(values, true);
+      if (found) {
+        // Never a duplicate: the scan is received into the product the shop already has.
+        notePendingProduct(found.id);
+        toast.success(t('catalog.intake.usingExisting'));
+      } else {
+        // No price: intake records the buying cost only.
+        // The mode the form showed, sent explicitly: the category may allow more than one (D223).
+        notePendingDraft({ ...toProductPayload(values, { includePrice: false }), trackingType: values.trackingType } as NewProductDraft);
+      }
+    } finally {
+      setHandingBack(false);
+    }
+    if (router.canGoBack()) router.back();
+    else router.replace('/receive');
+  };
+
   if (!canManage) {
     return (
       <Screen>
@@ -210,9 +243,19 @@ export default function NewProductScreen() {
             : (suggested ?? emptyProductForm.trackingType),
         }}
         suggestedFromScan={suggested}
-        submitting={create.isPending}
+        submitting={create.isPending || handingBack}
         errors={errors}
+        submitLabel={forIntake ? t('catalog.intake.next') : undefined}
+        notice={
+          linkingGroup ? null : (
+            <InlineNotice tone="info">{t(forIntake ? 'catalog.intake.notice' : 'catalog.new.noStock')}</InlineNotice>
+          )
+        }
         onSubmit={(values) => {
+          if (forIntake) {
+            void handBack(values);
+            return;
+          }
           setErrors({});
           setExisting(null);
           create.mutate(values);

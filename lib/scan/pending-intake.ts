@@ -25,6 +25,8 @@
  * something to leave on disk.
  */
 
+import type { NewProductDraft } from '../receive-outcome.ts';
+
 export interface IntakeScope {
   readonly companyId: string;
   readonly userId: string;
@@ -42,8 +44,14 @@ export interface PendingIntake {
   readonly productBarcode: string | null;
   /** Safe draft fields worth restoring — never a camera frame. */
   readonly cost: string | null;
-  /** Set on the way BACK, once product creation succeeded. */
+  /** Set on the way BACK when the product turned out to exist already: intake receives into it. */
   readonly createdProductId: string | null;
+  /**
+   * Set on the way BACK with the product to create (D223). Nothing was created
+   * yet: Receive sends this with the stock in ONE request, and only the
+   * server's commit makes either exist.
+   */
+  readonly draftProduct: NewProductDraft | null;
   readonly at: number;
 }
 
@@ -75,6 +83,7 @@ export function pendingFrom(
     productBarcode: input.productBarcode ?? null,
     cost: input.cost ?? null,
     createdProductId: null,
+    draftProduct: null,
     at: now,
   };
 }
@@ -113,7 +122,18 @@ export function peekPendingIntake(scope: IntakeScope): PendingIntake | null {
  * made by the intake submission the user returns to.
  */
 export function notePendingProduct(productId: string): void {
-  if (held) held = { ...held, createdProductId: productId };
+  if (held) held = { ...held, createdProductId: productId, draftProduct: null };
+}
+
+/**
+ * Hand the product to create back to intake, without creating it (D223).
+ *
+ * The form that wrote this saved nothing. "Create product and add to stock"
+ * on the intake screen sends it with the unit or quantity, so the product can
+ * never exist without the stock it was created for.
+ */
+export function notePendingDraft(draft: NewProductDraft): void {
+  if (held) held = { ...held, draftProduct: draft, createdProductId: null };
 }
 
 /** Cancelling product creation must not throw the scan away; clearing is explicit. */

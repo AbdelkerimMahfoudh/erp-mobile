@@ -1,4 +1,5 @@
 import { isValidImei } from './imei.ts';
+import type { ProductSuggestion, ScanResult } from '../types/api';
 
 /**
  * Receiving, as rules that can be proved without a screen.
@@ -11,9 +12,53 @@ import { isValidImei } from './imei.ts';
  * - whether an IMEI 2 may join the delivery.
  */
 
+/**
+ * A product this intake creates, sent with its stock in ONE request (D223).
+ *
+ * Nothing is created on the phone and nothing before the server commits: the
+ * product, its units or counted stock and the cost exist together, or not at
+ * all. No price and no cost on it — the buying cost is the line's.
+ */
+export interface NewProductDraft {
+  brand: string;
+  model: string;
+  variant?: string;
+  categoryId?: string;
+  trackingType?: 'imei' | 'serial' | 'quantity';
+  specifications?: Record<string, unknown>;
+  barcode?: string;
+}
+
+/**
+ * The confirmation card's view of a product that does not exist yet. It has no
+ * id: the line carries the draft, and the server creates the product only when
+ * it commits the stock.
+ */
+export function draftSuggestion(draft: NewProductDraft, kind: ScanResult['kind']): ProductSuggestion {
+  const fallback = kind === 'imei' || kind === 'serial' ? kind : 'quantity';
+  return {
+    productId: '',
+    brand: draft.brand,
+    model: draft.model,
+    variant: draft.variant ?? null,
+    trackingType: draft.trackingType ?? fallback,
+    keySpecifications: {},
+    image: null,
+    defaultCost: null,
+    defaultPrice: null,
+  };
+}
+
+/** The product a draft names, compared the way the server's unique key compares it. */
+export function draftKey(d: Pick<NewProductDraft, 'brand' | 'model' | 'variant'>): string {
+  return [d.brand, d.model, d.variant ?? ''].map((v) => v.trim().toLowerCase()).join('|');
+}
+
 export interface ReceiveLine {
   key: string;
+  /** An existing product. Empty while the line creates its product (`newProduct`). */
   productId: string;
+  newProduct?: NewProductDraft;
   trackingType: 'imei' | 'serial' | 'quantity';
   unitCost: number;
   price?: number;
@@ -40,13 +85,16 @@ export interface PurchaseOutcome {
   rejected?: RejectedLine[];
   /** What the purchase received, by name. Absent from servers before this field. */
   accepted?: { identifiers: string[]; stockProductIds: string[] };
+  /** The products this purchase created (D223), so lines can be filed under their real ids. */
+  createdProducts?: { productId: string; brand: string; model: string; variant: string | null }[];
   replayed?: boolean;
 }
 
 /** The `items` of `POST /purchases`. */
 export function purchaseItems(lines: ReceiveLine[]) {
   return lines.map((line) => ({
-    productId: line.productId,
+    // Exactly one of the two: an existing product, or the one this intake creates.
+    ...(line.newProduct ? { newProduct: line.newProduct } : { productId: line.productId }),
     unitCost: line.unitCost,
     ...(line.price !== undefined ? { price: line.price } : {}),
     ...(line.trackingType === 'quantity'
@@ -82,6 +130,19 @@ export function settle<T extends ReceiveLine>(sent: T[], res: PurchaseOutcome): 
   if (res.purchaseId === null) {
     return { outcome: 'none', remaining: sent, receivedUnits: 0, receivedPieces: 0 };
   }
+
+  /*
+   * A line that created its product now has a real one. Filed under it here,
+   * so a line left for correction is sent again against THAT product — sending
+   * the draft a second time would be refused as a product that already exists.
+   */
+  const created = new Map((res.createdProducts ?? []).map((p) => [draftKey({ ...p, variant: p.variant ?? '' }), p.productId]));
+  sent = sent.map((line) => {
+    const id = line.newProduct ? created.get(draftKey(line.newProduct)) : undefined;
+    if (!id) return line;
+    const { newProduct: _created, ...rest } = line;
+    return { ...rest, productId: id } as T;
+  });
 
   const refused = new Set((res.rejected ?? []).map((r) => r.identifier));
   const acceptedIds = res.accepted

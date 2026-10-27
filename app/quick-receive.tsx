@@ -41,7 +41,13 @@ import {
   takePendingIntake,
   type IntakeScope,
 } from '../lib/scan/pending-intake';
-import { imei2Problem, purchaseItems, type PurchaseOutcome } from '../lib/receive-outcome';
+import {
+  draftSuggestion,
+  imei2Problem,
+  purchaseItems,
+  type NewProductDraft,
+  type PurchaseOutcome,
+} from '../lib/receive-outcome';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
@@ -90,7 +96,10 @@ interface Scanned {
   secondary: string | null;
   /** Set when either identifier already belongs to a unit. */
   existing?: ScanInventoryMatch;
+  /** The product to create with this phone, in the same request (D223). Not created yet. */
+  draft?: NewProductDraft;
 }
+
 
 function QuickReceiveScreen() {
   // With no history (a notification, a cold start) leaving goes to the logical parent, never nowhere.
@@ -104,8 +113,11 @@ function QuickReceiveScreen() {
   const { user } = useAuth();
 
   const [scanned, setScanned] = useState<Scanned | null>(null);
+  /*
+   * The buying cost only (D223). Intake sets no selling price: that is the
+   * Sale's, where the suggested price may be changed and a loss is warned.
+   */
   const [cost, setCost] = useState('');
-  const [price, setPrice] = useState('');
   const [imei2, setImei2] = useState('');
   const [imei2Error, setImei2Error] = useState<string | undefined>();
 
@@ -152,10 +164,9 @@ function QuickReceiveScreen() {
    */
   const draft = useDraft(
     'quick.receive',
-    { cost, price, imei2, payment, clientUuid },
+    { cost, imei2, payment, clientUuid },
     (v) => {
       setCost(v.cost ?? '');
-      setPrice(v.price ?? '');
       setImei2(v.imei2 ?? '');
       if (v.payment) setPayment(v.payment);
       if (v.clientUuid) setClientUuid(v.clientUuid);
@@ -192,9 +203,9 @@ function QuickReceiveScreen() {
       const chosen = await api.get<ProductSuggestion>(
         `/products/suggest?productId=${encodeURIComponent(row.id)}`,
       );
-      setScanned((s) => (s ? { ...s, suggestion: chosen } : s));
+      // An existing product chosen by hand replaces any draft.
+      setScanned((s) => (s ? { ...s, suggestion: chosen, draft: undefined } : s));
       setCost(chosen.defaultCost != null ? String(chosen.defaultCost) : '');
-      setPrice(chosen.defaultPrice != null ? String(chosen.defaultPrice) : '');
     } catch (e) {
       toast.error(toErrorMessage(e));
     }
@@ -224,7 +235,6 @@ function QuickReceiveScreen() {
       // Confirm, never originate: the product's remembered cost is a starting
       // point the person is expected to check against what was actually agreed.
       setCost(result.suggestion?.defaultCost != null ? String(result.suggestion.defaultCost) : '');
-      setPrice(result.suggestion?.defaultPrice != null ? String(result.suggestion.defaultPrice) : '');
     },
     [],
   );
@@ -271,6 +281,18 @@ function QuickReceiveScreen() {
       void (async () => {
         try {
           const result = await lookUp(device, back.secondaryImei);
+          if (back.draftProduct && !result.inventory?.alreadyInInventory) {
+            // Nothing exists yet: "Create product and add to stock" sends both together.
+            setScanned({
+              result,
+              suggestion: draftSuggestion(back.draftProduct, result.kind),
+              secondary: back.secondaryImei,
+              draft: back.draftProduct,
+            });
+            if (back.cost) setCost(back.cost);
+            toast.success(t('receive.draftSelected'));
+            return;
+          }
           if (back.createdProductId && !result.inventory?.alreadyInInventory) {
             const created = await api.get<ProductSuggestion>(
               `/products/suggest?productId=${encodeURIComponent(back.createdProductId)}`,
@@ -330,10 +352,10 @@ function QuickReceiveScreen() {
         items: purchaseItems([
           {
             key: 'one',
-            productId: s.suggestion!.productId,
+            productId: s.draft ? '' : s.suggestion!.productId,
+            ...(s.draft ? { newProduct: s.draft } : {}),
             trackingType: s.suggestion!.trackingType === 'quantity' ? 'quantity' : s.suggestion!.trackingType,
             unitCost: costValue,
-            ...(Number(price) > 0 ? { price: Number(price) } : {}),
             ...(s.suggestion!.trackingType === 'quantity'
               ? { quantity: 1 }
               : {
@@ -360,6 +382,11 @@ function QuickReceiveScreen() {
       const label = scanned?.suggestion
         ? `${scanned.suggestion.brand} ${scanned.suggestion.model}`
         : t('quick.receive.title');
+      // Said only now, after the server committed the product WITH its stock.
+      if (scanned?.draft && outcome.createdProducts?.length) {
+        toast.success(t('receive.createdAndAdded', { product: label }));
+        qc.invalidateQueries({ queryKey: ['products'] });
+      }
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
       qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });
@@ -368,6 +395,12 @@ function QuickReceiveScreen() {
       draft.clear();
     },
     onError: (e) => {
+      // Somebody created this product meanwhile: nothing was written; choose it and add again.
+      if (e instanceof ApiError && e.status === 409 && e.code === 'product_exists') {
+        toast.error(t('receive.productExists'));
+        setScanned((s) => (s ? { ...s, suggestion: null, draft: undefined } : s));
+        return;
+      }
       if (e instanceof ApiError && e.status === 409 && /already used/i.test(e.message)) {
         void dialog.alert({ title: t('receive.uncertain.title'), message: t('receive.keyConflict') });
         return;
@@ -394,7 +427,6 @@ function QuickReceiveScreen() {
     setDone(null);
     setScanned(null);
     setCost('');
-    setPrice('');
     setImei2('');
     setUncertain(false);
   };
@@ -459,7 +491,9 @@ function QuickReceiveScreen() {
               </View>
               {!uncertain ? <PurchasePaymentPicker value={payment} onChange={setPayment} /> : null}
               <Button
-                title={uncertain ? t('receive.uncertain.retry') : t('quick.receive.add')}
+                title={
+                  uncertain ? t('receive.uncertain.retry') : scanned?.draft ? t('receive.createAndAdd') : t('quick.receive.add')
+                }
                 size="lg"
                 fullWidth
                 loading={add.isPending}
@@ -567,11 +601,9 @@ function QuickReceiveScreen() {
                     onChangeText={setCost}
                     required
                   />
-                  <MoneyField
-                    label={t('quick.receive.price')}
-                    value={price}
-                    onChangeText={setPrice}
-                  />
+                  {scanned.draft ? (
+                    <InlineNotice tone="info">{t('receive.newProductBadge')}</InlineNotice>
+                  ) : null}
                   {scanned.result.kind === 'imei' ? (
                     <TextField
                       label={t('receive.imei2.label')}

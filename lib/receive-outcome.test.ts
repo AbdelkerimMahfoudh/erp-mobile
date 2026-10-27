@@ -10,6 +10,7 @@ import {
   imei2Problem,
   purchaseItems,
   settle,
+  draftKey,
   withSecondary,
   type ReceiveLine,
 } from './receive-outcome.ts';
@@ -214,6 +215,60 @@ it('returns from Create product to the same Receive screen with the created prod
   const screen = withoutComments(source('app/receive.tsx'));
   assert.match(screen, /back\.createdProductId/);
   assert.match(screen, /\/products\/suggest\?productId=/);
+});
+
+// ── D223: a product created by the intake, in the same request ─────────────
+const draft = { brand: 'Fictiva', model: 'Test Phone 1', variant: '128GB Grey', trackingType: 'imei' as const };
+
+it('sends a new product in place of a product id, never both', () => {
+  const [item] = purchaseItems([
+    { key: 'a', productId: '', newProduct: draft, trackingType: 'imei', unitCost: 900, identifiers: ['490154203237518'] },
+  ]);
+  assert.deepEqual(item.newProduct, draft);
+  assert.equal('productId' in item, false);
+  const [existing] = purchaseItems([{ key: 'b', productId: 'p-1', trackingType: 'quantity', unitCost: 5, quantity: 2 }]);
+  assert.equal(existing.productId, 'p-1');
+  assert.equal('newProduct' in existing, false);
+});
+
+it('files a line left for correction under the product the server just created', () => {
+  const sent = [
+    { key: 'a', productId: '', newProduct: draft, trackingType: 'imei' as const, unitCost: 900, identifiers: ['490154203237518', '356938035643809'] },
+  ];
+  const result = settle(sent, {
+    purchaseId: 'pu-1', unitsCreated: 1, stockLines: 0, total: 900,
+    rejected: [{ identifier: '356938035643809', reason: 'already registered' }],
+    accepted: { identifiers: ['490154203237518'], stockProductIds: [] },
+    createdProducts: [{ productId: 'new-1', brand: 'Fictiva', model: 'Test Phone 1', variant: '128GB Grey' }],
+  });
+  assert.equal(result.outcome, 'partial');
+  assert.equal(result.remaining[0].productId, 'new-1');
+  assert.equal(result.remaining[0].newProduct, undefined);
+});
+
+it('keeps the draft when nothing was received, so nothing was created', () => {
+  const sent = [{ key: 'a', productId: '', newProduct: draft, trackingType: 'imei' as const, unitCost: 900, identifiers: ['490154203237518'] }];
+  const result = settle(sent, { purchaseId: null, unitsCreated: 0, stockLines: 0, total: 0, createdProducts: [] });
+  assert.equal(result.outcome, 'none');
+  assert.deepEqual(result.remaining[0].newProduct, draft);
+});
+
+it('compares drafts as the server does: case and spacing', () => {
+  assert.equal(draftKey({ brand: ' fictiva', model: 'TEST phone 1 ' }), draftKey({ brand: 'Fictiva', model: 'Test Phone 1', variant: '' }));
+});
+
+it('a product made from a scan is saved only with its stock, and success is said only after the commit (D223)', () => {
+  const create = withoutComments(source('app/catalog/new.tsx'));
+  const handBack = create.slice(create.indexOf('const handBack'), create.indexOf('if (!canManage)'));
+  assert.match(handBack, /notePendingDraft\(/);
+  assert.doesNotMatch(handBack, /api\.post|create\.mutate/, 'the form hands a draft back and saves nothing');
+  assert.match(create, /if \(forIntake\) \{\s*void handBack\(values\);\s*return;/);
+  for (const file of ['app/quick-receive.tsx', 'app/receive.tsx']) {
+    const screen = withoutComments(source(file));
+    const ok = screen.slice(screen.indexOf('onSuccess:'), screen.indexOf('onError:'));
+    assert.match(ok, /receive\.createdAndAdded/, `${file} says "created and added" only in onSuccess`);
+    assert.match(screen, /e\.code === 'product_exists'/, `${file} handles a product created meanwhile`);
+  }
 });
 
 console.log(`receive outcome: ${passed} passed`);

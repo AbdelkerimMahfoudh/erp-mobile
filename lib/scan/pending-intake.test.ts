@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {
   clearPendingIntake,
   notePendingProduct,
+  notePendingDraft,
   holdPendingIntake,
   peekPendingIntake,
   pendingFrom,
@@ -62,7 +63,7 @@ it('safe draft fields come back too; nothing else is stored', () => {
   // No frame, no image, no path — a draft is a form's inputs, never a file.
   assert.deepEqual(
     Object.keys(pending).sort(),
-    ['at', 'cost', 'createdProductId', 'primaryImei', 'productBarcode', 'scope', 'secondaryImei', 'serial'],
+    ['at', 'cost', 'createdProductId', 'draftProduct', 'primaryImei', 'productBarcode', 'scope', 'secondaryImei', 'serial'],
   );
 });
 

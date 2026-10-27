@@ -4222,4 +4222,13 @@ export const ar: Catalogue = {
   'setup.done': '{business}: تم تعيين كلمة مرورك. سجّل الدخول برقم واتساب وكلمة المرور هذه.',
   'setup.signIn': 'الذهاب إلى تسجيل الدخول',
   'testBusiness.banner': 'نشاط تجاري اختباري — للاختبار فقط، وليس متجرًا حقيقيًا',
+  'catalog.intake.notice': 'لم يُحفظ شيء بعد. يُنشأ المنتج مع مخزونه عند إضافته إلى المخزون.',
+  'catalog.intake.next': 'التالي: الإضافة إلى المخزون',
+  'catalog.intake.usingExisting': 'هذا المنتج موجود بالفعل. ستُضاف القطعة إليه.',
+  'catalog.new.noStock': 'إنشاء منتج لا يضيف مخزونًا. استلمه لإضافة المخزون.',
+  'receive.draftSelected': 'أدخل تكلفة الشراء، ثم أنشئ المنتج وأضفه إلى المخزون.',
+  'receive.createAndAdd': 'إنشاء المنتج وإضافته إلى المخزون',
+  'receive.newProductBadge': 'منتج جديد: يُنشأ عند الإضافة إلى المخزون',
+  'receive.productExists': 'هذا المنتج موجود بالفعل. اختره ثم أضفه إلى المخزون.',
+  'receive.createdAndAdded': 'أُنشئ {product} وأُضيف إلى المخزون',
 };

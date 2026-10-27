@@ -32,10 +32,13 @@ import {
 } from '../lib/scan/pending-intake';
 import {
   codesInDelivery,
+  draftKey,
+  draftSuggestion,
   imei2Problem,
   purchaseItems,
   settle,
   withSecondary,
+  type NewProductDraft,
   type PurchaseOutcome,
   type RejectedLine,
 } from '../lib/receive-outcome';
@@ -108,6 +111,8 @@ interface PendingScan {
   notice?: { tone: 'warning' | 'danger'; message: string };
   /** Set when either IMEI already belongs to a unit. */
   existing?: ScanInventoryMatch;
+  /** The product to create with this item, in the same request (D223). Not created yet. */
+  draft?: NewProductDraft;
 }
 
 /** A timeout, a dropped connection or a server fault: the purchase may exist or not. */
@@ -324,6 +329,24 @@ function ReceiveScreen() {
       void (async () => {
         try {
           const result = await lookUp(device, back.secondaryImei);
+          if (back.draftProduct && !result.inventory?.alreadyInInventory) {
+            /*
+             * Nothing exists yet: Finish sends the product with its stock. A
+             * model already drafted in this delivery is reused as it is, so two
+             * phones of one new model create ONE product, described once.
+             */
+            const key = draftKey(back.draftProduct);
+            const same = staged.find((l) => l.newProduct && draftKey(l.newProduct) === key)?.newProduct;
+            const draftProduct = same ?? back.draftProduct;
+            setPending({
+              result,
+              suggestion: draftSuggestion(draftProduct, result.kind),
+              secondary: back.secondaryImei,
+              draft: draftProduct,
+            });
+            toast.success(t('receive.draftSelected'));
+            return;
+          }
           if (back.createdProductId && !result.inventory?.alreadyInInventory) {
             const created = await api.get<ProductSuggestion>(
               `/products/suggest?productId=${encodeURIComponent(back.createdProductId)}`,
@@ -337,7 +360,7 @@ function ReceiveScreen() {
           toast.error(toErrorMessage(e));
         }
       })();
-    }, [scope, lookUp, route, t]),
+    }, [scope, lookUp, route, t, staged]),
   );
 
   const addStaged = (draftItem: ReceiveItemDraft) => {
@@ -351,12 +374,14 @@ function ReceiveScreen() {
       ...prev,
       {
         key: uuidv4(),
-        productId: suggestion.productId,
+        productId: pending.draft ? '' : suggestion.productId,
+        ...(pending.draft ? { newProduct: pending.draft } : {}),
         label,
         variant: suggestion.variant,
         trackingType: suggestion.trackingType,
         unitCost: draftItem.unitCost,
-        price: draftItem.price,
+        // A product created at intake gets no selling price here: the Sale suggests and decides it.
+        ...(pending.draft ? {} : { price: draftItem.price }),
         ...(serialized
           ? { identifiers: [result.code], ...(secondary ? { secondaries: { [result.code]: secondary } } : {}) }
           : { quantity: draftItem.quantity ?? 1 }),
@@ -385,6 +410,8 @@ function ReceiveScreen() {
         p
           ? {
               ...p,
+              // An existing product chosen by hand replaces any draft.
+              draft: undefined,
               suggestion: chosen,
               notice:
                 chosen.trackingType !== 'quantity' && p.result.kind === 'barcode'
@@ -472,10 +499,15 @@ function ReceiveScreen() {
       setRefused(res.rejected ?? []);
 
       if (outcome.outcome === 'none') {
-        // Nothing was written. The delivery stays, unchanged, for correction.
+        // Nothing was written — no product either. The delivery stays, unchanged, for correction.
         toast.error(t('receive.refused.none'));
         return;
       }
+      // Said only now, after the server committed each new product WITH its stock.
+      for (const p of res.createdProducts ?? []) {
+        toast.success(t('receive.createdAndAdded', { product: `${p.brand} ${p.model}` }));
+      }
+      if (res.createdProducts?.length) qc.invalidateQueries({ queryKey: ['products'] });
 
       qc.invalidateQueries({ queryKey: qk.home(branchId) });
       invalidateMoney(qc);
@@ -498,6 +530,11 @@ function ReceiveScreen() {
       draft.clear();
     },
     onError: (e) => {
+      // A new product in this delivery exists already: nothing was written. The lines stay.
+      if (e instanceof ApiError && e.status === 409 && e.code === 'product_exists') {
+        void dialog.alert({ title: t('receive.refused.title'), message: t('receive.productExists') });
+        return;
+      }
       if (e instanceof ApiError && e.status === 409 && /already used/i.test(e.message)) {
         void dialog.alert({ title: t('receive.uncertain.title'), message: t('receive.keyConflict') });
         return;
