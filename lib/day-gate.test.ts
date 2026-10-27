@@ -102,8 +102,12 @@ it('a sale refused on a closed day says so and reads the day again, so the lock 
   for (const file of ['../app/quick-sell.tsx', '../app/(tabs)/sell.tsx']) {
     const src = screen(file);
     assert.match(src, new RegExp(String.raw`case 'store_closed':\s*toast\.error\(t\('gate\.refused\.sale'\)\);` + readsDayAgain), file);
-    // The below-cost question still follows the named refusals.
-    assert.match(src, /e\.status === 400 && \/reason\/i\.test\(e\.message\) && !options\.overrideReason/, file);
+    // The below-cost question still follows the named refusals — known by its code (D223), or by the older wording.
+    assert.match(
+      src,
+      /e\.status === 400 && \(e\.code === 'reason_required' \|\| \/reason\/i\.test\(e\.message\)\) && !options\.overrideReason/,
+      file,
+    );
   }
 });
 
