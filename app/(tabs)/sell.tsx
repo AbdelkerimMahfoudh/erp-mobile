@@ -621,7 +621,7 @@ function SellScreen() {
         }
 
         // The server saw below-cost that we could not (cost hidden from us).
-        if (e.status === 400 && /reason/i.test(e.message) && !options.overrideReason) {
+        if (e.status === 400 && (e.code === 'reason_required' || /reason/i.test(e.message)) && !options.overrideReason) {
           const { confirmed, reason } = await dialog.confirmWithReason({
             title: t('sell.belowCost.title'),
             message: e.message,

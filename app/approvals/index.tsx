@@ -39,7 +39,7 @@ export default function ApprovalsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const online = useConnectivity((s) => s.online);
-  const mayApprove = usePermission('discount.override');
+  const mayApprove = usePermission('sale.below_cost');
 
   const query = useDiscountApprovals();
   const rows = query.data?.rows ?? [];

@@ -49,7 +49,7 @@ export interface RequestApprovalInput {
  */
 export function useDiscountApprovals(status?: ApprovalStatus, options?: { poll?: boolean }) {
   const branchId = useBranch((s) => s.branchId);
-  const mayApprove = usePermission('discount.override');
+  const mayApprove = usePermission('sale.below_cost');
   const online = useConnectivity((s) => s.online);
 
   return useQuery({

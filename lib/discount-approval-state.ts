@@ -117,7 +117,7 @@ export function canCancel(row: DiscountApproval, viewerId: string | null, now: D
 /**
  * Only an Owner, only while it is still pending and still live.
  *
- * `mayApprove` is the client's read of `discount.override`, which is UX and not
+ * `mayApprove` is the client's read of `sale.below_cost` (D223), which is UX and not
  * security — the server refuses regardless. Hiding the buttons stops the app
  * lying about what this person can do.
  */

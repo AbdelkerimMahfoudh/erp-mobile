@@ -75,7 +75,7 @@ export default function ApprovalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const online = useConnectivity((s) => s.online);
-  const mayApprove = usePermission('discount.override');
+  const mayApprove = usePermission('sale.below_cost');
   const maySeeCost = usePermission('cost.view');
 
   const query = useDiscountApproval(id ?? '');

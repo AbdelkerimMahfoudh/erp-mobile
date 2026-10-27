@@ -67,6 +67,8 @@ export const PERMISSIONS = [
   'cost.view',
   'discount.apply',
   'discount.override',
+  /** D223: selling at a loss after the warning, and deciding a seller's below-cost request (Owner, Store Manager). */
+  'sale.below_cost',
   'unit.add',
   'unit.transfer',
   /**
