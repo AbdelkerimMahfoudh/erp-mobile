@@ -1,0 +1,83 @@
+
+web: 102 files, 8983656 characters, 4471 bundled modules
+  absent   claim button text (EN)
+  absent   claim button text (FR)
+  absent   claim button text (AR)
+  absent   resend/send button text (EN)
+  absent   resend/send button text (FR)
+  absent   resend/send button text (AR)
+  absent   trial named outside its approved sentences
+  absent   claim route
+  absent   resend route
+  absent   store or seat request route
+  absent   setup-link token marker
+  absent   website address
+  absent   QR code library
+  absent   web view library
+  absent   browser-opening call
+  absent   price of the app’s own access
+  absent   price or payment route
+  absent   payment-instruction string
+  absent   platform route
+  absent   price string (every amount is one of the shop's own: 329 000 MRU · MRU 000 329)
+  absent   website link (every address is the API’s, a development host or a library’s own)
+  pinned   openURL call sites: 9 found, 9 pinned
+               2 found, 2 pinned   /lib/navigation/no-browser.ts
+               2 found, 2 pinned   node_modules/expo-linking/build/Linking.js
+               1 found, 1 pinned   node_modules/expo-linking/build/RNLinking.web.js
+               2 found, 2 pinned   node_modules/expo-router/build/getRoutesRedirects.js
+               1 found, 1 pinned   node_modules/expo-router/build/global-state/router.js
+               1 found, 1 pinned   node_modules/react-native-web/dist/exports/Linking/index.js
+  pinned   window.open call sites: 4 found, 4 pinned
+               1 found, 1 pinned   /lib/browser-tab.ts
+               2 found, 2 pinned   /lib/navigation/no-browser.ts
+               1 found, 1 pinned   node_modules/react-native-web/dist/exports/Linking/index.js
+  pinned   page navigation call sites: 17 found, 17 pinned
+               2 found, 2 pinned   /lib/report-export.ts
+               1 found, 1 pinned   node_modules/expo-linking/build/RNLinking.web.js
+               12 found, 12 pinned   node_modules/react-dom/cjs/react-dom-client.production.js
+               1 found, 1 pinned   node_modules/react-native-svg/lib/module/web/utils/prepare.js
+               1 found, 1 pinned   node_modules/react-native-web/dist/exports/Linking/index.js
+  present  read-only status route
+  present  card title (EN)
+  present  card title (FR)
+  present  card title (AR)
+  present  browser guard’s refusal
+
+ios: 2 files, 7157353 characters, 4890 bundled modules
+  absent   claim button text (EN)
+  absent   claim button text (FR)
+  absent   claim button text (AR)
+  absent   resend/send button text (EN)
+  absent   resend/send button text (FR)
+  absent   resend/send button text (AR)
+  absent   trial named outside its approved sentences
+  absent   claim route
+  absent   resend route
+  absent   store or seat request route
+  absent   setup-link token marker
+  absent   website address
+  absent   QR code library
+  absent   web view library
+  absent   browser-opening call
+  absent   price of the app’s own access
+  absent   price or payment route
+  absent   payment-instruction string
+  absent   platform route
+  absent   price string (every amount is one of the shop's own: 329 000 MRU · MRU 000 329)
+  absent   website link (every address is the API’s, a development host or a library’s own)
+  pinned   openURL call sites: 9 found, 9 pinned
+               2 found, 2 pinned   /lib/navigation/no-browser.ts
+               2 found, 2 pinned   node_modules/expo-linking/build/Linking.js
+               2 found, 2 pinned   node_modules/expo-router/build/getRoutesRedirects.js
+               1 found, 1 pinned   node_modules/expo-router/build/global-state/router.js
+               2 found, 2 pinned   node_modules/react-native/Libraries/Linking/Linking.js
+  pinned   window.open call sites: 0 found, 0 pinned
+  pinned   page navigation call sites: 0 found, 0 pinned
+  present  read-only status route
+  present  card title (EN)
+  present  card title (FR)
+  present  card title (AR)
+  present  browser guard’s refusal
+
+PASS: web, ios — no trial action, link, QR code, web view, browser, price or payment instruction
