@@ -41,6 +41,7 @@ import {
   takePendingIntake,
   type IntakeScope,
 } from '../lib/scan/pending-intake';
+import { askScanIntake } from '../lib/scan/ask-intake';
 import {
   draftSuggestion,
   imei2Problem,
@@ -83,6 +84,14 @@ import { isStoreClosedRefusal } from '../lib/day-gate';
  * here creates a catalogue entry and nothing else, and the phone is still only
  * received by "Add to stock".
  */
+
+/** The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does. */
+function newProductHref(barcode: string | null, categoryId: string | undefined): string {
+  const params: string[] = [];
+  if (barcode) params.push(`barcode=${encodeURIComponent(barcode)}`);
+  if (categoryId) params.push(`categoryId=${encodeURIComponent(categoryId)}`);
+  return params.length ? `/catalog/new?${params.join('&')}` : '/catalog/new';
+}
 
 /** A timeout or a server fault: the purchase may or may not exist. */
 function isUncertain(e: unknown): boolean {
@@ -312,12 +321,15 @@ function QuickReceiveScreen() {
     }, [scope, lookUp, accept, t]),
   );
 
-  const createProduct = () => {
+  const createProduct = async () => {
     const current = scanned;
     if (!current || !scope) return;
     const { result } = current;
-    const isImei = result.kind === 'imei';
-    const barcode = result.kind === 'barcode' ? result.code : null;
+    // Asked, never guessed: what the code identifies, and for an IMEI which kind of device (D223).
+    const answer = await askScanIntake(result);
+    if (!answer) return;
+    const isImei = answer.field === 'imei';
+    const barcode = answer.field === 'productBarcode' ? result.code : null;
     /*
      * Each identifier has exactly one field it may travel in. An IMEI names one
      * phone and must never reach the Product barcode box — that would poison
@@ -326,13 +338,13 @@ function QuickReceiveScreen() {
     holdPendingIntake(
       pendingFrom(scope, {
         imei: isImei ? { primary: result.code, secondary: imei2.trim() || current.secondary } : null,
-        serial: result.kind === 'serial' ? result.code : null,
+        serial: answer.field === 'serial' ? result.code : null,
         productBarcode: barcode,
         cost: cost || null,
       }),
     );
     setScanned(null);
-    router.push(barcode ? (`/catalog/new?barcode=${encodeURIComponent(barcode)}` as never) : '/catalog/new');
+    router.push(newProductHref(barcode, answer.categoryId) as never);
   };
 
   // ── Commit ────────────────────────────────────────────────────────────────
@@ -589,7 +601,7 @@ function QuickReceiveScreen() {
               confirmDisabled
               onConfirm={() => {}}
               onChooseProduct={!blocked ? () => setPickerOpen(true) : undefined}
-              onCreateProduct={!scanned.suggestion && !blocked ? createProduct : undefined}
+              onCreateProduct={!scanned.suggestion && !blocked ? () => void createProduct() : undefined}
               onScanAgain={() => setScanned(null)}
             >
               {!blocked && scanned.suggestion ? (

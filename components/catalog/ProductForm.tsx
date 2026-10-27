@@ -1,4 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { inTreeOrder } from '../../lib/category-label';
+import { useCategoryLabel } from '../../lib/use-category-label';
 import { BrandModelSelect } from './BrandModelSelect';
 import { VariantSelect } from './VariantSelect';
 import { StyleSheet, View } from 'react-native';
@@ -126,8 +128,18 @@ export function ProductForm({
     queryKey: qk.categories,
     queryFn: () => api.get<Category[]>('/categories?includeInactive=true'),
   });
-  const selectable = (categories.data ?? []).filter((c) => c.isActive || c.id === initial.categoryId);
-  const selected = (categories.data ?? []).find((c) => c.id === values.categoryId) ?? null;
+  const label = useCategoryLabel();
+  const all = categories.data ?? [];
+  /** "Phones › Smartphones": a subcategory names its parent, so two "Other" never look alike. */
+  const fullLabel = (c: Category) => {
+    const parent = c.parentId ? all.find((p) => p.id === c.parentId) : undefined;
+    return parent ? `${label(parent)} › ${label(c)}` : label(c);
+  };
+  const selectable = inTreeOrder(
+    all.filter((c) => c.isActive || c.id === initial.categoryId),
+    label,
+  ).map((row) => row.category);
+  const selected = all.find((c) => c.id === values.categoryId) ?? null;
   const keepingInactive = selected !== null && !selected.isActive;
 
   /**
@@ -227,7 +239,7 @@ export function ProductForm({
       {/* 1 ── Category — chosen first, because it decides everything below ── */}
       <Section title={t('catalog.form.section.category')}>
         <ListRow
-          title={selected ? selected.name : t('catalog.form.category.none')}
+          title={selected ? fullLabel(selected) : t('catalog.form.category.none')}
           subtitle={keepingInactive ? t('catalog.form.category.inactiveKept') : undefined}
           onPress={() => setCategorySheet(true)}
         />
@@ -246,7 +258,7 @@ export function ProductForm({
             <ListRow
               flat
               title={t(`catalog.form.tracking.derived.${derivedTracking}` as never)}
-              subtitle={t('catalog.form.tracking.derived.from', { category: selected!.name })}
+              subtitle={t('catalog.form.tracking.derived.from', { category: label(selected!) })}
             />
           ) : (
             /*
@@ -370,7 +382,7 @@ export function ProductForm({
         title={t('catalog.form.category.sheet')}
         items={[{ id: '', name: t('catalog.form.category.none'), isActive: true } as Category, ...selectable]}
         keyExtractor={(c: Category) => c.id}
-        labelExtractor={(c: Category) => c.name}
+        labelExtractor={(c: Category) => (c.id ? fullLabel(c) : c.name)}
         onSelect={(c: Category) => {
           set('categoryId', c.id === '' ? null : c.id);
           setCategorySheet(false);

@@ -59,7 +59,8 @@ jobs:
       # Two pure tests hold the app's bundled Storage and Colour lists to the server's own source, and fail when either
       # side moves: they read the backend beside this checkout, as on a developer's machine. The repository is public.
       - name: the backend beside this checkout
-        run: git clone --depth 1 --branch reports-export https://github.com/AbdelkerimMahfoudh/erp-backend.git ../erp-backend
+        # inventory-general (D223) pairs with the backend branch of the same name: the built-in categories it reads live there.
+        run: git clone --depth 1 --branch inventory-general https://github.com/AbdelkerimMahfoudh/erp-backend.git ../erp-backend
       - name: pure tests
         run: for f in $(find lib components -name '*.test.ts' | sort); do node "$f" || exit 1; done
       # The rendered screens under jest-expo — what a person sees and can press: the Owner's trial card with nothing

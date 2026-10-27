@@ -99,6 +99,11 @@ export function t(key: TranslationKey, values?: TranslationValues): string {
   );
 }
 
+/** Whether the catalogue has this key — for keys built from data, such as a built-in category's. */
+export function hasKey(key: string): key is TranslationKey {
+  return key in en;
+}
+
 export function getLanguage(): Language {
   return activeLanguage;
 }

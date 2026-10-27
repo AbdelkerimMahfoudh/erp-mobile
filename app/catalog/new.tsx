@@ -45,7 +45,17 @@ export default function NewProductScreen() {
     model: fileModel,
     variant: fileVariant,
     tracking: fileTracking,
-  } = useLocalSearchParams<{ barcode?: string; link?: string; brand?: string; model?: string; variant?: string; tracking?: string }>();
+    categoryId: scannedCategory,
+  } = useLocalSearchParams<{
+    barcode?: string;
+    link?: string;
+    brand?: string;
+    model?: string;
+    variant?: string;
+    tracking?: string;
+    /** The category the scan's question chose (an IMEI's kind of device, D223). */
+    categoryId?: string;
+  }>();
   const intakeScope = {
     companyId: user?.companyId ?? '',
     userId: user?.id ?? '',
@@ -232,6 +242,7 @@ export default function NewProductScreen() {
         initial={{
           ...emptyProductForm,
           barcode: scannedBarcode ?? '',
+          categoryId: !linkingGroup && scannedCategory ? scannedCategory : emptyProductForm.categoryId,
           // From a file review: only what the file said, every field still editable.
           brand: linkingGroup ? (fileBrand ?? '') : '',
           model: linkingGroup ? (fileModel ?? '') : '',

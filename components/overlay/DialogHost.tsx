@@ -126,6 +126,18 @@ function DialogCard({ inline = false }: { inline?: boolean }) {
         ) : null}
 
         <View style={styles.actions}>
+          {active.choices
+            ? active.choices.map((label, index) => (
+                <Button
+                  key={label}
+                  title={label}
+                  variant={index === 0 ? 'primary' : 'secondary'}
+                  fullWidth
+                  onPress={() => resolveTop({ confirmed: true, choice: index })}
+                />
+              ))
+            : null}
+          {active.choices ? null : (
           <Button
             title={active.confirmLabel ?? t('action.confirm')}
             variant={active.tone === 'danger' ? 'danger' : 'primary'}
@@ -133,6 +145,7 @@ function DialogCard({ inline = false }: { inline?: boolean }) {
             disabled={confirmDisabled}
             onPress={confirm}
           />
+          )}
           {active.acknowledgeOnly ? null : (
             <Button
               title={active.cancelLabel ?? t('action.cancel')}

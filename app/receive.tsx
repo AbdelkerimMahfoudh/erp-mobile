@@ -30,6 +30,7 @@ import {
   takePendingIntake,
   type IntakeScope,
 } from '../lib/scan/pending-intake';
+import { askScanIntake } from '../lib/scan/ask-intake';
 import {
   codesInDelivery,
   draftKey,
@@ -113,6 +114,14 @@ interface PendingScan {
   existing?: ScanInventoryMatch;
   /** The product to create with this item, in the same request (D223). Not created yet. */
   draft?: NewProductDraft;
+}
+
+/** The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does. */
+function newProductHref(barcode: string | null, categoryId: string | undefined): string {
+  const params: string[] = [];
+  if (barcode) params.push(`barcode=${encodeURIComponent(barcode)}`);
+  if (categoryId) params.push(`categoryId=${encodeURIComponent(categoryId)}`);
+  return params.length ? `/catalog/new?${params.join('&')}` : '/catalog/new';
 }
 
 /** A timeout, a dropped connection or a server fault: the purchase may exist or not. */
@@ -425,9 +434,12 @@ function ReceiveScreen() {
     }
   };
 
-  const createProduct = (typedSecondary: string | null) => {
+  const createProduct = async (typedSecondary: string | null) => {
     const current = pending;
     if (!current) return;
+    // Asked, never guessed: what the code identifies, and for an IMEI which kind of device (D223).
+    const answer = await askScanIntake(current.result);
+    if (!answer) return;
     /*
      * The scan must survive the detour, with BOTH IMEIs.
      *
@@ -436,19 +448,19 @@ function ReceiveScreen() {
      * box would poison recognition for every unit of that model.
      */
     const result = current.result;
-    const isImei = result.kind === 'imei';
-    const barcode = result && result.kind === 'barcode' ? result.code : null;
+    const isImei = answer.field === 'imei';
+    const barcode = answer.field === 'productBarcode' ? result.code : null;
     if (scope) {
       holdPendingIntake(
         pendingFrom(scope, {
           imei: isImei ? { primary: result.code, secondary: typedSecondary ?? current.secondary } : null,
-          serial: result.kind === 'serial' ? result.code : null,
+          serial: answer.field === 'serial' ? result.code : null,
           productBarcode: barcode,
         }),
       );
     }
     setPending(null);
-    router.push(barcode ? (`/catalog/new?barcode=${encodeURIComponent(barcode)}` as never) : '/catalog/new');
+    router.push(newProductHref(barcode, answer.categoryId) as never);
   };
 
   // ── IMEI 2 on a staged phone ──────────────────────────────────────────────
@@ -749,7 +761,7 @@ function ReceiveScreen() {
           if (!pickerOpen) setPending(null);
         }}
         onAdd={addStaged}
-        onCreateProduct={createProduct}
+        onCreateProduct={(secondary) => void createProduct(secondary)}
         onChooseProduct={() => setPickerOpen(true)}
         lookUp={lookUp}
       />

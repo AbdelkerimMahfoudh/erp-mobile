@@ -34,12 +34,27 @@ export interface DialogRequest {
   reasonPlaceholder?: string;
   /** Hide the cancel button — an acknowledgement rather than a choice. */
   acknowledgeOnly: boolean;
+  /**
+   * Several answers instead of confirm: each its own button, and cancel stays.
+   * Closing the dialog is never one of the answers.
+   */
+  choices?: readonly string[];
   resolve: (result: DialogResult) => void;
 }
 
 export interface DialogResult {
   confirmed: boolean;
   reason?: string;
+  /** Which of `choices` was pressed. Absent when cancelled. */
+  choice?: number;
+}
+
+export interface ChooseOptions {
+  title: string;
+  message?: string;
+  /** The answers, in order. The result is the index pressed, or null when cancelled. */
+  choices: readonly string[];
+  cancelLabel?: string;
 }
 
 export interface ConfirmOptions {
@@ -73,7 +88,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
 }));
 
 function request(
-  options: ConfirmWithReasonOptions & { requireReason?: boolean; acknowledgeOnly?: boolean },
+  options: ConfirmWithReasonOptions & { requireReason?: boolean; acknowledgeOnly?: boolean; choices?: readonly string[] },
 ): Promise<DialogResult> {
   return new Promise<DialogResult>((resolve) => {
     useDialogStore.getState().push({
@@ -87,6 +102,7 @@ function request(
       reasonLabel: options.reasonLabel,
       reasonPlaceholder: options.reasonPlaceholder,
       acknowledgeOnly: options.acknowledgeOnly ?? false,
+      choices: options.choices,
       resolve,
     });
   });
@@ -102,6 +118,15 @@ export const dialog = {
   /** Confirmation that also captures why — for logged overrides. */
   confirmWithReason: (options: ConfirmWithReasonOptions): Promise<DialogResult> =>
     request({ ...options, requireReason: true }),
+
+  /**
+   * Ask a question with several answers. Resolves to the index pressed, or
+   * null when cancelled — a closed dialog never counts as an answer.
+   */
+  choose: async (options: ChooseOptions): Promise<number | null> => {
+    const result = await request({ ...options, choices: options.choices });
+    return result.confirmed && result.choice !== undefined ? result.choice : null;
+  },
 
   /** Tell the user something they must acknowledge. Resolves when dismissed. */
   alert: async (options: Omit<ConfirmOptions, 'cancelLabel'>): Promise<void> => {

@@ -99,6 +99,10 @@ export interface UserBranch {
 export interface Category {
   id: string;
   name: string;
+  /** A built-in category's stable key (D223); null for a shop's own. Shown translated by key. */
+  key?: string | null;
+  /** The top-level category this one is filed under, one level deep. */
+  parentId?: string | null;
   defaultTrackingType: TrackingType;
   attributeSchema?: AttributeDef[] | null;
   isActive: boolean;
