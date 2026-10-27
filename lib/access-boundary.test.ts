@@ -337,13 +337,14 @@ const ROUTER_INTERNALS: Record<string, string> = {
   'expo-router/build/react-navigation/core/usePreventRemove': 'usePreventRemove',
 };
 /**
- * The browser export's page shell (`app/+html.tsx`, 2026-10-24) imports Expo's scroll-style reset from
- * `expo-router/html`, by that one name, there alone: it renders a `<style>` and leads nowhere.
+ * The browser export's page shell (`app/+html.tsx`, 2026-10-24) imports from `expo-router/html`, there alone, these
+ * names only: Expo's scroll-style reset, which renders a `<style>`, and — since SDK 58 — `useServerDocumentContext`,
+ * which hands the shell the export's own head and body nodes to place. Neither leads anywhere.
  */
 const HTML_SHELL = {
   file: 'app/+html.tsx',
   module: 'expo-router/html',
-  name: 'ScrollViewStyleReset',
+  names: ['ScrollViewStyleReset', 'useServerDocumentContext'],
   tags: ['html', 'head', 'meta', 'script', 'link', 'body'],
   // Its theme boot files (CSP `'self'`): the only addresses it names, and neither leads anywhere.
   assets: ['/theme-boot.css'],
@@ -398,7 +399,7 @@ function leadsOutside(file: string): string[] {
     if (module === HTML_SHELL.module && rel === HTML_SHELL.file) {
       const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
       const only = clause && !clause.name && clause.namedBindings && ts.isNamedImports(clause.namedBindings) ? clause.namedBindings.elements.map((e) => e.name.text) : [];
-      if (!(only.length === 1 && only[0] === HTML_SHELL.name)) found.add(node);
+      if (!(only.length > 0 && only.every((n) => HTML_SHELL.names.includes(n)))) found.add(node);
       continue;
     }
     if (module !== 'expo-router') {
