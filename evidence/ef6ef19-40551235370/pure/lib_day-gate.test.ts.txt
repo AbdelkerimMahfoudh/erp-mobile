@@ -1,0 +1,305 @@
+  ok - the current business day closed: locked, and the Owner or a named delegate may open the store
+  ok - somebody without the closing authority sees the lock and is told who can open it
+  ok - an opened day — open, counting, counted or reopened — never locks the counter
+  ok - a day nobody opened waits for its opening — offered to whoever counts, not only to the closing authority (docs/63)
+  ok - an older server sends no door: its counter never waited for an opening, and the phone does not either
+  ok - no view — not loaded, failed, or not for this person — never locks anybody out: the server’s rule stands
+  ok - the rule reads the server’s business day, never the phone’s clock
+  ok - Home and the guard ask the light business-day view, only for those it is for, and never trust a cached answer for anyone else
+  ok - the server’s closed-store refusal is known by its status and code, never by its sentence
+  ok - a lock found on the first read stands in for the screen; one that comes later covers it, and the screen stays mounted beneath
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: ../app/quick-sell.tsx
+    at file:///home/runner/work/erp-mobile/erp-mobile/app/lib/day-gate.test.ts:106:12
+    at it (file:///home/runner/work/erp-mobile/erp-mobile/app/lib/day-gate.test.ts:15:3)
+    at file:///home/runner/work/erp-mobile/erp-mobile/app/lib/day-gate.test.ts:101:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: "import React, { useCallback, useRef, useState } from 'react';\n" +
+    "import { ScrollView, View } from 'react-native';\n" +
+    "import { Stack, useRouter } from 'expo-router';\n" +
+    "import { useQuery, useQueryClient } from '@tanstack/react-query';\n" +
+    "import { ArrowLeft, ArrowRight, ScanLine, UserRound } from 'lucide-react-native';\n" +
+    'import {\n' +
+    '  Button,\n' +
+    '  Card,\n' +
+    '  EmptyState,\n' +
+    '  InlineNotice,\n' +
+    '  IconButton,\n' +
+    '  ListRow,\n' +
+    '  MoneyField,\n' +
+    '  MoneyValue,\n' +
+    '  Screen,\n' +
+    '  Stepper,\n' +
+    '  Text,\n' +
+    "} from '../components/ui';\n" +
+    "import { ScanTarget } from '../components/scanner';\n" +
+    "import { useLeave } from '../components/navigation/HeaderBack';\n" +
+    "import { SelectSheet } from '../components/overlay';\n" +
+    "import { PaymentSheet, type ReceivingAccount } from '../components/sell/PaymentSheet';\n" +
+    "import { DiscountCard, discountFrom } from '../components/sell/DiscountCard';\n" +
+    "import { ReturnPolicyCard } from '../components/sell/ReturnPolicyCard';\n" +
+    "import { SaleSuccess } from '../components/sell/SaleSuccess';\n" +
+    "import { ApprovalRequestSheet, type ApprovalRequest } from '../components/sell/ApprovalRequestSheet';\n" +
+    "import type { PaymentEntry } from '../components/sell/types';\n" +
+    "import { useCreateCustomer, useCustomers, type Customer } from '../lib/customers';\n" +
+    "import { api, ApiError } from '../lib/api-client';\n" +
+    "import { useAuth } from '../hooks/useAuth';\n" +
+    "import { useBranch } from '../lib/branch';\n" +
+    "import { useConnectivity } from '../lib/connectivity';\n" +
+    "import { isolateLtr, isRTL } from '../lib/design/direction';\n" +
+    "import { space } from '../lib/design/tokens';\n" +
+    "import { dialog } from '../lib/dialog';\n" +
+    "import { toErrorMessage } from '../lib/errors';\n" +
+    "import { formatDate, formatMoney } from '../lib/format';\n" +
+    "import { daysInStock } from '../lib/home-metrics';\n" +
+    "import { saleDebtorFields, type DebtorDraft } from '../lib/sale-payment-rules';\n" +
+    "import { useTranslation } from '../lib/i18n';\n" +
+    "import { qk } from '../lib/query-keys';\n" +
+    "import type { ReceiptData } from '../lib/receipt';\n" +
+    "import type { ReturnPolicySnapshot } from '../lib/return-policy';\n" +
+    "import { usePermission } from '../lib/permissions';\n" +
+    "import { useCompanyReturnWindow } from '../lib/sales';\n" +
+    "import { toast } from '../lib/toast';\n" +
+    "import { uuidv4 } from '../lib/utils';\n" +
+    "import { refusalOf } from '../lib/discount-approval-state';\n" +
+    "import { isWarningsPending, orderWarnings, referenceKey, type WarningsPending } from '../lib/warnings';\n" +
+    "import type { SaleSelection, ScanResult } from '../types/api';\n" +
+    'import {\n' +
+    '  ManualImeiPanel,\n' +
+    '  PhoneChooser,\n' +
+    '  SelectedPhoneCard,\n' +
+    '  StockPicker,\n' +
+    '  type PickMode,\n' +
+    "} from '../components/sell/PhonePicker';\n" +
+    "import { lookupSelection, type LookupFailure, type PickSource } from '../lib/phone-selection';\n" +
+    "import { classifySubmitFailure, maySubmit, quantityProblem, saleLineFor, saleTotal } from '../lib/sale-submission';\n" +
+    "import { recoverUncertainSale, refreshAfterUncertainty } from '../lib/sale-recovery';\n" +
+    "import { makeStyles } from '../lib/design/theme';\n" +
+    "import { selectableAccounts } from '../lib/receiving-accounts';\n" +
+    "import { invalidateMoney } from '../lib/money-invalidation';\n" +
+    "import { DayGate } from '../components/day/DayGate';\n" +
+    '\n' +
+    '\n' +
+    '\n' +
+    'interface SaleResponse {\n' +
+    '  id: string;\n' +
+    '  invoiceNo: string;\n' +
+    '  total: number;\n' +
+    '  \n' +
+    '  margin?: number;\n' +
+    '  balanceDue: number;\n' +
+    '  payStatus: string;\n' +
+    '  soldAt: string;\n' +
+    '  returnPolicy: ReturnPolicySnapshot;\n' +
+    '}\n' +
+    '\n' +
+    'function QuickSellScreen() {\n' +
+    '\n' +
+    "  const leave = useLeave('/quick-sell');\n" +
+    '  const styles = useStyles();\n' +
+    '  const { t } = useTranslation();\n' +
+    '  const router = useRouter();\n' +
+    '  const qc = useQueryClient();\n' +
+    '  const { user } = useAuth();\n' +
+    '  const { branchId, branchName } = useBranch();\n' +
+    '  const offline = !useConnectivity((s) => s.online);\n' +
+    '\n' +
+    "  const canViewCost = usePermission('cost.view');\n" +
+    "  const canOverrideReturnPolicy = usePermission('return.policy.override');\n" +
+    '\n' +
+    '  \n' +
+    "  const [mode, setMode] = useState<PickMode>('choose');\n" +
+    '  \n' +
+    '  const [picked, setPicked] = useState<{ selection: SaleSelection; identifier: string; source: PickSource } | null>(null);\n' +
+    '  const [lookupError, setLookupError] = useState<LookupFailure | null>(null);\n' +
+    '  const [lookingUp, setLookingUp] = useState(false);\n' +
+    '  \n' +
+    '  const [stockPick, setStockPick] = useState<{ identifier: string; label: string } | null>(null);\n' +
+    "  const sellable = picked?.selection.availability === 'available';\n" +
+    "  const [price, setPrice] = useState('');\n" +
+    '  \n' +
+    '  const [quantity, setQuantity] = useState(1);\n' +
+    '  \n' +
+    "  const [discountText, setDiscountText] = useState('');\n" +
+    '  const [paymentOpen, setPaymentOpen] = useState(false);\n' +
+    '  const [submitting, setSubmitting] = useState(false);\n' +
+    '  const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);\n' +
+    '\n' +
+    '  const [customer, setCustomer] = useState<Customer | null>(null);\n' +
+    '  const [customerOpen, setCustomerOpen] = useState(false);\n' +
+    "  const [customerSearch, setCustomerSearch] = useState('');\n" +
+    '  const customers = useCustomers(customerSearch, customerOpen);\n' +
+    '  const createCustomer = useCreateCustomer();\n' +
+    '\n' +
+    '  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);\n' +
+    '  \n' +
+    '  const pendingApproval = useRef<ApprovalRequest | null>(null);\n' +
+    '  const heldPayments = useRef<PaymentEntry[] | null>(null);\n' +
+    '  \n' +
+    "  const heldDebtor = useRef<DebtorDraft>({ kind: 'none' });\n" +
+    '  \n' +
+    '  const heldDueDays = useRef<number | null>(null);\n' +
+    '  \n' +
+    '  const inFlight = useRef(false);\n' +
+    '\n' +
+    '  \n' +
+    '  const clientUuid = useRef(uuidv4());\n' +
+    '\n' +
+    '  const companyDefaultHours = useCompanyReturnWindow();\n' +
+    '  const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);\n' +
+    '  const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;\n' +
+    '\n' +
+    '  const accountsQuery = useQuery({\n' +
+    '    queryKey: qk.settings,\n' +
+    "    queryFn: () => api.get<{ receivingAccounts?: ReceivingAccount[] }>('/settings'),\n" +
+    '  });\n' +
+    '  const receivingAccounts = accountsQuery.data?.receivingAccounts ?? [];\n' +
+    '\n' +
+    '  const proposedPrice = Number(price) > 0 ? Number(price) : null;\n' +
+    '  const age = daysInStock(picked?.selection.dateIn);\n' +
+    '  \n' +
+    "  const available = picked?.selection.kind === 'product' ? picked.selection.quantityAvailable : undefined;\n" +
+    '  const quantityIssue = quantityProblem(quantity, available);\n' +
+    '  \n' +
+    '  const gross = proposedPrice === null ? null : saleTotal(proposedPrice, quantity);\n' +
+    '  const discount = discountFrom(discountText, gross ?? 0);\n' +
+    '  \n' +
+    '  const total = gross === null ? null : Math.round((gross - discount.amount) * 100) / 100;\n' +
+    '  \n' +
+    '  const cost = canViewCost ? picked?.selection.cost : undefined;\n' +
+    "  const expected = total === null || typeof cost !== 'number' ? null : Math.round((total - cost * quantity) * 100) / 100;\n" +
+    '\n' +
+    '\n' +
+    '  \n' +
+    '  const choose = useCallback((selection: SaleSelection, identifier: string, source: PickSource) => {\n' +
+    '    setLookupError(null);\n' +
+    '    setPicked({ selection, identifier, source });\n' +
+    '    setQuantity(1);\n' +
+    '\n' +
+    '\n' +
+    '\n' +
+    "    setPrice(selection.price != null ? String(selection.price) : '');\n" +
+    '  }, []);\n' +
+    '\n' +
+    '  const findAndChoose = useCallback(\n' +
+    '    async (code: string, source: PickSource) => {\n' +
+    '      setLookingUp(true);\n' +
+    '      try {\n' +
+    '        const found = await lookupSelection(code);\n' +
+    '        if (!found.ok) {\n' +
+    '          setPicked(null);\n' +
+    '          setLookupError(found.failure);\n' +
+    '          return;\n' +
+    '        }\n' +
+    '        choose(found.selection, found.identifier, source);\n' +
+    '      } finally {\n' +
+    '        setLookingUp(false);\n' +
+    '      }\n' +
+    '    },\n' +
+    '    [choose],\n' +
+    '  );\n' +
+    '\n' +
+    '  \n' +
+    "  const onScanResult = useCallback((result: ScanResult) => findAndChoose(result.code, 'scan'), [findAndChoose]);\n" +
+    '\n' +
+    '  \n' +
+    '  const chooseAnother = () => {\n' +
+    '    setPicked(null);\n' +
+    '    setLookupError(null);\n' +
+    '    setStockPick(null);\n' +
+    "    setPrice('');\n" +
+    '    setQuantity(1);\n' +
+    "    setDiscountText('');\n" +
+    "    setMode('choose');\n" +
+    '  };\n' +
+    '\n' +
+    '  \n' +
+    '  const title = picked\n' +
+    "    ? t('pick.review.title')\n" +
+    "    : mode === 'manual'\n" +
+    "      ? t('pick.manual.title')\n" +
+    "      : mode === 'stock'\n" +
+    "        ? t('pick.stock.title')\n" +
+    "        : mode === 'scan'\n" +
+    "          ? t('pick.scan')\n" +
+    "          : t('quick.sell.title');\n" +
+    '\n' +
+    '\n' +
+    '  const finalize = (sale: SaleResponse, payments: PaymentEntry[]) => {\n' +
+    "    const identifier = picked?.identifier ?? '';\n" +
+    '    const label = picked ? `${picked.selection.product.brand} ${picked.selection.product.model}` : identifier;\n' +
+    '    \n' +
+    '    const receipt: ReceiptData = {\n' +
+    '      invoiceNo: sale.invoiceNo,\n' +
+    '      soldAt: new Date(sale.soldAt),\n' +
+    "      branchName: branchName ?? '',\n" +
+    "      cashierName: user?.name ?? '',\n" +
+    '      lines: [{ label, identifier, quantity, unitPrice: proposedPrice ?? sale.total }],\n' +
+    '      subtotal: gross ?? sale.total,\n' +
+    '      discount: discount.amount,\n' +
+    '      total: sale.total,\n' +
+    '      payments: payments.map((p) => ({\n' +
+    '        method: p.receivingAccountId\n' +
+    '          ? `${t(`payment.${p.method}` as never)} · ${\n' +
+    "              receivingAccounts.find((a) => a.id === p.receivingAccountId)?.label ?? ''\n" +
+    '            }`.trim()\n' +
+    '          : t(`payment.${p.method}` as never),\n' +
+    '        amount: p.amount,\n' +
+    '      })),\n' +
+    '      returnPolicy: sale.returnPolicy,\n' +
+    '    };\n' +
+    '\n' +
+    '    setDone({ sale, receipt });\n' +
+    '    setPaymentOpen(false);\n' +
+    '    setPicked(null);\n' +
+    "    setMode('choose');\n" +
+    "    setPrice('');\n" +
+    '    setQuantity(1);\n' +
+    "    setDiscountText('');\n" +
+    '    setCustomer(null);\n' +
+    '    setReturnWindowHours(null);\n' +
+    '\n' +
+    '    qc.invalidateQueries({ queryKey: qk.home(branchId) });\n' +
+    '    qc.invalidateQueries({ queryKey: qk.inventory(branchId) });\n' +
+    '    qc.invalidateQueries({ queryKey: qk.inventorySummary(branchId) });\n' +
+    '    invalidateMoney(qc);\n' +
+    '  };\n' +
+    '\n' +
+    '  \n' +
+    '  const onPaymentClosed = () => {\n' +
+    '    setPaymentOpen(false);\n' +
+    '    const next = pendingApproval.current;\n' +
+    '    if (next) {\n' +
+    '      pendingApproval.current = null;\n' +
+    '      setApprovalRequest(next);\n' +
+    '    }\n' +
+    '  };\n' +
+    '\n' +
+    '  \n' +
+    '  const reportFailure = async (error: unknown, payments: PaymentEntry[]) => {\n' +
+    '    const failure = classifySubmitFailure(error);\n' +
+    '    switch (failure.kind) {\n' +
+    "      case 'uncertain': {\n" +
+    "        toast.info(t('sell.submit.checking'));\n" +
+    '        const recovered = await recoverUncertainSale<SaleResponse>(clientUuid.current);\n' +
+    '        refreshAfterUncertainty(qc, branchId);\n' +
+    "        if (recovered.kind === 'found') {\n" +
+    "          toast.success(t('sell.submit.recovered'));\n" +
+    '          finalize(recovered.sale, payments);\n' +
+    '          return;\n' +
+    '        }\n' +
+    "        if (recovered.kind === 'not_found') toast.warning(t('sell.submit.notRecorded'));\n" +
+    "        else toast.error(t('sell.submit.unknow"... 20088 more characters,
+  expected: /e\.status === 400 && \/reason\/i\.test\(e\.message\) && !options\.overrideReason/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v22.23.3
