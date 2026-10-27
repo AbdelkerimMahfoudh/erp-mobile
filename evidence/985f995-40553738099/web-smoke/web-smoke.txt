@@ -1,0 +1,76 @@
+===== /login
+page errors (0):
+
+console (0):
+
+facts: {"testIds":["theme-toggle"],"rootChildren":1,"theme":"light","ready":true}
+text:
+Dukan ERP
+Sign in to your store
+Developed and operated by TSX-MR
+Email or WhatsApp number
+Enter either your email or WhatsApp number.
+Password
+Sign In
+Create a business account
+Employee accounts are set up by your business owner.
+I was added to a team
+I have a setup code
+Language
+English
+Français
+العربية
+Privacy policy
+Terms of use
+Help and support
+How account deletion works
+Opens in your phone’s browser
+
+===== /setup
+page errors (0):
+
+console (0):
+
+facts: {"testIds":["theme-toggle"],"rootChildren":1,"theme":"light","ready":true}
+text:
+Dukan ERP
+Set up your business
+The platform created your business and gave you a one-time setup code. Paste it here and choose your password.
+Setup code
+Paste it exactly as you received it. It works once.
+Choose your password
+At least 8 characters. Only you will know it.
+Set my password
+Back to sign in
+Language
+English
+Français
+العربية
+
+===== /
+page errors (0):
+
+console (0):
+
+facts: {"testIds":["theme-toggle"],"rootChildren":1,"theme":"light","ready":true}
+text:
+Dukan ERP
+Sign in to your store
+Developed and operated by TSX-MR
+Email or WhatsApp number
+Enter either your email or WhatsApp number.
+Password
+Sign In
+Create a business account
+Employee accounts are set up by your business owner.
+I was added to a team
+I have a setup code
+Language
+English
+Français
+العربية
+Privacy policy
+Terms of use
+Help and support
+How account deletion works
+Opens in your phone’s browser
