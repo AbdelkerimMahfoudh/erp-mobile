@@ -86,11 +86,8 @@ import { isStoreClosedRefusal } from '../lib/day-gate';
  */
 
 /** The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does. */
-function newProductHref(barcode: string | null, categoryId: string | undefined): string {
-  const params: string[] = [];
-  if (barcode) params.push(`barcode=${encodeURIComponent(barcode)}`);
-  if (categoryId) params.push(`categoryId=${encodeURIComponent(categoryId)}`);
-  return params.length ? `/catalog/new?${params.join('&')}` : '/catalog/new';
+function newProductParams(barcode: string | null, categoryId: string | undefined): Record<string, string> {
+  return { ...(barcode ? { barcode } : {}), ...(categoryId ? { categoryId } : {}) };
 }
 
 /** A timeout or a server fault: the purchase may or may not exist. */
@@ -344,7 +341,7 @@ function QuickReceiveScreen() {
       }),
     );
     setScanned(null);
-    router.push(newProductHref(barcode, answer.categoryId) as never);
+    router.push({ pathname: '/catalog/new', params: newProductParams(barcode, answer.categoryId) });
   };
 
   // ── Commit ────────────────────────────────────────────────────────────────
