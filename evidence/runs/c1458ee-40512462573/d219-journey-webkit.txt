@@ -1,0 +1,22 @@
+(node:9260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/erp-mobile/erp-mobile/app/lib/i18n/en.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/runner/work/erp-mobile/erp-mobile/app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  [webkit] the administrator signs in with the password and the second factor — sign-in 200, code 200
+PASS  [webkit] the administrator creates a test business, its Owner and store, with a setup code — status 201
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+locator.tap: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByText('I have a setup code', { exact: true }).first()
+
+    at /home/runner/work/erp-mobile/erp-mobile/tools/browser-input/verify/access-journey.mjs:48:74 {
+  log: [
+    "  - waiting for getByText('I have a setup code', { exact: true }).first()"
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.4

@@ -1,0 +1,4 @@
+PASS  login en light 320: no horizontal overflow — 0px
+PASS  login en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 320: no text touches the control under it
+PASS  login en light 320: text contrast meets WCAG AA
