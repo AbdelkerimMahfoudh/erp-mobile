@@ -1,0 +1,26 @@
+===== /login
+page errors (0):
+
+console (0):
+
+facts: {"testIds":[],"rootChildren":1,"theme":"light","ready":false}
+text:
+
+
+===== /setup
+page errors (0):
+
+console (0):
+
+facts: {"testIds":[],"rootChildren":1,"theme":"light","ready":false}
+text:
+
+
+===== /
+page errors (0):
+
+console (0):
+
+facts: {"testIds":[],"rootChildren":1,"theme":"light","ready":false}
+text:
+
