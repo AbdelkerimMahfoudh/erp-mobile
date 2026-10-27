@@ -4368,4 +4368,6 @@ export const en = {
   'categories.parent.label': 'Under',
   'categories.parent.none': 'Top level',
   'warning.loss.belowCost': 'This sells below what was paid for it. The shop loses money on this sale.',
+  'inventory.filter.category': 'Category',
+  'inventory.filter.anyCategory': 'Every category',
 } as const;

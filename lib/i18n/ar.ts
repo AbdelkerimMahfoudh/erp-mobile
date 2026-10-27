@@ -4301,4 +4301,6 @@ export const ar: Catalogue = {
   'categories.parent.label': 'ضمن',
   'categories.parent.none': 'المستوى الأعلى',
   'warning.loss.belowCost': 'هذا السعر أقل مما دُفع فيه. سيخسر المتجر مالًا في هذه البيعة.',
+  'inventory.filter.category': 'الفئة',
+  'inventory.filter.anyCategory': 'كل الفئات',
 };

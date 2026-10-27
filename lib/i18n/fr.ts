@@ -4542,4 +4542,6 @@ export const fr: Catalogue = {
   'categories.parent.label': 'Dans',
   'categories.parent.none': 'Premier niveau',
   'warning.loss.belowCost': 'Ce prix est inférieur à ce qui a été payé. La boutique perd de l\'argent sur cette vente.',
+  'inventory.filter.category': 'Catégorie',
+  'inventory.filter.anyCategory': 'Toutes les catégories',
 };

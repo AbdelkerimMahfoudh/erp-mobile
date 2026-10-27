@@ -22,6 +22,9 @@ import {
 import { AccessNotice } from '../../components/access';
 import { InlineNotice } from '../../components/ui/InlineNotice';
 import { ScannerSheet } from '../../components/scanner/ScannerSheet';
+import { SelectSheet } from '../../components/overlay';
+import { inTreeOrder } from '../../lib/category-label';
+import { useCategoryLabel } from '../../lib/use-category-label';
 import { STOCK_THUMB, StockRow } from '../../components/inventory/StockRow';
 import { api } from '../../lib/api-client';
 import { useBranch } from '../../lib/branch';
@@ -36,7 +39,7 @@ import { useBusinessAccess } from '../../lib/entitlement';
 import { productTitle, variantSummary } from '../../lib/product-label';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
-import type { InventoryPage, InventoryRow, ScanResult, StockSummaryRow, Unit } from '../../types/api';
+import type { Category as ProductCategory, InventoryPage, InventoryRow, ScanResult, StockSummaryRow, Unit } from '../../types/api';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
@@ -116,6 +119,18 @@ export default function InventoryScreen() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  /**
+   * One category, with its subcategories (D223). The server filters, so the
+   * list and its count stay whole-branch rather than whatever page is loaded.
+   */
+  const [categoryFilter, setCategoryFilter] = useState<ProductCategory | null>(null);
+  const [categorySheet, setCategorySheet] = useState(false);
+  const categoryLabel = useCategoryLabel();
+  const categories = useQuery({
+    queryKey: qk.categories,
+    queryFn: () => api.get<ProductCategory[]>('/categories?includeInactive=true'),
+    enabled: categorySheet,
+  });
 
   const searching = debounced.length > 0;
   const mode: 'summary' | 'units' = searching || focusId || phonesByArrival ? 'units' : 'summary';
@@ -160,7 +175,7 @@ export default function InventoryScreen() {
   });
 
   const inventory = useInfiniteQuery({
-    queryKey: qk.inventory(branchId, status, debounced, focusId, phonesByArrival ? 'imei' : undefined),
+    queryKey: qk.inventory(branchId, status, debounced, focusId, phonesByArrival ? 'imei' : undefined, categoryFilter?.id),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
@@ -168,6 +183,7 @@ export default function InventoryScreen() {
       if (phonesByArrival) params.set('trackingType', 'imei');
       if (debounced) params.set('search', debounced);
       if (focusId) params.set('productId', focusId);
+      if (categoryFilter) params.set('categoryId', categoryFilter.id);
       if (pageParam) params.set('cursor', pageParam);
       return api.get<InventoryPage>(`/inventory?${params.toString()}`);
     },
@@ -380,8 +396,29 @@ export default function InventoryScreen() {
                   onPress={() => setStatus(value)}
                 />
               ))}
+              <FilterChip
+                label={categoryFilter ? categoryLabel(categoryFilter) : t('inventory.filter.category')}
+                selected={categoryFilter !== null}
+                onPress={() => setCategorySheet(true)}
+              />
             </View>
           </ScrollView>
+          <SelectSheet
+            open={categorySheet}
+            onClose={() => setCategorySheet(false)}
+            title={t('inventory.filter.category')}
+            items={[
+              { id: '', name: t('inventory.filter.anyCategory'), defaultTrackingType: 'quantity', isActive: true } as ProductCategory,
+              ...inTreeOrder(categories.data ?? [], categoryLabel).map((row) => row.category),
+            ]}
+            keyExtractor={(c: ProductCategory) => c.id || 'any'}
+            labelExtractor={(c: ProductCategory) => (c.id ? categoryLabel(c) : c.name)}
+            selectedKeys={[categoryFilter?.id ?? 'any']}
+            onSelect={(c: ProductCategory) => {
+              setCategoryFilter(c.id ? c : null);
+              setCategorySheet(false);
+            }}
+          />
         </>
       )}
     </>

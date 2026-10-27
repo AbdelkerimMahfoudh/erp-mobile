@@ -19,8 +19,14 @@ export const qk = {
    * `search` is part of the key so changing it starts a fresh pagination run —
    * a cursor issued under one query is meaningless under another.
    */
-  inventory: (branchId: string | null, status?: string, search?: string, productId?: string, trackingType?: string) =>
-    ['inventory', branchId, status ?? '', search ?? '', productId ?? '', trackingType ?? ''] as const,
+  inventory: (
+    branchId: string | null,
+    status?: string,
+    search?: string,
+    productId?: string,
+    trackingType?: string,
+    categoryId?: string,
+  ) => ['inventory', branchId, status ?? '', search ?? '', productId ?? '', trackingType ?? '', categoryId ?? ''] as const,
   /**
    * Sale history is per branch, and `filters` joins search, status, method and
    * date range for the same reason the transfer key does: a cursor issued under
