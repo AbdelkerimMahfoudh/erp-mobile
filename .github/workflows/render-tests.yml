@@ -51,7 +51,9 @@ jobs:
       # its own output. Two of them read the backend beside the checkout, as the security workflow provides it.
       - name: Pure tests
         run: |
-          git clone -q --depth 1 --branch reports-export https://github.com/AbdelkerimMahfoudh/erp-backend.git erp-backend
+          set -a; source "$GITHUB_WORKSPACE/tools/target.env"; set +a
+          # BACKEND_BRANCH in target.env pairs a mobile feature branch with its backend branch; reports-export otherwise.
+          git clone -q --depth 1 --branch "${BACKEND_BRANCH:-reports-export}" https://github.com/AbdelkerimMahfoudh/erp-backend.git erp-backend
           mkdir -p "$EV/pure"
           pass=0; fail=0
           cd app
