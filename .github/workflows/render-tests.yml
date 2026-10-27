@@ -73,6 +73,9 @@ jobs:
           npm audit --omit=dev --json > "$RUNNER_TEMP/audit.json"
           node scripts/audit-shipped-deps.js "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/export-web" "$RUNNER_TEMP/export-ios" > "$EV/audit-shipped-deps.txt" 2>&1; echo "audit-shipped-deps $?" >> "$EV/audit-exit.txt"
           cat "$EV/audit-exit.txt"; tail -40 "$EV/audit-bundle.txt"
+          # The pages as exported (no secret: placeholder API origin), to see what the browser is handed.
+          mkdir -p "$EV/pages"; for p in login index +not-found; do cp "$RUNNER_TEMP/export-web/$p.html" "$EV/pages/" 2>/dev/null; done
+          ls -la "$EV/pages" || true
       # What the web export shows in Chromium: page errors, console, text, test ids and a screenshot of three pages.
       - name: Web smoke
         run: |
