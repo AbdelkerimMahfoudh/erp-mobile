@@ -66,8 +66,16 @@ it('sends each phone with its IMEI 2 when it has one, and alone when not', () =>
 
 it('never sends an IMEI as a product barcode', () => {
   assert.ok(!JSON.stringify(purchaseItems([phones])).includes('barcode'));
-  const intake = withoutComments(source('app/receive.tsx'));
-  assert.match(intake, /const barcode = result && result\.kind === 'barcode' \? result\.code : null;/);
+  // D223: the code is a barcode only when the person said it names the product model…
+  for (const file of ['app/receive.tsx', 'app/quick-receive.tsx']) {
+    const intake = withoutComments(source(file));
+    assert.match(intake, /const barcode = answer\.field === 'productBarcode' \? result\.code : null;/, file);
+  }
+  // …and an IMEI is never asked that question: it can only answer `imei`.
+  const ask = withoutComments(source('lib/scan/ask-intake.ts'));
+  const imeiBranch = ask.slice(ask.indexOf("if (result.kind === 'imei')"), ask.indexOf('const choice = await dialog.choose({\n    title: t(\'intake.identity.title\')'));
+  assert.doesNotMatch(imeiBranch, /productBarcode/);
+  assert.match(imeiBranch, /field: 'imei'/);
 });
 
 /* ── what the answer means ──────────────────────────────────────────────── */
