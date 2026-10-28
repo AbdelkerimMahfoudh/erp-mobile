@@ -4217,7 +4217,7 @@ export const ar: Catalogue = {
   'setup.done': '{business}: تم تعيين كلمة مرورك. سجّل الدخول برقم واتساب وكلمة المرور هذه.',
   'setup.signIn': 'الذهاب إلى تسجيل الدخول',
   'testBusiness.banner': 'نشاط تجاري اختباري — للاختبار فقط، وليس متجرًا حقيقيًا',
-  'pilotBusiness.banner': 'نشاط تجاري تجريبي — اختبار مُراقَب لـ Dukan ERP',
+  'pilotBusiness.banner': 'نشاط تجاري في تشغيل ميداني — اختبار مُراقَب لـ Dukan ERP',
   'catalog.intake.notice': 'لم يُحفظ شيء بعد. يُنشأ المنتج مع مخزونه عند استلام الشحنة.',
   'catalog.intake.next': 'إضافة إلى الشحنة',
   'catalog.intake.usingExisting': 'هذا المنتج موجود بالفعل. ستُضاف القطعة إليه.',
