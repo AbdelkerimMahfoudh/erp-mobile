@@ -1,0 +1,1799 @@
+PASS __tests__/registration.test.tsx (37.362 s)
+  ● Console
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to RegisterScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(WhatsAppConsentCheck) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to RegisterScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(WhatsAppConsentCheck) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/access-trial.test.tsx (38.084 s)
+PASS __tests__/agent-closing.test.tsx
+PASS __tests__/agent-money.test.tsx (5.193 s)
+PASS __tests__/agent-screens.test.tsx
+PASS __tests__/queued-exchange.test.tsx
+PASS __tests__/agent-counter.test.tsx
+  ● Console
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+    console.log
+      [timing] draft written (agent.exchange): 0 ms
+
+      at Object.log [as time] (lib/dev-timing.ts:36:13)
+
+PASS __tests__/team-refusals.test.tsx
+PASS __tests__/communication-preferences.test.tsx
+  ● Console
+
+    console.error
+      An update to CommunicationScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ConsentSection inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to CommunicationScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(WhatsAppConsentCheck) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ConsentSection inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/sale-debt-sheet.test.tsx
+PASS __tests__/single-item-intake.test.tsx
+  ● Console
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+    console.error
+      VirtualizedLists should never be nested inside plain ScrollViews with the same orientation because it can break windowing and other functionality - use another VirtualizedList-backed container instead.
+
+      at error (node_modules/@react-native/virtualized-lists/Lists/VirtualizedList.js:1178:23)
+      at Object.react_stack_bottom_frame (node_modules/react-reconciler/cjs/react-reconciler.development.js:19204:20)
+      at beginWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:9972:28)
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at performUnitOfWork (node_modules/react-reconciler/cjs/react-reconciler.development.js:16674:22)
+      at workLoopSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16500:41)
+      at renderRootSync (node_modules/react-reconciler/cjs/react-reconciler.development.js:16481:11)
+      at performWorkOnRoot (node_modules/react-reconciler/cjs/react-reconciler.development.js:15540:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-reconciler/cjs/react-reconciler.development.js:3520:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at node_modules/react/cjs/react.development.js:923:21
+
+PASS __tests__/account-whatsapp.test.tsx
+  ● Console
+
+    console.error
+      An update to MessagesSection inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:73:11
+      at notifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:21:5)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:44:13
+          at Array.forEach (<anonymous>)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:43:25
+      at batchNotifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:24:5)
+      at Timeout._onTimeout (node_modules/@tanstack/query-core/src/notifyManager.ts:42:9)
+
+PASS __tests__/navigation.test.tsx
+PASS __tests__/tab-bar.test.tsx
+PASS __tests__/access-grace.test.tsx
+PASS __tests__/agent-reports.test.tsx
+PASS __tests__/payment-sheet.test.tsx
+PASS __tests__/join-team.test.tsx
+  ● Console
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to AuthLanguageSwitch inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to JoinScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(TextField) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to ForwardRef(WhatsAppConsentCheck) inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+    console.error
+      An update to LegalPageButtons inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+    [0m [90m 210 |[39m     [36mawait[39m setItem([33mLANGUAGE_STORAGE_KEY[39m[33m,[39m lang)[33m;[39m
+     [90m 211 |[39m     [36mconst[39m direction [33m=[39m [36mawait[39m settleDirection(lang[33m,[39m [36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 212 |[39m     [36mset[39m({ language[33m:[39m lang[33m,[39m direction[33m,[39m restartRequired[33m:[39m direction [33m===[39m [32m'restart'[39m })[33m;[39m
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 213 |[39m   }[33m,[39m
+     [90m 214 |[39m }))[33m;[39m
+     [90m 215 |[39m[0m
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/zustand/vanilla.js:11:39
+          at Set.forEach (<anonymous>)
+      at setState (node_modules/zustand/vanilla.js:11:17)
+      at Object.set (lib/i18n/index.ts:212:5)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/team-invitation.test.tsx
+PASS __tests__/money-card.test.tsx
+PASS __tests__/notifications.test.tsx
+  ● Console
+
+    console.error
+      An update to NotificationsScreen inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:73:11
+      at notifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:21:5)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:44:13
+          at Array.forEach (<anonymous>)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:43:25
+      at batchNotifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:24:5)
+      at Timeout._onTimeout (node_modules/@tanstack/query-core/src/notifyManager.ts:42:9)
+
+PASS __tests__/deep-links.test.tsx
+PASS __tests__/no-browser.test.tsx
+PASS __tests__/partner-payment-keys.test.tsx
+PASS __tests__/agent-signout.test.tsx
+PASS __tests__/review-sale-cards.test.tsx
+PASS __tests__/legal-pages.test.tsx
+PASS __tests__/sale-detail-payer.test.tsx
+PASS __tests__/api-client-answers.test.tsx
+PASS __tests__/scanner-ordinary-barcode.test.tsx
+PASS __tests__/field-focus-ring.test.tsx
+PASS __tests__/owner-setup.test.tsx
+PASS __tests__/sale-payment-lost-answer.test.tsx
+PASS __tests__/session-offline-launch.test.tsx
+PASS __tests__/approval-request-keys.test.tsx
+  ● Console
+
+    console.error
+      An update to ApprovalRequestSheet inside a test was not wrapped in act(...).
+      
+      When testing, code that causes React state updates should be wrapped into act(...):
+      
+      act(() => {
+        /* fire events that update state */
+      });
+      /* assert on the output */
+      
+      This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:17864:19
+      at runWithFiberInDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:2663:13)
+      at warnIfUpdatesNotWrappedWithActDEV (node_modules/react-reconciler/cjs/react-reconciler.development.js:17863:9)
+      at scheduleUpdateOnFiber (node_modules/react-reconciler/cjs/react-reconciler.development.js:15445:11)
+      at forceStoreRerender (node_modules/react-reconciler/cjs/react-reconciler.development.js:6163:24)
+      at node_modules/react-reconciler/cjs/react-reconciler.development.js:6148:11
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:73:11
+      at notifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:21:5)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:44:13
+          at Array.forEach (<anonymous>)
+      at node_modules/@tanstack/query-core/src/notifyManager.ts:43:25
+      at batchNotifyFn (node_modules/@tanstack/query-core/src/notifyManager.ts:24:5)
+      at Timeout._onTimeout (node_modules/@tanstack/query-core/src/notifyManager.ts:42:9)
+
+PASS __tests__/refresh-transient.test.tsx
+PASS __tests__/home-header.test.tsx
+PASS __tests__/release-origin-refused.test.tsx
+PASS __tests__/account-delete-poll.test.tsx (7.841 s)
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 39 passed, 39 total
+Tests:       381 passed, 381 total
+Snapshots:   0 total
+Time:        62.655 s
+Ran all test suites.
+Test results written to: ../tools/evidence/48e0d9b-40705453294/jest.json
