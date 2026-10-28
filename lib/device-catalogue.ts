@@ -194,6 +194,15 @@ export async function fetchAttributes(): Promise<{
 }> {
   try {
     const attributes = await api.get<DeviceAttributes>('/device-catalogue/attributes');
+    /*
+     * An answer without both lists is not the catalogue (an older or broken
+     * server, a proxy page): it is treated like a failed request, so the form
+     * falls back to a saved or bundled copy instead of crashing on it (found by
+     * the D223 intake test, 2026-10-28). It is never cached.
+     */
+    if (!Array.isArray(attributes?.storage) || !Array.isArray(attributes?.colour)) {
+      throw new Error('device attributes: unexpected answer');
+    }
     write(ATTRIBUTES_FILE, [attributes]);
     return { attributes, origin: 'live', cachedAt: null };
   } catch {
