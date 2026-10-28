@@ -320,6 +320,9 @@ function WhatsAppSection({ me }: { me: AccountView }) {
     setBusy(false);
   };
 
+  // D224: the platform deferred this number's verification for a controlled test. Said as it is — never "verified".
+  const deferred = !me.whatsappVerified && me.phoneVerification === 'deferred_by_platform';
+
   if (!editing) {
     return (
       <View style={styles.stack}>
@@ -331,6 +334,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
               <Text variant="bodyStrong">{me.phone ?? t('account.whatsapp.noNumber')}</Text>
               {me.whatsappVerified ? (
                 <Chip tone="success" label={t('account.whatsapp.verified')} size="sm" dot />
+              ) : deferred ? (
+                <Chip tone="warning" label={t('account.whatsapp.deferred')} size="sm" dot />
               ) : (
                 <Chip tone="warning" label={t('account.whatsapp.notVerified')} size="sm" dot />
               )}
@@ -339,7 +344,7 @@ function WhatsAppSection({ me }: { me: AccountView }) {
         </Card>
         {!me.whatsappVerified ? (
           <InlineNotice tone="warning" icon={ShieldCheck}>
-            {t('account.whatsapp.none')}
+            {t(deferred ? 'account.whatsapp.deferredHint' : 'account.whatsapp.none')}
           </InlineNotice>
         ) : null}
         {lost ? (

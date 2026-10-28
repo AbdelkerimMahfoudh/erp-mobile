@@ -3892,6 +3892,8 @@ export const fr: Catalogue = {
   'account.whatsapp.noNumber': 'Aucun numéro pour l’instant',
   'account.whatsapp.verified': 'Vérifié',
   'account.whatsapp.notVerified': 'Non vérifié',
+  'account.whatsapp.deferredHint': 'La vérification WhatsApp est reportée pour les tests. Ce numéro n’est pas vérifié : les messages WhatsApp et la récupération du compte par WhatsApp restent désactivés tant que vous ne l’avez pas vérifié.',
+  'account.whatsapp.deferred': 'Vérification reportée pour les tests',
   'account.whatsapp.none':
     'Les codes de sécurité sont envoyés à votre numéro WhatsApp vérifié — y compris le code qui confirme la suppression de votre compte. Vérifiez-en un pour pouvoir supprimer votre compte.',
   'account.whatsapp.verify': 'Vérifier un numéro WhatsApp',
@@ -4441,8 +4443,8 @@ export const fr: Catalogue = {
   'release.originRefused.body': 'Elle a été construite sans l’adresse sécurisée de son serveur : on ne peut ni s’y connecter ni rien envoyer. Demandez la bonne version à la personne qui l’a installée.',
   // ── An Owner's setup code, and a test business said on every screen (D217) ──
   'auth.action.setup': 'J’ai un code de configuration',
-  'setup.title': 'Configurer votre entreprise',
-  'setup.subtitle': 'La plateforme a créé votre entreprise et vous a remis un code de configuration à usage unique. Collez-le ici et choisissez votre mot de passe.',
+  'setup.title': 'Configurer votre compte',
+  'setup.subtitle': 'La plateforme vous a remis un code de configuration à usage unique. Collez-le ici et choisissez votre mot de passe.',
   'setup.field.code': 'Code de configuration',
   'setup.field.code.hint': 'Collez-le exactement tel que vous l’avez reçu. Il ne sert qu’une fois.',
   'setup.field.password': 'Choisissez votre mot de passe',
@@ -4454,6 +4456,7 @@ export const fr: Catalogue = {
   'setup.done': '{business} : votre mot de passe est défini. Connectez-vous avec votre numéro WhatsApp et ce mot de passe.',
   'setup.signIn': 'Aller à la connexion',
   'testBusiness.banner': 'Entreprise de test — pour les tests uniquement, pas une vraie boutique',
+  'pilotBusiness.banner': 'Entreprise pilote — test encadré de Dukan ERP',
   'catalog.intake.notice': 'Rien n’est encore enregistré. Le produit est créé avec son stock à la réception de la livraison.',
   'catalog.intake.next': 'Ajouter à la livraison',
   'catalog.intake.usingExisting': 'Ce produit existe déjà. L\'article y sera ajouté.',

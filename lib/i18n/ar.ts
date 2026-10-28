@@ -3653,6 +3653,8 @@ export const ar: Catalogue = {
   'account.whatsapp.noNumber': 'لا يوجد رقم بعد',
   'account.whatsapp.verified': 'مُتحقَّق منه',
   'account.whatsapp.notVerified': 'غير مُتحقَّق منه',
+  'account.whatsapp.deferredHint': 'تم تأجيل التحقق عبر واتساب لأغراض الاختبار. هذا الرقم غير مُتحقَّق منه، لذا تبقى رسائل واتساب واسترداد الحساب عبر واتساب متوقفة إلى أن تتحقق منه.',
+  'account.whatsapp.deferred': 'التحقق مؤجَّل للاختبار',
   'account.whatsapp.none':
     'تُرسَل رموز الأمان إلى رقم واتساب المتحقَّق منه — بما في ذلك الرمز الذي يؤكد حذف حسابك. تحقّق من رقم لتتمكن من حذف حسابك.',
   'account.whatsapp.verify': 'التحقق من رقم واتساب',
@@ -4202,8 +4204,8 @@ export const ar: Catalogue = {
   'release.originRefused.body': 'صُنعت دون العنوان الآمن لخادمها، فلا يمكن تسجيل الدخول منها ولا إرسال أي شيء. اطلب النسخة الصحيحة ممن ثبّتها.',
   // ── An Owner's setup code, and a test business said on every screen (D217) ──
   'auth.action.setup': 'لديّ رمز إعداد',
-  'setup.title': 'إعداد نشاطك التجاري',
-  'setup.subtitle': 'أنشأت المنصة نشاطك التجاري وسلّمتك رمز إعداد يُستخدم مرة واحدة. الصقه هنا واختر كلمة مرورك.',
+  'setup.title': 'إعداد حسابك',
+  'setup.subtitle': 'سلّمتك المنصة رمز إعداد يُستخدم مرة واحدة. الصقه هنا واختر كلمة مرورك.',
   'setup.field.code': 'رمز الإعداد',
   'setup.field.code.hint': 'الصقه كما وصلك تمامًا. يعمل مرة واحدة فقط.',
   'setup.field.password': 'اختر كلمة مرورك',
@@ -4215,6 +4217,7 @@ export const ar: Catalogue = {
   'setup.done': '{business}: تم تعيين كلمة مرورك. سجّل الدخول برقم واتساب وكلمة المرور هذه.',
   'setup.signIn': 'الذهاب إلى تسجيل الدخول',
   'testBusiness.banner': 'نشاط تجاري اختباري — للاختبار فقط، وليس متجرًا حقيقيًا',
+  'pilotBusiness.banner': 'نشاط تجاري تجريبي — اختبار مُراقَب لـ Dukan ERP',
   'catalog.intake.notice': 'لم يُحفظ شيء بعد. يُنشأ المنتج مع مخزونه عند استلام الشحنة.',
   'catalog.intake.next': 'إضافة إلى الشحنة',
   'catalog.intake.usingExisting': 'هذا المنتج موجود بالفعل. ستُضاف القطعة إليه.',

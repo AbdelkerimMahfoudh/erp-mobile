@@ -217,3 +217,16 @@ describe('a new number’s own consent (D213)', () => {
     expect(api.post).toHaveBeenCalledWith('/account/whatsapp/verify/start', expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: 'en' }));
   });
 });
+
+describe('a number whose verification the platform deferred for a controlled test (D224)', () => {
+  it('is said to be deferred and NOT verified, with what stays off — never "Verified"', async () => {
+    const deferred: AccountView = { ...none, phone: '+22243210987', phoneVerification: 'deferred_by_platform' };
+    server({ now: deferred }, () => undefined);
+    await renderScreen();
+    expect(await screen.findByText(t('account.whatsapp.deferred'))).toBeTruthy();
+    expect(screen.getByText(t('account.whatsapp.deferredHint'))).toBeTruthy();
+    expect(screen.queryByText(t('account.whatsapp.verified'))).toBeNull();
+    // The person may still verify it themselves, through the normal flow.
+    expect(screen.getByText(t('account.whatsapp.verify'))).toBeTruthy();
+  });
+});

@@ -3720,6 +3720,8 @@ export const en = {
   'account.whatsapp.noNumber': 'No number yet',
   'account.whatsapp.verified': 'Verified',
   'account.whatsapp.notVerified': 'Not verified',
+  'account.whatsapp.deferredHint': 'WhatsApp verification is deferred for testing. This number is not verified, so WhatsApp messages and WhatsApp account recovery stay off until you verify it.',
+  'account.whatsapp.deferred': 'Verification deferred for testing',
   'account.whatsapp.none':
     'Security codes go to your verified WhatsApp number — including the code that confirms deleting your account. Verify one to be able to delete your account.',
   'account.whatsapp.verify': 'Verify a WhatsApp number',
@@ -4269,8 +4271,8 @@ export const en = {
   'release.originRefused.body': 'It was built without its secure server address, so nothing can be signed in or sent from it. Ask whoever installed it for the right version.',
   // ── An Owner's setup code, and a test business said on every screen (D217) ──
   'auth.action.setup': 'I have a setup code',
-  'setup.title': 'Set up your business',
-  'setup.subtitle': 'The platform created your business and gave you a one-time setup code. Paste it here and choose your password.',
+  'setup.title': 'Set up your account',
+  'setup.subtitle': 'The platform gave you a one-time setup code. Paste it here and choose your password.',
   'setup.field.code': 'Setup code',
   'setup.field.code.hint': 'Paste it exactly as you received it. It works once.',
   'setup.field.password': 'Choose your password',
@@ -4282,6 +4284,7 @@ export const en = {
   'setup.done': '{business}: your password is set. Sign in with your WhatsApp number and this password.',
   'setup.signIn': 'Go to sign in',
   'testBusiness.banner': 'Test business — for testing only, not a real shop',
+  'pilotBusiness.banner': 'Pilot business — controlled test of Dukan ERP',
   'catalog.intake.notice': 'Nothing is saved yet. The product is created with its stock when the delivery is received.',
   'catalog.intake.next': 'Add to delivery',
   'catalog.intake.usingExisting': 'This product already exists. The item will be added to it.',
