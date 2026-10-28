@@ -71,6 +71,8 @@ export const PERMISSIONS = [
   'sale.below_cost',
   // 0107: entering a buying cost that was not known when the stock was received (Owner, Store Manager).
   'cost.complete',
+  // 0108: the return policy of a branch the person is assigned to (Owner, Store Manager, Store Employee).
+  'return.policy.edit',
   'unit.add',
   'unit.transfer',
   /**

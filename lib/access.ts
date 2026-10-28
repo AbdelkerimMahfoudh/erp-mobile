@@ -79,21 +79,25 @@ function trialEndOf(entitlement: Entitlement): TrialEnd | null {
   return { at: trial.endsAt, timeZone: trial.timeZone };
 }
 
-export type AccessNoticeKind = 'none' | 'grace' | 'read_only' | 'trial_ended' | 'over_limit';
+export type AccessNoticeKind = 'none' | 'grace' | 'read_only' | 'trial_ended';
 
 /**
  * Whether the tabs say anything at all.
  *
  * An open, comfortably active shop is told nothing — a banner that is always
  * there is a banner nobody reads, and the end date lives on the access screen.
- * Read-only outranks grace, which outranks the staff allowance; the allowance
- * is only ever the Owner's business, because only the Owner can act on it.
- * Read-only after a free trial says when the trial ended (`trial_ended`).
+ * Read-only outranks grace. Read-only after a free trial says when the trial
+ * ended (`trial_ended`).
+ *
+ * The staff allowance is never a tab banner (the owner's device test,
+ * 2026-10-28): a large warning on every visit to Home or More said nothing the
+ * Owner could act on there. The seat rule itself is unchanged and enforced by
+ * the server; Team explains it when an action actually meets it
+ * (`SEAT_LIMIT_REACHED`), and the access screen still shows the allowance.
  */
-export function accessNotice(access: BusinessAccess, mayManageStaff: boolean): AccessNoticeKind {
+export function accessNotice(access: BusinessAccess): AccessNoticeKind {
   if (access.mode === 'read_only') return access.trialEnd ? 'trial_ended' : 'read_only';
   if (access.mode === 'grace') return 'grace';
-  if (access.mode === 'open' && access.overLimit && mayManageStaff) return 'over_limit';
   return 'none';
 }
 

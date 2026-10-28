@@ -20,7 +20,6 @@ import { BottomSheet, SelectSheet } from '../../components/overlay';
 import { CartLineRow } from '../../components/sell/CartLineRow';
 import { PaymentSheet, type ReceivingAccount } from '../../components/sell/PaymentSheet';
 import { DiscountCard, discountFrom } from '../../components/sell/DiscountCard';
-import { ReturnPolicyCard } from '../../components/sell/ReturnPolicyCard';
 import { useCreateCustomer, useCustomers, type Customer } from '../../lib/customers';
 import { SaleSuccess } from '../../components/sell/SaleSuccess';
 import {
@@ -43,7 +42,6 @@ import type { ReceiptData } from '../../lib/receipt';
 import type { ReturnPolicySnapshot } from '../../lib/return-policy';
 import { usePermission } from '../../lib/permissions';
 import { useDraft } from '../../lib/offline/use-draft';
-import { useCompanyReturnWindow } from '../../lib/sales';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
 import { refusalOf } from '../../lib/discount-approval-state';
@@ -92,6 +90,8 @@ interface SaleResponse {
    */
   soldAt: string;
   returnPolicy: ReturnPolicySnapshot;
+  /** The customer as the receipt names them, snapshotted at confirmation (0108); null for a cash customer. */
+  customer?: { name: string; phone: string | null } | null;
 }
 
 /** A scan that needs the employee to decide something before it joins the sale. */
@@ -153,15 +153,11 @@ function SellScreen() {
   });
   const receivingAccounts = accountsQuery.data?.receivingAccounts ?? [];
 
-  /**
-   * The return policy for THIS sale. It starts as the shop's, and only a
-   * manager or owner can move it — the server refuses anything else, so the
-   * screen just does not offer it.
+  /*
+   * No return policy is chosen here (the owner's device test, 2026-10-28): the
+   * server sells under the branch's configured policy and snapshots it on the
+   * sale, and the receipt states what it recorded.
    */
-  const companyDefaultHours = useCompanyReturnWindow();
-  const canOverrideReturnPolicy = usePermission('return.policy.override');
-  const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
-  const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ sale: SaleResponse; receipt: ReceiptData } | null>(null);
 
@@ -226,6 +222,9 @@ function SellScreen() {
     );
   }, []);
 
+  /** A unit already in the cart, by either of its numbers: the Sale scanner says so instead of adding it twice. */
+  const inCart = useCallback((identifier: string) => lines.some((line) => line.identifier === identifier), [lines]);
+
   const addLine = useCallback((line: CartLine) => {
     setLines((prev) => [...prev, line]);
     toast.success(line.label);
@@ -233,7 +232,9 @@ function SellScreen() {
 
   const onScanResult = useCallback(
     async (result: ScanResult) => {
-      const unit = (await unitLookups.current.get(result.code)) ?? null;
+      // Prefetched when the code was typed; a camera scan arrives without one, so it is looked up now.
+      const unit =
+        (await (unitLookups.current.get(result.code) ?? api.get<Unit>(`/units/${encodeURIComponent(result.code)}`).catch(() => null))) ?? null;
       unitLookups.current.delete(result.code);
       const suggestion = result.suggestion;
 
@@ -432,6 +433,8 @@ function SellScreen() {
         amount: p.amount,
       })),
       returnPolicy: sale.returnPolicy,
+      // The name chosen or typed for this sale, as the server recorded it — never "cash customer" when one was given.
+      customer: sale.customer ?? null,
     };
 
     setDone({ sale, receipt });
@@ -444,7 +447,6 @@ function SellScreen() {
     // The sale reached the server, so the draft has done its job.
     cartDraft.clear();
     // A policy chosen for one customer must never carry into the next.
-    setReturnWindowHours(null);
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     invalidateMoney(qc);
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
@@ -490,12 +492,6 @@ function SellScreen() {
         ...(discount > 0 ? { saleDiscount: discount } : {}),
         ...(heldDueDays.current !== null ? { dueInDays: heldDueDays.current } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
-        // Omitted for an ordinary sale: re-stating the default is not an
-        // override, and sending a value the shop may have changed since this
-        // screen loaded would look like one.
-        ...(effectiveWindowHours !== companyDefaultHours
-          ? { returnWindowHours: effectiveWindowHours }
-          : {}),
         ...(options.acknowledgementToken
           ? { acknowledgementToken: options.acknowledgementToken }
           : {}),
@@ -852,6 +848,9 @@ function SellScreen() {
             <ScanTarget
               onResult={onScanResult}
               onCodeCaptured={onCodeCaptured}
+              // Selling: a phone already in stock is the one wanted, never a duplicate (2026-10-28).
+              purpose="sell"
+              inSale={inCart}
               placeholder={t('sell.scan.placeholder')}
             />
           </>
@@ -936,13 +935,6 @@ function SellScreen() {
                 onRemove={removeLine}
               />
             ))}
-            {/* Decided before payment, as on Review sale (2026-10-17): the policy stated, then any discount. */}
-            <ReturnPolicyCard
-              companyDefaultHours={companyDefaultHours}
-              windowHours={effectiveWindowHours}
-              onWindowChange={setReturnWindowHours}
-              canOverride={canOverrideReturnPolicy}
-            />
             <DiscountCard text={discountText} onChangeText={setDiscountText} subtotal={subtotal} />
           </ScrollView>
         )}

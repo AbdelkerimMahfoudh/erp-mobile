@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useNavigation, Stack } from 'expo-router';
+import { useNavigation, useRouter, Stack } from 'expo-router';
 import { usePreventRemove } from '../lib/navigation/router-internals';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
@@ -38,9 +38,7 @@ import type {
  * money.
  */
 
-const RETURN_PRESETS = [0, 24, 48] as const;
 const AUTO_LOCK_CHOICES = [0, 30, 60, 300, 900] as const;
-const MAX_RETURN_HOURS = 8760;
 
 const PROVIDER_ICONS: Record<ReceivingProvider, typeof Smartphone> = {
   bankily: Smartphone,
@@ -84,18 +82,10 @@ export default function SettingsScreen() {
   const header = <Stack.Screen options={{ headerShown: true, title: t('settings.title') }} />;
   const queryClient = useQueryClient();
   const navigation = useNavigation();
+  const router = useRouter();
   const canManage = usePermission('settings.manage');
 
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [customHours, setCustomHours] = useState('');
-  /**
-   * "Custom" chosen, the hours not typed yet. Without it, choosing Custom with
-   * an empty field read as 0 hours — the "No returns" preset — so the control
-   * jumped to No returns, the field never opened, and Save would have stored a
-   * no-returns policy nobody chose (visual review, 2026-10-01).
-   */
-  const [customMode, setCustomMode] = useState(false);
-  const [hoursError, setHoursError] = useState<string | undefined>();
   const [editing, setEditing] = useState<OwnerReceivingAccount | 'new' | null>(null);
 
   const settings = useQuery({
@@ -105,13 +95,9 @@ export default function SettingsScreen() {
 
   const owner = settings.data?.canManage ? settings.data : null;
 
-  /** The server's values into the form: the draft, and the custom field when the window is not a preset. */
+  /** The server's values into the form. */
   const load = useCallback((s: OwnerSettings) => {
-    const preset = RETURN_PRESETS.includes(s.returnWindowHours as never);
     setDraft(draftOf(s));
-    setCustomHours(preset ? '' : String(s.returnWindowHours));
-    setCustomMode(!preset);
-    setHoursError(undefined);
   }, []);
 
   // Load the server's values once, and again after every save or conflict
@@ -180,26 +166,6 @@ export default function SettingsScreen() {
     },
   });
 
-  const onReturnPreset = useCallback((value: string) => {
-    setHoursError(undefined);
-    if (value === 'custom') {
-      // The field opens and nothing else changes: the window moves only once valid hours are typed.
-      setCustomMode(true);
-      return;
-    }
-    setCustomMode(false);
-    setCustomHours('');
-    setDraft((d) => (d ? { ...d, returnWindowHours: Number(value) } : d));
-  }, []);
-
-  const onCustomHours = useCallback((text: string) => {
-    setCustomHours(text);
-    const parsed = Number(text);
-    const valid = /^\d+$/.test(text) && parsed >= 1 && parsed <= MAX_RETURN_HOURS;
-    setHoursError(text.length === 0 || valid ? undefined : t('settings.returns.invalid'));
-    if (valid) setDraft((d) => (d ? { ...d, returnWindowHours: parsed } : d));
-  }, [t]);
-
   // ── States ────────────────────────────────────────────────────────────────
 
   if (settings.isLoading) {
@@ -234,10 +200,6 @@ export default function SettingsScreen() {
     );
   }
 
-  const returnSegment = customMode || !RETURN_PRESETS.includes(draft?.returnWindowHours as never)
-    ? 'custom'
-    : String(draft?.returnWindowHours);
-
   return (
     <Screen
       gap="xl"
@@ -247,7 +209,6 @@ export default function SettingsScreen() {
             title={t('settings.save')}
             onPress={() => save.mutate()}
             loading={save.isPending}
-            disabled={Boolean(hoursError)}
             fullWidth
           />
         ) : undefined
@@ -259,45 +220,14 @@ export default function SettingsScreen() {
       <PersonalIdCard />
       <StoreAccountIdCard />
 
-      {/* ── Returns ─────────────────────────────────────────────────────── */}
+      {/*
+        ── Returns ───────────────────────────────────────────────────────────
+        Set per branch now, with its written conditions (0108): its own screen,
+        because Store Managers and Employees edit it too. The company window
+        stays the fallback for a branch that has not set its own.
+      */}
       <Section title={t('settings.returns.section')}>
-        <Card>
-          <Text variant="label">{t('settings.returns.label')}</Text>
-          <Text variant="caption" tone="secondary" style={styles.hint}>
-            {t('settings.returns.hint')}
-          </Text>
-          <SegmentedControl
-            style={styles.control}
-            value={returnSegment}
-            onChange={onReturnPreset}
-            options={[
-              { value: '0', label: t('settings.returns.none') },
-              { value: '24', label: t('settings.returns.24h') },
-              { value: '48', label: t('settings.returns.48h') },
-              { value: 'custom', label: t('settings.returns.custom') },
-            ]}
-          />
-
-          {returnSegment === 'custom' ? (
-            <TextField
-              containerStyle={styles.control}
-              label={t('settings.returns.customLabel')}
-              hint={t('settings.returns.customHint')}
-              error={hoursError}
-              value={customHours}
-              onChangeText={onCustomHours}
-              keyboardType="number-pad"
-              variant="identifier"
-            />
-          ) : null}
-
-          {/* State in words, never a bare number. */}
-          <Text variant="caption" tone="secondary" style={styles.control}>
-            {draft && draft.returnWindowHours > 0
-              ? t('settings.returns.windowExplained', { hours: draft.returnWindowHours })
-              : t('settings.returns.noneExplained')}
-          </Text>
-        </Card>
+        <ListRow title={t('nav.returnPolicy')} subtitle={t('settings.returns.moved')} onPress={() => router.push('/return-policy')} />
       </Section>
 
       {/* ── Receiving accounts ──────────────────────────────────────────── */}

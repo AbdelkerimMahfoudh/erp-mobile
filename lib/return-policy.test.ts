@@ -11,10 +11,6 @@
  */
 import assert from 'node:assert/strict';
 import {
-  allowedWindowChoices,
-  customWindowProblem,
-  RETURN_WINDOW_MAX_DAYS,
-  reviewWindowChoices,
   describeWindow,
   policyStatus,
   receiptPolicyLine,
@@ -107,55 +103,4 @@ it('reports every reason the server can send, in words', () => {
 });
 
 console.log('what the Sell screen may offer');
-it('offers an employee exactly the shop policy, and nothing else', () => {
-  assert.deepEqual(allowedWindowChoices(48, false), [48]);
-  assert.deepEqual(allowedWindowChoices(0, false), [0]);
-});
-
-it('lets a manager remove the window or lengthen it, never shorten it', () => {
-  const choices = allowedWindowChoices(48, true);
-  // 0 is allowed because it is explicit and the customer is told at the till.
-  assert.ok(choices.includes(0));
-  assert.ok(choices.includes(48));
-  assert.ok(choices.includes(72));
-  // 24 would be quietly selling a worse promise under the same banner.
-  assert.ok(!choices.includes(24));
-});
-
-it('treats a shop with no returns as free to grant one', () => {
-  const choices = allowedWindowChoices(0, true);
-  assert.deepEqual(choices, [0, 24, 48, 72, 168]);
-});
-
-it('always includes the shop default, even an unusual one', () => {
-  assert.ok(allowedWindowChoices(36, true).includes(36));
-});
-
-it('the Review sale card offers 1, 2 and 3 days, the shop default, and no returns to whoever may change it', () => {
-  // A manager with a 2-day default: 1 day would shorten it, so it is shown but not offered.
-  assert.deepEqual(reviewWindowChoices(48, true), [
-    { hours: 0, allowed: true },
-    { hours: 24, allowed: false },
-    { hours: 48, allowed: true },
-    { hours: 72, allowed: true },
-  ]);
-  // A 7-day default is kept as its own choice, and nothing shorter is offered.
-  assert.deepEqual(reviewWindowChoices(168, true).map((c) => [c.hours, c.allowed]), [[0, true], [24, false], [48, false], [72, false], [168, true]]);
-  // A shop with no returns by default: every window extends it.
-  assert.ok(reviewWindowChoices(0, true).every((c) => c.allowed));
-  // An employee keeps the default only, and is offered no "no returns".
-  assert.deepEqual(reviewWindowChoices(48, false).filter((c) => c.allowed).map((c) => c.hours), [48]);
-  assert.ok(!reviewWindowChoices(48, false).some((c) => c.hours === 0));
-});
-
-it('a custom duration is whole days, 1 to a year, never shorter than a positive default', () => {
-  assert.equal(customWindowProblem('', 48), 'empty');
-  assert.equal(customWindowProblem('0', 0), 'invalid');
-  assert.equal(customWindowProblem('1.5', 0), 'invalid');
-  assert.equal(customWindowProblem(String(RETURN_WINDOW_MAX_DAYS + 1), 0), 'too_long');
-  assert.equal(customWindowProblem('1', 48), 'shorter_than_default');
-  assert.equal(customWindowProblem('2', 48), null);
-  assert.equal(customWindowProblem(' 10 ', 48), null);
-});
-
 console.log(`\n${passed} assertions passed`);

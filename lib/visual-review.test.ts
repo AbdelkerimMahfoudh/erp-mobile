@@ -70,12 +70,12 @@ it('a target says its daily figure as money or a count, and its dates in words',
 });
 
 it('choosing Custom opens the hours field and changes nothing — never a silent "No returns"', () => {
-  const settings = code('app/settings.tsx');
-  const preset = settings.slice(settings.indexOf('const onReturnPreset'), settings.indexOf('const onCustomHours'));
-  const custom = preset.slice(preset.indexOf("if (value === 'custom')"), preset.indexOf('return;'));
-  assert.match(custom, /setCustomMode\(true\)/);
-  assert.doesNotMatch(custom, /setDraft/, 'choosing Custom wrote a return window');
-  assert.match(settings, /const returnSegment = customMode \|\| !RETURN_PRESETS\.includes/);
+  // The return policy moved to its own branch screen (0108); the rule moved with it.
+  const policy = code('app/return-policy.tsx');
+  const custom = policy.slice(policy.indexOf("if (v === 'custom')"), policy.indexOf('return;', policy.indexOf("if (v === 'custom')")));
+  assert.match(custom, /setCustom\(true\)/);
+  assert.doesNotMatch(custom, /set\('windowHours'/, 'choosing Custom wrote a return window');
+  assert.match(policy, /const segment = custom \? 'custom' : String\(draft\.windowHours\)/);
 });
 
 it('pinned buttons reserve their measured height, so the end of the page can be read', () => {

@@ -42,7 +42,8 @@ import {
   type ScannerState,
 } from '../../lib/scan/machine';
 import { reconcileTacs, useTacResolution, type TacResolution } from '../../lib/tac';
-import type { ScanResult } from '../../types/api';
+import type { SaleSelection, ScanResult } from '../../types/api';
+import { availabilityKey, lookupSelection, type LookupFailure } from '../../lib/phone-selection';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { ModalBoundary } from '../overlay/ModalBoundary';
 
@@ -129,7 +130,28 @@ export interface ScannerSheetProps {
   hint?: string;
   /** Running tally shown in continuous mode, e.g. units added so far. */
   scannedCount?: number;
+  /**
+   * What the scan is FOR (the owner's device test, 2026-10-28). Parsing, the
+   * camera lock and normalisation are shared; the purpose decides what an IMEI
+   * already in stock means.
+   *
+   * - `receive` (the default): a unit that exists is a duplicate, refused here
+   *   with where it is — "Use this IMEI", IMEI 2 and creating a product apply.
+   * - `sell`: a unit that exists is exactly what the sale wants. It is looked up
+   *   as a sale lookup (`GET /sales/selection`), its own product shown, and
+   *   "Add to sale" adds that unit — or the real reason it cannot be sold. No
+   *   receiving action, no catalogue recognition, nothing is ever created.
+   * - `lookup`: finds and returns, with neither meaning.
+   */
+  purpose?: ScanPurpose;
+  /** Sell only: whether this identifier is already a line of the sale being built. */
+  inSale?: (identifier: string) => boolean;
 }
+
+export type ScanPurpose = 'receive' | 'sell' | 'lookup';
+
+/** A Sale scanner's answer for an IMEI: the unit the sale would take, or why there is none. */
+type SaleCheck = { ok: true; selection: SaleSelection; identifier: string } | { ok: false; failure: LookupFailure };
 
 /**
  * A monotonic millisecond clock.
@@ -207,6 +229,8 @@ export function ScannerSheet({
   mode = 'single',
   hint,
   scannedCount,
+  purpose = 'receive',
+  inSale,
 }: ScannerSheetProps) {
   const styles = useStyles();
   const colors = useColors();
@@ -353,6 +377,8 @@ export function ScannerSheet({
    * only that it does not buzz.
    */
   const [lookup, setLookup] = useState<ScanResult | null>(null);
+  /** Sell: the sale lookup's answer for the IMEI on screen. */
+  const [saleCheck, setSaleCheck] = useState<SaleCheck | null>(null);
 
   /**
    * The server's answer to "do we already hold this handset?".
@@ -397,6 +423,7 @@ export function ScannerSheet({
       setTyped('');
       setTypedSecond('');
       setLookup(null);
+      setSaleCheck(null);
       machineRef.current = scannerReducer(initialScannerState, { type: 'open' });
       dispatch({ type: 'open' });
       accepting.current = false;
@@ -610,8 +637,42 @@ export function ScannerSheet({
     if (!primary || lookedUp.current === primary) return;
     lookedUp.current = primary;
     lookupSession.current = sessionId;
+    if (purpose === 'sell') {
+      // A sale lookup, not a receiving one: the unit in stock is the answer, not a duplicate.
+      setSaleCheck(null);
+      const session = sessionId;
+      void lookupSelection(primary).then((answer) => {
+        if (lookupSession.current === session) setSaleCheck(answer);
+      });
+      return;
+    }
     void scanQuietly(primary);
-  }, [primary, scanQuietly, sessionId]);
+  }, [primary, purpose, scanQuietly, sessionId]);
+
+  /**
+   * Sell: "Add to sale" — the unit the sale lookup found, once, then the sheet closes.
+   *
+   * The same synchronous lock as acceptance, so a double tap or a repeated
+   * camera callback adds one line. The parent receives the unit's identifier
+   * through `onResult`, exactly as a scanned code reaches it, and records it as
+   * found by scan.
+   */
+  const addToSale = useCallback(() => {
+    if (accepting.current || !saleCheck?.ok) return;
+    if (saleCheck.selection.availability !== 'available' || inSale?.(saleCheck.identifier)) return;
+    accepting.current = true;
+    setMachine({ type: 'accept' });
+    onResult({
+      code: saleCheck.identifier,
+      kind: 'imei',
+      recognized: true,
+      confidence: 1,
+      recognitionKey: null,
+      suggestion: null,
+      inventory: null,
+    } as ScanResult);
+    onClose();
+  }, [inSale, onClose, onResult, saleCheck, setMachine]);
 
   /**
    * The person answered the "which of these?" question.
@@ -1188,12 +1249,12 @@ export function ScannerSheet({
                     `recognized` is the difference between an answer and a
                     guess, and the wording follows it.
                   */}
-                  {primary && lookingUp ? (
+                  {purpose !== 'sell' && primary && lookingUp ? (
                     <Text variant="caption" tone="inverse">
                       {t('scanner.looking')}
                     </Text>
                   ) : null}
-                  {primary && !lookingUp && lookup?.suggestion ? (
+                  {purpose !== 'sell' && primary && !lookingUp && lookup?.suggestion ? (
                     <View style={styles.readingRow}>
                       <Text variant="caption" tone="inverse">
                         {lookup.recognized ? t('scan.knownProduct') : t('scan.maybeProduct')}
@@ -1215,7 +1276,7 @@ export function ScannerSheet({
                     from. A suggestion the user cannot trace is one they cannot
                     judge — and a proposal must never look like a decision.
                   */}
-                  {primary ? (
+                  {purpose !== 'sell' && primary ? (
                     <Text variant="caption" tone="inverse">
                       {tacConflict
                         ? t('scanner.tac.conflict')
@@ -1250,7 +1311,7 @@ export function ScannerSheet({
                     is real but not this user's to know about, so there is no
                     branch, no product and no owner to name.
                   */}
-                  {alreadyHeld ? (
+                  {purpose !== 'sell' && alreadyHeld ? (
                     <View style={styles.duplicateBox}>
                       <Text variant="bodyStrong" tone="inverse">
                         {t('scan.alreadyInInventory')}
@@ -1263,7 +1324,50 @@ export function ScannerSheet({
                     </View>
                   ) : null}
 
-                  {primary && !result.problem ? (
+                  {purpose === 'sell' && primary ? (
+                    <View style={styles.readingRow}>
+                      {saleCheck === null ? (
+                        <Text variant="caption" tone="inverse">
+                          {t('scanner.sell.looking')}
+                        </Text>
+                      ) : saleCheck.ok ? (
+                        <>
+                          {/* The unit's own product — authoritative; no catalogue guess beside it. */}
+                          <Text variant="bodyStrong" tone="inverse">
+                            {[saleCheck.selection.product.brand, saleCheck.selection.product.model].filter(Boolean).join(' ')}
+                          </Text>
+                          {saleCheck.selection.product.variant ? (
+                            <Text variant="caption" tone="inverse">
+                              {saleCheck.selection.product.variant}
+                            </Text>
+                          ) : null}
+                          <Text variant="caption" tone="inverse">
+                            {inSale?.(saleCheck.identifier)
+                              ? t('scanner.sell.inBasket')
+                              : saleCheck.selection.availability === 'other_branch' && saleCheck.selection.otherBranch
+                                ? t('pick.availability.other_branch_named', { branch: saleCheck.selection.otherBranch.name })
+                                : t(availabilityKey(saleCheck.selection.availability))}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text variant="caption" tone="inverse">
+                          {saleCheck.failure === 'not_found' ? t('scanner.sell.notFound') : t(`pick.failure.${saleCheck.failure}` as never)}
+                        </Text>
+                      )}
+                    </View>
+                  ) : null}
+
+                  {purpose === 'sell' && primary ? (
+                    <Button
+                      title={t('scanner.sell.add')}
+                      // Only the unit this sale may take: available here, and not already a line of it.
+                      disabled={!saleCheck?.ok || saleCheck.selection.availability !== 'available' || Boolean(inSale?.(saleCheck.identifier))}
+                      fullWidth
+                      onPress={addToSale}
+                    />
+                  ) : null}
+
+                  {purpose !== 'sell' && primary && !result.problem ? (
                     <Button
                       title={t('scanner.imei.use')}
                       /**
@@ -1283,7 +1387,7 @@ export function ScannerSheet({
                     />
                   ) : null}
 
-                  {primary && !secondary && !result.problem ? (
+                  {purpose !== 'sell' && primary && !secondary && !result.problem ? (
                     <Button
                       title={t('scan.addSecond')}
                       variant="secondary"
@@ -1299,7 +1403,7 @@ export function ScannerSheet({
                     />
                   ) : null}
 
-                  {secondary ? (
+                  {purpose !== 'sell' && secondary ? (
                     <Button
                       title={t('scan.removeSecond')}
                       variant="tertiary"

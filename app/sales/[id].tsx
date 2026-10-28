@@ -325,7 +325,13 @@ function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t'], 
     storeName,
     branchName: sale.branch.name,
     cashierName: sale.soldBy ?? '',
-    customer: sale.customer?.name ? { name: sale.customer.name, phone: sale.customer.phone } : null,
+    // The customer as named when the sale was confirmed (0108); an older server's answer falls back to the record.
+    customer:
+      sale.receiptCustomer !== undefined
+        ? sale.receiptCustomer
+        : sale.customer?.name
+          ? { name: sale.customer.name, phone: sale.customer.phone }
+          : null,
     lines: sale.lines
       .filter((l) => !l.voided)
       .map((l) => ({ label: l.product ?? '', identifier: l.imei ?? l.serialNo ?? null, quantity: l.quantity, unitPrice: l.price })),
@@ -347,7 +353,14 @@ function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t'], 
       sale.balanceDue > 0 && sale.debtor?.name
         ? { kind: sale.debtor.kind === 'store' ? 'store' : 'customer', name: sale.debtor.name, phone: sale.debtor.phone }
         : null,
-    returnPolicy: { windowHours: sale.returnPolicy.windowHours, deadlineAt: sale.returnPolicy.deadlineAt },
+    // The policy THIS sale was sold under, written conditions included — never the branch's current one (0108).
+    returnPolicy: {
+      windowHours: sale.returnPolicy.windowHours,
+      deadlineAt: sale.returnPolicy.deadlineAt,
+      texts: sale.returnPolicy.texts ?? null,
+      textLanguage: sale.returnPolicy.textLanguage ?? null,
+      policyVersion: sale.returnPolicy.policyVersion ?? null,
+    },
   };
 }
 

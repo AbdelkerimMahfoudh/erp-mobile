@@ -167,6 +167,12 @@ export interface ReceiptContext {
   formatDateTime: (value: Date) => string;
   /** The return-policy sentence for this sale, already worded. Never hardcoded here. */
   policyLine: string;
+  /**
+   * The shop's written conditions this sale was sold under, in the receipt's
+   * language or the shop's default (0108) — or null, and only the sentence
+   * above is printed. Escaped like every other value; its line breaks kept.
+   */
+  policyConditions?: string | null;
 }
 
 /**
@@ -338,6 +344,8 @@ export function buildReceiptHtml(data: ReceiptData, ctx: ReceiptContext): string
   footer { margin-top: 12mm; padding-top: 5mm; border-top: .5pt solid ${INK.rule};
            break-inside: avoid; page-break-inside: avoid; }
   .policy { font-weight: 600; }
+  /* The shop's own words: its line breaks kept, a long word wrapped, in the page's direction. */
+  .conditions { white-space: pre-line; overflow-wrap: anywhere; margin-top: 4px; }
   .thanks { margin-top: 4mm; }
 </style>
 </head>
@@ -398,6 +406,7 @@ export function buildReceiptHtml(data: ReceiptData, ctx: ReceiptContext): string
 
   <footer>
     <div class="policy">${esc(ctx.policyLine)}</div>
+    ${ctx.policyConditions ? `<div class="conditions">${esc(ctx.policyConditions)}</div>` : ''}
     <div class="thanks muted">${esc(L.thanks)}</div>
   </footer>
 </body>

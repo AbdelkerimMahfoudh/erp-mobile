@@ -3,7 +3,7 @@ import { View, type StyleProp, type ViewStyle, Keyboard } from 'react-native';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
 import { SearchInput } from '../ui/SearchInput';
-import { ScannerSheet, type AcceptedImei } from './ScannerSheet';
+import { ScannerSheet, type AcceptedImei, type ScanPurpose } from './ScannerSheet';
 import { useScan } from './useScan';
 import { withDismiss } from '../../lib/keyboard-dismiss';
 import type { ScanResult } from '../../types/api';
@@ -65,6 +65,10 @@ export interface ScanTargetProps {
   mode?: 'single' | 'continuous';
   /** Tally shown inside the camera in continuous mode. */
   scannedCount?: number;
+  /** What the scan is for — receiving or selling (`ScannerSheet`). Defaults to receiving. */
+  purpose?: ScanPurpose;
+  /** Sell: whether an identifier is already a line of this sale. */
+  inSale?: (identifier: string) => boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -87,6 +91,8 @@ export function ScanTarget({
   placeholder,
   mode = 'single',
   scannedCount,
+  purpose,
+  inSale,
   style,
 }: ScanTargetProps) {
   const { t } = useTranslation();
@@ -156,6 +162,8 @@ export function ScanTarget({
         onImeiAccepted={onImeiAccepted}
         mode={mode}
         scannedCount={scannedCount}
+        purpose={purpose}
+        inSale={inSale}
       />
     </View>
   );

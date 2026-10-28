@@ -106,7 +106,7 @@ describe('the free trial’s three states (0095), from the server’s flags like
     assert.equal(a.mode, 'open');
     assert.equal(a.canWrite, true);
     assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
-    assert.equal(accessNotice(a, true), 'none', 'an open shop is told nothing on the tabs');
+    assert.equal(accessNotice(a), 'none', 'an open shop is told nothing on the tabs');
   });
 
   it('paid or granted access approved during the trial starts when it ends: the trial is still open, dated by its end, and nothing is said on the tabs', () => {
@@ -114,7 +114,7 @@ describe('the free trial’s three states (0095), from the server’s flags like
       const a = businessAccess(entitlement({ state: 'trial_active', status: 'activated', trial: { ...trial('active', ENDS), accessAfterTrial: { kind, startsAt: ENDS } } }));
       assert.equal(a.mode, 'open');
       assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
-      assert.equal(accessNotice(a, true), 'none');
+      assert.equal(accessNotice(a), 'none');
     }
   });
 
@@ -123,7 +123,7 @@ describe('the free trial’s three states (0095), from the server’s flags like
     assert.equal(a.mode, 'read_only');
     assert.equal(a.canRead, true);
     assert.deepEqual(a.trialEnd, { at: ENDS, timeZone: 'Asia/Tokyo' });
-    assert.equal(accessNotice(a, false), 'trial_ended');
+    assert.equal(accessNotice(a), 'trial_ended');
   });
 
   it('a business paying after its trial is dated by its paid period, not by the trial', () => {
@@ -131,33 +131,37 @@ describe('the free trial’s three states (0095), from the server’s flags like
     assert.equal(a.mode, 'open');
     assert.equal(a.trialEnd, null);
     assert.equal(businessAccess(entitlement({ state: 'expired', canWrite: false, trial: trial('expired', ENDS) })).trialEnd, null);
-    assert.equal(accessNotice(businessAccess(entitlement({ state: 'expired', canWrite: false, trial: trial('expired', ENDS) })), true), 'read_only');
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'expired', canWrite: false, trial: trial('expired', ENDS) }))), 'read_only');
   });
 
   it('an older server without the trial field, or a trial state without its instant, says no trial date', () => {
     assert.equal(businessAccess(entitlement({ state: 'trial_active' })).trialEnd, null);
     assert.equal(businessAccess(entitlement({ state: 'trial_expired', canWrite: false, trial: null })).trialEnd, null);
-    assert.equal(accessNotice(businessAccess(entitlement({ state: 'trial_expired', canWrite: false })), true), 'read_only');
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'trial_expired', canWrite: false }))), 'read_only');
     assert.equal(businessAccess(undefined).trialEnd, null);
   });
 });
 
 describe('what the tabs say', () => {
   it('an open shop is told nothing', () => {
-    assert.equal(accessNotice(businessAccess(entitlement({})), true), 'none');
-    assert.equal(accessNotice(businessAccess(undefined), true), 'none');
+    assert.equal(accessNotice(businessAccess(entitlement({}))), 'none');
+    assert.equal(accessNotice(businessAccess(undefined)), 'none');
   });
 
   it('grace and read-only are said once, read-only first', () => {
-    assert.equal(accessNotice(businessAccess(entitlement({ state: 'grace' })), false), 'grace');
-    assert.equal(accessNotice(businessAccess(entitlement({ state: 'expired', canWrite: false, overLimit: true })), true), 'read_only');
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'grace' }))), 'grace');
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'expired', canWrite: false, overLimit: true }))), 'read_only');
   });
 
-  it('the staff allowance is the Owner’s business only, and only while open', () => {
+  it('the staff allowance is never a tab banner — the seat rule stays the server’s, explained in Team (2026-10-28)', () => {
     const over = entitlement({ overLimit: true, seatsUsed: 3 });
-    assert.equal(accessNotice(businessAccess(over), true), 'over_limit');
-    assert.equal(accessNotice(businessAccess(over), false), 'none');
-    assert.equal(accessNotice(businessAccess(entitlement({ state: 'grace', overLimit: true })), true), 'grace');
+    assert.equal(accessNotice(businessAccess(over)), 'none', 'not even for the Owner');
+    assert.equal(accessNotice(businessAccess(over)), 'none');
+    assert.equal(accessNotice(businessAccess(entitlement({ state: 'grace', overLimit: true }))), 'grace');
+    const notice = readFileSync('components/access/AccessNotice.tsx', 'utf8');
+    assert.doesNotMatch(notice, /access\.staff\.over/, 'the card can no longer show the staff warning');
+    const team = readFileSync('app/team.tsx', 'utf8');
+    assert.match(team, /SEAT_LIMIT_REACHED/, 'Team still explains the refusal when it happens');
   });
 });
 

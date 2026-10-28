@@ -650,6 +650,7 @@ function ReceiveScreen() {
               <ScanTarget
                 onResult={onScanResult}
                 onImeiAccepted={onImeiAccepted}
+                purpose="receive"
                 placeholder={t('receive.scan.placeholder')}
                 mode="continuous"
                 scannedCount={unitTotal}

@@ -808,6 +808,10 @@ export interface SaleReturnPolicy {
   requiresOwnerException: boolean;
   overriddenBy?: string | null;
   overrideReason?: string | null;
+  /** The written conditions snapshotted at confirmation (0108); absent from an older server. */
+  texts?: { en: string | null; fr: string | null; ar: string | null } | null;
+  textLanguage?: string | null;
+  policyVersion?: number | null;
 }
 
 export interface SaleListRow {
@@ -916,6 +920,11 @@ export interface SaleDetail {
   branch: TransferBranchRef;
   soldBy: string | null;
   customer: { id: string; name: string | null; phone: string | null } | null;
+  /**
+   * Who the receipt names (0108): the customer as they were at confirmation, so a later
+   * profile edit never rewrites an old receipt. Older servers omit it.
+   */
+  receiptCustomer?: { name: string; phone: string | null } | null;
   /** Who owes the balance, as one field whichever kind it is (0074). */
   debtor: Debtor | null;
   subtotal: number;
@@ -1528,7 +1537,7 @@ export interface AuthTokens {
 }
 
 /** Whether a found phone can be sold here and now — the server's word. */
-export type SaleAvailability = 'available' | 'sold' | 'faulty' | 'reserved' | 'other_branch' | 'unavailable';
+export type SaleAvailability = 'available' | 'sold' | 'faulty' | 'returned' | 'reserved' | 'in_transit' | 'other_branch' | 'unavailable';
 
 /**
  * The item about to be sold, as `GET /sales/selection/:identifier` answers it.

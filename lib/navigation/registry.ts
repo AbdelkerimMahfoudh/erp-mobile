@@ -286,6 +286,12 @@ export const HUBS: readonly Hub[] = [
       { id: 'team', route: '/team', titleKey: 'nav.team', icon: 'Users', perm: 'user.manage' },
       // Ungated: anyone may see where the business's access stands. Status and dates only — no price, no action (docs/21, 2026-10-05).
       { id: 'access', route: '/access', titleKey: 'nav.access', icon: 'BadgeCheck' },
+      /*
+       * The branch's return policy and its written conditions (0108, the owner's decision of
+       * 2026-10-28): an Owner, Store Manager or Store Employee of the branch edits it — not only the
+       * Owner, so it is its own screen rather than a section of Settings.
+       */
+      { id: 'return-policy', route: '/return-policy', titleKey: 'nav.returnPolicy', icon: 'Undo2', perm: 'return.policy.edit' },
       { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', perm: 'settings.manage' },
     ],
   },
@@ -333,7 +339,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 

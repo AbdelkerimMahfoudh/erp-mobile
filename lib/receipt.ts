@@ -3,7 +3,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { formatDateTime, formatMoney } from './format';
 import { getLanguage, isRtlLanguage, t } from './i18n';
-import { receiptPolicyLine } from './return-policy';
+import { receiptPolicyLine, receiptPolicyText } from './return-policy';
 import { buildReceiptHtml, receiptLabels, type ReceiptData } from './receipt-html';
 import { openPageInTab } from './browser-tab';
 
@@ -35,6 +35,8 @@ export function receiptHtml(data: ReceiptData): string {
     formatMoney,
     formatDateTime,
     policyLine: receiptPolicyLine(data.returnPolicy, t, formatDateTime),
+    // From the sale's own snapshot, in this receipt's language, else the shop's default (0108).
+    policyConditions: receiptPolicyText(data.returnPolicy, lang),
   });
 }
 

@@ -21,7 +21,6 @@ import { useLeave } from '../components/navigation/HeaderBack';
 import { SelectSheet } from '../components/overlay';
 import { PaymentSheet, type ReceivingAccount } from '../components/sell/PaymentSheet';
 import { DiscountCard, discountFrom } from '../components/sell/DiscountCard';
-import { ReturnPolicyCard } from '../components/sell/ReturnPolicyCard';
 import { SaleSuccess } from '../components/sell/SaleSuccess';
 import { ApprovalRequestSheet, type ApprovalRequest } from '../components/sell/ApprovalRequestSheet';
 import type { PaymentEntry } from '../components/sell/types';
@@ -42,7 +41,6 @@ import { qk } from '../lib/query-keys';
 import type { ReceiptData } from '../lib/receipt';
 import type { ReturnPolicySnapshot } from '../lib/return-policy';
 import { usePermission } from '../lib/permissions';
-import { useCompanyReturnWindow } from '../lib/sales';
 import { toast } from '../lib/toast';
 import { uuidv4 } from '../lib/utils';
 import { refusalOf } from '../lib/discount-approval-state';
@@ -120,6 +118,8 @@ interface SaleResponse {
   payStatus: string;
   soldAt: string;
   returnPolicy: ReturnPolicySnapshot;
+  /** The customer as the receipt names them, snapshotted at confirmation (0108); null for a cash customer. */
+  customer?: { name: string; phone: string | null } | null;
 }
 
 function QuickSellScreen() {
@@ -134,7 +134,6 @@ function QuickSellScreen() {
   const offline = !useConnectivity((s) => s.online);
 
   const canViewCost = usePermission('cost.view');
-  const canOverrideReturnPolicy = usePermission('return.policy.override');
 
   /** Which way of finding the item is open. */
   const [mode, setMode] = useState<PickMode>('choose');
@@ -189,9 +188,11 @@ function QuickSellScreen() {
    */
   const clientUuid = useRef(uuidv4());
 
-  const companyDefaultHours = useCompanyReturnWindow();
-  const [returnWindowHours, setReturnWindowHours] = useState<number | null>(null);
-  const effectiveWindowHours = returnWindowHours ?? companyDefaultHours;
+  /*
+   * No return policy is chosen here (the owner's device test, 2026-10-28): the
+   * server sells under the branch's configured policy and snapshots it on the
+   * sale, and the receipt states what it recorded.
+   */
 
   const accountsQuery = useQuery({
     queryKey: qk.settings,
@@ -309,6 +310,8 @@ function QuickSellScreen() {
         amount: p.amount,
       })),
       returnPolicy: sale.returnPolicy,
+      // The name chosen or typed for this sale, as the server recorded it — never "cash customer" when one was given.
+      customer: sale.customer ?? null,
     };
 
     setDone({ sale, receipt });
@@ -319,7 +322,6 @@ function QuickSellScreen() {
     setQuantity(1);
     setDiscountText('');
     setCustomer(null);
-    setReturnWindowHours(null);
     // Home's month figures and the shelf both moved.
     qc.invalidateQueries({ queryKey: qk.home(branchId) });
     qc.invalidateQueries({ queryKey: qk.inventory(branchId) });
@@ -399,9 +401,6 @@ function QuickSellScreen() {
         ...(discount.amount > 0 ? { saleDiscount: discount.amount } : {}),
         ...(heldDueDays.current !== null ? { dueInDays: heldDueDays.current } : {}),
         ...(options.overrideReason ? { overrideReason: options.overrideReason } : {}),
-        ...(effectiveWindowHours !== companyDefaultHours
-          ? { returnWindowHours: effectiveWindowHours }
-          : {}),
         ...(options.acknowledgementToken ? { acknowledgementToken: options.acknowledgementToken } : {}),
       });
 
@@ -635,6 +634,8 @@ function QuickSellScreen() {
           mode === 'scan' && !picked ? (
             <ScanTarget
               onResult={onScanResult}
+              // Selling: a phone already in stock is the one wanted, never a duplicate (2026-10-28).
+              purpose="sell"
               /* Scan was chosen, so the camera opens straight away. */
               autoOpenCamera={Boolean(branchId)}
               placeholder={t('sell.scan.placeholder')}
@@ -778,15 +779,6 @@ function QuickSellScreen() {
                   </>
                 ) : null}
               </SelectedPhoneCard>
-              {/* The return policy, stated before any money is taken (Picture 1). */}
-              {sellable ? (
-                <ReturnPolicyCard
-                  companyDefaultHours={companyDefaultHours}
-                  windowHours={effectiveWindowHours}
-                  onWindowChange={setReturnWindowHours}
-                  canOverride={canOverrideReturnPolicy}
-                />
-              ) : null}
             </>
           ) : null}
 

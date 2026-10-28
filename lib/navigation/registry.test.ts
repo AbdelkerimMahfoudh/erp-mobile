@@ -63,19 +63,19 @@ const APP_DIR = path.join(MOBILE, 'app');
 // ── the real seeded role permission sets ─────────────────────────────────────
 
 const OWNER = new Set(
-  'branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,goal.manage,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
+  'branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,goal.manage,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
     ',',
   ),
 );
 
 const MANAGER = new Set(
-  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,goal.manage,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
+  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,goal.manage,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
     ',',
   ),
 );
 
 const EMPLOYEE = new Set(
-  'closing.count,consignment.custody.receive,consignment.custody.send,consignment.view,cost.view,discount.apply,expense.submit,purchase.manage,refund.report,return.request,return.view,sale.create,sale.view,supplier.payment.report,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
+  'closing.count,consignment.custody.receive,consignment.custody.send,consignment.view,cost.view,discount.apply,expense.submit,purchase.manage,refund.report,return.policy.edit,return.request,return.view,sale.create,sale.view,supplier.payment.report,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
     ',',
   ),
 );
@@ -283,7 +283,8 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   // Money moved to the tab bar, and a Manager still reaches it there.
   assert.equal(tabHubIsVisible(MANAGER), true);
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
-  assert.deepEqual(business, ['access'], 'a Manager holds neither user.manage nor settings.manage');
+  // The branch's return policy is theirs to edit (0108); Team and Business settings are not.
+  assert.deepEqual(business, ['access', 'return-policy'], 'a Manager holds neither user.manage nor settings.manage');
 
   /*
     A Manager runs consignments, and reaches the Partner stores screen the way the Partners tab is shown to them
@@ -758,7 +759,7 @@ it('groups show only permitted destinations and never render empty', () => {
   const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
   assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
   const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
-  assert.deepEqual(manager, ['catalog'], 'a Manager holds neither user.manage, import.run nor settings.manage');
+  assert.deepEqual(manager, ['catalog', 'return-policy'], 'a Manager holds neither user.manage, import.run nor settings.manage');
 });
 
 it('every More group name exists in all three catalogues', () => {

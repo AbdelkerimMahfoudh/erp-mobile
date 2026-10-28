@@ -528,6 +528,7 @@ function QuickReceiveScreen() {
             <ScanTarget
               onResult={onScanResult}
               onImeiAccepted={onImeiAccepted}
+              purpose="receive"
               autoOpenCamera={Boolean(branchId)}
               placeholder={t('receive.scan.placeholder')}
             />
