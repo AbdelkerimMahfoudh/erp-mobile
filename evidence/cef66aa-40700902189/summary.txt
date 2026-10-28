@@ -1,0 +1,196 @@
+suites 38/39, tests 366/381, failed 15
+FAIL __tests__/single-item-intake.test.tsx :: the category comes first and decides the form Laptops: typed brand and model, never the phone catalogue — Apple is not an iPhone here
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: the category comes first and decides the form changing the category clears what belonged to the previous one
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: the category comes first and decides the form asks no selling price anywhere in the intake
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a missing cost is asked once; Continue sends ONE purchase, no cost and no price, and success follows the answer
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a typed cost is sent and nothing is asked
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock Add buying cost and Cancel send nothing and leave the completed form as it was
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock two rapid presses: one question, one purchase
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a delayed answer: pressing again sends nothing more, and success comes only with the answer
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock an invalid cost is refused in place and nothing is sent
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a refusal by the server leaves the screen usable, and the next press tries again
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a timeout may have landed: the retry replays the SAME request key, and asks nothing again
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a product created meanwhile: nothing duplicated — the next press receives into it
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: one action creates the product with its stock a product barcode: a counted product, with How many
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: leaving never freezes the delivery hand-back says "Add to delivery" and passes its own guard without a dialog
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
+FAIL __tests__/single-item-intake.test.tsx :: leaving never freezes leaving an unfinished form asks once — a second back press cannot stack a second dialog
+  Error: Unable to find an element with accessibility label: Brand
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
