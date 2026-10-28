@@ -109,6 +109,9 @@ async function open(kind: 'serial' | 'barcode' = 'serial', mode: 'quick' | 'deli
 }
 
 async function pickCategory(category: { key: string; name: string }, current?: { key: string; name: string }) {
+  // A sheet closed on iOS waits for UIKit's dismissal report before it opens again (BottomSheet); the test renderer
+  // sends none, so the fallback's 800 ms pass first — as on a device that never reports.
+  if (current) await act(async () => new Promise((r) => setTimeout(r, 900)));
   // The category row reads "Choose a category" until one is chosen, then the chosen one.
   const opener = current ? screen.getAllByText(labelOf(current), { exact: false })[0] : screen.getAllByText(t('catalog.form.category.required'))[0];
   await act(async () => fireEvent.press(opener));
