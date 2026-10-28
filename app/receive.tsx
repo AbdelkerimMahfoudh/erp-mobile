@@ -386,8 +386,6 @@ function ReceiveScreen() {
         variant: suggestion.variant,
         trackingType: suggestion.trackingType,
         unitCost: draftItem.unitCost,
-        // A product created at intake gets no selling price here: the Sale suggests and decides it.
-        ...(pending.draft ? {} : { price: draftItem.price }),
         ...(serialized
           ? { identifiers: [result.code], ...(secondary ? { secondaries: { [result.code]: secondary } } : {}) }
           : { quantity: draftItem.quantity ?? 1 }),

@@ -56,9 +56,12 @@ export interface VariantSelectProps {
   value: string;
   onChange: (next: string) => void;
   disabled?: boolean;
+  /** Which parts the category asks for (D223): a cable has neither, earbuds only a colour. Both by default. */
+  storage?: boolean;
+  colour?: boolean;
 }
 
-export function VariantSelect({ value, onChange, disabled = false }: VariantSelectProps) {
+export function VariantSelect({ value, onChange, disabled = false, storage: showStorage = true, colour: showColour = true }: VariantSelectProps) {
   const styles = useStyles();
   const colors = useColors();
   const { t } = useTranslation();
@@ -232,6 +235,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
   return (
     <View style={styles.wrap}>
       {/* ── Storage ───────────────────────────────────────────────────────── */}
+      {showStorage ? (
       <Card style={styles.card}>
         <ListRow
           flat
@@ -267,8 +271,10 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
           />
         ) : null}
       </Card>
+      ) : null}
 
       {/* ── Colour ────────────────────────────────────────────────────────── */}
+      {showColour ? (
       <Card style={styles.card}>
         <ListRow
           flat
@@ -300,6 +306,7 @@ export function VariantSelect({ value, onChange, disabled = false }: VariantSele
           />
         ) : null}
       </Card>
+      ) : null}
 
       {/*
         Said in words when the lists came from a stored copy or not at all —

@@ -62,14 +62,16 @@ export function StagedItemRow({ item, onRemove, onAddSecondary, locked = false }
           <View style={styles.meta}>
             <StatusChip domain="tracking" value={item.trackingType} size="sm" dot={false} />
             {/* Labelled, so the per-unit cost is not mistaken for the line total beside it. */}
-            <Text variant="caption" tone="secondary">
-              {t('receive.line.each', { amount: isolateLtr(formatMoney(item.unitCost)) })}
+            <Text variant="caption" tone={item.unitCost === null ? 'warning' : 'secondary'}>
+              {item.unitCost === null
+                ? t('cost.missing.status')
+                : t('receive.line.each', { amount: isolateLtr(formatMoney(item.unitCost)) })}
             </Text>
           </View>
         </View>
 
         <View style={styles.end}>
-          <MoneyValue value={item.unitCost * count} size="small" />
+          {item.unitCost !== null ? <MoneyValue value={item.unitCost * count} size="small" /> : null}
           {!locked ? (
             <IconButton icon={X} accessibilityLabel={t('action.remove')} size={36} onPress={() => onRemove(item.key)} />
           ) : null}

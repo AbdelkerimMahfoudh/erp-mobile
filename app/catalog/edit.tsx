@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useLeave } from '../../components/navigation/HeaderBack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
-import type { ProductDetail } from '../../types/api';
+import type { Category, ProductDetail } from '../../types/api';
 
 /**
  * Edit product METADATA (G1) — the same shared form as Create.
@@ -35,6 +35,7 @@ export default function EditProductScreen() {
   const queryClient = useQueryClient();
   const canManage = usePermission('catalog.manage');
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
+  const leaving = useRef(false);
 
   const product = useQuery({
     queryKey: qk.product(String(id)),
@@ -52,18 +53,23 @@ export default function EditProductScreen() {
       categoryId: p.categoryId,
       trackingType: p.trackingType,
       barcode: p.barcode ?? '',
-      specifications: Object.entries(p.specifications ?? {}).map(([key, value]) => ({
-        key,
-        value: value === null || value === undefined ? '' : String(value),
-      })),
-      defaultPrice: '', // never edited here
+      specifications: Object.fromEntries(
+        Object.entries(p.specifications ?? {}).map(([key, value]) => [key, value === null || value === undefined ? '' : String(value)]),
+      ),
     };
   }, [product.data]);
 
   const save = useMutation({
-    mutationFn: (values: ProductFormValues) =>
-      // includePrice: false — the metadata endpoint has no price field at all.
-      api.patch<ProductDetail>(`/products/${id}`, toProductPayload(values, { includePrice: false })),
+    mutationFn: (values: ProductFormValues) => {
+      // The metadata endpoint has no price field at all, and this form sends none.
+      const category = queryClient.getQueryData<Category[]>(qk.categories)?.find((c) => c.id === values.categoryId) ?? null;
+      const payload = toProductPayload(values, category);
+      // Attributes only when they changed: omitting the key leaves every stored value — historical ones too — untouched.
+      if (initial && JSON.stringify(values.specifications) === JSON.stringify(initial.specifications)) {
+        delete (payload as { specifications?: unknown }).specifications;
+      }
+      return api.patch<ProductDetail>(`/products/${id}`, payload);
+    },
     onSuccess: (fresh) => {
       queryClient.setQueryData(qk.product(String(id)), fresh);
       // Catalog lists and product selectors show this metadata; Inventory shows
@@ -72,6 +78,8 @@ export default function EditProductScreen() {
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       void queryClient.invalidateQueries({ queryKey: ['inventory'] });
       toast.success(t('catalog.form.updated'));
+      // A deliberate exit: the unsaved-changes guard lets it through.
+      leaving.current = true;
       leave();
     },
     onError: (error) => {
@@ -133,6 +141,7 @@ export default function EditProductScreen() {
         // the control is disabled with an explanation instead of failing a save.
         canChangeTracking={product.data?.canChangeTracking ?? true}
         submitting={save.isPending}
+        allowLeaveRef={leaving}
         errors={errors}
         onSubmit={(values) => {
           setErrors({});

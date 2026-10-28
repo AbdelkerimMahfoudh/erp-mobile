@@ -21,10 +21,8 @@ export interface StagedItem {
   label: string;
   variant: string | null;
   trackingType: TrackingType;
-  /** Per-unit purchase cost. */
-  unitCost: number;
-  /** Optional selling price — receiving is when the shop decides it. */
-  price?: number;
+  /** Per-unit buying cost, or `null` when it was left out after the warning (0107). Never a selling price. */
+  unitCost: number | null;
   /** Quantity-tracked products only. */
   quantity?: number;
   /** Serialized products only — one entry per physical unit. */
@@ -48,5 +46,6 @@ export function stagedUnitTotal(items: StagedItem[]): number {
 }
 
 export function stagedCostTotal(items: StagedItem[]): number {
-  return items.reduce((sum, item) => sum + item.unitCost * itemCount(item), 0);
+  // The KNOWN cost: a line without one adds nothing, and the row says its cost is missing.
+  return items.reduce((sum, item) => sum + (item.unitCost ?? 0) * itemCount(item), 0);
 }

@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AddCostSheet } from '../../components/cost/AddCostSheet';
+import { toast } from '../../lib/toast';
 import { Pencil, Smartphone } from 'lucide-react-native';
 import {
+  Button,
   Card,
   EmptyState,
   ErrorState,
@@ -46,8 +49,8 @@ interface UnitDetail {
   imeiSecondary: string | null;
   serialNo: string | null;
   status: string;
-  /** Absent without `cost.view`. */
-  cost?: number;
+  /** Absent without `cost.view`; `null` when it was received without one (0107) — never zero. */
+  cost?: number | null;
   dateIn?: string;
   product?: { brand: string; model: string; variant: string | null; trackingType?: string };
   branch?: { name: string } | null;
@@ -62,6 +65,9 @@ export default function UnitDetailScreen() {
   const { t } = useTranslation();
   const { identifier } = useLocalSearchParams<{ identifier: string }>();
   const canEditUnits = usePermission('unit.add');
+  const canCompleteCost = usePermission('cost.complete');
+  const queryClient = useQueryClient();
+  const [addingCost, setAddingCost] = useState(false);
 
   const query = useQuery({
     queryKey: ['unit', identifier],
@@ -177,10 +183,20 @@ export default function UnitDetailScreen() {
                   <Identifier tone="primary">{data.purchase.referenceNo}</Identifier>
                 </Row>
               ) : null}
-              {data.cost !== undefined ? (
+              {data.cost === null ? (
+                // Received without its buying cost (0107): said in words, and completed here by an Owner or a Manager.
+                <Row label={t('unit.cost')}>
+                  <Text variant="bodyStrong" tone="warning">
+                    {t('cost.missing.status')}
+                  </Text>
+                </Row>
+              ) : data.cost !== undefined ? (
                 <Row label={t('unit.cost')}>
                   <MoneyValue value={data.cost} size="small" />
                 </Row>
+              ) : null}
+              {data.cost === null && canCompleteCost ? (
+                <Button title={t('cost.missing.add')} variant="secondary" onPress={() => setAddingCost(true)} />
               ) : null}
             </Block>
           ) : null}
@@ -201,6 +217,19 @@ export default function UnitDetailScreen() {
             <ActivityTimeline events={data.timeline} />
           )}
         </>
+      ) : null}
+      {data ? (
+        <AddCostSheet
+          open={addingCost}
+          subtitle={title}
+          onClose={() => setAddingCost(false)}
+          onSave={async (cost) => {
+            const done = await api.post<{ saleOnClosedDay: boolean }>(`/units/${encodeURIComponent(data.id)}/cost`, { cost });
+            toast.success(t(done.saleOnClosedDay ? 'cost.complete.closedDay' : 'cost.complete.saved'));
+            void queryClient.invalidateQueries({ queryKey: ['unit', identifier] });
+            void queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          }}
+        />
       ) : null}
     </Screen>
   );

@@ -529,8 +529,17 @@ export default function InventoryScreen() {
                          * stripped without `cost.view`. Never a dash or a zero,
                          * which would read as "this phone cost nothing".
                          */
-                        value={row.cost !== undefined ? <MoneyValue value={row.cost} size="small" tone="muted" /> : undefined}
-                        valueCaption={row.cost !== undefined ? t('inventory.cost') : undefined}
+                        value={
+                          row.cost === null ? (
+                            // Received without its buying cost (0107): said in words, never a zero.
+                            <Text variant="caption" tone="warning">
+                              {t('cost.missing.status')}
+                            </Text>
+                          ) : row.cost !== undefined ? (
+                            <MoneyValue value={row.cost} size="small" tone="muted" />
+                          ) : undefined
+                        }
+                        valueCaption={row.cost !== undefined && row.cost !== null ? t('inventory.cost') : undefined}
                         onPress={() =>
                           router.push({ pathname: '/unit/[identifier]', params: { identifier: row.identifier } })
                         }
@@ -563,9 +572,11 @@ export default function InventoryScreen() {
                          * actually be sold (H1.1).
                          */
                         valueCaption={
-                          row.reservedQuantity > 0
-                            ? t('inventory.availableOf', { available: formatQuantity(row.availableQuantity) })
-                            : t('inventory.inStock')
+                          row.missingCostQuantity
+                            ? t('cost.complete.lines', { count: formatQuantity(row.missingCostQuantity) })
+                            : row.reservedQuantity > 0
+                              ? t('inventory.availableOf', { available: formatQuantity(row.availableQuantity) })
+                              : t('inventory.inStock')
                         }
                         onPress={() => router.push(`/catalog/${row.productId}` as Href)}
                       />

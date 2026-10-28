@@ -104,6 +104,8 @@ export interface Category {
   /** The top-level category this one is filed under, one level deep. */
   parentId?: string | null;
   defaultTrackingType: TrackingType;
+  /** The modes the Owner may choose for its products (D223); absent from an older server. */
+  allowedTrackingTypes?: TrackingType[];
   attributeSchema?: AttributeDef[] | null;
   isActive: boolean;
 }
@@ -243,7 +245,10 @@ export interface Unit {
   imeiPrimary: string | null;
   serialNo: string | null;
   status: string;
-  cost?: number;
+  /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+  cost?: number | null;
+  /** The buying cost is not known yet (0107). Stripped with the cost. */
+  costMissing?: boolean;
   branchId?: string;
   /**
    * When this unit entered stock — the moment the purchase that created it was
@@ -284,7 +289,10 @@ export interface InventoryUnitRow {
   serialNo: string | null;
   status: string;
   /** Absent without `cost.view`. */
-  cost?: number;
+  /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+  cost?: number | null;
+  /** The buying cost is not known yet (0107). Stripped with the cost. */
+  costMissing?: boolean;
   dateIn: string;
   productId: string;
   product: InventoryProduct | null;
@@ -308,7 +316,10 @@ export interface InventoryStockRow {
   /** What can actually be sold: `quantity - reservedQuantity`. */
   availableQuantity: number;
   /** Absent without `cost.view`. */
-  cost?: number;
+  /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+  cost?: number | null;
+  /** Pieces on hand received without a buying cost (0107). Stripped with the cost. */
+  missingCostQuantity?: number;
   /**
    * `null` means UNPRICED, not free (H1.4).
    *
@@ -861,7 +872,9 @@ export interface SaleLine {
   discount: number;
   taxAmount: number;
   /** Absent without `cost.view`. */
-  cost?: number;
+  /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+  cost?: number | null;
+  costMissing?: boolean;
   voided: boolean;
 }
 
@@ -1286,7 +1299,8 @@ export interface ReturnDetail {
     adjustmentTotal: number;
     netRefundDue: number;
     /** Absent without `cost.view` — show "Hidden", never 0. */
-    cost?: number;
+    /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+    cost?: number | null;
   };
   adjustments: ReturnAdjustmentRow[];
   timeline: ReturnTimelineEntry[];
@@ -1552,7 +1566,8 @@ export interface SaleSelection {
   price: number | null;
   /** Where the item is — sent by the server only to a caller with branch.manage. */
   otherBranch: { name: string } | null;
-  cost?: number;
+  /** Stripped without `cost.view`. `null`: the buying cost is not known yet (0107) — never zero. */
+  cost?: number | null;
   dateIn?: string;
   /** How many can be sold here now — for a counted `product` selection only. */
   quantityAvailable?: number;

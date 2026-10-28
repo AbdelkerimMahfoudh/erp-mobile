@@ -43,11 +43,18 @@ export function useDraft<T>(
     recordId?: string | null;
     /** Skip persistence entirely, e.g. once a screen reaches its done state. */
     enabled?: boolean;
+    /**
+     * False while the screen holds nothing the person typed (D223, 2026-10-28).
+     * Nothing is written then, and a draft left from before is removed — so a
+     * visit that typed nothing never comes back as "Restored what you had here".
+     * Restoring on mount is unaffected.
+     */
+    persist?: boolean;
   } = {},
 ): DraftHandle {
   const { user } = useAuth();
   const branchId = useBranch((s) => s.branchId);
-  const { payloadVersion = 1, recordId = null, enabled = true } = options;
+  const { payloadVersion = 1, recordId = null, enabled = true, persist = true } = options;
 
   const [restoredAt, setRestoredAt] = useState<number | null>(null);
   const [refused, setRefused] = useState(false);
@@ -81,6 +88,8 @@ export function useDraft<T>(
     if (found) {
       restore(found.value);
       setRestoredAt(found.savedAt);
+      // What is stored now: `persist: false` can remove it, and an unchanged form does not write it again.
+      lastWritten.current = JSON.stringify(found.value);
     }
     // `restore` is intentionally excluded: screens pass an inline setter, and
     // depending on it would re-restore on every render and fight the user.
@@ -89,6 +98,13 @@ export function useDraft<T>(
 
   useEffect(() => {
     if (!scope || !key || !enabled || restoredFor.current !== key) return;
+    if (!persist) {
+      if (lastWritten.current !== null) {
+        clearDraft(form, scope, recordId);
+        lastWritten.current = null;
+      }
+      return;
+    }
     const content = JSON.stringify(value);
     if (content === lastWritten.current) return;
     lastWritten.current = content;
@@ -102,7 +118,7 @@ export function useDraft<T>(
      */
     setRefused(!result.saved && result.reason !== 'io' && result.reason !== 'unsupported');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, key, enabled, payloadVersion, recordId, value]);
+  }, [form, key, enabled, persist, payloadVersion, recordId, value]);
 
   const clear = useCallback(() => {
     if (scope) clearDraft(form, scope, recordId);

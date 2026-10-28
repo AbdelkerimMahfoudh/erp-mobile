@@ -69,6 +69,8 @@ export const PERMISSIONS = [
   'discount.override',
   /** D223: selling at a loss after the warning, and deciding a seller's below-cost request (Owner, Store Manager). */
   'sale.below_cost',
+  // 0107: entering a buying cost that was not known when the stock was received (Owner, Store Manager).
+  'cost.complete',
   'unit.add',
   'unit.transfer',
   /**

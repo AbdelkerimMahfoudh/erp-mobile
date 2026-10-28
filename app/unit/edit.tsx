@@ -55,8 +55,8 @@ interface UnitEditData {
   imeiSecondary: string | null;
   serialNo: string | null;
   status: string;
-  /** Absent without `cost.view`; the cost field is then not shown. */
-  cost?: number;
+  /** Absent without `cost.view`; the cost field is then not shown. `null`: not known yet (0107). */
+  cost?: number | null;
   updatedAt: string;
   product: { id: string; brand: string; model: string; variant: string | null; trackingType: TrackingType };
 }
@@ -128,7 +128,8 @@ function EditForm({
   const [imei1, setImei1] = useState(unit.imeiPrimary ?? '');
   const [imei2, setImei2] = useState(unit.imeiSecondary ?? '');
   const [serial, setSerial] = useState(unit.serialNo ?? '');
-  const [cost, setCost] = useState(unit.cost !== undefined ? String(unit.cost) : '');
+  // An unknown cost (0107) opens as an empty field — never the word "null", never 0.
+  const [cost, setCost] = useState(unit.cost != null ? String(unit.cost) : '');
   const [reason, setReason] = useState('');
   const [stale, setStale] = useState(false);
   const [error, setError] = useState<string | null>(null);

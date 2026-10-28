@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { toErrorMessage } from '../../lib/errors';
 import { imei2Problem, type ReceiveLine } from '../../lib/receive-outcome';
+import { askMissingCost, parseBuyingCost } from '../../lib/missing-cost';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { ProductConfirmationCard } from '../product';
 import { MoneyField, TextField } from '../ui/Field';
@@ -17,9 +18,9 @@ import type { ProductSuggestion, ScanResult } from '../../types/api';
  * Asking twenty times for the cost of twenty identical phones is exactly the
  * kind of typing this app exists to remove.
  *
- * Selling price is offered here too, because receiving is the moment the shop
- * actually decides it — and a product with no price stalls the Sell screen
- * later.
+ * No selling price (D223): the price belongs to the Sale, which suggests it.
+ * The buying cost is optional — left empty, "Add to delivery" asks once, and
+ * the line is staged with an UNKNOWN cost, never 0 (0107).
  *
  * ## IMEI 2
  *
@@ -30,8 +31,8 @@ import type { ProductSuggestion, ScanResult } from '../../types/api';
  */
 
 export interface ReceiveItemDraft {
-  unitCost: number;
-  price?: number;
+  /** `null`: left out after the warning — unknown, never zero. */
+  unitCost: number | null;
   quantity?: number;
   imeiSecondary?: string;
 }
@@ -72,7 +73,8 @@ export function ReceiveItemSheet({
 }: ReceiveItemSheetProps) {
   const { t } = useTranslation();
   const [cost, setCost] = useState('');
-  const [price, setPrice] = useState('');
+  const [costError, setCostError] = useState<string | undefined>();
+  const costRef = useRef<{ focus: () => void } | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [imei2, setImei2] = useState('');
   const [imei2Error, setImei2Error] = useState<string | undefined>();
@@ -82,7 +84,7 @@ export function ReceiveItemSheet({
   useEffect(() => {
     if (!open) return;
     setCost(suggestion?.defaultCost != null ? String(suggestion.defaultCost) : '');
-    setPrice(suggestion?.defaultPrice != null ? String(suggestion.defaultPrice) : '');
+    setCostError(undefined);
     setQuantity('1');
   }, [open, suggestion]);
 
@@ -107,13 +109,9 @@ export function ReceiveItemSheet({
   const blocked = notice?.tone === 'danger';
   const isQuantity = suggestion?.trackingType === 'quantity';
   const takesImei2 = result.kind === 'imei' && !blocked && (!suggestion || suggestion.trackingType === 'imei');
-  const costValue = Number(cost);
+  const parsedCost = parseBuyingCost(cost);
   const quantityValue = Number(quantity);
-  const valid =
-    Boolean(suggestion) &&
-    !notice &&
-    costValue > 0 &&
-    (!isQuantity || quantityValue >= 1);
+  const valid = Boolean(suggestion) && !notice && (!isQuantity || quantityValue >= 1);
 
   /*
    * A product chosen by hand, or just created, replaces the scanner's guess on
@@ -125,6 +123,19 @@ export function ReceiveItemSheet({
       : result;
 
   const submit = async () => {
+    if (parsedCost === 'invalid') {
+      setCostError(t('cost.invalid'));
+      costRef.current?.focus();
+      return;
+    }
+    if (parsedCost === null) {
+      const answer = await askMissingCost();
+      if (answer === 'add') {
+        costRef.current?.focus();
+        return;
+      }
+      if (answer === 'cancel') return;
+    }
     const second = takesImei2 ? imei2.trim() : '';
     if (second) {
       const problem = imei2Problem(result.code, second, lines);
@@ -150,8 +161,7 @@ export function ReceiveItemSheet({
       }
     }
     onAdd({
-      unitCost: costValue,
-      price: Number(price) > 0 ? Number(price) : undefined,
+      unitCost: parsedCost,
       quantity: isQuantity ? quantityValue : undefined,
       ...(second ? { imeiSecondary: second } : {}),
     });
@@ -193,12 +203,16 @@ export function ReceiveItemSheet({
           {suggestion && !notice ? (
             <View style={styles.fields}>
               <MoneyField
-                label={t('receive.cost')}
-                hint={t('receive.cost.hint')}
+                ref={costRef as never}
+                label={t('cost.optional.label')}
+                hint={t('cost.optional.hint')}
                 value={cost}
-                onChangeText={setCost}
+                error={costError}
+                onChangeText={(v) => {
+                  setCost(v);
+                  setCostError(undefined);
+                }}
                 autoFocus
-                required
               />
               {isQuantity ? (
                 <TextField
@@ -211,12 +225,6 @@ export function ReceiveItemSheet({
                 />
               ) : null}
               {imei2Field}
-              <MoneyField
-                label={t('receive.price')}
-                hint={t('receive.price.hint')}
-                value={price}
-                onChangeText={setPrice}
-              />
             </View>
           ) : imei2Field ? (
             <View style={styles.fields}>{imei2Field}</View>

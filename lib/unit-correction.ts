@@ -17,8 +17,8 @@ export interface UnitForCorrection {
   imeiPrimary: string | null;
   imeiSecondary: string | null;
   serialNo: string | null;
-  /** Absent without cost.view; the cost field is then never offered. */
-  cost?: number;
+  /** Absent without cost.view; the cost field is then never offered. `null`: not known yet (0107). */
+  cost?: number | null;
   updatedAt: string;
   trackingType: TrackingType;
 }

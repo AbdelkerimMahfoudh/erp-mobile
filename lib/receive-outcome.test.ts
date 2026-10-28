@@ -205,7 +205,7 @@ it('asks no supplier and no amount paid — only how the purchase was paid', () 
     assert.doesNotMatch(screen, /supplier/i, `${file} must not mention a supplier`);
     assert.doesNotMatch(screen, /paidAmount|paidInFull|dueDate/, `${file} must not ask what was paid`);
     assert.match(screen, /<PurchasePaymentPicker value=\{payment\} onChange=\{setPayment\} \/>/);
-    assert.match(screen, /disabled=\{!purchasePaymentReady\(payment\)\}/);
+    assert.match(screen, /disabled=\{!purchasePaymentReady\(payment\)( \|\| add\.isPending)?\}/);
   }
 });
 
@@ -219,7 +219,8 @@ it('a non-cash purchase is not ready until an account is chosen', async () => {
 
 it('returns from Create product to the same Receive screen with the created product', () => {
   const create = withoutComments(source('app/catalog/new.tsx'));
-  assert.match(create, /notePendingProduct\(product\.id\);\s*if \(router\.canGoBack\(\)\) router\.back\(\);/);
+  // The existing product is handed back, and the exit is allowed before it happens (the 2026-10-28 freeze).
+  assert.match(create, /notePendingProduct\(found\.id\);[\s\S]*?leaving\.current = true;\s*if \(router\.canGoBack\(\)\) router\.back\(\);/);
   const screen = withoutComments(source('app/receive.tsx'));
   assert.match(screen, /back\.createdProductId/);
   assert.match(screen, /\/products\/suggest\?productId=/);
@@ -267,10 +268,16 @@ it('compares drafts as the server does: case and spacing', () => {
 
 it('a product made from a scan is saved only with its stock, and success is said only after the commit (D223)', () => {
   const create = withoutComments(source('app/catalog/new.tsx'));
-  const handBack = create.slice(create.indexOf('const handBack'), create.indexOf('if (!canManage)'));
+  // From the delivery: a draft handed back, nothing saved — the delivery's own commit creates both.
+  const handBack = create.slice(create.indexOf('const handBack'), create.indexOf('const receive = useMutation'));
   assert.match(handBack, /notePendingDraft\(/);
   assert.doesNotMatch(handBack, /api\.post|create\.mutate/, 'the form hands a draft back and saves nothing');
-  assert.match(create, /if \(forIntake\) \{\s*void handBack\(values\);\s*return;/);
+  assert.match(create, /if \(forDelivery\) \{\s*void handBack\(values\);\s*return;/);
+  // From Quick receive (2026-10-28): ONE purchase creates the product with its stock, here.
+  const receive = create.slice(create.indexOf('const receive = useMutation'), create.indexOf('const commitQuick'));
+  assert.match(receive, /api\.post<PurchaseOutcome>\('\/purchases'/);
+  assert.match(receive.slice(receive.indexOf('onSuccess:'), receive.indexOf('onError:')), /receive\.createdAndAdded/);
+  assert.match(receive, /e\.code === 'product_exists'/);
   for (const file of ['app/quick-receive.tsx', 'app/receive.tsx']) {
     const screen = withoutComments(source(file));
     const ok = screen.slice(screen.indexOf('onSuccess:'), screen.indexOf('onError:'));

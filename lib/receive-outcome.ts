@@ -60,8 +60,12 @@ export interface ReceiveLine {
   productId: string;
   newProduct?: NewProductDraft;
   trackingType: 'imei' | 'serial' | 'quantity';
-  unitCost: number;
-  price?: number;
+  /**
+   * The buying cost, or `null` when the person chose to continue without it
+   * (D223, 0107): it is then sent as absent and the server records it as
+   * UNKNOWN — never zero. Intake sets no selling price: that is the Sale's.
+   */
+  unitCost: number | null;
   quantity?: number;
   /** IMEI 1 or serial, one per physical unit. */
   identifiers?: string[];
@@ -95,8 +99,8 @@ export function purchaseItems(lines: ReceiveLine[]) {
   return lines.map((line) => ({
     // Exactly one of the two: an existing product, or the one this intake creates.
     ...(line.newProduct ? { newProduct: line.newProduct } : { productId: line.productId }),
-    unitCost: line.unitCost,
-    ...(line.price !== undefined ? { price: line.price } : {}),
+    // Absent, never 0, when it is not known (0107). No selling price is ever sent by intake.
+    ...(line.unitCost !== null ? { unitCost: line.unitCost } : {}),
     ...(line.trackingType === 'quantity'
       ? { quantity: line.quantity }
       : {

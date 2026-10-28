@@ -7,6 +7,7 @@ import { ExportAction } from '../components/reports/ExportAction';
 import { AttentionList } from '../components/analytics/AttentionList';
 import { AlertTriangle, GitBranch, Package, TrendingDown, TrendingUp, Users } from 'lucide-react-native';
 import {
+  InlineNotice,
   EmptyState,
   ListRow,
   MoneyValue,
@@ -78,6 +79,8 @@ interface Dashboard {
     revenue: number;
     grossProfit?: number;
     netProfit?: number;
+    /** Sold lines of unknown buying cost in the window (0107); stripped with the cost. */
+    missingCostLines?: number;
   }[];
   employeePerformance: {
     userId: string;
@@ -146,6 +149,17 @@ export default function AnalyticsScreen() {
               somebody has to scroll to find is a panel nobody reads.
             */}
             <AttentionList />
+
+            {/*
+              Profit here covers only the lines whose buying cost is known (0107).
+              Said once, above every profit figure, while any sale lacks one.
+            */}
+            {(() => {
+              const missing = (data?.branchComparison ?? []).reduce((s, b) => s + (b.missingCostLines ?? 0), 0);
+              return missing > 0 ? (
+                <InlineNotice tone="warning">{t('profit.incomplete', { count: String(missing) })}</InlineNotice>
+              ) : null;
+            })()}
 
             <Section
               icon={<TrendingUp size={18} color={colors.semantic.success} />}

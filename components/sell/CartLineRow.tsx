@@ -40,7 +40,8 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
   const { t } = useTranslation();
   const isQuantity = line.kind === 'quantity';
   // `cost` is only present with `cost.view`; without it we simply cannot tell.
-  const belowCost = line.cost !== undefined && line.price < line.cost;
+  // An unknown buying cost (0107) has nothing to be below.
+  const belowCost = line.cost !== undefined && line.cost !== null && line.price < line.cost;
 
   return (
     <View style={[styles.row, belowCost ? styles.rowWarning : null]}>

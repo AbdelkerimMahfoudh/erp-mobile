@@ -197,8 +197,13 @@ it('a corrupt or missing cache is not an error anybody sees', () => {
 it('every screen that names a product gets this, because the form is shared', () => {
   const form = withoutComments(source('components/catalog/ProductForm.tsx'));
   assert.match(form, /<BrandModelSelect/);
-  // The old free-text inputs are gone from the shared form.
-  assert.ok(!/label=\{t\('catalog\.form\.brand'\)\}[\s\S]{0,200}onChangeText=\{\(v\) => set\('brand'/.test(form));
+  /*
+   * The phone catalogue only for a phone category (D223, 2026-10-28): every row
+   * in it is a phone. Any other category types its brand and model — Apple
+   * under Laptops is not an iPhone.
+   */
+  assert.match(form, /\{usesCatalogue \? \(\s*<BrandModelSelect/);
+  assert.match(form, /const usesCatalogue = selected !== null && catalogueCovers\(builtinKeyOf\(selected, all\)\);/);
   for (const screen of ['app/catalog/new.tsx', 'app/catalog/edit.tsx']) {
     assert.match(source(screen), /ProductForm/);
   }

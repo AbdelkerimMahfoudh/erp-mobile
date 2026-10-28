@@ -245,32 +245,24 @@ it('anything the catalogue does not know is not treated as a phone', () => {
  * from, and that is the path a scan lands on: before 4b the form proposed IMEI
  * for a scanned serial, asking for a number a television does not have.
  */
-it('the product form offers a tracking picker only where nothing else decides', () => {
+/*
+ * D223 (2026-10-27, confirmed on the device 2026-10-28): the category RECOMMENDS
+ * the mode and the Owner chooses among the modes it allows. The chooser offers
+ * exactly those (`modesFor`), starts from the suggestion, and the mode is sent —
+ * the server refuses one the category does not allow, so the form never offers it.
+ */
+it('the product form offers only the modes the category allows, as chips', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
   assert.ok(!code.includes('SegmentedControl'), 'chips, like every other filter in the app');
-  assert.match(code, /categoryDecides \?/, 'a chosen category must still report, not ask');
-  assert.match(code, /set\('trackingType', mode\)/, 'and with no category, the user chooses');
+  assert.match(code, /const modes = selected \? modesFor\(selected, scanRestriction\) : \[\];/);
+  assert.match(code, /set\('trackingType', m\)/);
+  assert.match(code, /t\('catalog\.form\.tracking\.suggestedBy', \{ category: label\(selected\) \}\)/);
 });
 
-it('the form still lets the category decide whenever there is one', () => {
-  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
-  assert.match(code, /derivedTracking[^\n]*selected\?\.defaultTrackingType/);
-  assert.match(code, /const categoryDecides = selected !== null/);
-});
-
-it('the form sends a tracking mode only for an uncategorised product', () => {
+it('the form sends the chosen mode with its category', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
   const payload = code.slice(code.indexOf('export function toProductPayload'));
-  /*
-   * With a category the payload must stay silent — the server would otherwise
-   * have to referee two opinions, and a refusal the employee cannot fix is the
-   * worst of the three outcomes. Without one, the mode is the client's to state.
-   */
-  assert.match(
-    payload,
-    /categoryId \? \{ categoryId: v\.categoryId \} : \{ trackingType: v\.trackingType \}/,
-    'tracking travels only in the no-category branch',
-  );
+  assert.match(payload, /\.\.\.\(v\.categoryId \? \{ categoryId: v\.categoryId \} : \{\}\),\s*trackingType: v\.trackingType,/);
 });
 
 it('the derived copy answers both halves of "how will this be received?"', () => {
@@ -291,16 +283,17 @@ it('the derived copy answers both halves of "how will this be received?"', () =>
  * The free-form "Details" rows are gone, but the column behind them is not.
  * Removing the input must never turn into removing the data.
  */
-it('the free-form Details editor is gone from the product form', () => {
+it('the free-form Details editor is gone: only the category’s own attributes are asked (D223)', () => {
   const code = withoutComments(source('components/catalog/ProductForm.tsx'));
-  assert.ok(!code.includes('specifications'), 'the form no longer edits specifications');
-  assert.ok(!code.includes('MAX_SPECS'), 'its bound went with it');
+  assert.ok(!code.includes('MAX_SPECS'), 'the free-form rows and their bound are gone');
+  assert.match(code, /fields\.others\.map\(\(a\) =>/, 'one field per attribute of the chosen category');
+  const payload = code.slice(code.indexOf('export function toProductPayload'));
+  assert.match(payload, /specificationsPayload\(fieldsFor\(category \?\? null\)\.others, v\.specifications\)/);
 });
 
-it('the payload omits specifications, so historical values survive a PATCH', () => {
-  const code = withoutComments(source('components/catalog/ProductForm.tsx'));
-  const payload = code.slice(code.indexOf('export function toProductPayload'));
-  assert.ok(!payload.includes('specifications'));
+it('an edit omits unchanged attributes, so historical values survive a PATCH', () => {
+  const edit = withoutComments(source('app/catalog/edit.tsx'));
+  assert.match(edit, /JSON\.stringify\(values\.specifications\) === JSON\.stringify\(initial\.specifications\)\) \{\s*delete \(payload as \{ specifications\?: unknown \}\)\.specifications;/);
 });
 
 it('structured storage and colour are untouched by that removal', () => {

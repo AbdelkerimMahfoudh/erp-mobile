@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,14 @@ import { dialog } from '../../lib/dialog';
 import { ProductPricingSection } from '../../components/pricing';
 import { useBranch } from '../../lib/branch';
 import type { ProductDetail } from '../../types/api';
+import { AddCostSheet } from '../../components/cost/AddCostSheet';
+import { formatDate } from '../../lib/format';
+
+/** Counted stock received without a buying cost (0107), line by line — `GET /inventory/stock/:id/missing-costs`. */
+interface MissingCosts {
+  missingCostQuantity: number;
+  lines: { id: string; quantity: number; receivedAt: string; reference: string | null }[];
+}
 
 /**
  * Product detail (G1).
@@ -56,6 +64,18 @@ export default function ProductDetailScreen() {
     queryKey: qk.product(String(id)),
     queryFn: () => api.get<ProductDetail>(`/products/${id}`),
   });
+
+  /*
+   * Counted stock received without its buying cost (D223, 0107): an Owner or a
+   * Manager enters it here, line by line. Audited; moves no money.
+   */
+  const canCompleteCost = usePermission('cost.complete');
+  const missing = useQuery({
+    queryKey: ['missing-costs', String(id)],
+    queryFn: () => api.get<MissingCosts>(`/inventory/stock/${id}/missing-costs`),
+    enabled: product.data?.trackingType === 'quantity' && canCompleteCost && canViewCost,
+  });
+  const [costLine, setCostLine] = useState<MissingCosts['lines'][number] | null>(null);
 
   const setActive = useMutation({
     mutationFn: (active: boolean) =>
@@ -222,6 +242,23 @@ export default function ProductDetailScreen() {
         </Card>
       </Section>
 
+      {missing.data && missing.data.lines.length > 0 ? (
+        <Section title={t('cost.missing.status')}>
+          <RowGroup>
+            {missing.data.lines.map((line) => (
+              <ListRow
+                key={line.id}
+                flat
+                title={t('cost.complete.lines', { count: String(line.quantity) })}
+                subtitle={[formatDate(line.receivedAt), line.reference].filter(Boolean).join(' · ')}
+                value={t('cost.missing.add')}
+                onPress={() => setCostLine(line)}
+              />
+            ))}
+          </RowGroup>
+        </Section>
+      ) : null}
+
       {/* ── Manager actions ──────────────────────────────────────────────── */}
       {canManage ? (
         <Section>
@@ -242,6 +279,22 @@ export default function ProductDetailScreen() {
           </View>
         </Section>
       ) : null}
+      <AddCostSheet
+        open={costLine !== null}
+        subtitle={costLine ? t('cost.complete.lines', { count: String(costLine.quantity) }) : undefined}
+        onClose={() => setCostLine(null)}
+        onSave={async (cost) => {
+          if (!costLine) return;
+          const done = await api.post<{ piecesSoldUnknown: number }>(`/purchase-items/${costLine.id}/cost`, { cost });
+          toast.success(
+            done.piecesSoldUnknown > 0
+              ? t('cost.complete.soldUnknown', { count: String(done.piecesSoldUnknown) })
+              : t('cost.complete.saved'),
+          );
+          void queryClient.invalidateQueries({ queryKey: ['missing-costs', String(id)] });
+          void queryClient.invalidateQueries({ queryKey: ['inventory'] });
+        }}
+      />
     </Screen>
   );
 }

@@ -42,6 +42,7 @@ import {
   type IntakeScope,
 } from '../lib/scan/pending-intake';
 import { askScanIntake } from '../lib/scan/ask-intake';
+import { askMissingCost, parseBuyingCost } from '../lib/missing-cost';
 import {
   draftSuggestion,
   imei2Problem,
@@ -85,9 +86,13 @@ import { isStoreClosedRefusal } from '../lib/day-gate';
  * received by "Add to stock".
  */
 
-/** The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does. */
+/**
+ * The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does.
+ * `intake: 'quick'` makes it the single-item intake — the product and its stock committed there, in one
+ * action (D223, the owner's device test of 2026-10-28).
+ */
 function newProductParams(barcode: string | null, categoryId: string | undefined): Record<string, string> {
-  return { ...(barcode ? { barcode } : {}), ...(categoryId ? { categoryId } : {}) };
+  return { intake: 'quick', ...(barcode ? { barcode } : {}), ...(categoryId ? { categoryId } : {}) };
 }
 
 /** A timeout or a server fault: the purchase may or may not exist. */
@@ -168,6 +173,13 @@ function QuickReceiveScreen() {
    * request key — never anything the server owns, because restoring a `done`
    * state would tell somebody they had received stock they never did.
    */
+  /*
+   * Kept only while there is something the person typed, or an answer still
+   * outstanding (D223, 2026-10-28): the request key and the payment method are
+   * always set, so keeping them alone made every visit "Restored what you had
+   * here" over an empty screen.
+   */
+  const [restoredTyped, setRestoredTyped] = useState(false);
   const draft = useDraft(
     'quick.receive',
     { cost, imei2, payment, clientUuid },
@@ -176,8 +188,9 @@ function QuickReceiveScreen() {
       setImei2(v.imei2 ?? '');
       if (v.payment) setPayment(v.payment);
       if (v.clientUuid) setClientUuid(v.clientUuid);
+      setRestoredTyped(Boolean(v.cost || v.imei2));
     },
-    { enabled: !done },
+    { enabled: !done, persist: Boolean(cost.trim() || imei2.trim() || uncertain) },
   );
 
   /**
@@ -346,12 +359,18 @@ function QuickReceiveScreen() {
 
   // ── Commit ────────────────────────────────────────────────────────────────
 
-  const costValue = Number(cost);
-  const total = costValue > 0 ? costValue : 0;
-  const ready = Boolean(scanned?.suggestion) && !scanned?.existing && costValue > 0;
+  /*
+   * The buying cost is optional (D223): left empty, the final action asks once
+   * (`askMissingCost`) and the item is received at an UNKNOWN cost — never 0.
+   */
+  const costRef = useRef<{ focus: () => void } | null>(null);
+  const [costError, setCostError] = useState<string | undefined>();
+  const parsedCost = parseBuyingCost(cost);
+  const total = typeof parsedCost === 'number' ? parsedCost : 0;
+  const ready = Boolean(scanned?.suggestion) && !scanned?.existing;
 
   const add = useMutation({
-    mutationFn: () => {
+    mutationFn: (unitCost: number | null) => {
       const s = scanned!;
       const secondary = imei2.trim();
       return api.post<PurchaseOutcome>('/purchases', {
@@ -364,7 +383,7 @@ function QuickReceiveScreen() {
             productId: s.draft ? '' : s.suggestion!.productId,
             ...(s.draft ? { newProduct: s.draft } : {}),
             trackingType: s.suggestion!.trackingType === 'quantity' ? 'quantity' : s.suggestion!.trackingType,
-            unitCost: costValue,
+            unitCost,
             ...(s.suggestion!.trackingType === 'quantity'
               ? { quantity: 1 }
               : {
@@ -430,6 +449,31 @@ function QuickReceiveScreen() {
       toast.error(toErrorMessage(e));
     },
   });
+
+  /** One press, one purchase: an empty cost is asked about once, and a pending request is never sent again. */
+  const submitting = useRef(false);
+  const submit = async () => {
+    if (submitting.current || add.isPending) return;
+    submitting.current = true;
+    try {
+      if (parsedCost === 'invalid') {
+        setCostError(t('cost.invalid'));
+        costRef.current?.focus();
+        return;
+      }
+      if (parsedCost === null && !uncertain) {
+        const answer = await askMissingCost();
+        if (answer === 'add') {
+          costRef.current?.focus();
+          return;
+        }
+        if (answer === 'cancel') return;
+      }
+      add.mutate(typeof parsedCost === 'number' ? parsedCost : null);
+    } finally {
+      submitting.current = false;
+    }
+  };
 
   const startAnother = () => {
     setClientUuid(uuidv4());
@@ -506,8 +550,8 @@ function QuickReceiveScreen() {
                 size="lg"
                 fullWidth
                 loading={add.isPending}
-                disabled={!purchasePaymentReady(payment)}
-                onPress={() => add.mutate()}
+                disabled={!purchasePaymentReady(payment) || add.isPending}
+                onPress={() => void submit()}
               />
             </>
           ) : undefined
@@ -529,7 +573,7 @@ function QuickReceiveScreen() {
         />
 
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-          <DraftNotice draft={draft} onDiscard={startAnother} />
+          {restoredTyped ? <DraftNotice draft={draft} onDiscard={startAnother} /> : null}
 
           {uncertain ? (
             <InlineNotice tone="warning" title={t('receive.uncertain.title')}>
@@ -540,8 +584,8 @@ function QuickReceiveScreen() {
           {!scanned && !uncertain ? (
             <EmptyState
               icon={PackagePlus}
-              title={t('receive.empty.title')}
-              body={t('receive.empty.body')}
+              title={t('quick.receive.empty.title')}
+              body={t('quick.receive.empty.body')}
             />
           ) : null}
 
@@ -604,11 +648,15 @@ function QuickReceiveScreen() {
               {!blocked && scanned.suggestion ? (
                 <View style={styles.fields}>
                   <MoneyField
-                    label={t('quick.receive.cost')}
-                    hint={t('quick.receive.cost.hint')}
+                    ref={costRef as never}
+                    label={t('cost.optional.label')}
+                    hint={t('cost.optional.hint')}
                     value={cost}
-                    onChangeText={setCost}
-                    required
+                    error={costError}
+                    onChangeText={(v) => {
+                      setCost(v);
+                      setCostError(undefined);
+                    }}
                   />
                   {scanned.draft ? (
                     <InlineNotice tone="info">{t('receive.newProductBadge')}</InlineNotice>

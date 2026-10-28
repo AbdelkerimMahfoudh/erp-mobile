@@ -818,7 +818,10 @@ function QuickSellScreen() {
                   server strips the field entirely, and the row is omitted
                   rather than shown as a dash somebody reads as "free".
                 */}
-                {canViewCost && picked.selection.cost !== undefined ? (
+                {canViewCost && picked.selection.cost === null ? (
+                  // Received without its buying cost (0107): the profit of this sale will be incomplete.
+                  <SummaryRow label={t('quick.sell.cost')} value={t('cost.missing.status')} />
+                ) : canViewCost && picked.selection.cost !== undefined ? (
                   <SummaryRow label={t('quick.sell.cost')} value={formatMoney(picked.selection.cost)} />
                 ) : null}
 

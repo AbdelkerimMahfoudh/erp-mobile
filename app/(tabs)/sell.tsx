@@ -279,7 +279,8 @@ function SellScreen() {
           trackingType: unit.product?.trackingType ?? (unit.imeiPrimary ? 'imei' : 'serial'),
           quantity: 1,
           price,
-          cost: unit.cost,
+          // An unknown buying cost (0107) has nothing to warn against.
+          cost: unit.cost ?? undefined,
         });
         return;
       }
@@ -349,7 +350,8 @@ function SellScreen() {
         trackingType: unit.product?.trackingType ?? (unit.imeiPrimary ? 'imei' : 'serial'),
         quantity: 1,
         price,
-        cost: unit.cost,
+        // An unknown buying cost (0107) has nothing to warn against.
+          cost: unit.cost ?? undefined,
       });
     } else if (suggestion) {
       addLine({
