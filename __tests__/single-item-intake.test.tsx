@@ -108,8 +108,10 @@ async function open(kind: 'serial' | 'barcode' = 'serial', mode: 'quick' | 'deli
   );
 }
 
-async function pickCategory(category: { key: string; name: string }) {
-  await act(async () => fireEvent.press(screen.getAllByText(t('catalog.form.category.required'))[0]));
+async function pickCategory(category: { key: string; name: string }, current?: { key: string; name: string }) {
+  // The category row reads "Choose a category" until one is chosen, then the chosen one.
+  const opener = current ? screen.getAllByText(labelOf(current), { exact: false })[0] : screen.getAllByText(t('catalog.form.category.required'))[0];
+  await act(async () => fireEvent.press(opener));
   const rows = screen.getAllByText(labelOf(category), { exact: false });
   await act(async () => fireEvent.press(rows[rows.length - 1]));
 }
@@ -185,7 +187,7 @@ describe('the category comes first and decides the form', () => {
   it('changing the category clears what belonged to the previous one', async () => {
     await open();
     await fillLaptop();
-    await pickCategory(EARBUDS);
+    await pickCategory(EARBUDS, LAPTOPS);
     expect(inputFor(t('catalog.form.brand')).props.value).toBe('');
     expect(inputFor(t('catalog.form.model')).props.value).toBe('');
     expect(screen.queryByText(t('catalog.attr.processor'))).toBeNull();
