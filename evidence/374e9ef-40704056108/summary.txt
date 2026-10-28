@@ -1,0 +1,14 @@
+suites 38/39, tests 380/381, failed 1
+FAIL __tests__/single-item-intake.test.tsx :: the category comes first and decides the form changing the category clears what belonged to the previous one
+  Error: Unable to find an element with text: Earbuds
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View[39m
+              [33maccessibilityRole[39m=[32m"alert"[39m
+              [33maccessible[39m=[32m{true}[39m
