@@ -200,32 +200,32 @@ export async function fetchAttributes(): Promise<{
      * falls back to a saved or bundled copy instead of crashing on it (found by
      * the D223 intake test, 2026-10-28). It is never cached.
      */
-    if (!Array.isArray(attributes?.storage) || !Array.isArray(attributes?.colour)) {
-      throw new Error('device attributes: unexpected answer');
+    if (Array.isArray(attributes?.storage) && Array.isArray(attributes?.colour)) {
+      write(ATTRIBUTES_FILE, [attributes]);
+      return { attributes, origin: 'live', cachedAt: null };
     }
-    write(ATTRIBUTES_FILE, [attributes]);
-    return { attributes, origin: 'live', cachedAt: null };
   } catch {
-    const cached = read<DeviceAttributes>(ATTRIBUTES_FILE);
-    if (cached?.items[0]) {
-      return { attributes: cached.items[0], origin: 'cached', cachedAt: cached.savedAt };
-    }
-    /*
-     * The request failed and there is no saved copy — a first run with no
-     * signal, or a server that is down.
-     *
-     * This used to return nothing, which emptied both selectors and pushed the
-     * shopkeeper into typing. Storage capacities and basic colour names are the
-     * two parts of the catalogue that do not change, so a bundled floor is safe
-     * here in a way that bundling models would not be.
-     *
-     * The origin stays `fallback`, distinct from `live` and from `cached`, so
-     * the screen can say plainly that the newest options could not be fetched.
-     * It is NOT reported as success: a failure that reads as a normal empty
-     * list is the bug this whole area already had once.
-     */
-    return { attributes: fallbackAttributes(), origin: 'fallback', cachedAt: null };
+    // Falls through to the saved copy, then the bundled floor.
   }
+  const cached = read<DeviceAttributes>(ATTRIBUTES_FILE);
+  if (cached?.items[0]) {
+    return { attributes: cached.items[0], origin: 'cached', cachedAt: cached.savedAt };
+  }
+  /*
+   * The request failed and there is no saved copy — a first run with no
+   * signal, or a server that is down.
+   *
+   * This used to return nothing, which emptied both selectors and pushed the
+   * shopkeeper into typing. Storage capacities and basic colour names are the
+   * two parts of the catalogue that do not change, so a bundled floor is safe
+   * here in a way that bundling models would not be.
+   *
+   * The origin stays `fallback`, distinct from `live` and from `cached`, so
+   * the screen can say plainly that the newest options could not be fetched.
+   * It is NOT reported as success: a failure that reads as a normal empty
+   * list is the bug this whole area already had once.
+   */
+  return { attributes: fallbackAttributes(), origin: 'fallback', cachedAt: null };
 }
 
 export { normaliseSearch, matches, OTHER_BRAND_KEY } from './catalogue-search.ts';

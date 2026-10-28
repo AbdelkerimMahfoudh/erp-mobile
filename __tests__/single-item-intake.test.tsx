@@ -12,6 +12,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { TestInstance } from 'test-renderer';
 
 const mockParams: Record<string, string> = {};
 const mockNavigation = { setOptions: jest.fn(), canGoBack: () => true, goBack: jest.fn(), dispatch: jest.fn() };
@@ -115,8 +116,19 @@ async function pickCategory(category: { key: string; name: string }) {
 
 async function fillLaptop() {
   await pickCategory(LAPTOPS);
-  await act(async () => fireEvent.changeText(screen.getByLabelText(t('catalog.form.brand')), 'Fictiva'));
-  await act(async () => fireEvent.changeText(screen.getByLabelText(t('catalog.form.model')), 'QA Book 14'));
+  await act(async () => fireEvent.changeText(inputFor(t('catalog.form.brand')), 'Fictiva'));
+  await act(async () => fireEvent.changeText(inputFor(t('catalog.form.model')), 'QA Book 14'));
+}
+
+/** The text input of the field whose visible label is `label`: the nearest container of that label holding an input. */
+function inputFor(label: string): TestInstance {
+  let node: TestInstance | null = (screen.getAllByText(label)[0] as unknown as TestInstance).parent;
+  while (node) {
+    const inputs = node.queryAll((n) => n.type === 'TextInput');
+    if (inputs.length > 0) return inputs[0];
+    node = node.parent;
+  }
+  throw new Error(`no input for ${label}`);
 }
 
 const cta = () => screen.getByText(t('receive.createAndAdd'));
@@ -141,7 +153,7 @@ beforeEach(() => {
 describe('the category comes first and decides the form', () => {
   it('before a category: no Brand, no Model, no catalogue request, and the action cannot proceed', async () => {
     await open();
-    expect(screen.queryByLabelText(t('catalog.form.brand'))).toBeNull();
+    expect(screen.queryByText(t('catalog.form.brand'))).toBeNull();
     expect(screen.queryByText(t('catalog.form.model'))).toBeNull();
     expect(screen.queryByText(t('catalog.form.storage'))).toBeNull();
     expect(catalogueCalls()).toHaveLength(0);
@@ -160,8 +172,8 @@ describe('the category comes first and decides the form', () => {
   it('Laptops: typed brand and model, never the phone catalogue — Apple is not an iPhone here', async () => {
     await open();
     await pickCategory(LAPTOPS);
-    expect(screen.getByLabelText(t('catalog.form.brand'))).toBeTruthy();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('catalog.form.brand')), 'Apple'));
+    expect(inputFor(t('catalog.form.brand'))).toBeTruthy();
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.brand')), 'Apple'));
     expect(catalogueCalls()).toHaveLength(0);
     expect(screen.queryByText(/iPhone/)).toBeNull();
     // The laptop's own attributes, and storage — no colour, which laptops do not ask.
@@ -174,8 +186,8 @@ describe('the category comes first and decides the form', () => {
     await open();
     await fillLaptop();
     await pickCategory(EARBUDS);
-    expect(screen.getByLabelText(t('catalog.form.brand')).props.value).toBe('');
-    expect(screen.getByLabelText(t('catalog.form.model')).props.value).toBe('');
+    expect(inputFor(t('catalog.form.brand')).props.value).toBe('');
+    expect(inputFor(t('catalog.form.model')).props.value).toBe('');
     expect(screen.queryByText(t('catalog.attr.processor'))).toBeNull();
     expect(screen.queryByText(t('catalog.form.storage'))).toBeNull();
   });
@@ -212,7 +224,7 @@ describe('one action creates the product with its stock', () => {
     post.mockResolvedValueOnce(OK);
     await open();
     await fillLaptop();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '25000'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '25000'));
     await press(cta());
     expect(choose).not.toHaveBeenCalled();
     expect(post.mock.calls[0][1].items[0].unitCost).toBe(25000);
@@ -225,7 +237,7 @@ describe('one action creates the product with its stock', () => {
     await press(cta());
     await press(cta());
     expect(post).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(t('catalog.form.model')).props.value).toBe('QA Book 14');
+    expect(inputFor(t('catalog.form.model')).props.value).toBe('QA Book 14');
     // Still usable: a third press asks again.
     choose.mockResolvedValueOnce(1);
     post.mockResolvedValueOnce(OK);
@@ -251,10 +263,12 @@ describe('one action creates the product with its stock', () => {
     post.mockImplementationOnce(() => new Promise((r) => (land = r)));
     await open();
     await fillLaptop();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '100'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '100'));
     await press(cta());
     expect(screen.queryByText(t('quick.receive.done.body', { product: 'Fictiva QA Book 14', branch: 'Main' }))).toBeNull();
-    await press(screen.getAllByText(t('receive.createAndAdd'))[0]);
+    // While it is pending the button shows its spinner; a press on whatever is there sends nothing more.
+    const again = screen.queryAllByText(t('receive.createAndAdd'));
+    if (again[0]) await press(again[0]);
     expect(post).toHaveBeenCalledTimes(1);
     await act(async () => land(OK));
     expect(screen.getByText(t('quick.receive.done.body', { product: 'Fictiva QA Book 14', branch: 'Main' }))).toBeTruthy();
@@ -263,7 +277,7 @@ describe('one action creates the product with its stock', () => {
   it('an invalid cost is refused in place and nothing is sent', async () => {
     await open();
     await fillLaptop();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '0'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '0'));
     await press(cta());
     expect(post).not.toHaveBeenCalled();
     expect(screen.getByText(t('cost.invalid'))).toBeTruthy();
@@ -273,7 +287,7 @@ describe('one action creates the product with its stock', () => {
     post.mockRejectedValueOnce(new ApiError('That serial number is not valid', 400)).mockResolvedValueOnce(OK);
     await open();
     await fillLaptop();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '100'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '100'));
     await press(cta());
     expect(screen.queryByText(t('quick.receive.done.title'))).toBeNull();
     await press(cta());
@@ -297,7 +311,7 @@ describe('one action creates the product with its stock', () => {
     post.mockRejectedValueOnce(new ApiError('exists', 409, 'product_exists')).mockResolvedValueOnce(OK);
     await open();
     await fillLaptop();
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '100'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '100'));
     get.mockImplementation(async (url: string) => {
       if (url.startsWith('/categories')) return CATEGORIES;
       if (url.startsWith('/products')) return { rows: [{ id: 'existing1', brand: 'Fictiva', model: 'QA Book 14', variant: null, barcode: null, trackingType: 'serial' }] };
@@ -314,10 +328,10 @@ describe('one action creates the product with its stock', () => {
     post.mockResolvedValueOnce({ ...OK, unitsCreated: 0, stockLines: 1 });
     await open('barcode');
     await pickCategory(EARBUDS);
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('catalog.form.brand')), 'Fictiva'));
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('catalog.form.model')), 'QA Buds'));
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('intake.stock.quantity')), '10'));
-    await act(async () => fireEvent.changeText(screen.getByLabelText(t('cost.optional.label')), '450'));
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.brand')), 'Fictiva'));
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.model')), 'QA Buds'));
+    await act(async () => fireEvent.changeText(inputFor(t('intake.stock.quantity')), '10'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '450'));
     await press(cta());
     expect(post.mock.calls[0][1].items[0]).toMatchObject({ quantity: 10, unitCost: 450, newProduct: { trackingType: 'quantity', barcode: '2000000000052' } });
   });
