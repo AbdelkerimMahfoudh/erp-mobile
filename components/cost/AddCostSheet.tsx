@@ -59,6 +59,7 @@ export function AddCostSheet({
 
   return (
     <BottomSheet
+      scroll
       open={open}
       onClose={onClose}
       title={t('cost.complete.title')}

@@ -13,20 +13,20 @@ import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const params: Record<string, string> = {};
-const navigation = { setOptions: jest.fn(), canGoBack: () => true, goBack: jest.fn(), dispatch: jest.fn() };
+const mockParams: Record<string, string> = {};
+const mockNavigation = { setOptions: jest.fn(), canGoBack: () => true, goBack: jest.fn(), dispatch: jest.fn() };
 jest.mock('expo-router', () => ({
   ...jest.requireActual('./mocks/expo-router'),
-  useLocalSearchParams: () => params,
-  useNavigation: () => navigation,
+  useLocalSearchParams: () => mockParams,
+  useNavigation: () => mockNavigation,
   useRouter: () => ({ ...jest.requireActual('./mocks/expo-router').router, canGoBack: () => true, dismiss: jest.fn() }),
 }));
-const guard: { enabled: boolean; cb: ((e: { data: { action: unknown } }) => void) | null } = { enabled: false, cb: null };
+const mockGuard: { enabled: boolean; cb: ((e: { data: { action: unknown } }) => void) | null } = { enabled: false, cb: null };
 jest.mock('../lib/navigation/router-internals', () => ({
   ...jest.requireActual('../lib/navigation/router-internals'),
   usePreventRemove: (enabled: boolean, cb: (e: { data: { action: unknown } }) => void) => {
-    guard.enabled = enabled;
-    guard.cb = cb;
+    mockGuard.enabled = enabled;
+    mockGuard.cb = cb;
   },
 }));
 jest.mock('expo-camera', () => ({
@@ -56,8 +56,8 @@ jest.mock('../lib/dialog', () => {
   const actual = jest.requireActual('../lib/dialog');
   return { ...actual, dialog: { ...actual.dialog, choose: jest.fn(), confirm: jest.fn(async () => true), alert: jest.fn(async () => undefined) } };
 });
-const USER = { id: 'u1', companyId: 'c1' };
-jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => ({ user: USER }) }));
+const mockUser = { id: 'u1', companyId: 'c1' };
+jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => ({ user: mockUser }) }));
 
 import { api, ApiError } from '../lib/api-client';
 import { dialog } from '../lib/dialog';
@@ -94,9 +94,9 @@ const OK = { purchaseId: 'p1', unitsCreated: 1, stockLines: 0, total: 0, created
 let client: QueryClient;
 async function open(kind: 'serial' | 'barcode' = 'serial', mode: 'quick' | 'delivery' = 'quick') {
   holdPendingIntake(pendingFrom(SCOPE, kind === 'serial' ? { serial: SERIAL } : { productBarcode: '2000000000052' }));
-  for (const k of Object.keys(params)) delete params[k];
-  if (mode === 'quick') params.intake = 'quick';
-  if (kind === 'barcode') params.barcode = '2000000000052';
+  for (const k of Object.keys(mockParams)) delete mockParams[k];
+  if (mode === 'quick') mockParams.intake = 'quick';
+  if (kind === 'barcode') mockParams.barcode = '2000000000052';
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   await render(
     <ThemeProvider>
@@ -126,8 +126,8 @@ const catalogueCalls = () => get.mock.calls.filter(([url]) => String(url).starts
 beforeEach(() => {
   jest.clearAllMocks();
   clearPendingIntake();
-  guard.enabled = false;
-  guard.cb = null;
+  mockGuard.enabled = false;
+  mockGuard.cb = null;
   usePermissionStore.setState({ granted: new Set(['catalog.manage', 'cost.view']) as never, status: 'ready' } as never);
   useBranch.setState({ branchId: 'b1', branchName: 'Main' } as never);
   get.mockImplementation(async (url: string) => {
@@ -327,11 +327,11 @@ describe('leaving never freezes', () => {
   it('the delivery hand-back says "Add to delivery" and passes its own guard without a dialog', async () => {
     await open('serial', 'delivery');
     await fillLaptop();
-    expect(guard.enabled).toBe(true);
+    expect(mockGuard.enabled).toBe(true);
     await press(screen.getByText(t('catalog.intake.next')));
     // The screen left on purpose: the guard lets the navigation through at once.
-    guard.cb?.({ data: { action: { type: 'GO_BACK' } } });
-    expect(navigation.dispatch).toHaveBeenCalledWith({ type: 'GO_BACK' });
+    mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } });
+    expect(mockNavigation.dispatch).toHaveBeenCalledWith({ type: 'GO_BACK' });
     expect(dialog.confirm).not.toHaveBeenCalled();
   });
 
@@ -340,10 +340,10 @@ describe('leaving never freezes', () => {
     (dialog.confirm as jest.Mock).mockImplementationOnce(() => new Promise((r) => (decide = r)));
     await open();
     await fillLaptop();
-    guard.cb?.({ data: { action: { type: 'GO_BACK' } } });
-    guard.cb?.({ data: { action: { type: 'GO_BACK' } } });
+    mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } });
+    mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } });
     expect(dialog.confirm).toHaveBeenCalledTimes(1);
     await act(async () => decide(false));
-    expect(navigation.dispatch).not.toHaveBeenCalled();
+    expect(mockNavigation.dispatch).not.toHaveBeenCalled();
   });
 });
