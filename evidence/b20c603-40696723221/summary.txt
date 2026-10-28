@@ -1,0 +1,22 @@
+suites 38/39, tests 364/364, failed 0
+SUITE FAIL __tests__/single-item-intake.test.tsx
+    ● Test suite failed to run
+  
+      ReferenceError: /home/runner/work/erp-mobile/erp-mobile/app/__tests__/single-item-intake.test.tsx: The module factory of `jest.mock()` is not allowed to reference any out-of-scope variables.
+      Invalid variable access: navigation
+      Allowed objects: AbortController, AbortSignal, AggregateError, Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Blob, Boolean, BroadcastChannel, Buffer, ByteLengthQueuingStrategy, CompressionStream, CountQueuingStrategy, Crypto, CryptoKey, CustomEvent, DOMException, DataView, Date, DecompressionStream, Error, EvalError, Event, EventTarget, File, FinalizationRegistry, Float32Array, Float64Array, FormData, Function, Generator, GeneratorFunction, Headers, Infinity, Int16Array, Int32Array, Int8Array, InternalError, Intl, Iterator, JSON, Map, Math, MessageChannel, MessageEvent, MessagePort, NaN, Navigator, Number, Object, Performance, PerformanceEntry, PerformanceMark, PerformanceMeasure, PerformanceObserver, PerformanceObserverEntryList, PerformanceResourceTiming, Promise, Proxy, RangeError, ReadableByteStreamController, ReadableStream, ReadableStreamBYOBReader, ReadableStreamBYOBRequest, ReadableStreamDefaultController, ReadableStreamDefaultReader, ReferenceError, Reflect, RegExp, Request, Response, Set, SharedArrayBuffer, String, SubtleCrypto, Symbol, SyntaxError, TextDecoder, TextDecoderStream, TextEncoder, TextEncoderStream, TransformStream, TransformStreamDefaultController, TypeError, URIError, URL, URLSearchParams, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WeakMap, WeakRef, WeakSet, WebAssembly, WebSocket, WritableStream, WritableStreamDefaultController, WritableStreamDefaultWriter, __dirname, __filename, arguments, atob, btoa, clearImmediate, clearInterval, clearTimeout, console, crypto, decodeURI, decodeURIComponent, encodeURI, encodeURIComponent, escape, eval, expect, exports, fetch, global, globalThis, isFinite, isNaN, jest, module, navigator, parseFloat, parseInt, performance, process, queueMicrotask, require, setImmediate, setInterval, setTimeout, structuredClone, undefined, unescape.
+      Note: This is a precaution to guard against uninitialized mock variables. If it is ensured that the mock is required lazily, variable names prefixed with `mock` (case insensitive) are permitted.
+  
+      [0m [90m 19 |[39m   [33m...[39mjest[33m.[39mrequireActual([32m'./mocks/expo-router'[39m)[33m,[39m
+       [90m 20 |[39m   useLocalSearchParams[33m:[39m () [33m=>[39m params[33m,[39m
+      [31m[1m>[22m[39m[90m 21 |[39m   useNavigation[33m:[39m () [33m=>[39m navigation[33m,[39m
+       [90m    |[39m                        [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+       [90m 22 |[39m   useRouter[33m:[39m () [33m=>[39m ({ [33m...[39mjest[33m.[39mrequireActual([32m'./mocks/expo-router'[39m)[33m.[39mrouter[33m,[39m canGoBack[33m:[39m () [33m=>[39m [36mtrue[39m[33m,[39m dismiss[33m:[39m jest[33m.[39mfn() })[33m,[39m
+       [90m 23 |[39m }))[33m;[39m
+       [90m 24 |[39m [36mconst[39m guard[33m:[39m { enabled[33m:[39m boolean[33m;[39m cb[33m:[39m ((e[33m:[39m { data[33m:[39m { action[33m:[39m unknown } }) [33m=>[39m [36mvoid[39m) [33m|[39m [36mnull[39m } [33m=[39m { enabled[33m:[39m [36mfalse[39m[33m,[39m cb[33m:[39m [36mnull[39m }[33m;[39m[0m
+  
+        at File.buildCodeFrameError (node_modules/@babel/core/src/transformation/file/file.ts:251:12)
+        at NodePath.buildError [as buildCodeFrameError] (node_modules/@babel/traverse/src/path/index.ts:161:21)
+        at call (node_modules/@babel/traverse/src/visitors.ts:299:14)
+        at NodePath.call [as _call] (node_modules/@babel/traverse/src/path/context.ts:36:20)
+        at NodePath.call (node_modules/@babel/traverse/src/path/context.ts:21:18)
