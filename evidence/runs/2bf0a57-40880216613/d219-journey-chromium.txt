@@ -1,0 +1,27 @@
+(node:14225) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/erp-mobile/erp-mobile/app/lib/i18n/en.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/runner/work/erp-mobile/erp-mobile/app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  [chromium] the administrator signs in with the password and the second factor — sign-in 200, code 200
+PASS  [chromium] the administrator creates a test business, its Owner and store, with a setup code — status 201
+PASS  [chromium] the setup code and the password type into the setup screen (touch)
+PASS  [chromium] the setup code is redeemed: the Owner’s password is set, no approval is mentioned
+PASS  [chromium] the same setup code again is refused — it works once — status 400
+PASS  [chromium] the setup code is kept nowhere in the browser
+PASS  [chromium] the Owner is active at once: signed in with the chosen password, no approval step — /access-closed
+PASS  [chromium] without an entitlement the app says "No active access yet" — never "waiting for approval" — Test business — for testing only, not a real shop No active access yet Your account is ready, but this business does not have active access yet. The app opens as soon as it does. Managed by your organisation. Contact you
+PASS  [chromium] redeeming the code created no paid subscription and granted nothing (pending_activation, no period, closed) — {"status":200,"state":"pending","sub":"pending_activation","periodEnd":null,"comp":false,"canRead":false}
+PASS  [chromium] the administrator gives access without payment (audited grant) — status 200
+PASS  [chromium] with the grant the ERP opens at once — “Check again”, no sign-out, no approval — /select-branch
+PASS  [chromium] the Owner works in the test store: the app home, the test banner on it — /
+PASS  [chromium] the grant is access without payment: complimentary, writes, still no paid period — {"state":"complimentary","canWrite":true,"periodEnd":null}
+PASS  [chromium] the console reads the business as a test business with its access — status 200
+PASS  [chromium] en: no entitlement reads "No active access yet", no approval word — Test business — for testing only, not a real shop No active access yet Your account is ready, but this business does not have active access yet. The app opens a
+PASS  [chromium] en: an answer without a state reads as unreadable, never as pending
+PASS  [chromium] fr: no entitlement reads "Pas encore d’accès actif", no approval word — Entreprise de test — pour les tests uniquement, pas une vraie boutique Pas encore d’accès actif Votre compte est prêt, mais cette entreprise n’a pas encore d’ac
+PASS  [chromium] fr: an answer without a state reads as unreadable, never as pending
+PASS  [chromium] ar: no entitlement reads "لا وصول نشط بعد", no approval word, right to left — نشاط تجاري اختباري — للاختبار فقط، وليس متجرًا حقيقيًا لا وصول نشط بعد حسابك جاهز، لكن هذا النشاط التجاري ليس لديه وصول نشط بعد. يُفتح التطبيق فور حصوله عليه. ت
+PASS  [chromium] ar: an answer without a state reads as unreadable, never as pending
+PASS  [chromium] no uncaught page error in the journey
+
+[chromium] access-journey: 21/21 checks passed

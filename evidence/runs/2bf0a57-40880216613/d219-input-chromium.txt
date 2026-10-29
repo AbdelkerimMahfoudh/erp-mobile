@@ -1,0 +1,251 @@
+(node:15067) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/erp-mobile/erp-mobile/app/lib/i18n/en.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/runner/work/erp-mobile/erp-mobile/app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/light/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/light/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/light/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/light/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/light/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/light/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/light/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/light/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/light/320 — true,true,true
+PASS  [chromium] New category: the name types and stays en/light/320
+PASS  [chromium] signed-in layout en/light/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/light/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/light/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/light/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/light/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/light/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/light/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/light/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/light/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/light/375 — true,true,true
+PASS  [chromium] New category: the name types and stays en/light/375
+PASS  [chromium] signed-in layout en/light/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/light/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/light/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/light/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/light/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/light/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/light/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/light/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/light/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/light/390 — true,true,true
+PASS  [chromium] New category: the name types and stays en/light/390
+PASS  [chromium] signed-in layout en/light/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/dark/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/dark/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/dark/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/dark/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/dark/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/dark/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/dark/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/dark/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/dark/320 — true,true,true
+PASS  [chromium] New category: the name types and stays en/dark/320
+PASS  [chromium] signed-in layout en/dark/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/dark/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/dark/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/dark/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/dark/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/dark/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/dark/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/dark/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/dark/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/dark/375 — true,true,true
+PASS  [chromium] New category: the name types and stays en/dark/375
+PASS  [chromium] signed-in layout en/dark/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves en/dark/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring en/dark/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout en/dark/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker en/dark/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring en/dark/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name en/dark/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays en/dark/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype en/dark/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing en/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value en/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted en/dark/390 — true,true,true
+PASS  [chromium] New category: the name types and stays en/dark/390
+PASS  [chromium] signed-in layout en/dark/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/light/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/light/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/light/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/light/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/light/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/light/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/light/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/light/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/light/320 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/light/320
+PASS  [chromium] signed-in layout fr/light/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/light/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/light/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/light/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/light/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/light/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/light/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/light/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/light/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/light/375 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/light/375
+PASS  [chromium] signed-in layout fr/light/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/light/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/light/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/light/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/light/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/light/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/light/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/light/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/light/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/light/390 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/light/390
+PASS  [chromium] signed-in layout fr/light/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/dark/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/dark/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/dark/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/dark/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/dark/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/dark/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/dark/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/dark/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/dark/320 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/dark/320
+PASS  [chromium] signed-in layout fr/dark/320 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/dark/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/dark/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/dark/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/dark/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/dark/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/dark/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/dark/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/dark/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/dark/375 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/dark/375
+PASS  [chromium] signed-in layout fr/dark/375 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves fr/dark/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring fr/dark/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout fr/dark/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker fr/dark/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring fr/dark/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name fr/dark/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays fr/dark/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype fr/dark/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing fr/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value fr/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted fr/dark/390 — true,true,true
+PASS  [chromium] New category: the name types and stays fr/dark/390
+PASS  [chromium] signed-in layout fr/dark/390 — {"over":0,"rtl":false,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/light/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/light/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/light/320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/light/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/light/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/light/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/light/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/light/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/light/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/light/320 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/light/320
+PASS  [chromium] signed-in layout ar/light/320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/light/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/light/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/light/375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/light/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/light/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/light/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/light/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/light/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/light/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/light/375 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/light/375
+PASS  [chromium] signed-in layout ar/light/375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/light/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/light/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/light/390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/light/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/light/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/light/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/light/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/light/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/light/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/light/390 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/light/390
+PASS  [chromium] signed-in layout ar/light/390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/dark/320 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/dark/320 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/dark/320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/dark/320
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/dark/320 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/dark/320 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/dark/320 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/dark/320 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/dark/320 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/dark/320 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/dark/320
+PASS  [chromium] signed-in layout ar/dark/320 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/dark/375 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/dark/375 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/dark/375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/dark/375
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/dark/375 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/dark/375 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/dark/375 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/dark/375 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/dark/375 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/dark/375 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/dark/375
+PASS  [chromium] signed-in layout ar/dark/375 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in, touch focus: one ring, no browser outline, nothing moves ar/dark/390 — {"rest":0,"touch":{"active":true,"outline":"none","width":"0px","rings":1},"moved":0}
+PASS  [chromium] sign-in, keyboard focus: a field reached by Tab shows the one ring ar/dark/390 — {"outline":"none","rings":1}
+PASS  [chromium] sign-in layout ar/dark/390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] sign-in fields carry the scoped autofill rule's marker ar/dark/390
+PASS  [chromium] Add an account: one tap focuses "Name staff will see", it types, one ring ar/dark/390 — {"active":true,"outline":"none","width":"0px","rings":1}
+PASS  [chromium] Add an account: switching Sedad, BIM Bank, Bankily, Other keeps the name ar/dark/390 — sedad:true bim_bank:true bankily:true other:true
+PASS  [chromium] Add an account, Other: the service name types and the account name stays ar/dark/390 — {"count":2,"both":["Masrvi","Caisse principale"]}
+PASS  [chromium] Add an account: select, delete and retype ar/dark/390 — Caisse 2
+PASS  [chromium] New team member: Name, Phone and Email each take a tap and typing ar/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: changing role and store keeps every value ar/dark/390 — ["Aminetou Test","+22240000001","aminetou@example.test"]
+PASS  [chromium] New team member: the fields are the same elements after the choices — nothing remounted ar/dark/390 — true,true,true
+PASS  [chromium] New category: the name types and stays ar/dark/390
+PASS  [chromium] signed-in layout ar/dark/390 — {"over":0,"rtl":true,"ok":true,"wide":[]}
+PASS  [chromium] Add an account: the empty name is refused in words; its ring turns from the focus colour to the error colour, also while focused; typing goes on en/light/375 — {"focusColour":"rgb(99, 88, 222)","invalidColour":"rgb(192, 54, 44)","focusedInvalidColour":"rgb(192, 54, 44)"}
+PASS  [chromium] Add an account: corrected, it saves and is listed en/light/375 — status 201 listed true
+PASS  [chromium] New team member: a wrong phone is refused in words, then corrected in place en/light/375
+PASS  [chromium] New team member: Tab moves from Phone to Email, which types en/light/375
+PASS  [chromium] New team member: saved as a pending employee with an invitation reference, as before en/light/375 — status 201 created true invitation true user pending
+PASS  [chromium] Add an account: the empty name is refused in words; its ring turns from the focus colour to the error colour, also while focused; typing goes on ar/dark/320 — {"focusColour":"rgb(139, 130, 239)","invalidColour":"rgb(192, 54, 44)","focusedInvalidColour":"rgb(192, 54, 44)"}
+PASS  [chromium] Add an account: corrected, it saves and is listed ar/dark/320 — status 201 listed true
+PASS  [chromium] New team member: a wrong phone is refused in words, then corrected in place ar/dark/320
+PASS  [chromium] New team member: Tab moves from Phone to Email, which types ar/dark/320
+PASS  [chromium] New team member: saved as a pending employee with an invitation reference, as before ar/dark/320 — status 201 created true invitation true user pending
+PASS  [chromium] no uncaught page error anywhere
+
+[chromium] ui-input: 245/245 checks passed
