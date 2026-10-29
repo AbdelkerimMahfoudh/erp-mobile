@@ -1673,3 +1673,11 @@ export interface PhoneVerificationStart {
   resendAvailableAt: string | null;
   delivered: boolean;
 }
+
+/** The person's own invitation to Dukan ERP in one language (0103, D221): its address, to share. */
+export interface ReferralInvitation {
+  id: string;
+  language: 'en' | 'fr' | 'ar';
+  createdAt: string;
+  link: string;
+}

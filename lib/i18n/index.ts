@@ -104,6 +104,16 @@ export function hasKey(key: string): key is TranslationKey {
   return key in en;
 }
 
+/**
+ * Translate in a given language, whatever the app is showing — for text written for somebody else, such as an
+ * invitation message in the language its recipient reads (0103).
+ */
+export function translateIn(lang: Language, key: TranslationKey, values?: TranslationValues): string {
+  const template = CATALOGUES[lang][key] ?? en[key] ?? key;
+  if (!values) return template;
+  return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in values ? String(values[name]) : match));
+}
+
 export function getLanguage(): Language {
   return activeLanguage;
 }

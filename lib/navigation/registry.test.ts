@@ -283,8 +283,9 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   // Money moved to the tab bar, and a Manager still reaches it there.
   assert.equal(tabHubIsVisible(MANAGER), true);
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
-  // The branch's return policy is theirs to edit (0108); Team and Business settings are not.
-  assert.deepEqual(business, ['access', 'return-policy'], 'a Manager holds neither user.manage nor settings.manage');
+  // The branch's return policy is theirs to edit (0108), and inviting someone is every member's (0103, D221);
+  // Team and Business settings are not.
+  assert.deepEqual(business, ['access', 'return-policy', 'invite'], 'a Manager holds neither user.manage nor settings.manage');
 
   /*
     A Manager runs consignments, and reaches the Partner stores screen the way the Partners tab is shown to them
@@ -759,7 +760,8 @@ it('groups show only permitted destinations and never render empty', () => {
   const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
   assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
   const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
-  assert.deepEqual(manager, ['catalog', 'return-policy'], 'a Manager holds neither user.manage, import.run nor settings.manage');
+  // The branch's return policy (0108) and inviting someone to Dukan ERP (0103, D221) are a Manager's too.
+  assert.deepEqual(manager, ['catalog', 'return-policy', 'invite'], 'a Manager holds neither user.manage, import.run nor settings.manage');
 });
 
 it('every More group name exists in all three catalogues', () => {
