@@ -2,7 +2,8 @@ import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ArrowRight, Store } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { DukanMark } from '../brand/DukanMark';
 import { IconButton } from '../ui/IconButton';
 import { Text } from '../ui/Text';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -38,7 +39,6 @@ export interface AuthHeaderProps {
 
 export function AuthHeader({ title, canGoBack, onBack }: AuthHeaderProps) {
   const styles = useStyles();
-  const colors = useColors();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   return (
@@ -49,9 +49,7 @@ export function AuthHeader({ title, canGoBack, onBack }: AuthHeaderProps) {
             <IconButton icon={isRTL() ? ArrowRight : ArrowLeft} accessibilityLabel={t('action.back')} onPress={onBack} />
           ) : null}
           <View style={styles.identity} accessible accessibilityLabel={t('auth.title')}>
-            <View style={styles.mark}>
-              <Store color={colors.text.inverse} size={16} />
-            </View>
+            <DukanMark size={28} />
             <Text variant="bodyStrong" numberOfLines={1}>
               {t('auth.title')}
             </Text>
@@ -158,14 +156,6 @@ const useStyles = makeStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  mark: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.intent.info.solid,
   },
   title: {
     marginTop: space.sm,

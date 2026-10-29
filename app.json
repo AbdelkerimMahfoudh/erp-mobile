@@ -5,15 +5,21 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "dukanerp",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "mr.tsxmr.dukanerp"
+      "supportsTablet": false,
+      "bundleIdentifier": "mr.tsxmr.dukanerp",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "mr.tsxmr.dukanerp",
       "adaptiveIcon": {
-        "backgroundColor": "#4f46e5"
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "backgroundColor": "#5146D9"
       },
       "permissions": [
         "android.permission.CAMERA"
@@ -25,7 +31,8 @@
       ]
     },
     "web": {
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       [
@@ -46,7 +53,11 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#4f46e5"
+          "backgroundColor": "#F1F3F8",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#0B0F17"
+          }
         }
       ],
       "expo-localization",
@@ -82,6 +93,7 @@
     "locales": {
       "fr": "./locales/fr.json",
       "ar": "./locales/ar.json"
-    }
+    },
+    "icon": "./assets/images/icon.png"
   }
 }

@@ -11,6 +11,7 @@ import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { EmptyState, OfflineBanner } from '../components/ui';
 import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
+import { BrandIntro } from '../components/brand/DukanMark';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
 import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
@@ -188,6 +189,11 @@ function AppShell() {
         </AuthProvider>
       </QueryClientProvider>
       </NavigationThemeProvider>
+      {/*
+        The launch's first moment, once: the native splash is static, and this takes over from it with the same mark at
+        the same place on the same colour, then animates and goes (components/brand/DukanMark.tsx).
+      */}
+      <BrandIntro background={colors.surface.canvas} tone={isDark ? 'dark' : 'light'} />
     </GestureHandlerRootView>
   );
 }
