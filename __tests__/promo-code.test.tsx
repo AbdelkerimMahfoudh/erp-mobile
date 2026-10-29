@@ -110,33 +110,33 @@ function screenText(): string {
 }
 
 /** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
-function toLastStep() {
+async function toLastStep() {
   const [business, branch] = textInputs();
-  fireEvent.changeText(business, 'Nour Electronics');
-  fireEvent.changeText(branch, 'Main Store');
-  fireEvent.press(screen.getByText(t('register.next')));
-  fireEvent.changeText(textInputs()[0], 'Aicha');
-  fireEvent.press(screen.getByText(t('register.next')));
+  await fireEvent.changeText(business, 'Nour Electronics');
+  await fireEvent.changeText(branch, 'Main Store');
+  await fireEvent.press(screen.getByText(t('register.next')));
+  await fireEvent.changeText(textInputs()[0], 'Aicha');
+  await fireEvent.press(screen.getByText(t('register.next')));
 }
 
 /** The last step: the WhatsApp number (required) first among the contacts, no email address, the password twice. */
-function fillLastStep() {
+async function fillLastStep() {
   const [phone, , password, again] = textInputs();
-  fireEvent.changeText(phone, '+22236000001');
-  fireEvent.changeText(password, 'correct horse');
-  fireEvent.changeText(again, 'correct horse');
+  await fireEvent.changeText(phone, '+22236000001');
+  await fireEvent.changeText(password, 'correct horse');
+  await fireEvent.changeText(again, 'correct horse');
 }
 
 /** The whole form, step by step. */
-function fillFields() {
-  toLastStep();
-  fillLastStep();
+async function fillFields() {
+  await toLastStep();
+  await fillLastStep();
 }
 
 /** …and ticks the WhatsApp consent beside the number, once the server's copy is shown. */
 async function fillForm() {
-  fillFields();
-  fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
+  await fillFields();
+  await fireEvent.press(await screen.findByTestId('whatsapp-consent-check'));
 }
 
 beforeEach(() => {
@@ -194,7 +194,7 @@ describe('the promo code', () => {
     answer({ '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' } });
     await renderWith(<RegisterScreen />);
     await act(async () => {
-      fireEvent.changeText(box(1), '٠٠٤٢١٧');
+      await fireEvent.changeText(box(1), '٠٠٤٢١٧');
     });
     expect(await screen.findByText(t('register.promo.from', { name: 'Sidi Mohamed' }))).toBeTruthy();
     expect(box(1).props.value).toBe('0');
@@ -206,10 +206,10 @@ describe('the promo code', () => {
   it('typing moves on; five digits are never checked; Backspace takes the last one back', async () => {
     answer({});
     await renderWith(<RegisterScreen />);
-    for (const [i, d] of ['1', '2', '3', '4', '5'].entries()) fireEvent.changeText(box(i + 1), d);
+    for (const [i, d] of ['1', '2', '3', '4', '5'].entries()) await fireEvent.changeText(box(i + 1), d);
     expect(box(5).props.value).toBe('5');
     expect((api.post as jest.Mock).mock.calls).toEqual([]);
-    fireEvent(box(6), 'keyPress', { nativeEvent: { key: 'Backspace' } });
+    await fireEvent(box(6), 'keyPress', { nativeEvent: { key: 'Backspace' } });
     expect(box(5).props.value).toBe('');
   });
 
@@ -217,10 +217,10 @@ describe('the promo code', () => {
     answer({ '/auth/acquisition/code': { usable: false } });
     await renderWith(<RegisterScreen />);
     await act(async () => {
-      fireEvent.changeText(box(1), '999999');
+      await fireEvent.changeText(box(1), '999999');
     });
     expect(await screen.findByText(t('register.promo.unavailable'))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('register.promo.remove')));
+    await fireEvent.press(screen.getByText(t('register.promo.remove')));
     expect(box(1).props.value).toBe('');
     expect(screen.queryByText(t('register.promo.unavailable'))).toBeNull();
   });
@@ -229,12 +229,12 @@ describe('the promo code', () => {
     answer({ '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' } });
     await renderWith(<RegisterScreen />);
     await act(async () => {
-      fireEvent.changeText(box(1), '004217');
+      await fireEvent.changeText(box(1), '004217');
     });
     await screen.findByText(t('register.promo.from', { name: 'Sidi Mohamed' }));
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(registerCalls()).toHaveLength(1);
     expect(registerCalls()[0][1]).toEqual(expect.objectContaining({ promoCode: '004217' }));
@@ -246,7 +246,7 @@ describe('the promo code', () => {
     await renderWith(<RegisterScreen />);
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(registerCalls()[0][1]).not.toHaveProperty('promoCode');
     expect(registerCalls()[0][1]).not.toHaveProperty('referralToken');
@@ -259,12 +259,12 @@ describe('the promo code', () => {
     });
     await renderWith(<RegisterScreen />);
     await act(async () => {
-      fireEvent.changeText(box(1), '004217');
+      await fireEvent.changeText(box(1), '004217');
     });
     await screen.findByText(t('register.promo.from', { name: 'Sidi Mohamed' }));
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(await screen.findByText(t('register.promo.unavailableNow'))).toBeTruthy();
     expect(screen.getByText(t('register.promo.unavailable'))).toBeTruthy();
@@ -283,7 +283,7 @@ describe('arriving with a registration address', () => {
     expect((api.post as jest.Mock).mock.calls.filter(([p]) => p === '/auth/acquisition/code')).toEqual([]);
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(registerCalls()[0][1]).toEqual(expect.objectContaining({ referralToken: 'QR-TOKEN' }));
     expect(registerCalls()[0][1]).not.toHaveProperty('promoCode');
@@ -298,14 +298,14 @@ describe('arriving with a registration address', () => {
     await renderWith(<RegisterScreen />);
     expect(await screen.findByText(t('register.promo.invited'))).toBeTruthy();
     await act(async () => {
-      fireEvent.changeText(box(1), '004217');
+      await fireEvent.changeText(box(1), '004217');
     });
     expect(await screen.findByText(t('register.promo.choose.title'))).toBeTruthy();
-    fireEvent.press(screen.getByText(t('register.promo.choose.code')));
+    await fireEvent.press(screen.getByText(t('register.promo.choose.code')));
     expect(screen.queryByText(t('register.promo.invited'))).toBeNull();
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(registerCalls()[0][1]).toEqual(expect.objectContaining({ promoCode: '004217' }));
     expect(registerCalls()[0][1]).not.toHaveProperty('referralToken');
@@ -318,7 +318,7 @@ describe('arriving with a registration address', () => {
     expect(await screen.findByText(t('register.promo.addressInvalid'))).toBeTruthy();
     await fillForm();
     await act(async () => {
-      fireEvent.press(screen.getByText(t('register.submit')));
+      await fireEvent.press(screen.getByText(t('register.submit')));
     });
     expect(registerCalls()[0][1]).not.toHaveProperty('referralToken');
   });

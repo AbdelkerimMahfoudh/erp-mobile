@@ -18,11 +18,7 @@
       }
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_API_ORIGIN": "https://api.tsxmr.com",
-        "EXPO_PUBLIC_LEGAL_ORIGIN": "https://tsxmr.com"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {

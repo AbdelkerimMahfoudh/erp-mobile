@@ -90,10 +90,10 @@ it('shows the message in the app’s language with the person’s own invitation
 it('writes the message in the language chosen for its reader — French or Arabic — with that language’s own address', async () => {
   await renderScreen();
   await screen.findByTestId('invite-message');
-  fireEvent.press(screen.getByText('العربية'));
+  await fireEvent.press(screen.getByText('العربية'));
   await waitFor(() => expect(screen.getByTestId('invite-message').props.children).toBe(translateIn('ar', 'invite.message', { address: linkFor('ar') })));
   expect(StyleSheet.flatten(screen.getByTestId('invite-message').props.style)).toEqual(expect.objectContaining({ writingDirection: 'rtl' }));
-  fireEvent.press(screen.getByText('Français'));
+  await fireEvent.press(screen.getByText('Français'));
   await waitFor(() => expect(screen.getByTestId('invite-message').props.children).toBe(translateIn('fr', 'invite.message', { address: linkFor('fr') })));
 });
 
@@ -101,10 +101,10 @@ it('shares through the phone’s own share sheet, or copies — nothing is sent 
   const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as never);
   await renderScreen();
   await screen.findByTestId('invite-message');
-  fireEvent.press(screen.getByText(t('invite.share')));
+  await fireEvent.press(screen.getByText(t('invite.share')));
   expect(share).toHaveBeenCalledWith({ message: translateIn('en', 'invite.message', { address: linkFor('en') }) });
   await act(async () => {
-    fireEvent.press(screen.getByText(t('invite.copy')));
+    await fireEvent.press(screen.getByText(t('invite.copy')));
   });
   expect(Clipboard.setStringAsync).toHaveBeenCalledWith(translateIn('en', 'invite.message', { address: linkFor('en') }));
   // The only requests: the person's own invitation. No message API, no contact, no recipient.
@@ -116,7 +116,7 @@ it('stops an invitation after a confirmation; the next one is new', async () => 
   await renderScreen();
   await screen.findByTestId('invite-message');
   await act(async () => {
-    fireEvent.press(screen.getByText(t('invite.stop')));
+    await fireEvent.press(screen.getByText(t('invite.stop')));
   });
   expect(dialog.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: t('invite.stop.title'), message: t('invite.stop.body') }));
   expect(api.post).toHaveBeenCalledWith('/referral-invitations/inv-en-1/revoke', {});
