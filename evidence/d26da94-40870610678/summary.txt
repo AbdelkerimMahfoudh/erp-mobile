@@ -1,0 +1,86 @@
+suites 41/43, tests 399/408, failed 9
+FAIL __tests__/promo-code.test.tsx :: the promo code typing moves on; five digits are never checked; Backspace takes the last one back
+  Error: expect(received).toBe(expected) // Object.is equality
+  
+  Expected: "5"
+  Received: ""
+      at Object.toBe (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:210:32)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/promo-code.test.tsx :: the promo code an unavailable code says so in one sentence, and can be removed
+  Error: Unable to find an element with testID: promo-digit-1
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:220:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+      at process.env.NODE_ENV.exports.act (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/react/cjs/react.development.js:890:22)
+FAIL __tests__/promo-code.test.tsx :: the promo code a usable code goes with the registration; without one the registration is the one it always was
+  Error: Unable to find an element with testID: promo-digit-1
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:232:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+      at process.env.NODE_ENV.exports.act (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/react/cjs/react.development.js:890:22)
+FAIL __tests__/promo-code.test.tsx :: the promo code with no code, nothing about a source is sent
+  Error: Unable to find an element with text: Continue
+      at getByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:117:26)
+      at toLastStep (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:132:3)
+      at fillFields (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:138:3)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:140:2)
+      at apply (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:137:24)
+FAIL __tests__/promo-code.test.tsx :: the promo code a source refused at the end sends the person back to it: nothing was saved, and the words say so
+  Error: Unable to find an element with testID: promo-digit-1
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:262:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+      at process.env.NODE_ENV.exports.act (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/react/cjs/react.development.js:890:22)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address a promoter’s card prefills its code and name, is taken out of the route, and goes as the card’s own source
+  Error: Unable to find an element with text: Code from: Sidi Mohamed
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:280:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address an invitation says so, can be left out, and is never sent with a code: the person chooses
+  Error: Unable to find an element with text: You were invited to Dukan ERP.
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:299:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address an address no longer valid gives a short notice and the ordinary registration
+  Error: Unable to find an element with text: This invitation or card is no longer valid. You can still create your business.
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:318:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/invite.test.tsx :: stops an invitation after a confirmation; the next one is new
+  Error: Unable to find an element with testID: invite-message
+      at Object.findByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/invite.test.tsx:117:16)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
