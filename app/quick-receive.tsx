@@ -27,7 +27,7 @@ import {
 } from '../components/receive/PurchasePaymentPicker';
 import { ApiError, api } from '../lib/api-client';
 import { useAuth } from '../hooks/useAuth';
-import { useBranch } from '../lib/branch';
+import { useActiveBranchName, useBranch } from '../lib/branch';
 import { isRTL } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
 import { dialog } from '../lib/dialog';
@@ -120,7 +120,8 @@ function QuickReceiveScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const qc = useQueryClient();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const { user } = useAuth();
 
   const [scanned, setScanned] = useState<Scanned | null>(null);

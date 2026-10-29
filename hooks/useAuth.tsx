@@ -59,6 +59,8 @@ interface AuthContextValue {
   forgetDeletedLogin: () => Promise<void>;
   /** Install a session issued by completing a registration. */
   adoptSession: (tokens: { accessToken: string; refreshToken: string }) => Promise<AuthUser>;
+  /** Read `/auth/me` again — after the Owner renamed the business or themselves (D225). */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -250,6 +252,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return me;
   };
 
+  const refreshUser = async () => {
+    const me = await api.get<AuthUser>('/auth/me');
+    await setItem(TOKEN_KEYS.USER, JSON.stringify(me));
+    setUser(me);
+  };
+
   const forgetDeletedLogin = async () => {
     const namespace = await getItem(SESSION_NAMESPACE_KEY);
     if (namespace) await clearCredential(namespace, IDENTIFIER_SCOPE);
@@ -371,7 +379,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useProtectedRoute(user, bootstrapping, branch.branchId);
 
-  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut, forgetDeletedLogin, adoptSession }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, bootstrapping, signIn, chooseAccount, signOut, forgetDeletedLogin, adoptSession, refreshUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

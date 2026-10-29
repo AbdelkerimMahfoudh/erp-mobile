@@ -47,6 +47,11 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
    * "-300" in Arabic too, as the app shows every figure.
    */
   variant?: 'default' | 'identifier' | 'amount';
+  /**
+   * The script the value is written in, whatever the interface's direction (D225): an Arabic name is typed and read
+   * right to left in the English interface too, and a Latin name left to right in the Arabic one.
+   */
+  script?: 'arabic' | 'latin';
   containerStyle?: StyleProp<ViewStyle>;
 }
 
@@ -59,6 +64,7 @@ export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function 
     icon: Icon,
     trailing,
     variant = 'default',
+    script,
     containerStyle,
     onFocus,
     onBlur,
@@ -138,8 +144,8 @@ export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function 
             fieldInk(editable ? colors.text.primary : colors.text.disabled),
             {
               color: editable ? colors.text.primary : colors.text.disabled,
-              textAlign: isIdentifier ? 'left' : textAlign('start'),
-              writingDirection: writingDirection(isIdentifier || isAmount),
+              textAlign: isIdentifier || script === 'latin' ? 'left' : script === 'arabic' ? 'right' : textAlign('start'),
+              writingDirection: script === 'arabic' ? 'rtl' : writingDirection(isIdentifier || isAmount || script === 'latin'),
             },
             isIdentifier ? styles.identifierInput : null,
             // A revealed password keeps the monospaced treatment so characters

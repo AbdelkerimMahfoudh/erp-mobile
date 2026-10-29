@@ -30,7 +30,7 @@ import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { activityAllows } from '../../lib/activity';
 import { useAgentPositions, useAgentProviders, useQueuedCash } from '../../lib/agent';
 import { provisionalFigure } from '../../lib/agent-positions';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
@@ -99,7 +99,7 @@ export default function MoneyTabScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const granted = usePermissionStore((s) => s.granted);
   const canViewFigures = usePermission('report.view');
   const offline = !useConnectivity((s) => s.online);

@@ -62,7 +62,7 @@ export default function ResultsScreen() {
         headerShown: true,
         title: t('results.title'),
         // The days of the range on screen — the business dates, from Monday for This week (D225).
-        headerRight: canView ? () => <ExportAction days={daysIn(range)} /> : undefined,
+        headerRight: canView ? () => <ExportAction days={daysIn(range)} periodLabel={t(`money.period.${key}` as const)} /> : undefined,
       }}
     />
   );

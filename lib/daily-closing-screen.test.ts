@@ -135,7 +135,7 @@ it('Close the business day: a short popup — the question, then the amounts rig
   assert.match(sheet, /error=\{invalid \? t\('closeDay\.count\.invalid'\) : undefined\}/);
   // A signed figure is written left to right, so "-300" reads "-300" in Arabic too.
   assert.match(code(read('components/ui/Field.tsx')), /variant=\{allowNegative \? 'amount' : 'default'\}/);
-  assert.match(code(read('components/ui/Field.tsx')), /writingDirection: writingDirection\(isIdentifier \|\| isAmount\)/);
+  assert.match(code(read('components/ui/Field.tsx')), /writingDirection: (?:script === 'arabic' \? 'rtl' : )?writingDirection\(isIdentifier \|\| isAmount(?: \|\| script === 'latin')?\)/);
   const field = code(read('components/ui/Field.tsx'));
   assert.match(field, /onChangeText=\{\(text\) => onChangeText\?\.\(maskAmount\(text, allowNegative\)\)\}/);
   assert.match(field, /keyboardType=\{allowNegative \? Platform\.select\(\{ ios: 'numbers-and-punctuation', default: 'numeric' \}\) : 'decimal-pad'\}/);

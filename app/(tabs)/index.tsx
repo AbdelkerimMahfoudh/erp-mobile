@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { displayName } from '../../lib/display-name';
 import { AppState, PixelRatio, View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +32,7 @@ import { dayGate } from '../../lib/day-gate';
 import { SalesBars } from '../../components/home/SalesBars';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { useAuth } from '../../hooks/useAuth';
 import { useConnectivity } from '../../lib/connectivity';
 import { dateLocaleFor } from '../../lib/date-locale';
@@ -73,9 +74,10 @@ export default function HomeScreen() {
   const styles = useStyles();
   const colors = useColors();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { user } = useAuth();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const offline = !useConnectivity((s) => s.online);
   // Today at launch and on every arrival from another tab; a choice made here stays through Quick sell, the Daily
   // closing and the way back.
@@ -183,7 +185,8 @@ export default function HomeScreen() {
   const returnsMore = Boolean(pendingReturns.data?.nextCursor);
   const hasPendingWork = pendingTransferCount > 0 || awaitingRefundCount > 0 || returnRows > 0 || partnerRequests > 0;
 
-  const firstName = user?.name?.trim().split(/\s+/)[0];
+  // D225: the Arabic name in Arabic, once given.
+  const firstName = user ? displayName(user, language).trim().split(/\s+/)[0] : undefined;
   const data = home.data;
   const figures = data?.figures ?? null;
   const fresh = freshness(home.dataUpdatedAt || null);

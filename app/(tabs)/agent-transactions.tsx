@@ -27,7 +27,7 @@ import { exchangeOutcome, outcomeChip } from '../../lib/agent-counter';
 import { prepareAgain, useExchangeScope } from '../../lib/agent-queue';
 import { directionRowKey, HISTORY_PERIODS, periodRange, queuedFirst, searchFilter, type HistoryPeriod, type SearchMode } from '../../lib/agent-history';
 import { DIRECTIONS, type AgentDirection } from '../../lib/agent-rules';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
@@ -63,7 +63,8 @@ export default function AgentTransactionsTab() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const activity = useBranchActivity();
   const access = useBusinessAccess();
   const canView = usePermission('agent.transaction.view');

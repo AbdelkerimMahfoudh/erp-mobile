@@ -24,6 +24,7 @@ import {
 } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { illustrationForLines } from '../../lib/category-illustration';
+import { displayName } from '../../lib/display-name';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
@@ -87,7 +88,7 @@ export default function SaleDetailScreen() {
 }
 
 function Body({ sale }: { sale: SaleDetail }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const status = policyStatus(sale.returnPolicy, t, formatDateTime);
   /**
@@ -114,7 +115,8 @@ function Body({ sale }: { sale: SaleDetail }) {
   const share = async () => {
     setSharing(true);
     try {
-      const shared = await shareReceipt(receiptOf(sale, t, user?.companyName ?? null));
+      const company = user?.companyName ? displayName({ name: user.companyName, nameAr: user.companyNameAr }, language) : null;
+      const shared = await shareReceipt(receiptOf(sale, t, language, company));
       if (!shared) toast.info(t(Platform.OS === 'web' ? 'reportPdf.error.popupBlocked' : 'sell.done.shareFailed'));
     } catch {
       toast.error(t('sell.done.shareFailed'));
@@ -319,13 +321,21 @@ function CancellationNotice({ sale }: { sale: SaleDetail }) {
  * paid by which method and when, and who owes the rest. Never cost or margin;
  * `ReceiptData` has no field for either.
  */
-function receiptOf(sale: SaleDetail, t: ReturnType<typeof useTranslation>['t'], storeName: string | null): ReceiptData {
+function receiptOf(
+  sale: SaleDetail,
+  t: ReturnType<typeof useTranslation>['t'],
+  language: string,
+  storeName: string | null,
+): ReceiptData {
+  // D225 (0111): the names the sale was issued under, in the receipt's language; a sale before 0111, or an older
+  // server, names the live records as it always did.
+  const names = sale.receiptNames;
   return {
     invoiceNo: sale.invoiceNo,
     soldAt: new Date(sale.soldAt),
-    storeName,
-    branchName: sale.branch.name,
-    cashierName: sale.soldBy ?? '',
+    storeName: names?.business ? displayName(names.business, language) : storeName,
+    branchName: displayName(names?.branch ?? sale.branch, language),
+    cashierName: names?.seller ? displayName(names.seller, language) : sale.soldBy ?? '',
     // The customer as named when the sale was confirmed (0108); an older server's answer falls back to the record.
     customer:
       sale.receiptCustomer !== undefined

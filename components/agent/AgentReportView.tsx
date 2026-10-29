@@ -8,7 +8,7 @@ import { useAgentReport, type AgentReport, type FloatView, type ReportDiscrepanc
 import { differenceKind } from '../../lib/agent-money';
 import type { PositionRow } from '../../lib/agent-positions';
 import { REPORT_PERIODS, isEmptyPeriod, reportRange, stepDate, type ReportPeriod } from '../../lib/agent-reports';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { AMOUNT_LABEL, AMOUNT_ROW } from '../../lib/design/amount-row';
 import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
@@ -37,7 +37,7 @@ import { usePermission } from '../../lib/permissions';
 export function AgentReportView({ tab = false }: { tab?: boolean }) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const canView = usePermission('agent.report.view');
   const [period, setPeriod] = useState<ReportPeriod>('day');
   /** A business date inside the period shown; null for the current one — which shares Home's cache for today. */

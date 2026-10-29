@@ -30,7 +30,7 @@ import {
   type PurchasePayment,
 } from '../../components/receive/PurchasePaymentPicker';
 import { api } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { devTiming } from '../../lib/dev-timing';
@@ -145,7 +145,8 @@ function FileReviewScreen() {
   const router = useRouter();
   const leave = useLeave('/receive/file');
   const qc = useQueryClient();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const batch = useFileBatch((s) => s.batch);
   const correct = useFileBatch((s) => s.correct);
   const correctMany = useFileBatch((s) => s.correctMany);

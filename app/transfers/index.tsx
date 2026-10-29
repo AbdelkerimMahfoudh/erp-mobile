@@ -16,7 +16,7 @@ import {
   Text,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { formatSmartDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -56,7 +56,7 @@ export default function TransfersScreen() {
   const router = useRouter();
   const canView = usePermission('transfer.view');
   const canRequest = usePermission('transfer.request');
-  const branchName = useBranch((s) => s.branchName);
+  const branchName = useActiveBranchName();
 
   const [tab, setTab] = useState<Tab>('all');
   const [typed, setTyped] = useState('');

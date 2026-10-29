@@ -27,7 +27,7 @@ import type { PaymentEntry } from '../components/sell/types';
 import { useCreateCustomer, useCustomers, type Customer } from '../lib/customers';
 import { api, ApiError } from '../lib/api-client';
 import { useAuth } from '../hooks/useAuth';
-import { useBranch } from '../lib/branch';
+import { useActiveBranchName, useBranch } from '../lib/branch';
 import { useConnectivity } from '../lib/connectivity';
 import { isolateLtr, isRTL } from '../lib/design/direction';
 import { space } from '../lib/design/tokens';
@@ -38,6 +38,7 @@ import { daysInStock } from '../lib/home-metrics';
 import { saleDebtorFields, type DebtorDraft } from '../lib/sale-payment-rules';
 import { useTranslation } from '../lib/i18n';
 import { illustrationFor } from '../lib/category-illustration';
+import { displayName } from '../lib/display-name';
 import { qk } from '../lib/query-keys';
 import type { ReceiptData } from '../lib/receipt';
 import type { ReturnPolicySnapshot } from '../lib/return-policy';
@@ -127,11 +128,12 @@ function QuickSellScreen() {
   // With no history (a notification, a cold start) leaving goes to the logical parent, never nowhere.
   const leave = useLeave('/quick-sell');
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const offline = !useConnectivity((s) => s.online);
 
   const canViewCost = usePermission('cost.view');
@@ -297,7 +299,7 @@ function QuickSellScreen() {
       invoiceNo: sale.invoiceNo,
       soldAt: new Date(sale.soldAt),
       branchName: branchName ?? '',
-      cashierName: user?.name ?? '',
+      cashierName: user ? displayName(user, language) : '',
       lines: [{ label, identifier, quantity, unitPrice: proposedPrice ?? sale.total }],
       subtotal: gross ?? sale.total,
       discount: discount.amount,

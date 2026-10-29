@@ -12,7 +12,7 @@ import { useOpeningFlow } from '../../components/day/useOpeningFlow';
 import { HistoryPanel } from '../../components/closing/HistoryPanel';
 import { ReportPdfPanel } from '../../components/reports/ReportPdfPanel';
 import { useExchangesHeld } from '../../lib/agent';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
@@ -179,7 +179,7 @@ function Report({
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const online = useConnectivity((s) => s.online);
   // The server's word on business writes (lib/access.ts): a read-only business reads its days and prints them, and changes nothing.
   const access = useBusinessAccess();

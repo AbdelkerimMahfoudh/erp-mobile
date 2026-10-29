@@ -5,7 +5,7 @@ import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
 import { ApiError } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import {
   availableReports,
   exportReport,
@@ -39,12 +39,17 @@ export interface ExportSheetProps {
    * range on those outright.
    */
   days?: number;
+  /**
+   * The screen's own period name — "This week", "Ce mois-ci" (D225). Said instead of "last N days", which on a
+   * calendar period is a different window from the one the reader chose.
+   */
+  periodLabel?: string;
 }
 
-export function ExportSheet({ open, onClose, days = 30 }: ExportSheetProps) {
+export function ExportSheet({ open, onClose, days = 30, periodLabel }: ExportSheetProps) {
   const styles = useStyles();
   const { t } = useTranslation();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   /** Which row is working, so only that row shows a spinner. */
   const [busy, setBusy] = useState<ReportKind | null>(null);
 
@@ -87,10 +92,12 @@ export function ExportSheet({ open, onClose, days = 30 }: ExportSheetProps) {
           and the moment to say so is now — not after it lands in Mail.
         */}
         <Text variant="caption" tone="secondary">
-          {t('reports.scope', {
-            branch: branchName ?? t('reports.allBranches'),
-            days: String(days),
-          })}
+          {periodLabel
+            ? t('reports.scopePeriod', { branch: branchName ?? t('reports.allBranches'), period: periodLabel })
+            : t('reports.scope', {
+                branch: branchName ?? t('reports.allBranches'),
+                days: String(days),
+              })}
         </Text>
 
         {kinds.length === 0 ? (
@@ -107,7 +114,7 @@ export function ExportSheet({ open, onClose, days = 30 }: ExportSheetProps) {
                 title={t(KIND_KEY[kind])}
                 subtitle={
                   PERIOD_KINDS.has(kind)
-                    ? t('reports.period', { days: String(days) })
+                    ? (periodLabel ?? t('reports.period', { days: String(days) }))
                     : t('reports.asOfToday')
                 }
                 leading={Download}

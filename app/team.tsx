@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { UserPlus, Users } from 'lucide-react-native';
-import { Button, Chip, EmptyState, ErrorState, ListRow, PageIntro, RowGroup, Screen, SkeletonList, StatusChip, Text, TextField, Toggle } from '../components/ui';
+import { Button, Chip, EmptyState, ErrorState, ListRow, PageIntro, RowGroup, Screen, SearchInput, SkeletonList, StatusChip, Text, TextField, Toggle } from '../components/ui';
+import { BilingualNameFields, bilingualNameErrors, nameErrorText } from '../components/names/BilingualNameFields';
+import { displayName, matchesName } from '../lib/display-name';
 import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
@@ -43,7 +45,8 @@ const cleanedPhone = (raw: string) => {
 };
 
 export default function TeamScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const [search, setSearch] = useState('');
   const header = <Stack.Screen options={{ headerShown: true, title: t('team.title') }} />;
   const canManage = usePermission('user.manage');
   const access = useBusinessAccess();
@@ -82,7 +85,7 @@ export default function TeamScreen() {
     u.branches.length === 0
       ? t('team.noBranches')
       : u.branches
-          .map((b) => t('team.branchRole', { role: roleLabel(b.role), branch: b.branchName }))
+          .map((b) => t('team.branchRole', { role: roleLabel(b.role), branch: displayName({ name: b.branchName, nameAr: b.branchNameAr }, language) }))
           .join(' · ');
 
   // Non-Owners get a real 403 shape, so the lock and wording match a server
@@ -114,7 +117,9 @@ export default function TeamScreen() {
     );
   }
 
-  const users = usersQuery.data ?? [];
+  // D225: either name finds the person, whichever script it is typed in.
+  const users = (usersQuery.data ?? []).filter((u) => matchesName(u, search));
+  const total = usersQuery.data?.length ?? 0;
 
   return (
     <Screen gap="xl">
@@ -129,17 +134,26 @@ export default function TeamScreen() {
         action={access.canWrite ? <Button title={t('team.add')} icon={UserPlus} onPress={() => setCreating(true)} /> : undefined}
       />
 
-      {users.length === 0 ? (
+      {total > 5 ? <SearchInput value={search} onChangeText={setSearch} placeholder={t('team.search')} /> : null}
+
+      {total === 0 ? (
         <EmptyState icon={Users} title={t('team.empty')} body={t('team.emptyBody')} />
+      ) : users.length === 0 ? (
+        <EmptyState icon={Users} title={t('state.noResults.title')} />
       ) : (
         <RowGroup>
           {users.map((u) => (
             <ListRow
               flat
               key={u.id}
-              title={u.name}
+              title={displayName(u, language)}
               subtitle={branchSummary(u)}
-              accessory={<StatusChip domain="user" value={u.status} />}
+              accessory={
+                <View style={styles.rowChips}>
+                  {u.nameIncomplete ? <Chip tone="warning" label={t('names.incomplete')} /> : null}
+                  <StatusChip domain="user" value={u.status} />
+                </View>
+              }
               onPress={() => setEditing(u)}
             />
           ))}
@@ -194,19 +208,21 @@ function EditSheet({
   onClose: () => void;
   roleLabel: (role: string) => string;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
 
   const [name, setName] = useState('');
+  const [nameAr, setNameAr] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; email?: string; active?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; nameAr?: string; phone?: string; email?: string; active?: string }>({});
 
   useEffect(() => {
     if (!user) return;
     setName(user.name);
+    setNameAr(user.nameAr ?? '');
     setPhone(user.phone ?? '');
     setEmail(user.email ?? '');
     setIsActive(user.isActive);
@@ -242,12 +258,16 @@ function EditSheet({
   const onSubmit = () => {
     if (!user) return;
 
-    const nextErrors: { name?: string; phone?: string; email?: string } = {};
+    const nextErrors: { name?: string; nameAr?: string; phone?: string; email?: string } = {};
     const trimmedName = name.trim();
+    const trimmedNameAr = nameAr.trim();
     const trimmedEmail = email.trim();
     const normalizedPhone = phone.trim() === '' ? '' : cleanedPhone(phone);
 
-    if (trimmedName.length === 0) nextErrors.name = t('team.error.noChanges');
+    // D225: completing the Arabic name is optional here; a name given is held to its script's rule.
+    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr }, { arabicRequired: false });
+    if (named.name) nextErrors.name = nameErrorText(named.name, t);
+    if (named.nameAr) nextErrors.nameAr = nameErrorText(named.nameAr, t);
     if (normalizedPhone !== '' && !E164.test(normalizedPhone)) nextErrors.phone = t('team.error.phone');
     if (trimmedEmail !== '' && !EMAIL.test(trimmedEmail)) nextErrors.email = t('team.error.email');
     setErrors(nextErrors);
@@ -256,6 +276,10 @@ function EditSheet({
     // Send only what changed; '' clears phone/email on the server.
     const body: Record<string, unknown> = {};
     if (trimmedName !== user.name) body.name = trimmedName;
+    // Each name on its own: the server never touches the one not sent.
+    if (trimmedNameAr && trimmedNameAr !== (user.nameAr ?? '')) body.nameAr = trimmedNameAr;
+    // With a name changed and the Arabic one known, both are sent so the server holds both to their rules.
+    if (body.name !== undefined && trimmedNameAr) body.nameAr = trimmedNameAr;
     if (normalizedPhone !== (user.phone ?? '')) body.phone = normalizedPhone;
     if (trimmedEmail !== (user.email ?? '')) body.email = trimmedEmail;
     if (!isSelf && isActive !== user.isActive) body.isActive = isActive;
@@ -297,19 +321,21 @@ function EditSheet({
                 <Chip
                   key={b.branchId}
                   tone="neutral"
-                  label={t('team.branchRole', { role: roleLabel(b.role), branch: b.branchName })}
+                  label={t('team.branchRole', { role: roleLabel(b.role), branch: displayName({ name: b.branchName, nameAr: b.branchNameAr }, language) })}
                 />
               ))
             )}
             <StatusChip domain="user" value={user.status} />
           </View>
 
-          <TextField
-            label={t('team.field.name')}
-            value={name}
-            error={errors.name}
-            onChangeText={setName}
-            maxLength={160}
+          <BilingualNameFields
+            value={{ name, nameAr }}
+            onChange={(next) => {
+              setName(next.name);
+              setNameAr(next.nameAr);
+            }}
+            errors={{ name: errors.name, nameAr: errors.nameAr }}
+            arabicRequired={false}
           />
 
           <TextField
@@ -579,4 +605,5 @@ const styles = StyleSheet.create({
   readValue: { marginTop: space.xs },
   block: { gap: space.xs },
   delegation: { gap: space.sm },
+  rowChips: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
 });

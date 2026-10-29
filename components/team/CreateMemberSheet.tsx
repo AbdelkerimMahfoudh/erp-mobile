@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { BilingualNameFields, bilingualNameErrors, nameErrorText } from '../names/BilingualNameFields';
+import { displayName } from '../../lib/display-name';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, SegmentedControl, Text, TextField, Toggle } from '../ui';
@@ -45,7 +47,7 @@ export function CreateMemberSheet({ open, onClose }: { open: boolean; onClose: (
 }
 
 function CreateMemberForm({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const { branchId: currentBranchId } = useBranch();
 
@@ -55,12 +57,13 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
   });
 
   const [name, setName] = useState('');
+  const [nameAr, setNameAr] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('store_employee');
   // The current store is the obvious first assignment.
   const [stores, setStores] = useState<string[]>(() => (currentBranchId ? [currentBranchId] : []));
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; email?: string; stores?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; nameAr?: string; phone?: string; email?: string; stores?: string }>({});
   const [result, setResult] = useState<StaffInvitationResult | null>(null);
 
   const create = useMutation({
@@ -85,9 +88,13 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
   const submit = () => {
     const next: typeof errors = {};
     const trimmedName = name.trim();
+    const trimmedNameAr = nameAr.trim();
     const trimmedEmail = email.trim();
     const normalizedPhone = phone.trim() === '' ? '' : cleanedPhone(phone);
-    if (!trimmedName) next.name = t('team.create.error.name');
+    // D225: a new person is created with both names.
+    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr }, { arabicRequired: true });
+    if (named.name) next.name = named.name === 'blank' ? t('team.create.error.name') : nameErrorText(named.name, t);
+    if (named.nameAr) next.nameAr = nameErrorText(named.nameAr, t);
     if (!normalizedPhone) next.phone = t('team.create.error.phone');
     if (normalizedPhone && !E164.test(normalizedPhone)) next.phone = t('team.error.phone');
     if (trimmedEmail && !EMAIL.test(trimmedEmail)) next.email = t('team.error.email');
@@ -96,6 +103,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
     if (Object.keys(next).length > 0) return;
     create.mutate({
       name: trimmedName,
+      nameAr: trimmedNameAr,
       phone: normalizedPhone,
       ...(trimmedEmail ? { email: trimmedEmail } : {}),
       branchIds: stores,
@@ -117,7 +125,15 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
           <Text variant="caption" tone="secondary">
             {t('team.create.intro')}
           </Text>
-          <TextField label={t('team.field.name')} value={name} error={errors.name} onChangeText={setName} maxLength={160} autoFocus />
+          <BilingualNameFields
+            value={{ name, nameAr }}
+            onChange={(next) => {
+              setName(next.name);
+              setNameAr(next.nameAr);
+            }}
+            errors={{ name: errors.name, nameAr: errors.nameAr }}
+            arabicRequired
+          />
           <TextField
             label={t('team.field.phone')}
             hint={t('team.create.phoneHint')}
@@ -149,7 +165,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
               <Toggle
                 key={b.id}
                 flat
-                label={b.name}
+                label={displayName(b, language)}
                 value={stores.includes(b.id)}
                 onValueChange={(on) => toggleStore(b.id, on)}
                 // What the switch means for this person at this store, in words — not a bare On/Off.

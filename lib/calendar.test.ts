@@ -68,3 +68,21 @@ it('the period labels say what the period is, in every language', () => {
     }
   }
 });
+
+it('the three time filters read Today, This week, This month in every language and on every screen (owner, 2026-10-29)', () => {
+  const expected = {
+    en: ['Today', 'This week', 'This month'],
+    fr: ['Aujourd’hui', 'Cette semaine', 'Ce mois-ci'],
+    ar: ['هذا اليوم', 'هذا الأسبوع', 'هذا الشهر'],
+  } as const;
+  for (const [lang, catalogue] of [['en', en], ['fr', fr], ['ar', ar]] as const) {
+    const c = catalogue as unknown as Record<string, string>;
+    for (const prefix of ['period', 'money.period', 'agent.period']) {
+      assert.deepEqual([c[`${prefix}.today`], c[`${prefix}.week`], c[`${prefix}.month`]], [...expected[lang]], `${lang} ${prefix}`);
+    }
+    // No filter label counts rolling days any more.
+    for (const prefix of ['period', 'money.period', 'agent.period']) {
+      for (const k of ['today', 'week', 'month']) assert.doesNotMatch(c[`${prefix}.${k}`], /7|30/);
+    }
+  }
+});

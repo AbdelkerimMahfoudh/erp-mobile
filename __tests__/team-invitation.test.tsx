@@ -69,16 +69,25 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('adding a person', () => {
-  async function fill(phone: string) {
+  async function fill(phone: string, nameAr = 'فاطمة') {
     await wrap(<CreateMemberSheet open onClose={() => undefined} />);
     await screen.findByText('Main');
-    const [name, number] = textInputs();
+    // D225: the name in the Latin alphabet, then in Arabic, then the number.
+    const [name, arabic, number] = textInputs();
     await fireEvent.changeText(name, 'Fatima');
+    await fireEvent.changeText(arabic, nameAr);
     await fireEvent.changeText(number, phone);
     await act(async () => {
       await fireEvent(screen.getByText('Main'), 'press');
     });
   }
+
+  it('a new person needs an Arabic name too (D225): without one, nothing is created', async () => {
+    await fill('+222 33 44 55 66', '');
+    await press(t('team.create.submit'));
+    expect(screen.getByText(t('names.error.blank'))).toBeTruthy();
+    expect(api.post).not.toHaveBeenCalled();
+  });
 
   it('a WhatsApp number is required: without one, nothing is created', async () => {
     await fill('');
@@ -99,7 +108,7 @@ describe('adding a person', () => {
     await press(t('team.create.submit'));
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/users');
-    expect(body).toMatchObject({ name: 'Fatima', phone: '+22233445566', role: 'store_employee' });
+    expect(body).toMatchObject({ name: 'Fatima', nameAr: 'فاطمة', phone: '+22233445566', role: 'store_employee' });
     expect(body).not.toHaveProperty('language');
     expect(await screen.findByText(REF)).toBeTruthy();
     expect(screen.getByText(t('team.invite.once'))).toBeTruthy();

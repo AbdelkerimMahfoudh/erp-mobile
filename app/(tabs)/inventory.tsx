@@ -27,7 +27,7 @@ import { inTreeOrder } from '../../lib/category-label';
 import { useCategoryLabel } from '../../lib/use-category-label';
 import { STOCK_THUMB, StockRow } from '../../components/inventory/StockRow';
 import { api } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
 import { formatQuantity } from '../../lib/format';
@@ -84,7 +84,8 @@ export default function InventoryScreen() {
   const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const online = useConnectivity((s) => s.online);
   // Receiving is a business write: not offered while the business is read-only (lib/access.ts).
   const access = useBusinessAccess();

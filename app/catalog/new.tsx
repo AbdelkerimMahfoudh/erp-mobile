@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { clearPendingIntake, notePendingDraft, notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
 import { purchaseItems, type NewProductDraft, type PurchaseOutcome } from '../../lib/receive-outcome';
 import { suggestedTracking } from '../../lib/scan/suggested-tracking';
@@ -68,7 +68,8 @@ export default function NewProductScreen() {
   const styles = useStyles();
   const colors = useColors();
   const { user } = useAuth();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const {
     barcode: scannedBarcode,
     link,

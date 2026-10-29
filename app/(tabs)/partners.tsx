@@ -27,7 +27,7 @@ import { AccessNotice } from '../../components/access';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
 import { ApiError } from '../../lib/api-client';
 import { useAuth } from '../../hooks/useAuth';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { toast } from '../../lib/toast';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
@@ -80,7 +80,7 @@ export default function PartnersScreen() {
   const sections = partnerSections(connections.data?.rows ?? []);
   const open = (c: Connection) => router.push(`/partners/${c.id}` as Href);
 
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const empty =
     sections.received.length + sections.connected.length + sections.sent.length + sections.past.length === 0;
   /** Empty only once the list has actually answered — never inferred while loading. */

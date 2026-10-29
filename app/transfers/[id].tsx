@@ -17,7 +17,7 @@ import {
   Text,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
@@ -70,7 +70,7 @@ export default function TransferDetailScreen() {
 function Detail({ transfer, onRefresh }: { transfer: TransferDetail; onRefresh: () => void }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const branchName = useBranch((s) => s.branchName);
+  const branchName = useActiveBranchName();
   const clearBranch = useBranch((s) => s.clear);
   const action = useTransferAction();
   /** Guards against a double tap firing two requests before the first answers. */

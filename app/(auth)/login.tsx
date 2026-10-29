@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { displayName } from '../../lib/display-name';
 import { View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { LegalPageButtons } from '../../components/legal/LegalPages';
@@ -37,7 +38,7 @@ import { space } from '../../lib/design/tokens';
  */
 export default function Login() {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
@@ -154,7 +155,7 @@ export default function Login() {
           {choice.accounts.map((a) => (
             <Button
               key={a.accountRef}
-              title={a.companyName}
+              title={displayName({ name: a.companyName, nameAr: a.companyNameAr }, language)}
               variant="secondary"
               disabled={loading}
               onPress={() => void onChoose(a.accountRef)}

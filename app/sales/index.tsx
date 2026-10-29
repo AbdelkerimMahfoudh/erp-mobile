@@ -14,7 +14,7 @@ import {
   Text,
 } from '../../components/ui';
 import { ApiError } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { formatSmartDateTime, formatDateTime } from '../../lib/format';
 import { useTranslation } from '../../lib/i18n';
@@ -46,7 +46,7 @@ export default function SalesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const canView = usePermission('sale.view');
-  const branchName = useBranch((s) => s.branchName);
+  const branchName = useActiveBranchName();
 
   const [tab, setTab] = useState<Tab>('all');
   const [typed, setTyped] = useState('');

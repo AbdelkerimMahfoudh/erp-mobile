@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { displayName } from '../../lib/display-name';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
@@ -28,7 +29,7 @@ import {
 } from '../../components/sell/ApprovalRequestSheet';
 import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../components/sell/types';
 import { api, ApiError } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { isolateLtr } from '../../lib/design/direction';
 import { space } from '../../lib/design/tokens';
@@ -104,13 +105,14 @@ interface PendingScan {
 }
 
 function SellScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // Sell sits in the tab navigator, pushed above Quick Sell; its back is the stack's, the same step as the swipe.
   const navigation = useNavigation();
   const stack = navigation.getParent() ?? navigation;
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
 
   const [lines, setLines] = useState<CartLine[]>([]);
 
@@ -412,7 +414,7 @@ function SellScreen() {
       invoiceNo: sale.invoiceNo,
       soldAt: new Date(sale.soldAt),
       branchName: branchName ?? '',
-      cashierName: user?.name ?? '',
+      cashierName: user ? displayName(user, language) : '',
       lines: lines.map((line) => ({
         label: line.label,
         identifier: line.identifier,

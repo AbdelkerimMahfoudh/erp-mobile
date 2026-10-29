@@ -21,7 +21,7 @@ import {
   THUMB_SIZE,
 } from '../../components/ui';
 import { ExpenseLine } from '../../components/money/ExpenseLine';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDate } from '../../lib/format';
@@ -52,7 +52,7 @@ export default function ExpensesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { recorded, sent } = useLocalSearchParams<{ recorded?: string; sent?: string }>();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const canReview = usePermission('expense.review');
   const canViewFigures = usePermission('report.view');
 

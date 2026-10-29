@@ -3,7 +3,7 @@ import { FlatList, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Handshake } from 'lucide-react-native';
 import { Button, Card, EmptyState, ErrorState, MoneyValue, Screen, SkeletonList, Text } from '../../components/ui';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles } from '../../lib/design/theme';
 import { CURRENCY_CODE, formatRelative } from '../../lib/format';
@@ -21,7 +21,7 @@ import { isolateLtr } from '../../lib/design/direction';
 export default function PartnerRankingScreen() {
   const styles = useStyles();
   const { t } = useTranslation();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   const ranking = usePartnerRanking();
   const rows = ranking.data?.pages.flatMap((p) => p.rows) ?? [];
   const first = ranking.data?.pages[0];

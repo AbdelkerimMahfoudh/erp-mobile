@@ -25,7 +25,7 @@ import { money } from '../../lib/theme';
 import { toast } from '../../lib/toast';
 import { dialog } from '../../lib/dialog';
 import { ProductPricingSection } from '../../components/pricing';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import type { ProductDetail } from '../../types/api';
 import { AddCostSheet } from '../../components/cost/AddCostSheet';
 import { formatDate } from '../../lib/format';
@@ -58,7 +58,7 @@ export default function ProductDetailScreen() {
   const queryClient = useQueryClient();
   const canManage = usePermission('catalog.manage');
   const canViewCost = useCanViewCost();
-  const branchName = useBranch((s) => s.branchName);
+  const branchName = useActiveBranchName();
 
   const product = useQuery({
     queryKey: qk.product(String(id)),

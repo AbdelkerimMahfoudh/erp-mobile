@@ -15,7 +15,7 @@ import {
 } from '../../components/ui';
 import { ScannerSheet } from '../../components/scanner';
 import { PriceEditor, PriceSummary } from '../../components/pricing';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { ApiError } from '../../lib/api-client';
@@ -41,7 +41,7 @@ import { isStaleEdit, usePricingUnit, useRemovePrice } from '../../lib/pricing';
  */
 export default function UnitPricingScreen() {
   const { t } = useTranslation();
-  const { branchName } = useBranch();
+  const branchName = useActiveBranchName();
   useLocalSearchParams<{ productId?: string }>(); // arrived from a product; identity still comes from the scan
 
   const [identifier, setIdentifier] = useState('');

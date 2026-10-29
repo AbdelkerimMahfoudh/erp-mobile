@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { TOKEN_KEYS } from '../constants/config';
 import { getItem, setItem, deleteItem } from './storage';
 import type { UserBranch } from '../types/api';
+import { displayName } from './display-name';
+import { useI18n } from './i18n';
 
 // Module-level mirror so the API client can read the active branch synchronously
 // (it can't call a React hook) when injecting the X-Branch-Id header.
@@ -16,6 +18,8 @@ let settled = false;
 interface BranchState {
   branchId: string | null;
   branchName: string | null;
+  /** D225: the store's Arabic name; null until given. Read through {@link useActiveBranchName}. */
+  branchNameAr: string | null;
   role: string | null;
   setBranch: (b: UserBranch) => void;
   hydrate: () => Promise<void>;
@@ -25,12 +29,13 @@ interface BranchState {
 export const useBranch = create<BranchState>((set) => ({
   branchId: null,
   branchName: null,
+  branchNameAr: null,
   role: null,
   setBranch: (b) => {
     settled = true;
     activeBranchId = b.id;
     void setItem(TOKEN_KEYS.BRANCH, JSON.stringify(b));
-    set({ branchId: b.id, branchName: b.name, role: b.role });
+    set({ branchId: b.id, branchName: b.name, branchNameAr: b.nameAr ?? null, role: b.role });
   },
   hydrate: async () => {
     settled = true;
@@ -39,7 +44,7 @@ export const useBranch = create<BranchState>((set) => ({
     try {
       const b = JSON.parse(raw) as UserBranch;
       activeBranchId = b.id;
-      set({ branchId: b.id, branchName: b.name, role: b.role });
+      set({ branchId: b.id, branchName: b.name, branchNameAr: b.nameAr ?? null, role: b.role });
     } catch {
       /* ignore */
     }
@@ -48,7 +53,7 @@ export const useBranch = create<BranchState>((set) => ({
     settled = true;
     activeBranchId = null;
     void deleteItem(TOKEN_KEYS.BRANCH);
-    set({ branchId: null, branchName: null, role: null });
+    set({ branchId: null, branchName: null, branchNameAr: null, role: null });
   },
 }));
 
@@ -70,7 +75,7 @@ const restored: Promise<void> = (async () => {
     if (!token || !raw || settled) return;
     const b = JSON.parse(raw) as UserBranch;
     activeBranchId = b.id;
-    useBranch.setState({ branchId: b.id, branchName: b.name, role: b.role });
+    useBranch.setState({ branchId: b.id, branchName: b.name, branchNameAr: b.nameAr ?? null, role: b.role });
   } catch {
     // Nothing stored, or unreadable: the sign-in bootstrap decides, as before.
   }
@@ -78,4 +83,12 @@ const restored: Promise<void> = (async () => {
 
 export function branchRestored(): Promise<void> {
   return restored;
+}
+
+/** The active store's name in the reader's language (D225): the Arabic one in Arabic, once given. */
+export function useActiveBranchName(): string | null {
+  const name = useBranch((s) => s.branchName);
+  const nameAr = useBranch((s) => s.branchNameAr);
+  const language = useI18n((s) => s.language);
+  return name === null ? null : displayName({ name, nameAr }, language);
 }

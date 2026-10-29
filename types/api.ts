@@ -8,6 +8,8 @@ export type TrackingType = 'imei' | 'serial' | 'quantity';
 export interface AuthUser {
   id: string;
   name: string;
+  /** D225: the Arabic name; null until given (then `name` is shown). Absent from an older server. */
+  nameAr?: string | null;
   login: string;
   companyId: string;
   /**
@@ -15,6 +17,8 @@ export interface AuthUser {
    * session restored from before it was sent has a stored `me` without it.
    */
   companyName?: string;
+  /** D225: the business's Arabic name; null until the Owner gives it. */
+  companyNameAr?: string | null;
   /**
    * Public Store Account ID (Stage 3.2) — the client namespaces its device
    * credential by this, at login and on a restored session. NOT a secret.
@@ -56,7 +60,14 @@ export interface AccountChoice {
   status: 'choose_account';
   continuationToken: string;
   expiresIn: number;
-  accounts: { accountRef: string; companyName: string; userName: string }[];
+  accounts: {
+    accountRef: string;
+    companyName: string;
+    /** D225: absent from an older server, null until given. */
+    companyNameAr?: string | null;
+    userName: string;
+    userNameAr?: string | null;
+  }[];
 }
 
 /** What `/auth/login` may answer: signed in, or "which shop did you mean?". */
@@ -92,6 +103,8 @@ export interface UserDeviceView {
 export interface UserBranch {
   id: string;
   name: string;
+  /** D225: the store's Arabic name; null until the Owner gives it. */
+  nameAr?: string | null;
   type: string;
   role: string;
 }
@@ -556,6 +569,8 @@ export interface JoinConfirmResult {
 export interface TeamUserBranch {
   branchId: string;
   branchName: string;
+  /** D225: null until the Owner gives the store an Arabic name. */
+  branchNameAr?: string | null;
   role: string;
   /**
    * Whether this assignment may receive delegated authority at all — true only
@@ -582,6 +597,10 @@ export interface TeamUserBranch {
 export interface TeamUser {
   id: string;
   name: string;
+  /** D225: the Arabic name; null until given. */
+  nameAr?: string | null;
+  /** D225: no Arabic name yet — shown with `name`, marked for the Owner to complete. */
+  nameIncomplete?: boolean;
   login: string;
   phone: string | null;
   email: string | null;
@@ -805,6 +824,8 @@ export type TransferEvent =
 export interface TransferBranchRef {
   id: string;
   name: string;
+  /** D225: the store's Arabic name, where the server sends it. */
+  nameAr?: string | null;
 }
 
 /** Which way the stock moves, as seen from the branch the user is standing in. */
@@ -944,12 +965,24 @@ export interface SaleDetail {
   soldAt: string;
   branch: TransferBranchRef;
   soldBy: string | null;
+  /** D225: the seller's Arabic name; null until given. */
+  soldByAr?: string | null;
   customer: { id: string; name: string | null; phone: string | null } | null;
   /**
    * Who the receipt names (0108): the customer as they were at confirmation, so a later
    * profile edit never rewrites an old receipt. Older servers omit it.
    */
   receiptCustomer?: { name: string; phone: string | null } | null;
+  /**
+   * D225 (0111): who the receipt says issued it — the business, the store and the seller as named when the sale
+   * was confirmed, in both scripts. A sale before 0111 carries the live names (`snapshot: false`).
+   */
+  receiptNames?: {
+    business: { name: string; nameAr: string | null } | null;
+    branch: { name: string; nameAr: string | null } | null;
+    seller: { name: string; nameAr: string | null } | null;
+    snapshot: boolean;
+  };
   /** Who owes the balance, as one field whichever kind it is (0074). */
   debtor: Debtor | null;
   subtotal: number;

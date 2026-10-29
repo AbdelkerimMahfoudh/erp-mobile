@@ -1,4 +1,5 @@
 import React from 'react';
+import { displayName } from '../lib/display-name';
 import { StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -33,7 +34,7 @@ import type { UserBranch } from '../types/api';
  * spaces.
  */
 export default function SelectBranch() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { setBranch } = useBranch();
   const { signOut, user } = useAuth();
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function SelectBranch() {
         <View style={styles.headText}>
           <Text variant="title">{t('branch.select.title')}</Text>
           <Text variant="body" tone="secondary">
-            {t('branch.select.signedInAs', { name: user?.name ?? '' })}
+            {t('branch.select.signedInAs', { name: user ? displayName(user, language) : '' })}
           </Text>
         </View>
         <Button
@@ -92,7 +93,7 @@ export default function SelectBranch() {
             <ListRow
               key={branch.id}
               leading={branch.type === 'warehouse' ? Warehouse : Store}
-              title={branch.name}
+              title={displayName(branch, language)}
               subtitle={[
                 t(`branch.type.${branch.type}` as never),
                 t(`team.role.${branch.role}` as never),

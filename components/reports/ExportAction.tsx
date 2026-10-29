@@ -15,7 +15,7 @@ import { ExportSheet } from './ExportSheet';
  *
  * ⚠️ The hiding is courtesy, not security. The server refuses the request.
  */
-export function ExportAction({ days }: { days?: number }) {
+export function ExportAction({ days, periodLabel }: { days?: number; periodLabel?: string }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -28,7 +28,7 @@ export function ExportAction({ days }: { days?: number }) {
         accessibilityLabel={t('reports.export')}
         onPress={() => setOpen(true)}
       />
-      <ExportSheet open={open} onClose={() => setOpen(false)} days={days} />
+      <ExportSheet open={open} onClose={() => setOpen(false)} days={days} periodLabel={periodLabel} />
     </>
   );
 }

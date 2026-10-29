@@ -20,7 +20,7 @@ import {
 } from '../../components/ui';
 import { ScannerSheet } from '../../components/scanner';
 import { api } from '../../lib/api-client';
-import { useBranch } from '../../lib/branch';
+import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { dialog } from '../../lib/dialog';
 import { toFriendlyError } from '../../lib/errors';
@@ -68,7 +68,8 @@ export default function NewTransferScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const exit = useLeave('/transfers/new');
-  const { branchId, branchName } = useBranch();
+  const { branchId } = useBranch();
+  const branchName = useActiveBranchName();
   const branches = useQuery({
     queryKey: qk.branches,
     queryFn: () => api.get<UserBranch[]>('/auth/branches'),

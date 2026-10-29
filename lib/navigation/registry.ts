@@ -294,6 +294,8 @@ export const HUBS: readonly Hub[] = [
        */
       { id: 'return-policy', route: '/return-policy', titleKey: 'nav.returnPolicy', icon: 'Undo2', perm: 'return.policy.edit' },
       { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', perm: 'settings.manage' },
+      // D225: the business's and its stores' Latin and Arabic names; the Owner's alone.
+      { id: 'names', route: '/names', titleKey: 'nav.names', icon: 'Building2', perm: 'settings.manage' },
       // Ungated (0103, D221): every Owner, Manager and Employee may invite a shop owner to create their own business.
       // Not Team: nobody joins this business through it.
       { id: 'invite', route: '/invite', titleKey: 'nav.invite', icon: 'Share2' },
@@ -343,7 +345,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings', 'invite'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings', 'names', 'invite'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 
