@@ -2613,12 +2613,12 @@ export const en = {
   'register.section.owner': 'You',
   'register.section.contact': 'How you will sign in',
   'register.section.password': 'Your password',
-  'register.field.businessName': 'Business name',
+  'register.field.businessName': 'Business name (Latin letters)',
   'register.field.businessName.hint': 'The name above your door.',
-  'register.field.branchName': 'This shop',
+  'register.field.branchName': 'This shop (Latin letters)',
   'register.field.branchName.hint': 'The first branch. You can add more later.',
   'register.field.city': 'City',
-  'register.field.ownerName': 'Your name',
+  'register.field.ownerName': 'Your name (Latin letters)',
   'register.field.email': 'Email (optional)',
   'register.field.phone': 'WhatsApp number',
   'register.contact.hint': 'Your WhatsApp number is required: the code goes there, and it is how Dukan ERP reaches you. An email address is optional.',
@@ -4537,4 +4537,8 @@ export const en = {
   'reports.scopePeriod': '{branch} · {period}',
   // ── Names screen (D225) ──
   'nav.names': 'Business and store names',
+  // ── Sign-up Arabic names (D225) ──
+  'register.field.businessNameAr': 'Business name in Arabic (اسم النشاط بالعربية)',
+  'register.field.branchNameAr': 'Store name in Arabic (اسم المتجر بالعربية)',
+  'register.field.ownerNameAr': 'Your name in Arabic (اسمك بالعربية)',
 } as const;

@@ -2550,12 +2550,12 @@ export const ar: Catalogue = {
   'register.section.owner': 'أنت',
   'register.section.contact': 'كيف ستسجّل الدخول',
   'register.section.password': 'كلمة المرور',
-  'register.field.businessName': 'اسم المتجر',
+  'register.field.businessName': 'اسم النشاط بالحروف اللاتينية',
   'register.field.businessName.hint': 'الاسم المكتوب على واجهة المحل.',
-  'register.field.branchName': 'هذا الفرع',
+  'register.field.branchName': 'اسم هذا المتجر بالحروف اللاتينية',
   'register.field.branchName.hint': 'الفرع الأول. يمكنك إضافة غيره لاحقًا.',
   'register.field.city': 'المدينة',
-  'register.field.ownerName': 'اسمك',
+  'register.field.ownerName': 'اسمك بالحروف اللاتينية',
   'register.field.email': 'البريد الإلكتروني (اختياري)',
   'register.field.phone': 'رقم واتساب',
   'register.contact.hint': 'رقم واتساب مطلوب: يُرسل إليه الرمز، وعبره يتواصل معك Dukan ERP. البريد الإلكتروني اختياري.',
@@ -4470,4 +4470,8 @@ export const ar: Catalogue = {
   'reports.scopePeriod': '{branch} · {period}',
   // ── Names screen (D225) ──
   'nav.names': 'اسم النشاط والمتاجر',
+  // ── Sign-up Arabic names (D225) ──
+  'register.field.businessNameAr': 'اسم النشاط بالعربية',
+  'register.field.branchNameAr': 'اسم المتجر بالعربية',
+  'register.field.ownerNameAr': 'اسمك بالعربية',
 };

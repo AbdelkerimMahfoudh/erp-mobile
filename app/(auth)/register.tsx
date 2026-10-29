@@ -89,7 +89,7 @@ const STEP_COUNT = REGISTRATION_STEPS.length;
 const STEP_TITLES = ['register.section.business', 'register.section.owner', 'register.section.contact'] as const;
 
 /** The order of the fields on screen: the first one with a problem is where a screen reader is taken. */
-const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'branchName', 'ownerName', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
+const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'businessNameAr', 'branchName', 'branchNameAr', 'ownerName', 'ownerNameAr', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
 
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
@@ -384,6 +384,18 @@ export default function RegisterScreen() {
                 autoCapitalize="words"
                 error={problem('businessName')}
                 returnKeyType="next"
+                onSubmitEditing={() => inputs.current.businessNameAr?.focus()}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.businessNameAr = node;
+                }}
+                label={t('register.field.businessNameAr')}
+                script="arabic"
+                value={draft.businessNameAr}
+                onChangeText={(v) => set('businessNameAr', v)}
+                error={problem('businessNameAr')}
+                returnKeyType="next"
                 onSubmitEditing={() => inputs.current.branchName?.focus()}
               />
               <TextField
@@ -396,6 +408,18 @@ export default function RegisterScreen() {
                 onChangeText={(v) => set('branchName', v)}
                 autoCapitalize="words"
                 error={problem('branchName')}
+                returnKeyType="next"
+                onSubmitEditing={() => inputs.current.branchNameAr?.focus()}
+              />
+              <TextField
+                ref={(node) => {
+                  inputs.current.branchNameAr = node;
+                }}
+                label={t('register.field.branchNameAr')}
+                script="arabic"
+                value={draft.branchNameAr}
+                onChangeText={(v) => set('branchNameAr', v)}
+                error={problem('branchNameAr')}
                 returnKeyType="next"
                 onSubmitEditing={() => inputs.current.city?.focus()}
               />
@@ -415,6 +439,7 @@ export default function RegisterScreen() {
           ) : null}
 
           {step === 1 ? (
+            <>
             <TextField
               ref={(node) => {
                   inputs.current.ownerName = node;
@@ -426,8 +451,21 @@ export default function RegisterScreen() {
               autoComplete="name"
               error={problem('ownerName')}
               returnKeyType="next"
+              onSubmitEditing={() => inputs.current.ownerNameAr?.focus()}
+            />
+            <TextField
+              ref={(node) => {
+                inputs.current.ownerNameAr = node;
+              }}
+              label={t('register.field.ownerNameAr')}
+              script="arabic"
+              value={draft.ownerNameAr}
+              onChangeText={(v) => set('ownerNameAr', v)}
+              error={problem('ownerNameAr')}
+              returnKeyType="next"
               onSubmitEditing={next}
             />
+            </>
           ) : null}
 
           {last ? (

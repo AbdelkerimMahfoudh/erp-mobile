@@ -34,6 +34,10 @@ const base: RegistrationDraft = {
   ownerName: 'Aicha',
   businessName: 'Nour Electronics',
   branchName: 'Main Store',
+  // D225: every name in Arabic too.
+  ownerNameAr: 'عائشة',
+  businessNameAr: 'نور للإلكترونيات',
+  branchNameAr: 'المتجر الرئيسي',
   password: 'correct horse',
   passwordConfirm: 'correct horse',
   // Ticked by the person — the rules about the consent itself are below.
@@ -108,10 +112,13 @@ it('the draft has no field for a Store ID, a personal ID or any internal id', ()
   // Structural, not a lint rule: there is nowhere to put one.
   assert.deepEqual(Object.keys(emptyRegistration).sort(), [
     'branchName',
+    'branchNameAr',
     'businessName',
+    'businessNameAr',
     'city',
     'email',
     'ownerName',
+    'ownerNameAr',
     'password',
     'passwordConfirm',
     'phone',
@@ -247,16 +254,16 @@ it('the screen keeps no consent copy or version of its own: both come from the s
 
 it('every field with a rule belongs to exactly one step, in the order the screen shows them', () => {
   const all = REGISTRATION_STEPS.flat();
-  assert.deepEqual([...all].sort(), ['branchName', 'businessName', 'email', 'ownerName', 'passwordConfirm', 'password', 'phone', 'whatsappConsent'].sort());
+  assert.deepEqual([...all].sort(), ['branchName', 'branchNameAr', 'businessName', 'businessNameAr', 'email', 'ownerName', 'ownerNameAr', 'passwordConfirm', 'password', 'phone', 'whatsappConsent'].sort());
   assert.equal(new Set(all).size, all.length);
-  assert.deepEqual(REGISTRATION_STEPS[0], ['businessName', 'branchName']);
-  assert.deepEqual(REGISTRATION_STEPS[1], ['ownerName']);
+  assert.deepEqual(REGISTRATION_STEPS[0], ['businessName', 'businessNameAr', 'branchName', 'branchNameAr']);
+  assert.deepEqual(REGISTRATION_STEPS[1], ['ownerName', 'ownerNameAr']);
 });
 
 it('a step is checked on its own fields only: the business step does not complain about a password not yet asked for', () => {
   const problems = validateRegistration(emptyRegistration);
-  assert.deepEqual(Object.keys(stepProblems(problems, 0)), ['businessName', 'branchName']);
-  assert.deepEqual(Object.keys(stepProblems(problems, 1)), ['ownerName']);
+  assert.deepEqual(Object.keys(stepProblems(problems, 0)), ['businessName', 'businessNameAr', 'branchName', 'branchNameAr']);
+  assert.deepEqual(Object.keys(stepProblems(problems, 1)), ['ownerName', 'ownerNameAr']);
   assert.deepEqual(Object.keys(stepProblems(validateRegistration({ ...withPhone, businessName: '' }), 2)), []);
 });
 
@@ -272,6 +279,25 @@ it('the steps reach the server once, at the end: no request between steps', () =
   // The one route change: the registration address arrived with (0103) is taken OUT of the route, never anything put in.
   assert.deepEqual([...register.matchAll(/setParams\(([^)]*)\)/g)].map((m) => m[1]), ['{ r: undefined } as never']);
   assert.doesNotMatch(register.replace('router.setParams({ r: undefined } as never)', ''), /setParams|searchParams|localStorage|setItem\(/, 'the draft is never put in the address or in storage');
+});
+
+
+it('D225: a new business, its first store and its Owner need an Arabic name each, sent with the Latin one', () => {
+  const problems = validateRegistration({ ...base, phone: '+22236000001', ownerNameAr: '', businessNameAr: ' ', branchNameAr: '' });
+  assert.equal(problems.ownerNameAr, 'names.error.blank');
+  assert.equal(problems.businessNameAr, 'names.error.blank');
+  assert.equal(problems.branchNameAr, 'names.error.blank');
+  const body = registrationPayload({ ...base, phone: '+22236000001' }, 'k', 'ar');
+  assert.equal(body.businessNameAr, 'نور للإلكترونيات');
+  assert.equal(body.branchNameAr, 'المتجر الرئيسي');
+  assert.equal(body.ownerNameAr, 'عائشة');
+});
+
+it('D225: each name in the other one’s field is said beside it; a brand name with digits is fine', () => {
+  const swapped = validateRegistration({ ...base, phone: '+22236000001', businessName: 'نور', businessNameAr: 'Nour' });
+  assert.equal(swapped.businessName, 'names.hint.latinHasArabic');
+  assert.equal(swapped.businessNameAr, 'names.hint.arabicNeedsArabic');
+  assert.deepEqual(validateRegistration({ ...base, phone: '+22236000001', businessName: 'PS5 Center', businessNameAr: 'مركز PS5' }), {});
 });
 
 console.log('\n' + passed + ' passed');

@@ -121,11 +121,16 @@ function screenText(): string {
 
 /** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
 async function toLastStep() {
-  const [business, branch] = textInputs();
+  // D225: each name in the Latin alphabet, then in Arabic.
+  const [business, businessAr, branch, branchAr] = textInputs();
   await fireEvent.changeText(business, 'Nour Electronics');
+  await fireEvent.changeText(businessAr, 'نور للإلكترونيات');
   await fireEvent.changeText(branch, 'Main Store');
+  await fireEvent.changeText(branchAr, 'المتجر الرئيسي');
   await fireEvent.press(screen.getByText(t('register.next')));
-  await fireEvent.changeText(textInputs()[0], 'Aicha');
+  const [owner, ownerAr] = textInputs();
+  await fireEvent.changeText(owner, 'Aicha');
+  await fireEvent.changeText(ownerAr, 'عائشة');
   await fireEvent.press(screen.getByText(t('register.next')));
 }
 
@@ -301,16 +306,18 @@ describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
 
   it('keeps every value going back and forward, by its own button or by the way back', async () => {
     await renderWith(<RegisterScreen />);
-    const [business, branch, city] = textInputs();
+    const [business, businessAr, branch, branchAr, city] = textInputs();
     await fireEvent.changeText(business, 'Nour Electronics');
+    await fireEvent.changeText(businessAr, 'نور للإلكترونيات');
     await fireEvent.changeText(branch, 'Main Store');
+    await fireEvent.changeText(branchAr, 'المتجر الرئيسي');
     await fireEvent.changeText(city, 'Rosso');
     await fireEvent.press(screen.getByText(t('register.next')));
     expect(screen.getByText(t('register.step', { current: 2, total: 3 }))).toBeTruthy();
     await fireEvent.changeText(textInputs()[0], 'Aicha');
 
     await fireEvent.press(screen.getByText(t('register.previous')));
-    expect([value(0), value(1), value(2)]).toEqual(['Nour Electronics', 'Main Store', 'Rosso']);
+    expect([value(0), value(1), value(2), value(3), value(4)]).toEqual(['Nour Electronics', 'نور للإلكترونيات', 'Main Store', 'المتجر الرئيسي', 'Rosso']);
     await fireEvent.press(screen.getByText(t('register.next')));
     expect(value(0)).toBe('Aicha');
 

@@ -2789,12 +2789,12 @@ export const fr: Catalogue = {
   'register.section.owner': 'Vous',
   'register.section.contact': 'Comment vous vous connecterez',
   'register.section.password': 'Votre mot de passe',
-  'register.field.businessName': 'Nom du commerce',
+  'register.field.businessName': 'Nom du commerce (lettres latines)',
   'register.field.businessName.hint': 'Le nom inscrit sur votre devanture.',
-  'register.field.branchName': 'Cette boutique',
+  'register.field.branchName': 'Cette boutique (lettres latines)',
   'register.field.branchName.hint': 'La première boutique. Vous pourrez en ajouter d’autres.',
   'register.field.city': 'Ville',
-  'register.field.ownerName': 'Votre nom',
+  'register.field.ownerName': 'Votre nom (lettres latines)',
   'register.field.email': 'E-mail (facultatif)',
   'register.field.phone': 'Numéro WhatsApp',
   'register.contact.hint': 'Votre numéro WhatsApp est obligatoire : le code y est envoyé, et c’est ainsi que Dukan ERP vous contacte. L’adresse e-mail est facultative.',
@@ -4709,4 +4709,8 @@ export const fr: Catalogue = {
   'reports.scopePeriod': '{branch} · {period}',
   // ── Names screen (D225) ──
   'nav.names': 'Noms de l’entreprise et des boutiques',
+  // ── Sign-up Arabic names (D225) ──
+  'register.field.businessNameAr': 'Nom de l’entreprise en arabe (اسم النشاط بالعربية)',
+  'register.field.branchNameAr': 'Nom de la boutique en arabe (اسم المتجر بالعربية)',
+  'register.field.ownerNameAr': 'Votre nom en arabe (اسمك بالعربية)',
 };
