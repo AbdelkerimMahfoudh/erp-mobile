@@ -87,13 +87,14 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "834d8b25-2737-46e8-b911-3eac6d85c2fb"
+        "projectId": "86a08e0d-578d-479f-986d-51706ea99522"
       }
     },
     "locales": {
       "fr": "./locales/fr.json",
       "ar": "./locales/ar.json"
     },
-    "icon": "./assets/images/icon.png"
+    "icon": "./assets/images/icon.png",
+    "owner": "salah_rim"
   }
 }

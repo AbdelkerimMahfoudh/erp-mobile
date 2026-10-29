@@ -29,10 +29,10 @@ const IDENTITY = {
   bundleIdentifier: 'mr.tsxmr.dukanerp',
   package: 'mr.tsxmr.dukanerp',
 };
-/** The EAS project the app is linked to. Its slug is still `phonestore-erp` and Expo does not let a project's
- *  slug change, so EAS commands stay blocked until the owner links a project named `dukan-erp`
- *  (docs/75 §15.3). Replacing this ID is that decision — never a quiet fix. */
-const EAS_PROJECT_ID = '834d8b25-2737-46e8-b911-3eac6d85c2fb';
+/** The EAS project the app is linked to: `@salah_rim/dukan-erp`, created on the owner's decision of 2026-10-29 — Expo
+ *  cannot rename the old `phonestore-erp` project's slug (docs/75 §15.3). Replacing this ID is the owner's decision,
+ *  never a quiet fix. */
+const EAS_PROJECT_ID = '86a08e0d-578d-479f-986d-51706ea99522';
 const PREVIOUS = /retailerp|retail[ _-]erp|phonestore-erp|mr\.retailerp/i;
 
 interface ExpoConfig {

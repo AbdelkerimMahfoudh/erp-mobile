@@ -93,7 +93,7 @@ for (const file of fs.readdirSync(root)) {
 const camera = (app.plugins ?? []).find((p) => Array.isArray(p) && p[0] === 'expo-camera');
 if (!camera || !camera[1]?.cameraPermission) problems.push('app.json: expo-camera has no cameraPermission text (NSCameraUsageDescription)');
 if (!app.ios?.bundleIdentifier) problems.push('app.json: ios.bundleIdentifier is missing');
-if (app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === undefined) {
+if (app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === undefined && app.ios?.config?.usesNonExemptEncryption === undefined) {
   notes.push('app.json: ios.infoPlist.ITSAppUsesNonExemptEncryption is not declared — App Store Connect will ask on every upload (set false: the app uses only standard TLS)');
 }
 if (!app.ios?.privacyManifests) {
