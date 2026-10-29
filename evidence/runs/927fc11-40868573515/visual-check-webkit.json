@@ -1,0 +1,4092 @@
+[
+  {
+    "what": "login en light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 375: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 768: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en light 640 (1280 at 200%): the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 375: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 768: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register en dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register en dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register en dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register en dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup en dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup en dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup en dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup en dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join en dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join en dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join en dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join en dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify en dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify en dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify en dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify en dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login en dark 640 (1280 at 200%): the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr light 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 375: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr light 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 768: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register fr light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup fr light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join fr light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify fr light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr light 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr light 640 (1280 at 200%): the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr dark 320: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 375: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr dark 390: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 768: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register fr dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register fr dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register fr dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register fr dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup fr dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup fr dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup fr dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup fr dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join fr dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join fr dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join fr dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join fr dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify fr dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify fr dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify fr dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify fr dark 1280: the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login fr dark 640 (1280 at 200%): the toggle sits at the header's end (right)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar light 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar light 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar light 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar light 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar light 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar light 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 375: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar light 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar light 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar light 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar light 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 768: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register ar light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar light 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup ar light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar light 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join ar light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar light 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify ar light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar light 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar light 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar light 640 (1280 at 200%): the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar dark 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar dark 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar dark 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 320: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar dark 320: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 375: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 375: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar dark 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar dark 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar dark 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar dark 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar dark 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 390: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar dark 390: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 768: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 768: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 768: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 768: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 768: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 768: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "register ar dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register ar dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register ar dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "register ar dark 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "380px"
+  },
+  {
+    "what": "setup ar dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "setup ar dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "setup ar dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "setup ar dark 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "join ar dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "join ar dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "join ar dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "join ar dark 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "verify ar dark 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "verify ar dark 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "verify ar dark 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 1280: the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "verify ar dark 1280: the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar dark 1280: the form keeps a phone-form width on a desktop",
+    "ok": true,
+    "detail": "414px"
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44",
+    "ok": true,
+    "detail": "48×48 at y 8"
+  },
+  {
+    "what": "login ar dark 640 (1280 at 200%): the toggle sits at the header's end (left)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "first visit with the device in dark: the page is dark before the app starts",
+    "ok": true,
+    "detail": "dark rgb(11, 15, 23)"
+  },
+  {
+    "what": "first visit with the device in dark: the app opens dark",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "the toggle switches to light, and stores it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "the choice survives a reload, over the device’s dark",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "first visit with the device in light: light",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "the toggle is reached by keyboard and switches with Enter",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "the toggle has an accessible name in words",
+    "ok": true,
+    "detail": "Switch to light appearance"
+  },
+  {
+    "what": "the toggle's name is localised (fr)",
+    "ok": true,
+    "detail": "Passer à l’apparence sombre"
+  },
+  {
+    "what": "the toggle's name is localised (ar)",
+    "ok": true,
+    "detail": "التبديل إلى المظهر الداكن"
+  },
+  {
+    "what": "register en: Continue on an empty step focuses its first field",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: a refused field still accepts typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: switching theme keeps every value",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: step 2 of 3",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: the browser's Back goes to the previous step with its values",
+    "ok": false,
+    "detail": "url /register"
+  },
+  {
+    "what": "register en: forward again keeps the Owner's name",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: the last step holds the number, email and both passwords",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: nothing typed is in the address",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: nothing typed is in storage",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 en light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register step 3 en light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register step 3 en light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 en light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: Back twice from the last step is the first step, still filled",
+    "ok": false,
+    "detail": ""
+  },
+  {
+    "what": "register en: Back from a typed first step asks before leaving",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register en: confirming Leave reaches sign-in",
+    "ok": true,
+    "detail": "/login"
+  },
+  {
+    "what": "register fr: Continue on an empty step focuses its first field",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: a refused field still accepts typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: switching theme keeps every value",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: step 2 of 3",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: the browser's Back goes to the previous step with its values",
+    "ok": false,
+    "detail": "url /register"
+  },
+  {
+    "what": "register fr: forward again keeps the Owner's name",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: the last step holds the number, email and both passwords",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: nothing typed is in the address",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: nothing typed is in storage",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 fr light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register step 3 fr light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register step 3 fr light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 fr light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: Back twice from the last step is the first step, still filled",
+    "ok": false,
+    "detail": ""
+  },
+  {
+    "what": "register fr: Back from a typed first step asks before leaving",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register fr: confirming Leave reaches sign-in",
+    "ok": true,
+    "detail": "/login"
+  },
+  {
+    "what": "register ar: Continue on an empty step focuses its first field",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: a refused field still accepts typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: switching theme keeps every value",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: step 2 of 3",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: the browser's Back goes to the previous step with its values",
+    "ok": false,
+    "detail": "url /register"
+  },
+  {
+    "what": "register ar: forward again keeps the Owner's name",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: the last step holds the number, email and both passwords",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: nothing typed is in the address",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: nothing typed is in storage",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 ar light 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "register step 3 ar light 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "register step 3 ar light 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register step 3 ar light 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: Back twice from the last step is the first step, still filled",
+    "ok": false,
+    "detail": ""
+  },
+  {
+    "what": "register ar: Back from a typed first step asks before leaving",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "register ar: confirming Leave reaches sign-in",
+    "ok": true,
+    "detail": "/login"
+  },
+  {
+    "what": "setup en: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup en: switching theme keeps every typed value (2 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join en: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify en: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup fr: switching theme keeps every typed value (2 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join fr: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify fr: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "setup ar: switching theme keeps every typed value (2 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "join ar: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar: the shared header (Dukan ERP and the theme toggle) is shown",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "verify ar: switching theme keeps every typed value (1 field(s))",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "registration: no request to auth/register while moving through the steps",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "registration: the last step sends exactly one POST /auth/register",
+    "ok": true,
+    "detail": "/auth/register"
+  },
+  {
+    "what": "registration: with public activation closed, the screen stays on the form (nothing created)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "strict CSP (script-src 'self' + Expo's hash, no 'unsafe-inline' scripts), device dark: the page starts in dark with no violation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "strict CSP (script-src 'self' + Expo's hash, no 'unsafe-inline' scripts), device light: the page starts in light with no violation",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login light: a focused field has no browser outline (one ring, the app's)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "login dark: a focused field has no browser outline (one ring, the app's)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team fr light 390: the description is at least 12 from the Add button",
+    "ok": true,
+    "detail": "16px"
+  },
+  {
+    "what": "team sheet fr light 390: a tapped field takes and keeps typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet fr light 390: every switch's knob stays in its track, clear of its words",
+    "ok": true,
+    "detail": "ok"
+  },
+  {
+    "what": "team sheet fr light 390: the store switch says \"Y travaille\", never \"On\"",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet fr light 390: the primary action can be brought into view",
+    "ok": true,
+    "detail": "y 796"
+  },
+  {
+    "what": "team sheet fr light 390: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team sheet fr light 390: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team sheet fr light 390: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet fr light 390: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team ar dark 320: the description is at least 12 from the Add button",
+    "ok": true,
+    "detail": "16px"
+  },
+  {
+    "what": "team sheet ar dark 320: a tapped field takes and keeps typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet ar dark 320: every switch's knob stays in its track, clear of its words",
+    "ok": true,
+    "detail": "ok"
+  },
+  {
+    "what": "team sheet ar dark 320: the store switch says \"يعمل هنا\", never \"On\"",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet ar dark 320: the store row reads right to left (name on the right, switch on the left)",
+    "ok": true,
+    "detail": "{\"textAlign\":\"right\",\"knobLeft\":true}"
+  },
+  {
+    "what": "team sheet ar dark 320: the primary action can be brought into view",
+    "ok": true,
+    "detail": "y 780"
+  },
+  {
+    "what": "team sheet ar dark 320: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team sheet ar dark 320: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team sheet ar dark 320: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet ar dark 320: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en light 1280: the description is at least 12 from the Add button",
+    "ok": true,
+    "detail": "16px"
+  },
+  {
+    "what": "team en 1280: content keeps a reading width on a desktop",
+    "ok": true,
+    "detail": "728px"
+  },
+  {
+    "what": "team sheet en light 1280: a tapped field takes and keeps typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en light 1280: every switch's knob stays in its track, clear of its words",
+    "ok": true,
+    "detail": "ok"
+  },
+  {
+    "what": "team sheet en light 1280: the store switch says \"Works here\", never \"On\"",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en light 1280: the primary action can be brought into view",
+    "ok": true,
+    "detail": "y 780"
+  },
+  {
+    "what": "team sheet en light 1280: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team sheet en light 1280: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team sheet en light 1280: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en light 1280: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en dark 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team en dark 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team en dark 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en dark 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team en dark 375: the description is at least 12 from the Add button",
+    "ok": true,
+    "detail": "16px"
+  },
+  {
+    "what": "team sheet en dark 375: a tapped field takes and keeps typing",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en dark 375: every switch's knob stays in its track, clear of its words",
+    "ok": true,
+    "detail": "ok"
+  },
+  {
+    "what": "team sheet en dark 375: the store switch says \"Works here\", never \"On\"",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en dark 375: the primary action can be brought into view",
+    "ok": true,
+    "detail": "y 785"
+  },
+  {
+    "what": "team sheet en dark 375: no horizontal overflow",
+    "ok": true,
+    "detail": "0px"
+  },
+  {
+    "what": "team sheet en dark 375: nothing is pushed past the screen's edge",
+    "ok": true,
+    "detail": "0 element(s)"
+  },
+  {
+    "what": "team sheet en dark 375: no text touches the control under it",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "team sheet en dark 375: text contrast meets WCAG AA",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "every exported route (81) light 320: no overflow, nothing past the edge, no text touching a control",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "every exported route (81) dark 640 (1280 at 200%): no overflow, nothing past the edge, no text touching a control",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "every exported route (81) light 390: no overflow, nothing past the edge, no text touching a control",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "what": "every exported route (81) dark 1280: no overflow, nothing past the edge, no text touching a control",
+    "ok": true,
+    "detail": ""
+  }
+]
