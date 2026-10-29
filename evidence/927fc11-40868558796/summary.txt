@@ -1,0 +1,183 @@
+suites 41/43, tests 395/409, failed 14
+FAIL __tests__/promo-code.test.tsx :: the promo code six boxes on the first step, read left to right even in Arabic, each named for a screen reader
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:188:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/promo-code.test.tsx :: the promo code a pasted code in Arabic digits fills the boxes, keeps its leading zeroes and is checked once, at six digits
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:197:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+FAIL __tests__/promo-code.test.tsx :: the promo code typing moves on; five digits are never checked; Backspace takes the last one back
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at Object.box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:209:84)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+FAIL __tests__/promo-code.test.tsx :: the promo code an unavailable code says so in one sentence, and can be removed
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:220:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+FAIL __tests__/promo-code.test.tsx :: the promo code a usable code goes with the registration; without one the registration is the one it always was
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:232:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+FAIL __tests__/promo-code.test.tsx :: the promo code with no code, nothing about a source is sent
+  Error: `render` function has not been called
+      at Object.get container [as container] (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:18:11)
+      at container (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/tree.ts:15:17)
+      at toLastStep (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:114:40)
+      at toLastStep (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:132:3)
+      at fillFields (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:138:3)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+FAIL __tests__/promo-code.test.tsx :: the promo code a source refused at the end sends the person back to it: nothing was saved, and the words say so
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at getByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:166:35)
+      at box (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:262:28)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:72:33)
+      at callback (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/act.ts:30:24)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address a promoter’s card prefills its code and name, is taken out of the route, and goes as the card’s own source
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:280:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address an invitation says so, can be left out, and is never sent with a code: the person chooses
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:299:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/promo-code.test.tsx :: arriving with a registration address an address no longer valid gives a short notice and the ordinary registration
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByText (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/promo-code.test.tsx:318:25)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/invite.test.tsx :: shows the message in the app’s language with the person’s own invitation address, and says it is not Team
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/invite.test.tsx:83:32)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/invite.test.tsx :: writes the message in the language chosen for its reader — French or Arabic — with that language’s own address
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/invite.test.tsx:92:16)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
+FAIL __tests__/invite.test.tsx :: shares through the phone’s own share sheet, or copies — nothing is sent by Dukan ERP
+  Error: Unable to find an element with testID: invite-message
+  
+  [36m<RNCSafeAreaView>[39m
+    [36m<View>[39m
+      [36m<RCTScrollView>[39m
+        [36m<View>[39m
+          [36m<View[39m
+            [33maccessible[39m=[32m{false}[39m
+          [36m>[39m
+            [36m<View>[39m
+              [36m<Text>[39m
+                [0mSend a shop owner an invitation to create their own business. You share it from your phone; Dukan ERP sends nothing itself.[0m
+FAIL __tests__/invite.test.tsx :: stops an invitation after a confirmation; the next one is new
+  Error: `render` function has not been called
+      at Object.notImplemented (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@testing-library/react-native/src/screen.ts:8:9)
+      at Object.findByTestId (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/invite.test.tsx:117:16)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at /home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at new Promise (<anonymous>)
+      at Object.<anonymous> (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at Promise.finally.completed (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1834:28)
+      at new Promise (<anonymous>)
+      at callAsyncCircusFn (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/jest-circus/build/jestAdapterInit.js:1774:10)
