@@ -31,7 +31,7 @@ jest.mock('../lib/api-client', () => {
   };
 });
 
-const authState: { user: { isTestBusiness?: boolean; isPilotBusiness?: boolean } | null } = { user: null };
+const authState: { user: { isTestBusiness?: boolean } | null } = { user: null };
 jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => authState }));
 
 import { api, ApiError } from '../lib/api-client';
@@ -121,14 +121,4 @@ describe('the test business strip', () => {
     expect(screen.queryByText(t('testBusiness.banner'))).toBeNull();
   });
 
-  it('a pilot (D224) says "Pilot business", never "not a real shop" — and only on a test business', async () => {
-    authState.user = { isTestBusiness: true, isPilotBusiness: true };
-    await renderBanner();
-    expect(screen.getByText(t('pilotBusiness.banner'))).toBeTruthy();
-    expect(screen.queryByText(t('testBusiness.banner'))).toBeNull();
-    await screen.unmount();
-    authState.user = { isTestBusiness: false, isPilotBusiness: true };
-    await renderBanner();
-    expect(screen.queryByText(t('pilotBusiness.banner'))).toBeNull();
-  });
 });

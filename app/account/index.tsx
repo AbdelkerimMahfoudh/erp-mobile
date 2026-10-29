@@ -320,7 +320,7 @@ function WhatsAppSection({ me }: { me: AccountView }) {
     setBusy(false);
   };
 
-  // D224: the platform deferred this number's verification for a controlled test. Said as it is — never "verified".
+  // D224: the platform deferred this number's verification. Said as it is — never "verified".
   const deferred = !me.whatsappVerified && me.phoneVerification === 'deferred_by_platform';
 
   if (!editing) {

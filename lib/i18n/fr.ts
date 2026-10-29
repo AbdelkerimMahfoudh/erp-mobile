@@ -3892,8 +3892,8 @@ export const fr: Catalogue = {
   'account.whatsapp.noNumber': 'Aucun numéro pour l’instant',
   'account.whatsapp.verified': 'Vérifié',
   'account.whatsapp.notVerified': 'Non vérifié',
-  'account.whatsapp.deferredHint': 'La vérification WhatsApp est reportée pour les tests. Ce numéro n’est pas vérifié : les messages WhatsApp et la récupération du compte par WhatsApp restent désactivés tant que vous ne l’avez pas vérifié.',
-  'account.whatsapp.deferred': 'Vérification reportée pour les tests',
+  'account.whatsapp.deferredHint': 'La plateforme a reporté la vérification de ce numéro. Il n’est pas vérifié : les messages WhatsApp et la récupération du compte par WhatsApp restent désactivés tant que vous ne l’avez pas vérifié.',
+  'account.whatsapp.deferred': 'Vérification reportée par la plateforme',
   'account.whatsapp.none':
     'Les codes de sécurité sont envoyés à votre numéro WhatsApp vérifié — y compris le code qui confirme la suppression de votre compte. Vérifiez-en un pour pouvoir supprimer votre compte.',
   'account.whatsapp.verify': 'Vérifier un numéro WhatsApp',
@@ -4456,7 +4456,6 @@ export const fr: Catalogue = {
   'setup.done': '{business} : votre mot de passe est défini. Connectez-vous avec votre numéro WhatsApp et ce mot de passe.',
   'setup.signIn': 'Aller à la connexion',
   'testBusiness.banner': 'Entreprise de test — pour les tests uniquement, pas une vraie boutique',
-  'pilotBusiness.banner': 'Entreprise pilote — test encadré de Dukan ERP',
   'catalog.intake.notice': 'Rien n’est encore enregistré. Le produit est créé avec son stock à la réception de la livraison.',
   'catalog.intake.next': 'Ajouter à la livraison',
   'catalog.intake.usingExisting': 'Ce produit existe déjà. L\'article y sera ajouté.',

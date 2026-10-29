@@ -27,14 +27,12 @@ export function TestBusinessBanner() {
   const { t } = useTranslation();
 
   if (!user?.isTestBusiness) return null;
-  // A pilot (D224) is a real store trying the product under a test business: "not a real shop" would be untrue there.
-  const label = t(user.isPilotBusiness ? 'pilotBusiness.banner' : 'testBusiness.banner');
 
   return (
-    <View style={[styles.bar, { paddingTop: (online ? insets.top : 0) + space.xs }]} accessible accessibilityRole="text" accessibilityLabel={label}>
+    <View style={[styles.bar, { paddingTop: (online ? insets.top : 0) + space.xs }]} accessible accessibilityRole="text" accessibilityLabel={t('testBusiness.banner')}>
       <FlaskConical size={iconSize.sm} color={colors.intent.warning.onSolid} />
       <Text variant="label" style={styles.text} numberOfLines={2}>
-        {label}
+        {t('testBusiness.banner')}
       </Text>
     </View>
   );

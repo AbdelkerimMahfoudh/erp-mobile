@@ -3720,8 +3720,8 @@ export const en = {
   'account.whatsapp.noNumber': 'No number yet',
   'account.whatsapp.verified': 'Verified',
   'account.whatsapp.notVerified': 'Not verified',
-  'account.whatsapp.deferredHint': 'WhatsApp verification is deferred for testing. This number is not verified, so WhatsApp messages and WhatsApp account recovery stay off until you verify it.',
-  'account.whatsapp.deferred': 'Verification deferred for testing',
+  'account.whatsapp.deferredHint': 'The platform deferred the verification of this number. It is not verified, so WhatsApp messages and WhatsApp account recovery stay off until you verify it.',
+  'account.whatsapp.deferred': 'Verification deferred by the platform',
   'account.whatsapp.none':
     'Security codes go to your verified WhatsApp number — including the code that confirms deleting your account. Verify one to be able to delete your account.',
   'account.whatsapp.verify': 'Verify a WhatsApp number',
@@ -4284,7 +4284,6 @@ export const en = {
   'setup.done': '{business}: your password is set. Sign in with your WhatsApp number and this password.',
   'setup.signIn': 'Go to sign in',
   'testBusiness.banner': 'Test business — for testing only, not a real shop',
-  'pilotBusiness.banner': 'Pilot business — controlled test of Dukan ERP',
   'catalog.intake.notice': 'Nothing is saved yet. The product is created with its stock when the delivery is received.',
   'catalog.intake.next': 'Add to delivery',
   'catalog.intake.usingExisting': 'This product already exists. The item will be added to it.',

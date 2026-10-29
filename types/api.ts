@@ -30,8 +30,6 @@ export interface AuthUser {
    * session restored from before it, do not send it — and then it is not one.
    */
   isTestBusiness?: boolean;
-  /** A test business running a controlled store pilot (D224): the banner says "Pilot business" instead. */
-  isPilotBusiness?: boolean;
 }
 
 export interface AuthResponse {
@@ -1658,7 +1656,7 @@ export interface AccountView {
   /** Whether a deletion code can be sent at all. */
   whatsappVerified: boolean;
   /**
-   * D224: `deferred_by_platform` — the platform let this account work in a test business before WhatsApp could verify
+   * D224: `deferred_by_platform` — the platform let this account work before WhatsApp could verify
    * it. NOT verified: everything WhatsApp-dependent stays off. Optional: an API before 0109 does not send it.
    */
   phoneVerification?: 'required' | 'deferred_by_platform' | 'verified';
