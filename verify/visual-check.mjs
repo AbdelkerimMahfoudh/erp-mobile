@@ -223,7 +223,10 @@ for (const lang of ['en', 'fr', 'ar']) {
   await settle(page);
   await page.goto(`${APP}/register`);
   await settle(page);
-  const boxes = () => page.locator('input');
+  // The step's own fields. The first step also offers the promo code's six digit boxes (D221, 0103), counted apart.
+  const boxes = () => page.locator('input:not([data-testid^="promo-digit-"])');
+  const promoDigits = await page.locator('input[data-testid^="promo-digit-"]').count();
+  check(`register ${lang}: the first step offers the promo code, six digit boxes (D221)`, promoDigits === 6, `${promoDigits}`);
   const next = page.getByTestId('register-next');
   await next.click();
   await settle(page);

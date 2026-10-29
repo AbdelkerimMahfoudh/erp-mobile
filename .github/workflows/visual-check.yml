@@ -139,6 +139,18 @@ jobs:
         run: |
           set -o pipefail
           API_ORIGIN=${API%/api/v1} BROWSER=chromium OWNER="$WORK/vc-owner.json" PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/visual-check.mjs | tee "$WORK/results/chromium.txt"
+      - name: Brand — the D224 release gate (verify/brand.mjs), WebKit then Chromium
+        if: ${{ !cancelled() }}
+        # The Dukan ledger mark on the export: the configuration (opaque RGB 1024 icon, iPhone only, the static splash's
+        # colours and size), the 320/375/390 × light/dark × EN/FR/AR (RTL) matrix of the small mark and the wordmark, no
+        # theme-boot flash, the launch animation once and never on navigation, and Reduce Motion. Both engines always run.
+        run: |
+          status=0
+          for b in webkit chromium; do
+            APP="$APP" APPDIR="$GITHUB_WORKSPACE/app" BROWSER=$b PW="$GITHUB_WORKSPACE/tools/verify/node_modules/playwright" OUT="$WORK/results" node tools/verify/brand.mjs > "$WORK/results/brand-$b.txt" 2>&1 || status=1
+            cat "$WORK/results/brand-$b.txt"
+          done
+          exit $status
       - name: No business was created by the browsers (registration sent once, and refused while activation is closed)
         if: ${{ !cancelled() }}
         run: |
@@ -152,6 +164,7 @@ jobs:
           sed -n '/package *expected *found/,/^$/p' "$WORK/results/expo-doctor.txt" 2>/dev/null | head -20 || true
           echo "== Businesses"; cat "$WORK/results/businesses.txt" 2>/dev/null || true
           for b in webkit chromium; do echo "== $b"; grep -E "^FAIL|checks passed" "$WORK/results/$b.txt" 2>/dev/null | tail -15 || true; done
+          for b in webkit chromium; do echo "== brand $b"; grep -E "^FAIL|checks passed" "$WORK/results/brand-$b.txt" 2>/dev/null | tail -15 || true; done
           for f in "$WORK"/results/d219-*.txt; do echo "== $(basename "$f" .txt)"; grep -E "^FAIL|checks passed" "$f" | tail -15 || true; done
       - name: Keep the results
         if: always()
