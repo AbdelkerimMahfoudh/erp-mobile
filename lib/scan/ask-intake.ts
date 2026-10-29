@@ -50,7 +50,11 @@ export async function askScanIntake(result: Pick<ScanResult, 'kind' | 'code'>): 
   const choice = await dialog.choose({
     title: t('intake.identity.title'),
     message: result.code,
-    choices: [t('intake.identity.serial'), t('intake.identity.barcode')],
+    // A title and what it means, both read in full (D225): never one line cut short.
+    choices: [
+      { title: t('intake.identity.unit.title'), description: t('intake.identity.unit.body') },
+      { title: t('intake.identity.model.title'), description: t('intake.identity.model.body') },
+    ],
   });
   if (choice === null) return null;
   return { field: choice === 0 ? 'serial' : 'productBarcode' };

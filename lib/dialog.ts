@@ -35,11 +35,32 @@ export interface DialogRequest {
   /** Hide the cancel button — an acknowledgement rather than a choice. */
   acknowledgeOnly: boolean;
   /**
-   * Several answers instead of confirm: each its own button, and cancel stays.
+   * Several answers instead of confirm: each its own option, and cancel stays.
    * Closing the dialog is never one of the answers.
    */
-  choices?: readonly string[];
+  choices?: readonly DialogChoice[];
   resolve: (result: DialogResult) => void;
+}
+
+/**
+ * One answer to a question with several (D225).
+ *
+ * A decision that matters has to be readable in full: the French "Cet article
+ * précis (son numéro de série)" was cut to "son numéro de s…" on a phone, and
+ * the person could not tell the two answers apart. So an answer is a short
+ * `title` and, when the title alone does not decide it, a `description` — both
+ * wrap onto as many lines as they need and are never truncated.
+ */
+export interface DialogChoice {
+  title: string;
+  description?: string;
+}
+
+/** A bare string is a choice with a title only. */
+export type DialogChoiceInput = string | DialogChoice;
+
+export function toDialogChoice(choice: DialogChoiceInput): DialogChoice {
+  return typeof choice === 'string' ? { title: choice } : choice;
 }
 
 export interface DialogResult {
@@ -53,7 +74,7 @@ export interface ChooseOptions {
   title: string;
   message?: string;
   /** The answers, in order. The result is the index pressed, or null when cancelled. */
-  choices: readonly string[];
+  choices: readonly DialogChoiceInput[];
   cancelLabel?: string;
 }
 
@@ -88,7 +109,11 @@ export const useDialogStore = create<DialogState>((set, get) => ({
 }));
 
 function request(
-  options: ConfirmWithReasonOptions & { requireReason?: boolean; acknowledgeOnly?: boolean; choices?: readonly string[] },
+  options: ConfirmWithReasonOptions & {
+    requireReason?: boolean;
+    acknowledgeOnly?: boolean;
+    choices?: readonly DialogChoiceInput[];
+  },
 ): Promise<DialogResult> {
   return new Promise<DialogResult>((resolve) => {
     useDialogStore.getState().push({
@@ -102,7 +127,7 @@ function request(
       reasonLabel: options.reasonLabel,
       reasonPlaceholder: options.reasonPlaceholder,
       acknowledgeOnly: options.acknowledgeOnly ?? false,
-      choices: options.choices,
+      choices: options.choices?.map(toDialogChoice),
       resolve,
     });
   });

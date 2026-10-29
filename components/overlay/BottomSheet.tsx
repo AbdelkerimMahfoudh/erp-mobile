@@ -66,7 +66,7 @@ export interface BottomSheetProps {
    */
   onDismissed?: () => void;
   title?: string;
-  /** Lines the title may take before it is cut; 1 unless a sheet's title must survive large text. */
+  /** Lines the title may take before it is cut; 2 by default (D225), more where a title must survive large text. */
   titleLines?: number;
   subtitle?: string;
   /** Fraction of screen height the sheet may occupy. */
@@ -93,7 +93,7 @@ export function BottomSheet({
   onClose,
   onDismissed,
   title,
-  titleLines = 1,
+  titleLines = 2,
   subtitle,
   maxHeightRatio = 0.85,
   footer,
@@ -278,8 +278,9 @@ export function BottomSheet({
                       <Text variant="heading" numberOfLines={titleLines}>
                         {title}
                       </Text>
+                      {/* Never cut (D225): a sheet's subtitle is often the question its options answer. */}
                       {subtitle ? (
-                        <Text variant="caption" tone="tertiary" numberOfLines={2}>
+                        <Text variant="caption" tone="tertiary">
                           {subtitle}
                         </Text>
                       ) : null}
