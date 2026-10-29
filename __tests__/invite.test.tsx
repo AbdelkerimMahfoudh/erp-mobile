@@ -60,8 +60,8 @@ function serveInvitations() {
   });
 }
 
-function renderScreen() {
-  render(
+async function renderScreen() {
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <InviteScreen />
@@ -79,7 +79,7 @@ beforeEach(() => {
 });
 
 it('shows the message in the app’s language with the person’s own invitation address, and says it is not Team', async () => {
-  renderScreen();
+  await renderScreen();
   const message = await screen.findByTestId('invite-message');
   expect(message.props.children).toBe(translateIn('en', 'invite.message', { address: linkFor('en') }));
   expect(message.props.children).toBe(`Try Dukan ERP to manage stock, sales and daily store activity. Create your business here: ${linkFor('en')}`);
@@ -88,7 +88,7 @@ it('shows the message in the app’s language with the person’s own invitation
 });
 
 it('writes the message in the language chosen for its reader — French or Arabic — with that language’s own address', async () => {
-  renderScreen();
+  await renderScreen();
   await screen.findByTestId('invite-message');
   fireEvent.press(screen.getByText('العربية'));
   await waitFor(() => expect(screen.getByTestId('invite-message').props.children).toBe(translateIn('ar', 'invite.message', { address: linkFor('ar') })));
@@ -99,7 +99,7 @@ it('writes the message in the language chosen for its reader — French or Arabi
 
 it('shares through the phone’s own share sheet, or copies — nothing is sent by Dukan ERP', async () => {
   const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' } as never);
-  renderScreen();
+  await renderScreen();
   await screen.findByTestId('invite-message');
   fireEvent.press(screen.getByText(t('invite.share')));
   expect(share).toHaveBeenCalledWith({ message: translateIn('en', 'invite.message', { address: linkFor('en') }) });
@@ -113,7 +113,7 @@ it('shares through the phone’s own share sheet, or copies — nothing is sent 
 });
 
 it('stops an invitation after a confirmation; the next one is new', async () => {
-  renderScreen();
+  await renderScreen();
   await screen.findByTestId('invite-message');
   await act(async () => {
     fireEvent.press(screen.getByText(t('invite.stop')));

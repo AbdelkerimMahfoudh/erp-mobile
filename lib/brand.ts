@@ -24,11 +24,10 @@ export const LEDGER = {
 
 export type MarkTone = 'light' | 'dark' | 'mono';
 
-/** The mark's colours per surface, from the tokens: navy and indigo on light, light ink and a lighter indigo on dark. */
+/** The mark's colours per surface, from the palettes' `mark` tokens: navy and indigo on light, light ink and a lighter indigo on dark. */
 export function markColours(tone: MarkTone, mono = '#000000'): { left: string; right: string; highlight: string } {
   if (tone === 'mono') return { left: mono, right: mono, highlight: mono };
-  if (tone === 'dark') return { left: darkColors.text.primary, right: darkColors.brand[400], highlight: darkColors.brand[300] };
-  return { left: lightColors.text.primary, right: lightColors.brand[600], highlight: lightColors.brand[300] };
+  return tone === 'dark' ? darkColors.mark : lightColors.mark;
 }
 
 /**

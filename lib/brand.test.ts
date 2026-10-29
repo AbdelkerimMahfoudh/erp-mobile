@@ -75,7 +75,8 @@ it('the native splash is static, light and dark, on the app’s own canvas colou
   assert.equal(splash.backgroundColor, lightColors.surface.canvas);
   assert.equal(splash.dark.backgroundColor, darkColors.surface.canvas);
   for (const f of [splash.image, splash.dark.image]) assert.equal(colourType(f.replace('./', '')), 6, `${f}: the mark alone, transparent`);
-  assert.match(read('app/_layout.tsx'), /<BrandIntro background=\{colors\.surface\.canvas\}/);
+  assert.match(read('app/_layout.tsx'), /<BrandIntro \/>/);
+  assert.match(read('components/brand/DukanMark.tsx'), /const background = colors\.surface\.canvas;/);
 });
 
 it('this release is iPhone-only, follows the system appearance, and declares its export compliance', () => {
@@ -91,6 +92,10 @@ it('no storefront icon or letter tile stands for the brand; operational store ic
   const header = read('components/auth/AuthChrome.tsx');
   assert.doesNotMatch(header, /\bStore\b/);
   assert.match(header, /<DukanMark /);
+});
+
+it('the launch overlay never takes a touch while it is up', () => {
+  assert.match(read('components/brand/DukanMark.tsx'), /testID="brand-intro" pointerEvents="none"/);
 });
 
 it('the mark is never mirrored for Arabic', () => {

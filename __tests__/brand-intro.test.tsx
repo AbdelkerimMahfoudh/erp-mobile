@@ -18,7 +18,7 @@ beforeEach(() => resetBrandIntroForTests());
 it('plays once, lets every touch through, and is gone when it has played', async () => {
   const first = await render(
     <Harness>
-      <BrandIntro background="#F1F3F8" tone="light" />
+      <BrandIntro />
     </Harness>,
   );
   // The test renderer runs Reanimated's mock: the timings resolve at once, so the overlay has already finished.
@@ -27,15 +27,10 @@ it('plays once, lets every touch through, and is gone when it has played', async
   // A second mount in the same process (a remount, a reload of the tree) shows nothing: the intro is a launch.
   await render(
     <Harness>
-      <BrandIntro background="#F1F3F8" tone="light" />
+      <BrandIntro />
     </Harness>,
   );
   expect(screen.queryByTestId('brand-intro')).toBeNull();
-});
-
-it('the overlay never takes a touch while it is up', () => {
-  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'components', 'brand', 'DukanMark.tsx'), 'utf8') as string;
-  expect(src).toMatch(/testID="brand-intro" pointerEvents="none"/);
 });
 
 it('the mark and the lockup render; the lockup is one accessible image named Dukan ERP', async () => {

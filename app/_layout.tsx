@@ -193,7 +193,7 @@ function AppShell() {
         The launch's first moment, once: the native splash is static, and this takes over from it with the same mark at
         the same place on the same colour, then animates and goes (components/brand/DukanMark.tsx).
       */}
-      <BrandIntro background={colors.surface.canvas} tone={isDark ? 'dark' : 'light'} />
+      <BrandIntro />
     </GestureHandlerRootView>
   );
 }

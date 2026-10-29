@@ -159,6 +159,8 @@ export interface Palette {
     };
   };
   brand: typeof brand;
+  /** The Dukan ledger mark's three layers (the owner's brand pack, 2026-10-29): read here, never chosen by a screen. */
+  mark: { left: string; right: string; highlight: string };
   neutral: typeof neutral;
   intent: Record<'neutral' | 'info' | 'success' | 'warning' | 'danger', IntentColor>;
   /**
@@ -309,6 +311,7 @@ export const lightColors: Palette = {
 
   /** The accent ramp, for the rare case a component needs a specific step. */
   brand,
+  mark: { left: '#172033', right: brand[600], highlight: brand[300] },
   neutral,
 
   /**
@@ -456,6 +459,7 @@ export const darkColors: Palette = {
   },
 
   brand,
+  mark: { left: neutral[100], right: brand[400], highlight: brand[300] },
   neutral,
 
   intent: {

@@ -3,9 +3,9 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { G, Mask, Path, Rect } from 'react-native-svg';
 import { Text } from '../ui/Text';
-import { useColors, useTheme } from '../../lib/design/theme';
+import { useColors } from '../../lib/design/theme';
 import { useReduceMotionSetting } from '../../lib/design/use-reduce-motion';
-import { BRAND_INTRO, LEDGER, markColours, type MarkTone } from '../../lib/brand';
+import { BRAND_INTRO, LEDGER } from '../../lib/brand';
 
 /*
  * The Dukan interlocking-ledger mark (the owner's brand pack, 2026-10-29). Three layers, kept apart because the launch
@@ -35,9 +35,10 @@ function Masks({ id }: { id: string }) {
 
 type Layer = 'left' | 'right' | 'highlight' | 'all';
 
+type MarkInk = { left: string; right: string; highlight: string };
+
 /** One SVG of the mark: all three layers, or one of them (the animation stacks three). */
-function MarkSvg({ size, tone, layer = 'all', id }: { size: number; tone: MarkTone; layer?: Layer; id: string }) {
-  const c = markColours(tone);
+function MarkSvg({ size, ink: c, layer = 'all', id }: { size: number; ink: MarkInk; layer?: Layer; id: string }) {
   return (
     <Svg width={size} height={size} viewBox={LEDGER.viewBox} accessible={false}>
       {layer === 'all' || layer === 'left' || layer === 'right' ? <Masks id={id} /> : null}
@@ -66,13 +67,17 @@ function useMarkId(prefix: string): string {
   return id;
 }
 
-/** The mark alone: below 32 points, the app's headers and anywhere the name is said beside it. */
-export function DukanMark({ size = 24, tone, style }: { size?: number; tone?: MarkTone; style?: StyleProp<ViewStyle> }) {
-  const { isDark } = useTheme();
+/**
+ * The mark alone: below 32 points, the app's headers and anywhere the name is said beside it. Its colours are the
+ * palette's `mark` tokens; `mono` draws it in one ink (`currentColor`'s role) for a single-colour surface.
+ */
+export function DukanMark({ size = 24, mono, style }: { size?: number; mono?: string; style?: StyleProp<ViewStyle> }) {
+  const colors = useColors();
   const id = useMarkId('dm');
+  const ink = mono ? { left: mono, right: mono, highlight: mono } : colors.mark;
   return (
     <View style={style} accessible={false} importantForAccessibility="no-hide-descendants">
-      <MarkSvg size={size} tone={tone ?? (isDark ? 'dark' : 'light')} id={id} />
+      <MarkSvg size={size} ink={ink} id={id} />
     </View>
   );
 }
@@ -109,7 +114,9 @@ export function resetBrandIntroForTests() {
  * second, once. With Reduce Motion the mark is shown still and the overlay goes. Covers the app, then fades out and
  * unmounts; it never blocks a tap after it has gone.
  */
-export function BrandIntro({ background, tone }: { background: string; tone: MarkTone }) {
+export function BrandIntro() {
+  const colors = useColors();
+  const background = colors.surface.canvas;
   const reduce = useReduceMotionSetting();
   const [done, setDone] = useState(introPlayed);
   const id = useMarkId('bi');
@@ -149,17 +156,17 @@ export function BrandIntro({ background, tone }: { background: string; tone: Mar
   const leftStyle = useAnimatedStyle(() => ({ opacity: halves.value, transform: [{ translateX: left.value }] }));
   const rightStyle = useAnimatedStyle(() => ({ opacity: halves.value, transform: [{ translateX: right.value }] }));
   const dashProps = useAnimatedProps(() => ({ strokeDashoffset: dash.value }));
-  const c = markColours(tone);
+  const c = colors.mark;
 
   if (done) return null;
   return (
     <Animated.View testID="brand-intro" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={[StyleSheet.absoluteFill, leftStyle]}>
-          <MarkSvg size={size} tone={tone} layer="left" id={`${id}a`} />
+          <MarkSvg size={size} ink={c} layer="left" id={`${id}a`} />
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, rightStyle]}>
-          <MarkSvg size={size} tone={tone} layer="right" id={`${id}b`} />
+          <MarkSvg size={size} ink={c} layer="right" id={`${id}b`} />
         </Animated.View>
         <Svg width={size} height={size} viewBox={LEDGER.viewBox} style={StyleSheet.absoluteFill}>
           <G id="interlock-highlight" fill="none" stroke={c.highlight} strokeWidth={18} strokeLinecap="round">

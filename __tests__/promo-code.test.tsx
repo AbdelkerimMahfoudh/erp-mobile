@@ -82,8 +82,8 @@ const OWNER = { id: 'u-new', companyId: 'c-new', name: 'Aicha', login: 'aicha', 
 /** Nothing on these screens names a trial, a price, a payment or a website — in words a person reads. */
 const UNSAID = /trial|essai|تجريب|price|\bpay|paiement|MRU|website|\bsite\b|موقع|https?:|www\./i;
 
-function renderWith(node: React.ReactElement, client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })) {
-  render(
+async function renderWith(node: React.ReactElement, client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })) {
+  await render(
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <AuthProvider>{node}</AuthProvider>
@@ -184,7 +184,7 @@ beforeEach(() => {
 
 describe('the promo code', () => {
   it('six boxes on the first step, read left to right even in Arabic, each named for a screen reader', async () => {
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(await screen.findByText(t('register.promo.label'))).toBeTruthy();
     for (let i = 1; i <= 6; i++) expect(box(i).props.accessibilityLabel).toBe(t('register.promo.digit', { n: i }));
     expect(box(1).props.keyboardType).toBe('number-pad');
@@ -192,7 +192,7 @@ describe('the promo code', () => {
 
   it('a pasted code in Arabic digits fills the boxes, keeps its leading zeroes and is checked once, at six digits', async () => {
     answer({ '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' } });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await act(async () => {
       fireEvent.changeText(box(1), '٠٠٤٢١٧');
     });
@@ -205,7 +205,7 @@ describe('the promo code', () => {
 
   it('typing moves on; five digits are never checked; Backspace takes the last one back', async () => {
     answer({});
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     for (const [i, d] of ['1', '2', '3', '4', '5'].entries()) fireEvent.changeText(box(i + 1), d);
     expect(box(5).props.value).toBe('5');
     expect((api.post as jest.Mock).mock.calls).toEqual([]);
@@ -215,7 +215,7 @@ describe('the promo code', () => {
 
   it('an unavailable code says so in one sentence, and can be removed', async () => {
     answer({ '/auth/acquisition/code': { usable: false } });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await act(async () => {
       fireEvent.changeText(box(1), '999999');
     });
@@ -227,7 +227,7 @@ describe('the promo code', () => {
 
   it('a usable code goes with the registration; without one the registration is the one it always was', async () => {
     answer({ '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' } });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await act(async () => {
       fireEvent.changeText(box(1), '004217');
     });
@@ -243,7 +243,7 @@ describe('the promo code', () => {
 
   it('with no code, nothing about a source is sent', async () => {
     answer({});
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await fillForm();
     await act(async () => {
       fireEvent.press(screen.getByText(t('register.submit')));
@@ -257,7 +257,7 @@ describe('the promo code', () => {
       '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' },
       '/auth/register': new ApiError('This promo code is unavailable.', 409, 'acquisition_unavailable'),
     });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     await act(async () => {
       fireEvent.changeText(box(1), '004217');
     });
@@ -276,7 +276,7 @@ describe('arriving with a registration address', () => {
   it('a promoter’s card prefills its code and name, is taken out of the route, and goes as the card’s own source', async () => {
     mockParams = { r: 'QR-TOKEN' };
     answer({ '/auth/acquisition/link': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' } });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(await screen.findByText(t('register.promo.from', { name: 'Sidi Mohamed' }))).toBeTruthy();
     expect(box(1).props.value).toBe('0');
     expect(routerSetParams).toHaveBeenCalledWith({ r: undefined });
@@ -295,7 +295,7 @@ describe('arriving with a registration address', () => {
       '/auth/acquisition/link': { usable: true, source: 'user_invite' },
       '/auth/acquisition/code': { usable: true, source: 'promoter', promoterName: 'Sidi Mohamed', code: '004217' },
     });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(await screen.findByText(t('register.promo.invited'))).toBeTruthy();
     await act(async () => {
       fireEvent.changeText(box(1), '004217');
@@ -314,7 +314,7 @@ describe('arriving with a registration address', () => {
   it('an address no longer valid gives a short notice and the ordinary registration', async () => {
     mockParams = { r: 'OLD-TOKEN' };
     answer({ '/auth/acquisition/link': { usable: false } });
-    renderWith(<RegisterScreen />);
+    await renderWith(<RegisterScreen />);
     expect(await screen.findByText(t('register.promo.addressInvalid'))).toBeTruthy();
     await fillForm();
     await act(async () => {
