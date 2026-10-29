@@ -1,4 +1,4 @@
-import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { Platform, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { layoutIsRTL } from './layout-direction';
 
 /**
@@ -36,9 +36,31 @@ export function isRTL(): boolean {
  */
 export function textAlign(align: 'start' | 'end' | 'center' = 'start'): TextStyle['textAlign'] {
   if (align === 'center') return 'center';
+  /*
+   * D225, the owner's iPhone retest: on the phone, React Native already reads 'left' and 'right' against the layout
+   * direction — `RCTResolveTextAlignment` turns 'left' into right-aligned text once the layout is RTL. This used to
+   * flip them again, so every Arabic title on the iPhone was pushed to the far side of its row, a wide gap from its
+   * icon. The browser does not flip (react-native-web writes CSS `text-align` as given), which is why the
+   * Chromium/WebKit checks never saw it. So: on the phone, start is 'left' and RN flips it; on the web, the physical
+   * side is computed here.
+   */
+  if (NATIVE_RESOLVES_ALIGNMENT) return align === 'start' ? 'left' : 'right';
   const rtl = layoutIsRTL();
   if (align === 'start') return rtl ? 'right' : 'left';
   return rtl ? 'left' : 'right';
+}
+
+/** iOS and Android resolve 'left'/'right' against the layout direction; react-native-web does not. */
+const NATIVE_RESOLVES_ALIGNMENT = Platform.OS !== 'web';
+
+/**
+ * A physical side, whatever the layout direction: an Arabic name typed in the English interface sits right, a Latin
+ * one in the Arabic interface sits left. On the phone that means asking for the opposite in an RTL layout, because RN
+ * swaps it back (see {@link textAlign}).
+ */
+export function physicalTextAlign(side: 'left' | 'right'): 'left' | 'right' {
+  if (NATIVE_RESOLVES_ALIGNMENT && layoutIsRTL()) return side === 'left' ? 'right' : 'left';
+  return side;
 }
 
 /**

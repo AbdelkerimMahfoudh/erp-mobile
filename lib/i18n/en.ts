@@ -4541,4 +4541,6 @@ export const en = {
   'register.field.businessNameAr': 'Business name in Arabic (اسم النشاط بالعربية)',
   'register.field.branchNameAr': 'Store name in Arabic (اسم المتجر بالعربية)',
   'register.field.ownerNameAr': 'Your name in Arabic (اسمك بالعربية)',
+  // ── Product name (D225) ──
+  'brand.name': 'Dukan ERP',
 } as const;

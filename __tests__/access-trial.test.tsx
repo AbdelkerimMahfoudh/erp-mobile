@@ -376,7 +376,7 @@ describe('instructions that were sent — by which channel, to which contact, on
     await whatsapp.view.unmount();
 
     const latest = await cardFor({ delivery: 'not_sent', lastSentAt: SENT_AT });
-    expect(screen.getByText(`أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في ${day}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم Dukan ERP.`)).toBeTruthy();
+    expect(screen.getByText(`أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في ${day}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم تطبيق دكان.`)).toBeTruthy();
     expect(pressables(latest.card)).toHaveLength(0);
   });
 });

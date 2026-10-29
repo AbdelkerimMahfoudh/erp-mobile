@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { radius, space, touch, type as typeScale } from '../../lib/design/tokens';
-import { textAlign, writingDirection } from '../../lib/design/direction';
+import { physicalTextAlign, textAlign, writingDirection } from '../../lib/design/direction';
 import { CURRENCY_CODE } from '../../lib/format';
 import { maskAmount } from '../../lib/price-input';
 import { useTranslation } from '../../lib/i18n';
@@ -144,7 +144,7 @@ export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function 
             fieldInk(editable ? colors.text.primary : colors.text.disabled),
             {
               color: editable ? colors.text.primary : colors.text.disabled,
-              textAlign: isIdentifier || script === 'latin' ? 'left' : script === 'arabic' ? 'right' : textAlign('start'),
+              textAlign: isIdentifier ? 'left' : script ? physicalTextAlign(script === 'arabic' ? 'right' : 'left') : textAlign('start'),
               writingDirection: script === 'arabic' ? 'rtl' : writingDirection(isIdentifier || isAmount || script === 'latin'),
             },
             isIdentifier ? styles.identifierInput : null,

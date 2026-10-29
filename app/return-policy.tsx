@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { physicalTextAlign } from '../lib/design/direction';
 import { StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -167,7 +168,7 @@ export default function ReturnPolicyScreen() {
       numberOfLines={4}
       maxLength={POLICY_TEXT_MAX + 200}
       // Arabic is written right to left whatever the app's own language.
-      textAlign={lang === 'ar' ? 'right' : 'left'}
+      textAlign={physicalTextAlign(lang === 'ar' ? 'right' : 'left')}
       placeholder={t('returnPolicy.text.placeholder')}
     />
   );

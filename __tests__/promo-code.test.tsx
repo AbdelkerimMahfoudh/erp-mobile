@@ -111,11 +111,15 @@ function screenText(): string {
 
 /** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
 async function toLastStep() {
-  const [business, branch] = textInputs();
+  // D225: each name in the Latin alphabet, then in Arabic.
+  const [business, businessAr, branch, branchAr] = textInputs();
   await fireEvent.changeText(business, 'Nour Electronics');
+  await fireEvent.changeText(businessAr, 'نور للإلكترونيات');
   await fireEvent.changeText(branch, 'Main Store');
+  await fireEvent.changeText(branchAr, 'المتجر الرئيسي');
   await fireEvent.press(screen.getByText(t('register.next')));
   await fireEvent.changeText(textInputs()[0], 'Aicha');
+  await fireEvent.changeText(textInputs()[1], 'عائشة');
   await fireEvent.press(screen.getByText(t('register.next')));
 }
 

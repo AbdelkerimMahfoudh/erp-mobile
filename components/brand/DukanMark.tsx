@@ -6,6 +6,7 @@ import { Text } from '../ui/Text';
 import { useColors } from '../../lib/design/theme';
 import { useReduceMotionSetting } from '../../lib/design/use-reduce-motion';
 import { BRAND_INTRO, LEDGER } from '../../lib/brand';
+import { useTranslation } from '../../lib/i18n';
 
 /*
  * The Dukan interlocking-ledger mark (the owner's brand pack, 2026-10-29). Three layers, kept apart because the launch
@@ -85,17 +86,25 @@ export function DukanMark({ size = 24, mono, style }: { size?: number; mono?: st
 /** The Dukan ERP lockup — the mark and the name — where space permits. The name stays text, so it reads in any font size. */
 export function DukanLockup({ size = 32, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
   const colors = useColors();
+  const { t, language } = useTranslation();
   return (
-    <View style={[styles.lockup, style]} accessible accessibilityRole="image" accessibilityLabel="Dukan ERP">
+    <View style={[styles.lockup, style]} accessible accessibilityRole="image" accessibilityLabel={t('brand.name')}>
       <DukanMark size={size} />
-      <View>
+      {/* D225: in Arabic the product is تطبيق دكان, one line, never "Dukan ERP" — and no letter-spacing on Arabic. */}
+      {language === 'ar' ? (
         <Text variant="bodyStrong" style={{ color: colors.text.primary }}>
-          Dukan
+          {t('brand.name')}
         </Text>
-        <Text variant="label" style={{ color: colors.text.accent, letterSpacing: 2 }}>
-          ERP
-        </Text>
-      </View>
+      ) : (
+        <View>
+          <Text variant="bodyStrong" style={{ color: colors.text.primary }}>
+            Dukan
+          </Text>
+          <Text variant="label" style={{ color: colors.text.accent, letterSpacing: 2 }}>
+            ERP
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

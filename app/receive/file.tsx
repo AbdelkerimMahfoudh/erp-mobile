@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { mirror } from '../../lib/design/direction';
 import { FlatList, Pressable, ScrollView, View, type ListRenderItem } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useLeave } from '../../components/navigation/HeaderBack';
@@ -812,7 +813,10 @@ const GroupRow = React.memo(function GroupRow({
           </Text>
         </View>
         <View style={!open && isRTL() ? styles.flip : undefined}>
-          <Chevron size={20} color={colors.text.tertiary} />
+          {/* Closed, it points to the reading end: mirrored in Arabic. Open, it points down in every language. */}
+          <View style={open ? undefined : mirror()}>
+            <Chevron size={20} color={colors.text.tertiary} />
+          </View>
         </View>
       </Pressable>
       {matchable ? (

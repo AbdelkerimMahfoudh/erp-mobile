@@ -4713,4 +4713,6 @@ export const fr: Catalogue = {
   'register.field.businessNameAr': 'Nom de l’entreprise en arabe (اسم النشاط بالعربية)',
   'register.field.branchNameAr': 'Nom de la boutique en arabe (اسم المتجر بالعربية)',
   'register.field.ownerNameAr': 'Votre nom en arabe (اسمك بالعربية)',
+  // ── Product name (D225) ──
+  'brand.name': 'Dukan ERP',
 };
