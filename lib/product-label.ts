@@ -13,10 +13,16 @@ import type { InventoryProduct } from '../types/api';
  * nothing here may hardcode "storage" or "colour".
  */
 
+/**
+ * What naming reads from a product — every row that shows one carries these, whatever else it carries
+ * (a stock row's category is its picture, an inventory product's is nested).
+ */
+export type LabelledProduct = Pick<InventoryProduct, 'brand' | 'model' | 'variant' | 'barcode' | 'trackingType' | 'specifications'>;
+
 /** Values that identify a variant rather than describe it in prose. */
 const MAX_ATTRIBUTES = 3;
 
-export function productTitle(product: InventoryProduct | null, fallback = ''): string {
+export function productTitle(product: LabelledProduct | null, fallback = ''): string {
   if (!product) return fallback;
   return [product.brand, product.model].filter(Boolean).join(' ') || fallback;
 }
@@ -28,7 +34,7 @@ export function productTitle(product: InventoryProduct | null, fallback = ''): s
  * ordered as the category defined them — the first fields a category declares
  * are the ones it considers identifying.
  */
-export function variantAttributes(product: InventoryProduct | null): string[] {
+export function variantAttributes(product: LabelledProduct | null): string[] {
   if (!product) return [];
 
   const attributes: string[] = [];
@@ -52,7 +58,7 @@ export function variantAttributes(product: InventoryProduct | null): string[] {
 }
 
 /** `256GB · Black`, or empty when the product has nothing distinguishing. */
-export function variantSummary(product: InventoryProduct | null): string {
+export function variantSummary(product: LabelledProduct | null): string {
   return variantAttributes(product).join(' · ');
 }
 
@@ -64,7 +70,7 @@ export function variantSummary(product: InventoryProduct | null): string {
  * case when a screen is cracked and the barcode will not scan.
  */
 export function searchHaystack(
-  product: InventoryProduct | null,
+  product: LabelledProduct | null,
   ...extras: (string | null | undefined)[]
 ): string {
   return [

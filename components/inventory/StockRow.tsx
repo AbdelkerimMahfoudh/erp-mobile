@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Cable, MonitorSmartphone, Smartphone } from 'lucide-react-native';
 import { Chip, Text } from '../ui';
+import { CategoryIllustrationIcon } from '../ui/CategoryIllustration';
+import { illustrationFor } from '../../lib/category-illustration';
 import { usePressed } from '../ui/use-pressed';
 import { isolateLtr } from '../../lib/design/direction';
 import { radius, space } from '../../lib/design/tokens';
@@ -21,8 +22,8 @@ import type { StockSummaryRow } from '../../types/api';
  * The catalogue has no product images. The only image field in the schema is
  * `units.image_ref` — a photo of ONE handset — and showing it as the picture of
  * every phone of that variant would be a different device presented as exact.
- * So the tile is a neutral category mark, and it is hidden from screen readers
- * because it says nothing the title does not.
+ * So the tile is the product's category illustration (D225), and it is hidden
+ * from screen readers because it says nothing the title does not.
  *
  * ## The price never overstates what is known
  *
@@ -50,8 +51,6 @@ export interface StockRowProps {
   onPress: () => void;
 }
 
-const CATEGORY_ICON = { phone: Smartphone, accessory: Cable, other: MonitorSmartphone } as const;
-
 /** The leading tile's size; the list's separator inset is derived from it. */
 export const STOCK_THUMB = 44;
 
@@ -75,7 +74,8 @@ export function StockRow({ row, onPress }: StockRowProps) {
   const { t } = useTranslation();
   const { pressed, pressHandlers } = usePressed();
 
-  const Icon = CATEGORY_ICON[row.category];
+  // D225: drawn from the product's category — a console is a console, never "other" drawn as a desktop.
+  const illustration = illustrationFor(row.categoryVisual, row.trackingType);
   const title = productTitle(row);
   const variant = variantSummary(row);
   const price = priceLabel(row, t as never);
@@ -101,7 +101,7 @@ export function StockRow({ row, onPress }: StockRowProps) {
       style={[styles.row, pressed ? styles.pressed : null]}
     >
       <View style={styles.thumb} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Icon color={colors.text.accent} size={20} />
+        <CategoryIllustrationIcon name={illustration} color={colors.text.accent} size={20} />
       </View>
 
       <View style={styles.body}>

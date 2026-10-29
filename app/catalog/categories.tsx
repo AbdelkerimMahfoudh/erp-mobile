@@ -18,6 +18,13 @@ import {
   Toggle,
 } from '../../components/ui';
 import { BottomSheet, SelectSheet } from '../../components/overlay';
+import { IllustrationPicker } from '../../components/catalog/IllustrationPicker';
+import { ILLUSTRATION_ICONS } from '../../components/ui/CategoryIllustration';
+import {
+  illustrationForCategory,
+  isCategoryIllustration,
+  type CategoryIllustration,
+} from '../../lib/category-illustration';
 import { inTreeOrder } from '../../lib/category-label';
 import { useCategoryLabel } from '../../lib/use-category-label';
 import { ApiError, api } from '../../lib/api-client';
@@ -41,6 +48,9 @@ import type { Category, TrackingType } from '../../types/api';
  * Cables › USB-C, …), shown in the reader's language by their stable key. A
  * built-in can only be hidden or shown again; the shop adds its own categories,
  * top-level or one level under another.
+ *
+ * D225: each row wears its category's picture, the one its products show in
+ * Stock and Sale; a shop's own category may be given one from the library.
  */
 export default function CategoriesScreen() {
   const { t } = useTranslation();
@@ -102,6 +112,7 @@ export default function CategoriesScreen() {
           {rows.map(({ category: c, depth }) => (
             <View key={c.id} style={depth ? styles.child : undefined}>
               <ListRow
+                leading={ILLUSTRATION_ICONS[illustrationForCategory(c.id, categories.data, c.defaultTrackingType)]}
                 title={label(c)}
                 subtitle={t(`catalog.tracking.${c.defaultTrackingType}` as never)}
                 // Status in colour AND words — never colour alone.
@@ -161,6 +172,7 @@ function CategorySheet({
   const [tracking, setTracking] = useState<TrackingType>('quantity');
   const [isActive, setIsActive] = useState(true);
   const [parentId, setParentId] = useState<string | null>(null);
+  const [icon, setIcon] = useState<CategoryIllustration | null>(null);
   const [parentSheet, setParentSheet] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
@@ -175,6 +187,7 @@ function CategorySheet({
     setTracking(existing?.defaultTrackingType ?? 'quantity');
     setIsActive(existing?.isActive ?? true);
     setParentId(existing?.parentId ?? null);
+    setIcon(isCategoryIllustration(existing?.icon) ? existing.icon : null);
     setError(undefined);
   }, [category, existing]);
 
@@ -182,9 +195,10 @@ function CategorySheet({
     mutationFn: () => {
       if (existing && builtIn) return api.patch<Category>(`/categories/${existing.id}`, { isActive });
       const body = { name: name.trim(), defaultTrackingType: tracking };
+      // `icon: null` clears a chosen picture; a new category sends one only when chosen.
       return existing
-        ? api.patch<Category>(`/categories/${existing.id}`, { ...body, isActive, parentId })
-        : api.post<Category>('/categories', { ...body, ...(parentId ? { parentId } : {}) });
+        ? api.patch<Category>(`/categories/${existing.id}`, { ...body, isActive, parentId, icon })
+        : api.post<Category>('/categories', { ...body, ...(parentId ? { parentId } : {}), ...(icon ? { icon } : {}) });
     },
     onSuccess: () => {
       toast.success(t(existing ? 'categories.updated' : 'categories.created'));
@@ -277,6 +291,8 @@ function CategorySheet({
             onPress={() => setParentSheet(true)}
           />
         )}
+
+        <IllustrationPicker value={icon} onChange={setIcon} />
         </>
         )}
 

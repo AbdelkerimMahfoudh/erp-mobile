@@ -16,6 +16,7 @@ import { MoneyValue } from '../ui/MoneyValue';
 import { Card } from '../ui/Surface';
 import { Text } from '../ui/Text';
 import { Thumbnail } from '../ui/Thumbnail';
+import type { CategoryIllustration } from '../../lib/category-illustration';
 import { ReceivedVia, type MoneySource } from '../money/ReceivedVia';
 import { DebtorPicker } from './DebtorPicker';
 import { PayerNumberField } from './PayerNumberField';
@@ -98,6 +99,8 @@ export interface PaymentSheetProps {
   onComplete: (payments: PaymentEntry[], debtor: DebtorDraft, dueInDays: number | null) => void;
   /** What is being sold, said once at the top: "iPhone 13 · 128 GB". */
   summary?: string | null;
+  /** The picture of what is being sold, from its category (D225). The neutral generic when absent. */
+  illustration?: CategoryIllustration;
   /** The customer already chosen for this sale, if any: the natural debtor. */
   presetCustomer?: { id: string; name: string | null; phone?: string | null } | null;
   submitting?: boolean;
@@ -132,6 +135,7 @@ function PaymentSheetBody({
   total,
   onComplete,
   summary = null,
+  illustration,
   submitting = false,
   accounts,
   presetCustomer = null,
@@ -463,7 +467,7 @@ function PaymentSheetBody({
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
         {summary ? (
           <View style={styles.what}>
-            <Thumbnail />
+            <Thumbnail illustration={illustration} />
             <Text variant="bodyStrong" numberOfLines={2} style={styles.grow}>
               {summary}
             </Text>

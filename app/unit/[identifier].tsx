@@ -4,7 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddCostSheet } from '../../components/cost/AddCostSheet';
 import { toast } from '../../lib/toast';
-import { Pencil, Smartphone } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -19,6 +19,8 @@ import {
   Text,
 } from '../../components/ui';
 import { ActivityTimeline } from '../../components/inventory/ActivityTimeline';
+import { CategoryIllustrationIcon } from '../../components/ui/CategoryIllustration';
+import { illustrationForNested, type NestedCategory } from '../../lib/category-illustration';
 import { api, ApiError } from '../../lib/api-client';
 import { usePermission } from '../../lib/permissions';
 import { radius, space } from '../../lib/design/tokens';
@@ -52,7 +54,7 @@ interface UnitDetail {
   /** Absent without `cost.view`; `null` when it was received without one (0107) — never zero. */
   cost?: number | null;
   dateIn?: string;
-  product?: { brand: string; model: string; variant: string | null; trackingType?: string };
+  product?: { brand: string; model: string; variant: string | null; trackingType?: string; category?: NestedCategory | null };
   branch?: { name: string } | null;
   purchase?: { referenceNo: string | null; date: string } | null;
   timeline: UnitHistoryEvent[];
@@ -118,7 +120,11 @@ export default function UnitDetailScreen() {
           <Card>
             <View style={styles.product}>
               <View style={styles.thumb} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Smartphone color={colors.text.accent} size={22} />
+                <CategoryIllustrationIcon
+                  name={illustrationForNested(data.product?.category, data.product?.trackingType)}
+                  color={colors.text.accent}
+                  size={22}
+                />
               </View>
               <View style={styles.productText}>
                 <Text variant="title" accessibilityRole="header">

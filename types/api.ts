@@ -96,11 +96,26 @@ export interface UserBranch {
   role: string;
 }
 
+/**
+ * What a row that shows a product carries for its picture (D225): the product's category, its built-in
+ * key, the icon a shop chose for its own category, and the same for the parent. Resolved by
+ * `lib/category-illustration.ts`; null when the product is filed under no category.
+ */
+export interface CategoryVisual {
+  categoryId: string;
+  key: string | null;
+  icon: string | null;
+  parentKey: string | null;
+  parentIcon: string | null;
+}
+
 export interface Category {
   id: string;
   name: string;
   /** A built-in category's stable key (D223); null for a shop's own. Shown translated by key. */
   key?: string | null;
+  /** The picture a shop's own category wears (D225), from the server's closed list; null for none chosen. */
+  icon?: string | null;
   /** The top-level category this one is filed under, one level deep. */
   parentId?: string | null;
   defaultTrackingType: TrackingType;
@@ -277,6 +292,12 @@ export interface InventoryProduct {
    * most for aggregated rows that have no identifier to tell them apart.
    */
   specifications: Record<string, unknown> | null;
+  /** The product's category, for its picture (D225). Absent from an older server. */
+  category?: {
+    key: string | null;
+    icon: string | null;
+    parent: { key: string | null; icon: string | null } | null;
+  } | null;
 }
 
 /** One serialized device: an identifier and a lifecycle status. */
@@ -375,6 +396,8 @@ export interface StockSummaryRow {
   trackingType: TrackingType;
   specifications: Record<string, unknown> | null;
   category: 'phone' | 'accessory' | 'other';
+  /** The product's category, for its picture (D225). */
+  categoryVisual?: CategoryVisual | null;
   /** Sellable now: in-stock units, or physical quantity minus reserved. */
   available: number;
   /** Physically held. */
@@ -871,6 +894,8 @@ export interface SaleLine {
   product: string | null;
   barcode: string | null;
   trackingType: string | null;
+  /** The product's category, for its picture (D225). */
+  categoryVisual?: CategoryVisual | null;
   quantity: number;
   price: number;
   discount: number;
@@ -1570,6 +1595,8 @@ export interface SaleSelection {
     storage: string | null;
     colour: string | null;
     trackingType: TrackingType;
+    /** The product's category, for its picture (D225). */
+    categoryVisual?: CategoryVisual | null;
   };
   /** The price the sale will charge, by the sale's own ladder. Null when not sellable here, or unpriced. */
   price: number | null;

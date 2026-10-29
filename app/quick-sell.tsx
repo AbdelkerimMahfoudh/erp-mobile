@@ -37,6 +37,7 @@ import { formatDate, formatMoney } from '../lib/format';
 import { daysInStock } from '../lib/home-metrics';
 import { saleDebtorFields, type DebtorDraft } from '../lib/sale-payment-rules';
 import { useTranslation } from '../lib/i18n';
+import { illustrationFor } from '../lib/category-illustration';
 import { qk } from '../lib/query-keys';
 import type { ReceiptData } from '../lib/receipt';
 import type { ReturnPolicySnapshot } from '../lib/return-policy';
@@ -870,6 +871,9 @@ function QuickSellScreen() {
                 .filter(Boolean)
                 .join(' · ')
             : null
+        }
+        illustration={
+          picked ? illustrationFor(picked.selection.product.categoryVisual, picked.selection.product.trackingType) : undefined
         }
         presetCustomer={customer ? { id: customer.id, name: customer.name, phone: customer.phone } : null}
         submitting={submitting}

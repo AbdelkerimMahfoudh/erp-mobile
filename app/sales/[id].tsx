@@ -23,6 +23,7 @@ import {
   Thumbnail,
 } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
+import { illustrationForLines } from '../../lib/category-illustration';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
@@ -140,7 +141,7 @@ function Body({ sale }: { sale: SaleDetail }) {
       {/* The phone: what was sold, which exact one, and where the sale stands. */}
       <Card style={styles.phone}>
         <View style={styles.phoneHead}>
-          <Thumbnail size="lg" />
+          <Thumbnail size="lg" illustration={illustrationForLines(sale.lines)} />
           <View style={styles.grow}>
             <Text variant="heading">{first?.product ?? t('saleRow.noProduct', { invoice: sale.invoiceNo })}</Text>
             <Text variant="caption" tone="secondary">
