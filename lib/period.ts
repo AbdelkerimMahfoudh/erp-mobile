@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { daysIn, monthToDate, weekToDate } from './calendar.ts';
 
 /**
  * The period Money and Results are looking at — one choice, shared.
@@ -31,14 +32,15 @@ export interface DayRange {
  *
  * `today` is the branch's BUSINESS date when the caller knows it (0076: the
  * server's 06:00 rule, never the phone's midnight); the UTC calendar date is
- * only the fallback while that answer is still loading.
+ * only the fallback while that answer is still loading. "This week" is the
+ * calendar week so far, from its Monday (D225, `lib/calendar.ts`) — the same
+ * dates the server's Home and reports use.
  */
 export function periodRange(key: PeriodKey, now: Date = new Date(), today?: string): DayRange {
   const to = today ?? now.toISOString().slice(0, 10);
   if (key === 'today') return { from: to, to };
-  if (key === 'month') return { from: `${to.slice(0, 7)}-01`, to };
-  const from = new Date(Date.parse(`${to}T00:00:00.000Z`) - 6 * 86_400_000).toISOString().slice(0, 10);
-  return { from, to };
+  if (key === 'month') return monthToDate(to);
+  return weekToDate(to);
 }
 
 interface PeriodState {
@@ -51,8 +53,7 @@ export const usePeriod = create<PeriodState>((set) => ({
   setKey: (key) => set({ key }),
 }));
 
-/** How many days a period spans, for tools that take a day count (the export). */
-export function periodDays(key: PeriodKey, now: Date = new Date()): number {
-  const r = periodRange(key, now);
-  return Math.round((Date.parse(`${r.to}T00:00:00Z`) - Date.parse(`${r.from}T00:00:00Z`)) / 86_400_000) + 1;
+/** How many days a period spans so far, for tools that take a day count (the export). */
+export function periodDays(key: PeriodKey, now: Date = new Date(), today?: string): number {
+  return daysIn(periodRange(key, now, today));
 }

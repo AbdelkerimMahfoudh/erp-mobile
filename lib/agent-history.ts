@@ -1,3 +1,4 @@
+import { weekToDate } from './calendar.ts';
 import { toAsciiDigits } from './price-input.ts';
 import type { AgentDirection, LegAccount, LegDirection, LegKind } from './agent-rules.ts';
 import type { QueueItem } from './offline/queue-rules.ts';
@@ -27,8 +28,8 @@ export function addDays(date: string, days: number): string {
 
 /**
  * The business dates a period covers, ending on the branch's business day (the
- * server's, as the positions report it): today; yesterday; the seven days to
- * today; the month so far; or every day.
+ * server's, as the positions report it): today; yesterday; the calendar week so
+ * far, from its Monday (D225); the month so far; or every day.
  */
 export function periodRange(period: HistoryPeriod, businessDate: string): { from?: string; to?: string } {
   switch (period) {
@@ -39,7 +40,7 @@ export function periodRange(period: HistoryPeriod, businessDate: string): { from
       return { from: day, to: day };
     }
     case 'week':
-      return { from: addDays(businessDate, -6), to: businessDate };
+      return weekToDate(businessDate);
     case 'month':
       return { from: `${businessDate.slice(0, 7)}-01`, to: businessDate };
     default:

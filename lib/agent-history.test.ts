@@ -27,7 +27,8 @@ const it = (name: string, fn: () => void) => {
 it('periods end on the branch’s business day, counted in the calendar', () => {
   assert.deepEqual(periodRange('today', '2026-10-09'), { from: '2026-10-09', to: '2026-10-09' });
   assert.deepEqual(periodRange('yesterday', '2026-10-01'), { from: '2026-09-30', to: '2026-09-30' });
-  assert.deepEqual(periodRange('week', '2026-10-03'), { from: '2026-09-27', to: '2026-10-03' });
+  // D225: the calendar week so far — Saturday 3 October 2026 is in the week of Monday 28 September.
+  assert.deepEqual(periodRange('week', '2026-10-03'), { from: '2026-09-28', to: '2026-10-03' });
   assert.deepEqual(periodRange('month', '2026-10-09'), { from: '2026-10-01', to: '2026-10-09' });
   assert.deepEqual(periodRange('all', '2026-10-09'), {});
   assert.equal(addDays('2024-03-01', -1), '2024-02-29');

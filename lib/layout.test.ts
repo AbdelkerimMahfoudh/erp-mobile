@@ -29,16 +29,19 @@ const PROFIT = {
 
 const NOW = new Date('2026-09-15T13:00:00Z');
 
-it('Today is one day, 7 days includes today, This month is month-to-date', () => {
+it('Today is one day, This week is the calendar week so far from Monday, This month is month-to-date', () => {
+  // 2026-09-15 is a Tuesday (D225): the week began on Monday the 14th.
   assert.deepEqual(periodRange('today', NOW), { from: '2026-09-15', to: '2026-09-15' });
-  assert.deepEqual(periodRange('week', NOW), { from: '2026-09-09', to: '2026-09-15' });
+  assert.deepEqual(periodRange('week', NOW), { from: '2026-09-14', to: '2026-09-15' });
   assert.deepEqual(periodRange('month', NOW), { from: '2026-09-01', to: '2026-09-15' });
-  assert.equal(periodDays('week', NOW), 7);
+  assert.equal(periodDays('week', NOW), 2);
   assert.equal(periodDays('month', NOW), 15);
 });
 
-it('7 days crosses a month boundary correctly', () => {
-  assert.deepEqual(periodRange('week', new Date('2026-03-02T01:00:00Z')), { from: '2026-02-24', to: '2026-03-02' });
+it('This week crosses a month boundary correctly', () => {
+  // Wednesday 4 March 2026: the week began on Monday 2 March; Sunday 1 March closed the week before.
+  assert.deepEqual(periodRange('week', new Date('2026-03-04T10:00:00Z')), { from: '2026-03-02', to: '2026-03-04' });
+  assert.deepEqual(periodRange('week', NOW, '2026-03-01'), { from: '2026-02-23', to: '2026-03-01' });
 });
 
 it('Money and Results read the same period store and the same selector', () => {

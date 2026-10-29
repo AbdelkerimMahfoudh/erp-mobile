@@ -26,7 +26,8 @@ import { formatDayRange, formatMoney } from '../lib/format';
 import { useConnectivity } from '../lib/connectivity';
 import { useTranslation } from '../lib/i18n';
 import { usePermission } from '../lib/permissions';
-import { periodDays, usePeriod } from '../lib/period';
+import { usePeriod } from '../lib/period';
+import { daysIn } from '../lib/calendar';
 import { usePeriodRange } from '../lib/home';
 import { usePeriodSummary, type PeriodSummary } from '../lib/analytics-summary';
 import { resultLines } from '../lib/results';
@@ -60,7 +61,8 @@ export default function ResultsScreen() {
       options={{
         headerShown: true,
         title: t('results.title'),
-        headerRight: canView ? () => <ExportAction days={periodDays(key)} /> : undefined,
+        // The days of the range on screen — the business dates, from Monday for This week (D225).
+        headerRight: canView ? () => <ExportAction days={daysIn(range)} /> : undefined,
       }}
     />
   );
