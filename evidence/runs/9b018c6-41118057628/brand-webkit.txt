@@ -1,0 +1,46 @@
+PASS  the brand contract was read from the checkout
+PASS  the launch animation lasts 800–1100 ms (the pack’s motion contract)
+PASS  the iOS icon is a PNG of 1024×1024
+PASS  the iOS icon is opaque RGB: colour type 2, 8-bit, no alpha channel
+PASS  the iOS icon carries no transparency chunk (tRNS)
+PASS  iPhone only: ios.supportsTablet is false
+PASS  light and dark follow the device: userInterfaceStyle automatic
+PASS  the static splash is the mark on the light canvas
+PASS  the static splash has its dark variant on the dark canvas
+PASS  the splash image is as wide as the animation’s mark, so the hand-over does not move it
+PASS  Android has the adaptive icon’s layers
+PASS  matrix 320px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 320px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 320px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  matrix 320px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 320px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 320px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  matrix 375px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 375px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 375px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  matrix 375px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 375px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 375px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  matrix 390px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 390px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 390px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  matrix 390px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 390px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR
+PASS  matrix 390px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL
+PASS  no theme-boot flash: a dark phone, no stored choice — every sample painted dark (72 samples, 15 before the app was ready)
+PASS  no theme-boot flash: a light phone, dark chosen in the app — every sample painted dark (69 samples, 13 before the app was ready)
+PASS  no theme-boot flash: a dark phone, light chosen in the app — every sample painted light (70 samples, 15 before the app was ready)
+PASS  the launch animation covers the first moment
+PASS  the animation’s background is the light canvas, as the static splash
+PASS  the animation’s mark is 200 wide, as the splash image
+PASS  the halves move (the animation plays)
+PASS  the animation ends and goes (~1060 ms + 180 ms fade)
+PASS  sign-in offers registration inside the app (for the navigation check)
+PASS  navigating to registration does not play the animation again
+PASS  navigating back does not play it again
+PASS  Reduce Motion: the halves never move (no overlay painted, or one still pose)
+PASS  Reduce Motion: nothing is held for the animation (gone within 1060 ms, if shown at all)
+PASS  Reduce Motion: if it is shown, it is on the dark canvas
+PASS  Reduce Motion: the sign-in screen is there, with its mark, and no overlay remains
+
+webkit: brand 44/44 checks passed (matrix 18/18)
