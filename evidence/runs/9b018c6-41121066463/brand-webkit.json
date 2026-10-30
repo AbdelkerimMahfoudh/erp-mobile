@@ -1,0 +1,227 @@
+{
+ "browser": "webkit",
+ "passed": 44,
+ "failed": 0,
+ "results": [
+  {
+   "what": "the brand contract was read from the checkout",
+   "ok": true,
+   "detail": "{\"size\":200,\"totalMs\":1060,\"fadeMs\":180,\"reducedHoldMs\":250}"
+  },
+  {
+   "what": "the launch animation lasts 800–1100 ms (the pack’s motion contract)",
+   "ok": true,
+   "detail": "1060"
+  },
+  {
+   "what": "the iOS icon is a PNG of 1024×1024",
+   "ok": true,
+   "detail": "1024×1024"
+  },
+  {
+   "what": "the iOS icon is opaque RGB: colour type 2, 8-bit, no alpha channel",
+   "ok": true,
+   "detail": "type 2, depth 8"
+  },
+  {
+   "what": "the iOS icon carries no transparency chunk (tRNS)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "iPhone only: ios.supportsTablet is false",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "light and dark follow the device: userInterfaceStyle automatic",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the static splash is the mark on the light canvas",
+   "ok": true,
+   "detail": "#F1F3F8 ./assets/images/splash-icon.png"
+  },
+  {
+   "what": "the static splash has its dark variant on the dark canvas",
+   "ok": true,
+   "detail": "{\"image\":\"./assets/images/splash-icon-dark.png\",\"backgroundColor\":\"#0B0F17\"}"
+  },
+  {
+   "what": "the splash image is as wide as the animation’s mark, so the hand-over does not move it",
+   "ok": true,
+   "detail": "200 vs 200"
+  },
+  {
+   "what": "Android has the adaptive icon’s layers",
+   "ok": true,
+   "detail": "foregroundImage,backgroundImage,monochromeImage,backgroundColor"
+  },
+  {
+   "what": "matrix 320px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark en: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark fr: small mark, three layers in the tokens, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark ar: small mark, three layers in the tokens, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "no theme-boot flash: a dark phone, no stored choice — every sample painted dark (71 samples, 14 before the app was ready)",
+   "ok": true,
+   "detail": "71 samples, 14 before ready"
+  },
+  {
+   "what": "no theme-boot flash: a light phone, dark chosen in the app — every sample painted dark (70 samples, 14 before the app was ready)",
+   "ok": true,
+   "detail": "70 samples, 14 before ready"
+  },
+  {
+   "what": "no theme-boot flash: a dark phone, light chosen in the app — every sample painted light (70 samples, 14 before the app was ready)",
+   "ok": true,
+   "detail": "70 samples, 14 before ready"
+  },
+  {
+   "what": "the launch animation covers the first moment",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the animation’s background is the light canvas, as the static splash",
+   "ok": true,
+   "detail": "rgb(241, 243, 248)"
+  },
+  {
+   "what": "the animation’s mark is 200 wide, as the splash image",
+   "ok": true,
+   "detail": "200"
+  },
+  {
+   "what": "the halves move (the animation plays)",
+   "ok": true,
+   "detail": "44 distinct poses of 62"
+  },
+  {
+   "what": "the animation ends and goes (~1060 ms + 180 ms fade)",
+   "ok": true,
+   "detail": "1248 ms"
+  },
+  {
+   "what": "sign-in offers registration inside the app (for the navigation check)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "navigating to registration does not play the animation again",
+   "ok": true,
+   "detail": "http://127.0.0.1:4320/register"
+  },
+  {
+   "what": "navigating back does not play it again",
+   "ok": true,
+   "detail": "http://127.0.0.1:4320/login"
+  },
+  {
+   "what": "Reduce Motion: the halves never move (no overlay painted, or one still pose)",
+   "ok": true,
+   "detail": "1 distinct poses of 1"
+  },
+  {
+   "what": "Reduce Motion: nothing is held for the animation (gone within 1060 ms, if shown at all)",
+   "ok": true,
+   "detail": "17 ms"
+  },
+  {
+   "what": "Reduce Motion: if it is shown, it is on the dark canvas",
+   "ok": true,
+   "detail": "rgb(11, 15, 23)"
+  },
+  {
+   "what": "Reduce Motion: the sign-in screen is there, with its mark, and no overlay remains",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}
