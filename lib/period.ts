@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { daysIn, monthToDate, weekToDate } from './calendar.ts';
+import { businessDateOf, daysIn, monthToDate, weekToDate } from './calendar.ts';
 
 /**
  * The period Money and Results are looking at — one choice, shared.
@@ -31,13 +31,14 @@ export interface DayRange {
  * The inclusive day range a period covers, ending on `today`. Pure, for tests.
  *
  * `today` is the branch's BUSINESS date when the caller knows it (0076: the
- * server's 06:00 rule, never the phone's midnight); the UTC calendar date is
- * only the fallback while that answer is still loading. "This week" is the
+ * server's 06:00 rule, never the phone's midnight); while that answer is still
+ * loading, the same 06:00 rule is applied on the first market's clock
+ * (`businessDateOf`), so Monday 05:59 is never shown as the new week. "This week" is the
  * calendar week so far, from its Monday (D225, `lib/calendar.ts`) — the same
  * dates the server's Home and reports use.
  */
 export function periodRange(key: PeriodKey, now: Date = new Date(), today?: string): DayRange {
-  const to = today ?? now.toISOString().slice(0, 10);
+  const to = today ?? businessDateOf(now);
   if (key === 'today') return { from: to, to };
   if (key === 'month') return monthToDate(to);
   return weekToDate(to);
