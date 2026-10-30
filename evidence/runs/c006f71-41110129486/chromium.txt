@@ -1,0 +1,693 @@
+PASS  login en light 320: no horizontal overflow — 0px
+PASS  login en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 320: no text touches the control under it
+PASS  login en light 320: text contrast meets WCAG AA
+PASS  login en light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 320: the toggle sits at the header's end (right)
+PASS  register en light 320: no horizontal overflow — 0px
+PASS  register en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en light 320: no text touches the control under it
+PASS  register en light 320: text contrast meets WCAG AA
+PASS  register en light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en light 320: the toggle sits at the header's end (right)
+PASS  setup en light 320: no horizontal overflow — 0px
+PASS  setup en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en light 320: no text touches the control under it
+PASS  setup en light 320: text contrast meets WCAG AA
+PASS  setup en light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en light 320: the toggle sits at the header's end (right)
+PASS  join en light 320: no horizontal overflow — 0px
+PASS  join en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en light 320: no text touches the control under it
+PASS  join en light 320: text contrast meets WCAG AA
+PASS  join en light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en light 320: the toggle sits at the header's end (right)
+PASS  verify en light 320: no horizontal overflow — 0px
+PASS  verify en light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en light 320: no text touches the control under it
+PASS  verify en light 320: text contrast meets WCAG AA
+PASS  verify en light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en light 320: the toggle sits at the header's end (right)
+PASS  login en light 375: no horizontal overflow — 0px
+PASS  login en light 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 375: no text touches the control under it
+PASS  login en light 375: text contrast meets WCAG AA
+PASS  login en light 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 375: the toggle sits at the header's end (right)
+PASS  login en light 390: no horizontal overflow — 0px
+PASS  login en light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 390: no text touches the control under it
+PASS  login en light 390: text contrast meets WCAG AA
+PASS  login en light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 390: the toggle sits at the header's end (right)
+PASS  register en light 390: no horizontal overflow — 0px
+PASS  register en light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en light 390: no text touches the control under it
+PASS  register en light 390: text contrast meets WCAG AA
+PASS  register en light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en light 390: the toggle sits at the header's end (right)
+PASS  setup en light 390: no horizontal overflow — 0px
+PASS  setup en light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en light 390: no text touches the control under it
+PASS  setup en light 390: text contrast meets WCAG AA
+PASS  setup en light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en light 390: the toggle sits at the header's end (right)
+PASS  join en light 390: no horizontal overflow — 0px
+PASS  join en light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en light 390: no text touches the control under it
+PASS  join en light 390: text contrast meets WCAG AA
+PASS  join en light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en light 390: the toggle sits at the header's end (right)
+PASS  verify en light 390: no horizontal overflow — 0px
+PASS  verify en light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en light 390: no text touches the control under it
+PASS  verify en light 390: text contrast meets WCAG AA
+PASS  verify en light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en light 390: the toggle sits at the header's end (right)
+PASS  login en light 768: no horizontal overflow — 0px
+PASS  login en light 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 768: no text touches the control under it
+PASS  login en light 768: text contrast meets WCAG AA
+PASS  login en light 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 768: the toggle sits at the header's end (right)
+PASS  login en light 1280: no horizontal overflow — 0px
+PASS  login en light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 1280: no text touches the control under it
+PASS  login en light 1280: text contrast meets WCAG AA
+PASS  login en light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 1280: the toggle sits at the header's end (right)
+PASS  login en light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register en light 1280: no horizontal overflow — 0px
+PASS  register en light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en light 1280: no text touches the control under it
+PASS  register en light 1280: text contrast meets WCAG AA
+PASS  register en light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en light 1280: the toggle sits at the header's end (right)
+PASS  register en light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup en light 1280: no horizontal overflow — 0px
+PASS  setup en light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en light 1280: no text touches the control under it
+PASS  setup en light 1280: text contrast meets WCAG AA
+PASS  setup en light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en light 1280: the toggle sits at the header's end (right)
+PASS  setup en light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join en light 1280: no horizontal overflow — 0px
+PASS  join en light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en light 1280: no text touches the control under it
+PASS  join en light 1280: text contrast meets WCAG AA
+PASS  join en light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en light 1280: the toggle sits at the header's end (right)
+PASS  join en light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify en light 1280: no horizontal overflow — 0px
+PASS  verify en light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en light 1280: no text touches the control under it
+PASS  verify en light 1280: text contrast meets WCAG AA
+PASS  verify en light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en light 1280: the toggle sits at the header's end (right)
+PASS  verify en light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login en light 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login en light 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en light 640 (1280 at 200%): no text touches the control under it
+PASS  login en light 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login en light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en light 640 (1280 at 200%): the toggle sits at the header's end (right)
+PASS  login en dark 320: no horizontal overflow — 0px
+PASS  login en dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 320: no text touches the control under it
+PASS  login en dark 320: text contrast meets WCAG AA
+PASS  login en dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 320: the toggle sits at the header's end (right)
+PASS  register en dark 320: no horizontal overflow — 0px
+PASS  register en dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en dark 320: no text touches the control under it
+PASS  register en dark 320: text contrast meets WCAG AA
+PASS  register en dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en dark 320: the toggle sits at the header's end (right)
+PASS  setup en dark 320: no horizontal overflow — 0px
+PASS  setup en dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en dark 320: no text touches the control under it
+PASS  setup en dark 320: text contrast meets WCAG AA
+PASS  setup en dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en dark 320: the toggle sits at the header's end (right)
+PASS  join en dark 320: no horizontal overflow — 0px
+PASS  join en dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en dark 320: no text touches the control under it
+PASS  join en dark 320: text contrast meets WCAG AA
+PASS  join en dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en dark 320: the toggle sits at the header's end (right)
+PASS  verify en dark 320: no horizontal overflow — 0px
+PASS  verify en dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en dark 320: no text touches the control under it
+PASS  verify en dark 320: text contrast meets WCAG AA
+PASS  verify en dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en dark 320: the toggle sits at the header's end (right)
+PASS  login en dark 375: no horizontal overflow — 0px
+PASS  login en dark 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 375: no text touches the control under it
+PASS  login en dark 375: text contrast meets WCAG AA
+PASS  login en dark 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 375: the toggle sits at the header's end (right)
+PASS  login en dark 390: no horizontal overflow — 0px
+PASS  login en dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 390: no text touches the control under it
+PASS  login en dark 390: text contrast meets WCAG AA
+PASS  login en dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 390: the toggle sits at the header's end (right)
+PASS  register en dark 390: no horizontal overflow — 0px
+PASS  register en dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en dark 390: no text touches the control under it
+PASS  register en dark 390: text contrast meets WCAG AA
+PASS  register en dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en dark 390: the toggle sits at the header's end (right)
+PASS  setup en dark 390: no horizontal overflow — 0px
+PASS  setup en dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en dark 390: no text touches the control under it
+PASS  setup en dark 390: text contrast meets WCAG AA
+PASS  setup en dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en dark 390: the toggle sits at the header's end (right)
+PASS  join en dark 390: no horizontal overflow — 0px
+PASS  join en dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en dark 390: no text touches the control under it
+PASS  join en dark 390: text contrast meets WCAG AA
+PASS  join en dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en dark 390: the toggle sits at the header's end (right)
+PASS  verify en dark 390: no horizontal overflow — 0px
+PASS  verify en dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en dark 390: no text touches the control under it
+PASS  verify en dark 390: text contrast meets WCAG AA
+PASS  verify en dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en dark 390: the toggle sits at the header's end (right)
+PASS  login en dark 768: no horizontal overflow — 0px
+PASS  login en dark 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 768: no text touches the control under it
+PASS  login en dark 768: text contrast meets WCAG AA
+PASS  login en dark 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 768: the toggle sits at the header's end (right)
+PASS  login en dark 1280: no horizontal overflow — 0px
+PASS  login en dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 1280: no text touches the control under it
+PASS  login en dark 1280: text contrast meets WCAG AA
+PASS  login en dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 1280: the toggle sits at the header's end (right)
+PASS  login en dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register en dark 1280: no horizontal overflow — 0px
+PASS  register en dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register en dark 1280: no text touches the control under it
+PASS  register en dark 1280: text contrast meets WCAG AA
+PASS  register en dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register en dark 1280: the toggle sits at the header's end (right)
+PASS  register en dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup en dark 1280: no horizontal overflow — 0px
+PASS  setup en dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup en dark 1280: no text touches the control under it
+PASS  setup en dark 1280: text contrast meets WCAG AA
+PASS  setup en dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup en dark 1280: the toggle sits at the header's end (right)
+PASS  setup en dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join en dark 1280: no horizontal overflow — 0px
+PASS  join en dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join en dark 1280: no text touches the control under it
+PASS  join en dark 1280: text contrast meets WCAG AA
+PASS  join en dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join en dark 1280: the toggle sits at the header's end (right)
+PASS  join en dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify en dark 1280: no horizontal overflow — 0px
+PASS  verify en dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify en dark 1280: no text touches the control under it
+PASS  verify en dark 1280: text contrast meets WCAG AA
+PASS  verify en dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify en dark 1280: the toggle sits at the header's end (right)
+PASS  verify en dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login en dark 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login en dark 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login en dark 640 (1280 at 200%): no text touches the control under it
+PASS  login en dark 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login en dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login en dark 640 (1280 at 200%): the toggle sits at the header's end (right)
+PASS  login fr light 320: no horizontal overflow — 0px
+PASS  login fr light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 320: no text touches the control under it
+PASS  login fr light 320: text contrast meets WCAG AA
+PASS  login fr light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 320: the toggle sits at the header's end (right)
+PASS  register fr light 320: no horizontal overflow — 0px
+PASS  register fr light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr light 320: no text touches the control under it
+PASS  register fr light 320: text contrast meets WCAG AA
+PASS  register fr light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr light 320: the toggle sits at the header's end (right)
+PASS  setup fr light 320: no horizontal overflow — 0px
+PASS  setup fr light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr light 320: no text touches the control under it
+PASS  setup fr light 320: text contrast meets WCAG AA
+PASS  setup fr light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr light 320: the toggle sits at the header's end (right)
+PASS  join fr light 320: no horizontal overflow — 0px
+PASS  join fr light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr light 320: no text touches the control under it
+PASS  join fr light 320: text contrast meets WCAG AA
+PASS  join fr light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr light 320: the toggle sits at the header's end (right)
+PASS  verify fr light 320: no horizontal overflow — 0px
+PASS  verify fr light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr light 320: no text touches the control under it
+PASS  verify fr light 320: text contrast meets WCAG AA
+PASS  verify fr light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr light 320: the toggle sits at the header's end (right)
+PASS  login fr light 375: no horizontal overflow — 0px
+PASS  login fr light 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 375: no text touches the control under it
+PASS  login fr light 375: text contrast meets WCAG AA
+PASS  login fr light 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 375: the toggle sits at the header's end (right)
+PASS  login fr light 390: no horizontal overflow — 0px
+PASS  login fr light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 390: no text touches the control under it
+PASS  login fr light 390: text contrast meets WCAG AA
+PASS  login fr light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 390: the toggle sits at the header's end (right)
+PASS  register fr light 390: no horizontal overflow — 0px
+PASS  register fr light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr light 390: no text touches the control under it
+PASS  register fr light 390: text contrast meets WCAG AA
+PASS  register fr light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr light 390: the toggle sits at the header's end (right)
+PASS  setup fr light 390: no horizontal overflow — 0px
+PASS  setup fr light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr light 390: no text touches the control under it
+PASS  setup fr light 390: text contrast meets WCAG AA
+PASS  setup fr light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr light 390: the toggle sits at the header's end (right)
+PASS  join fr light 390: no horizontal overflow — 0px
+PASS  join fr light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr light 390: no text touches the control under it
+PASS  join fr light 390: text contrast meets WCAG AA
+PASS  join fr light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr light 390: the toggle sits at the header's end (right)
+PASS  verify fr light 390: no horizontal overflow — 0px
+PASS  verify fr light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr light 390: no text touches the control under it
+PASS  verify fr light 390: text contrast meets WCAG AA
+PASS  verify fr light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr light 390: the toggle sits at the header's end (right)
+PASS  login fr light 768: no horizontal overflow — 0px
+PASS  login fr light 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 768: no text touches the control under it
+PASS  login fr light 768: text contrast meets WCAG AA
+PASS  login fr light 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 768: the toggle sits at the header's end (right)
+PASS  login fr light 1280: no horizontal overflow — 0px
+PASS  login fr light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 1280: no text touches the control under it
+PASS  login fr light 1280: text contrast meets WCAG AA
+PASS  login fr light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 1280: the toggle sits at the header's end (right)
+PASS  login fr light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register fr light 1280: no horizontal overflow — 0px
+PASS  register fr light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr light 1280: no text touches the control under it
+PASS  register fr light 1280: text contrast meets WCAG AA
+PASS  register fr light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr light 1280: the toggle sits at the header's end (right)
+PASS  register fr light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup fr light 1280: no horizontal overflow — 0px
+PASS  setup fr light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr light 1280: no text touches the control under it
+PASS  setup fr light 1280: text contrast meets WCAG AA
+PASS  setup fr light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr light 1280: the toggle sits at the header's end (right)
+PASS  setup fr light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join fr light 1280: no horizontal overflow — 0px
+PASS  join fr light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr light 1280: no text touches the control under it
+PASS  join fr light 1280: text contrast meets WCAG AA
+PASS  join fr light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr light 1280: the toggle sits at the header's end (right)
+PASS  join fr light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify fr light 1280: no horizontal overflow — 0px
+PASS  verify fr light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr light 1280: no text touches the control under it
+PASS  verify fr light 1280: text contrast meets WCAG AA
+PASS  verify fr light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr light 1280: the toggle sits at the header's end (right)
+PASS  verify fr light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login fr light 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login fr light 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr light 640 (1280 at 200%): no text touches the control under it
+PASS  login fr light 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login fr light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr light 640 (1280 at 200%): the toggle sits at the header's end (right)
+PASS  login fr dark 320: no horizontal overflow — 0px
+PASS  login fr dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 320: no text touches the control under it
+PASS  login fr dark 320: text contrast meets WCAG AA
+PASS  login fr dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 320: the toggle sits at the header's end (right)
+PASS  register fr dark 320: no horizontal overflow — 0px
+PASS  register fr dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr dark 320: no text touches the control under it
+PASS  register fr dark 320: text contrast meets WCAG AA
+PASS  register fr dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr dark 320: the toggle sits at the header's end (right)
+PASS  setup fr dark 320: no horizontal overflow — 0px
+PASS  setup fr dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr dark 320: no text touches the control under it
+PASS  setup fr dark 320: text contrast meets WCAG AA
+PASS  setup fr dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr dark 320: the toggle sits at the header's end (right)
+PASS  join fr dark 320: no horizontal overflow — 0px
+PASS  join fr dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr dark 320: no text touches the control under it
+PASS  join fr dark 320: text contrast meets WCAG AA
+PASS  join fr dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr dark 320: the toggle sits at the header's end (right)
+PASS  verify fr dark 320: no horizontal overflow — 0px
+PASS  verify fr dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr dark 320: no text touches the control under it
+PASS  verify fr dark 320: text contrast meets WCAG AA
+PASS  verify fr dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr dark 320: the toggle sits at the header's end (right)
+PASS  login fr dark 375: no horizontal overflow — 0px
+PASS  login fr dark 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 375: no text touches the control under it
+PASS  login fr dark 375: text contrast meets WCAG AA
+PASS  login fr dark 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 375: the toggle sits at the header's end (right)
+PASS  login fr dark 390: no horizontal overflow — 0px
+PASS  login fr dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 390: no text touches the control under it
+PASS  login fr dark 390: text contrast meets WCAG AA
+PASS  login fr dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 390: the toggle sits at the header's end (right)
+PASS  register fr dark 390: no horizontal overflow — 0px
+PASS  register fr dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr dark 390: no text touches the control under it
+PASS  register fr dark 390: text contrast meets WCAG AA
+PASS  register fr dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr dark 390: the toggle sits at the header's end (right)
+PASS  setup fr dark 390: no horizontal overflow — 0px
+PASS  setup fr dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr dark 390: no text touches the control under it
+PASS  setup fr dark 390: text contrast meets WCAG AA
+PASS  setup fr dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr dark 390: the toggle sits at the header's end (right)
+PASS  join fr dark 390: no horizontal overflow — 0px
+PASS  join fr dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr dark 390: no text touches the control under it
+PASS  join fr dark 390: text contrast meets WCAG AA
+PASS  join fr dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr dark 390: the toggle sits at the header's end (right)
+PASS  verify fr dark 390: no horizontal overflow — 0px
+PASS  verify fr dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr dark 390: no text touches the control under it
+PASS  verify fr dark 390: text contrast meets WCAG AA
+PASS  verify fr dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr dark 390: the toggle sits at the header's end (right)
+PASS  login fr dark 768: no horizontal overflow — 0px
+PASS  login fr dark 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 768: no text touches the control under it
+PASS  login fr dark 768: text contrast meets WCAG AA
+PASS  login fr dark 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 768: the toggle sits at the header's end (right)
+PASS  login fr dark 1280: no horizontal overflow — 0px
+PASS  login fr dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 1280: no text touches the control under it
+PASS  login fr dark 1280: text contrast meets WCAG AA
+PASS  login fr dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 1280: the toggle sits at the header's end (right)
+PASS  login fr dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register fr dark 1280: no horizontal overflow — 0px
+PASS  register fr dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register fr dark 1280: no text touches the control under it
+PASS  register fr dark 1280: text contrast meets WCAG AA
+PASS  register fr dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register fr dark 1280: the toggle sits at the header's end (right)
+PASS  register fr dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup fr dark 1280: no horizontal overflow — 0px
+PASS  setup fr dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup fr dark 1280: no text touches the control under it
+PASS  setup fr dark 1280: text contrast meets WCAG AA
+PASS  setup fr dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup fr dark 1280: the toggle sits at the header's end (right)
+PASS  setup fr dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join fr dark 1280: no horizontal overflow — 0px
+PASS  join fr dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join fr dark 1280: no text touches the control under it
+PASS  join fr dark 1280: text contrast meets WCAG AA
+PASS  join fr dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join fr dark 1280: the toggle sits at the header's end (right)
+PASS  join fr dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify fr dark 1280: no horizontal overflow — 0px
+PASS  verify fr dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify fr dark 1280: no text touches the control under it
+PASS  verify fr dark 1280: text contrast meets WCAG AA
+PASS  verify fr dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify fr dark 1280: the toggle sits at the header's end (right)
+PASS  verify fr dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login fr dark 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login fr dark 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login fr dark 640 (1280 at 200%): no text touches the control under it
+PASS  login fr dark 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login fr dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login fr dark 640 (1280 at 200%): the toggle sits at the header's end (right)
+PASS  login ar light 320: no horizontal overflow — 0px
+PASS  login ar light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 320: no text touches the control under it
+PASS  login ar light 320: text contrast meets WCAG AA
+PASS  login ar light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 320: the toggle sits at the header's end (left)
+PASS  register ar light 320: no horizontal overflow — 0px
+PASS  register ar light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar light 320: no text touches the control under it
+PASS  register ar light 320: text contrast meets WCAG AA
+PASS  register ar light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar light 320: the toggle sits at the header's end (left)
+PASS  setup ar light 320: no horizontal overflow — 0px
+PASS  setup ar light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar light 320: no text touches the control under it
+PASS  setup ar light 320: text contrast meets WCAG AA
+PASS  setup ar light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar light 320: the toggle sits at the header's end (left)
+PASS  join ar light 320: no horizontal overflow — 0px
+PASS  join ar light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar light 320: no text touches the control under it
+PASS  join ar light 320: text contrast meets WCAG AA
+PASS  join ar light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar light 320: the toggle sits at the header's end (left)
+PASS  verify ar light 320: no horizontal overflow — 0px
+PASS  verify ar light 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar light 320: no text touches the control under it
+PASS  verify ar light 320: text contrast meets WCAG AA
+PASS  verify ar light 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar light 320: the toggle sits at the header's end (left)
+PASS  login ar light 375: no horizontal overflow — 0px
+PASS  login ar light 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 375: no text touches the control under it
+PASS  login ar light 375: text contrast meets WCAG AA
+PASS  login ar light 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 375: the toggle sits at the header's end (left)
+PASS  login ar light 390: no horizontal overflow — 0px
+PASS  login ar light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 390: no text touches the control under it
+PASS  login ar light 390: text contrast meets WCAG AA
+PASS  login ar light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 390: the toggle sits at the header's end (left)
+PASS  register ar light 390: no horizontal overflow — 0px
+PASS  register ar light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar light 390: no text touches the control under it
+PASS  register ar light 390: text contrast meets WCAG AA
+PASS  register ar light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar light 390: the toggle sits at the header's end (left)
+PASS  setup ar light 390: no horizontal overflow — 0px
+PASS  setup ar light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar light 390: no text touches the control under it
+PASS  setup ar light 390: text contrast meets WCAG AA
+PASS  setup ar light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar light 390: the toggle sits at the header's end (left)
+PASS  join ar light 390: no horizontal overflow — 0px
+PASS  join ar light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar light 390: no text touches the control under it
+PASS  join ar light 390: text contrast meets WCAG AA
+PASS  join ar light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar light 390: the toggle sits at the header's end (left)
+PASS  verify ar light 390: no horizontal overflow — 0px
+PASS  verify ar light 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar light 390: no text touches the control under it
+PASS  verify ar light 390: text contrast meets WCAG AA
+PASS  verify ar light 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar light 390: the toggle sits at the header's end (left)
+PASS  login ar light 768: no horizontal overflow — 0px
+PASS  login ar light 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 768: no text touches the control under it
+PASS  login ar light 768: text contrast meets WCAG AA
+PASS  login ar light 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 768: the toggle sits at the header's end (left)
+PASS  login ar light 1280: no horizontal overflow — 0px
+PASS  login ar light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 1280: no text touches the control under it
+PASS  login ar light 1280: text contrast meets WCAG AA
+PASS  login ar light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 1280: the toggle sits at the header's end (left)
+PASS  login ar light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register ar light 1280: no horizontal overflow — 0px
+PASS  register ar light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar light 1280: no text touches the control under it
+PASS  register ar light 1280: text contrast meets WCAG AA
+PASS  register ar light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar light 1280: the toggle sits at the header's end (left)
+PASS  register ar light 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup ar light 1280: no horizontal overflow — 0px
+PASS  setup ar light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar light 1280: no text touches the control under it
+PASS  setup ar light 1280: text contrast meets WCAG AA
+PASS  setup ar light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar light 1280: the toggle sits at the header's end (left)
+PASS  setup ar light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join ar light 1280: no horizontal overflow — 0px
+PASS  join ar light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar light 1280: no text touches the control under it
+PASS  join ar light 1280: text contrast meets WCAG AA
+PASS  join ar light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar light 1280: the toggle sits at the header's end (left)
+PASS  join ar light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify ar light 1280: no horizontal overflow — 0px
+PASS  verify ar light 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar light 1280: no text touches the control under it
+PASS  verify ar light 1280: text contrast meets WCAG AA
+PASS  verify ar light 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar light 1280: the toggle sits at the header's end (left)
+PASS  verify ar light 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login ar light 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login ar light 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar light 640 (1280 at 200%): no text touches the control under it
+PASS  login ar light 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login ar light 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar light 640 (1280 at 200%): the toggle sits at the header's end (left)
+PASS  login ar dark 320: no horizontal overflow — 0px
+PASS  login ar dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 320: no text touches the control under it
+PASS  login ar dark 320: text contrast meets WCAG AA
+PASS  login ar dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 320: the toggle sits at the header's end (left)
+PASS  register ar dark 320: no horizontal overflow — 0px
+PASS  register ar dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar dark 320: no text touches the control under it
+PASS  register ar dark 320: text contrast meets WCAG AA
+PASS  register ar dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar dark 320: the toggle sits at the header's end (left)
+PASS  setup ar dark 320: no horizontal overflow — 0px
+PASS  setup ar dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar dark 320: no text touches the control under it
+PASS  setup ar dark 320: text contrast meets WCAG AA
+PASS  setup ar dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar dark 320: the toggle sits at the header's end (left)
+PASS  join ar dark 320: no horizontal overflow — 0px
+PASS  join ar dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar dark 320: no text touches the control under it
+PASS  join ar dark 320: text contrast meets WCAG AA
+PASS  join ar dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar dark 320: the toggle sits at the header's end (left)
+PASS  verify ar dark 320: no horizontal overflow — 0px
+PASS  verify ar dark 320: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar dark 320: no text touches the control under it
+PASS  verify ar dark 320: text contrast meets WCAG AA
+PASS  verify ar dark 320: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar dark 320: the toggle sits at the header's end (left)
+PASS  login ar dark 375: no horizontal overflow — 0px
+PASS  login ar dark 375: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 375: no text touches the control under it
+PASS  login ar dark 375: text contrast meets WCAG AA
+PASS  login ar dark 375: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 375: the toggle sits at the header's end (left)
+PASS  login ar dark 390: no horizontal overflow — 0px
+PASS  login ar dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 390: no text touches the control under it
+PASS  login ar dark 390: text contrast meets WCAG AA
+PASS  login ar dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 390: the toggle sits at the header's end (left)
+PASS  register ar dark 390: no horizontal overflow — 0px
+PASS  register ar dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar dark 390: no text touches the control under it
+PASS  register ar dark 390: text contrast meets WCAG AA
+PASS  register ar dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar dark 390: the toggle sits at the header's end (left)
+PASS  setup ar dark 390: no horizontal overflow — 0px
+PASS  setup ar dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar dark 390: no text touches the control under it
+PASS  setup ar dark 390: text contrast meets WCAG AA
+PASS  setup ar dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar dark 390: the toggle sits at the header's end (left)
+PASS  join ar dark 390: no horizontal overflow — 0px
+PASS  join ar dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar dark 390: no text touches the control under it
+PASS  join ar dark 390: text contrast meets WCAG AA
+PASS  join ar dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar dark 390: the toggle sits at the header's end (left)
+PASS  verify ar dark 390: no horizontal overflow — 0px
+PASS  verify ar dark 390: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar dark 390: no text touches the control under it
+PASS  verify ar dark 390: text contrast meets WCAG AA
+PASS  verify ar dark 390: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar dark 390: the toggle sits at the header's end (left)
+PASS  login ar dark 768: no horizontal overflow — 0px
+PASS  login ar dark 768: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 768: no text touches the control under it
+PASS  login ar dark 768: text contrast meets WCAG AA
+PASS  login ar dark 768: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 768: the toggle sits at the header's end (left)
+PASS  login ar dark 1280: no horizontal overflow — 0px
+PASS  login ar dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 1280: no text touches the control under it
+PASS  login ar dark 1280: text contrast meets WCAG AA
+PASS  login ar dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 1280: the toggle sits at the header's end (left)
+PASS  login ar dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  register ar dark 1280: no horizontal overflow — 0px
+PASS  register ar dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  register ar dark 1280: no text touches the control under it
+PASS  register ar dark 1280: text contrast meets WCAG AA
+PASS  register ar dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  register ar dark 1280: the toggle sits at the header's end (left)
+PASS  register ar dark 1280: the form keeps a phone-form width on a desktop — 380px
+PASS  setup ar dark 1280: no horizontal overflow — 0px
+PASS  setup ar dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  setup ar dark 1280: no text touches the control under it
+PASS  setup ar dark 1280: text contrast meets WCAG AA
+PASS  setup ar dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  setup ar dark 1280: the toggle sits at the header's end (left)
+PASS  setup ar dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  join ar dark 1280: no horizontal overflow — 0px
+PASS  join ar dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  join ar dark 1280: no text touches the control under it
+PASS  join ar dark 1280: text contrast meets WCAG AA
+PASS  join ar dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  join ar dark 1280: the toggle sits at the header's end (left)
+PASS  join ar dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  verify ar dark 1280: no horizontal overflow — 0px
+PASS  verify ar dark 1280: nothing is pushed past the screen's edge — 0 element(s)
+PASS  verify ar dark 1280: no text touches the control under it
+PASS  verify ar dark 1280: text contrast meets WCAG AA
+PASS  verify ar dark 1280: the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  verify ar dark 1280: the toggle sits at the header's end (left)
+PASS  verify ar dark 1280: the form keeps a phone-form width on a desktop — 414px
+PASS  login ar dark 640 (1280 at 200%): no horizontal overflow — 0px
+PASS  login ar dark 640 (1280 at 200%): nothing is pushed past the screen's edge — 0 element(s)
+PASS  login ar dark 640 (1280 at 200%): no text touches the control under it
+PASS  login ar dark 640 (1280 at 200%): text contrast meets WCAG AA
+PASS  login ar dark 640 (1280 at 200%): the theme toggle is visible without scrolling, at least 44×44 — 48×48 at y 8
+PASS  login ar dark 640 (1280 at 200%): the toggle sits at the header's end (left)
+PASS  first visit with the device in dark: the page is dark before the app starts — dark rgb(11, 15, 23)
+PASS  first visit with the device in dark: the app opens dark
+PASS  the toggle switches to light, and stores it
+PASS  the choice survives a reload, over the device’s dark
+PASS  first visit with the device in light: light
+PASS  the toggle is reached by keyboard and switches with Enter
+PASS  the toggle has an accessible name in words — Switch to light appearance
+PASS  the toggle's name is localised (fr) — Passer à l’apparence sombre
+PASS  the toggle's name is localised (ar) — التبديل إلى المظهر الداكن
+PASS  register en: the first step offers the promo code, six digit boxes (D221) — 6
+FAIL  register en: Continue on an empty step focuses its first field
+PASS  register en: a refused field still accepts typing
+PASS  register en: switching theme keeps every value
+FAIL  register en: step 2 of 3
+FAIL  register en: the browser's Back goes to the previous step with its values — url /register
