@@ -11,6 +11,7 @@ import { AuthProvider } from '../hooks/useAuth';
 import { DialogHost, ToastHost } from '../components/overlay';
 import { EmptyState, OfflineBanner } from '../components/ui';
 import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
+import { ActingOwnerBanner } from '../components/ui/ActingOwnerBanner';
 import { BrandIntro } from '../components/brand/DukanMark';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
@@ -138,6 +139,8 @@ function AppShell() {
           <OfflineBanner />
           {/* A test business, said on every signed-in screen (D217); nothing for any other business. */}
           <TestBusinessBanner />
+          {/* The person appointed Acting Owner, while it is in force (D225). */}
+          <ActingOwnerBanner />
           {/*
             The back-swipe is the native stack's own gesture, and on iOS it
             belongs to UINavigationController's push transition. Naming an

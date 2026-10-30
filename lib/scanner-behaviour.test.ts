@@ -244,7 +244,7 @@ it('manual entry is gone from inside the scanner', () => {
   // without it, somebody who denied the permission is stuck.
   const manualEntries = (code.match(/setManual\(true\)/g) ?? []).length;
   assert.equal(manualEntries, 1, 'only the no-camera fallback may open the keypad');
-  assert.match(code, /secondaryAction=\{\{ label: t\('action\.typeInstead'\)/);
+  assert.match(code, /alternative=\{\{ label: t\('action\.typeInstead'\)/);
 });
 
 it('manual entry is present on the intake page, beside the scan action', () => {

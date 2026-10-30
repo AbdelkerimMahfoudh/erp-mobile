@@ -4,7 +4,6 @@
  * permission; after a refusal the screen says how to turn it on in Settings instead of asking again.
  */
 import React from 'react';
-import { Linking } from 'react-native';
 import { Camera } from 'lucide-react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ThemeProvider } from '../lib/design/theme';
@@ -42,13 +41,10 @@ it('says what the camera is for, and asks iOS only when the person chooses to', 
   expect(onType).toHaveBeenCalledTimes(1);
 });
 
-it('after a refusal, explains Settings and opens them — it does not ask again', async () => {
-  const open = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined as never);
+it('after a refusal, says where in Settings to turn it on — it does not ask again', async () => {
   const { onAllow } = await mount(true);
   expect(screen.getByText(t('scanner.permission.denied'))).toBeTruthy();
   expect(screen.queryByText(t('scanner.permission.grant'))).toBeNull();
-  await fireEvent.press(screen.getByText(t('permission.openSettings')));
-  expect(open).toHaveBeenCalledTimes(1);
   expect(onAllow).not.toHaveBeenCalled();
   expect(screen.getByText(t('action.typeInstead'))).toBeTruthy();
 });

@@ -30,7 +30,7 @@ function wordsToTranslate(value: string): string {
   return value
     .replace(/\{[a-zA-Z0-9_]+\}/g, '')
     .replace(TECHNICAL, '')
-    .replace(/[\d\s·•×x:%().,/+\-–—…'’"“”«»!?]/g, '');
+    .replace(/[\d\s·•×x:%().,/+\-–—…'’"“”«»!?→←]/g, '');
 }
 
 /** French words that are the English words, letter for letter. Adding one here is a decision, not a fix. */

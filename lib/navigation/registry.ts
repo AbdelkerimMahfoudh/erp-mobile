@@ -296,6 +296,8 @@ export const HUBS: readonly Hub[] = [
       { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', perm: 'settings.manage' },
       // D225: the business's and its stores' Latin and Arabic names; the Owner's alone.
       { id: 'names', route: '/names', titleKey: 'nav.names', icon: 'Building2', perm: 'settings.manage' },
+      // D225: the temporary Acting Owner. Ungated: the Owner appoints there, and the person appointed sees their own.
+      { id: 'acting-owner', route: '/acting-owner', titleKey: 'nav.actingOwner', icon: 'ShieldCheck' },
       // Ungated (0103, D221): every Owner, Manager and Employee may invite a shop owner to create their own business.
       // Not Team: nobody joins this business through it.
       { id: 'invite', route: '/invite', titleKey: 'nav.invite', icon: 'Share2' },
@@ -345,7 +347,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings', 'names', 'invite'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings', 'names', 'acting-owner', 'invite'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 

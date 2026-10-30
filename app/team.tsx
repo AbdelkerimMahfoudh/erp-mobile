@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RoleChangeSheet, nextRoleOf } from '../components/team/RoleChangeSheet';
 import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -217,6 +218,7 @@ function EditSheet({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [changingRole, setChangingRole] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; nameAr?: string; phone?: string; email?: string; active?: string }>({});
 
   useEffect(() => {
@@ -368,6 +370,15 @@ function EditSheet({
             <PendingPanel user={user} onCancelled={onClose} />
           ) : (
             <>
+              {/* D225: Employee ↔ Manager, never for yourself and never for an Owner. */}
+              {isSelf || user.branches.some((b) => b.role === 'owner') ? null : (
+                <Button
+                  title={t(nextRoleOf(user) === 'store_manager' ? 'team.role.promote' : 'team.role.demote')}
+                  variant="secondary"
+                  onPress={() => setChangingRole(true)}
+                  fullWidth
+                />
+              )}
               {/* No toggle for yourself — you cannot lock yourself out. */}
               {isSelf ? null : (
                 <View style={styles.block}>
@@ -397,6 +408,13 @@ function EditSheet({
           </Text>
         </View>
       ) : null}
+      <RoleChangeSheet
+        user={changingRole ? user : null}
+        onClose={() => {
+          setChangingRole(false);
+          onClose();
+        }}
+      />
     </BottomSheet>
   );
 }

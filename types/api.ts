@@ -34,6 +34,8 @@ export interface AuthUser {
    * session restored from before it, do not send it — and then it is not one.
    */
   isTestBusiness?: boolean;
+  /** D225: the Acting Owner appointment in force for this person now; null or absent otherwise. */
+  actingOwner?: { delegationId: string; until: string | null } | null;
 }
 
 export interface AuthResponse {
@@ -1740,4 +1742,23 @@ export interface ReferralInvitation {
   language: 'en' | 'fr' | 'ar';
   createdAt: string;
   link: string;
+}
+
+// ── Acting Owner (D225, 0112) ────────────────────────────────────────────────
+
+export interface ActingOwnerDelegation {
+  id: string;
+  delegateId: string;
+  delegate: { name: string; nameAr: string | null } | null;
+  grantedById: string;
+  startsAt: string;
+  endsAt: string | null;
+  revokedAt: string | null;
+  state: 'active' | 'scheduled' | 'ended' | 'revoked';
+}
+
+export interface ActingOwnerList {
+  delegations: ActingOwnerDelegation[];
+  /** The permission keys an Acting Owner holds, as the server lists them. */
+  delegatedPermissions: string[];
 }
