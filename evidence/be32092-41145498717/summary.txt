@@ -1,0 +1,19 @@
+suites 53/54, tests 461/463, failed 2
+FAIL __tests__/field-focus-ring.test.tsx :: the field ring focused: one ring in the focus colour, the well unchanged, and the ring never takes a touch
+  Error: expect(received).toBe(expected) // Object.is equality
+  
+  Expected: "#6358DE"
+  Received: "#8B82EF"
+      at Object.toBe (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/field-focus-ring.test.tsx:49:37)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/field-focus-ring.test.tsx :: the field ring disabled: no focus ring, the sunken surface, and the text in the disabled colour
+  Error: expect(received).toBe(expected) // Object.is equality
+  
+  Expected: "#F1F3F6"
+  Received: "#1C2431"
+      at Object.toBe (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/field-focus-ring.test.tsx:82:110)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)

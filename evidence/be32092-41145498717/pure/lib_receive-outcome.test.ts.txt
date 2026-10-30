@@ -1,0 +1,510 @@
+FAIL  returns from Create product to the same Receive screen with the created product
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /notePendingProduct\(found\.id\);[\s\S]*?leaving\.current = true;\s*if \(router\.canGoBack\(\)\) router\.back\(\);/. Input:
+
+"import React, { useRef, useState } from 'react';\n" +
+  "import { View } from 'react-native';\n" +
+  "import { Stack, useRouter, useLocalSearchParams } from 'expo-router';\n" +
+  "import { Check } from 'lucide-react-native';\n" +
+  "import { useAuth } from '../../hooks/useAuth';\n" +
+  "import { useActiveBranchName, useBranch } from '../../lib/branch';\n" +
+  "import { clearPendingIntake, peekPendingIntake } from '../../lib/scan/pending-intake';\n" +
+  "import { purchaseItems, type NewProductDraft, type PurchaseOutcome } from '../../lib/receive-outcome';\n" +
+  "import { suggestedTracking } from '../../lib/scan/suggested-tracking';\n" +
+  "import { restrictionForScan } from '../../lib/intake-form';\n" +
+  "import { askMissingCost, parseBuyingCost } from '../../lib/missing-cost';\n" +
+  "import { useMutation, useQueryClient } from '@tanstack/react-query';\n" +
+  "import { Button, Card, ErrorState, InlineNotice, ListRow, MoneyField, Screen, Section, Text, TextField } from '../../components/ui';\n" +
+  "import { PurchasePaymentPicker, purchasePaymentBody, purchasePaymentReady, type PurchasePayment } from '../../components/receive/PurchasePaymentPicker';\n" +
+  'import {\n' +
+  '  ProductForm,\n' +
+  '  emptyProductForm,\n' +
+  '  toProductPayload,\n' +
+  '  type ProductFormValues,\n' +
+  "} from '../../components/catalog/ProductForm';\n" +
+  "import { ApiError, api } from '../../lib/api-client';\n" +
+  "import { toErrorMessage, toFriendlyError } from '../../lib/errors';\n" +
+  "import { useTranslation } from '../../lib/i18n';\n" +
+  "import { usePermission } from '../../lib/permissions';\n" +
+  "import { toast } from '../../lib/toast';\n" +
+  "import { dialog } from '../../lib/dialog';\n" +
+  "import { qk } from '../../lib/query-keys';\n" +
+  "import { invalidateMoney } from '../../lib/money-invalidation';\n" +
+  "import { isStoreClosedRefusal } from '../../lib/day-gate';\n" +
+  "import { uuidv4 } from '../../lib/utils';\n" +
+  "import { space } from '../../lib/design/tokens';\n" +
+  "import { makeStyles, useColors } from '../../lib/design/theme';\n" +
+  "import type { Category, ProductDetail, ProductPage } from '../../types/api';\n" +
+  "import { useFileBatch } from '../../lib/file-batch-store';\n" +
+  "import type { CatalogueProduct } from '../../lib/file-receiving';\n" +
+  '\n' +
+  '\n' +
+  'export default function NewProductScreen() {\n' +
+  '  const { t } = useTranslation();\n' +
+  '  const router = useRouter();\n' +
+  '  const queryClient = useQueryClient();\n' +
+  '  const styles = useStyles();\n' +
+  '  const colors = useColors();\n' +
+  '  const { user } = useAuth();\n' +
+  '  const { branchId } = useBranch();\n' +
+  '  const branchName = useActiveBranchName();\n' +
+  '  const {\n' +
+  '    barcode: scannedBarcode,\n' +
+  '    link,\n' +
+  '    brand: fileBrand,\n' +
+  '    model: fileModel,\n' +
+  '    variant: fileVariant,\n' +
+  '    tracking: fileTracking,\n' +
+  '    categoryId: scannedCategory,\n' +
+  '  } = useLocalSearchParams<{\n' +
+  '    barcode?: string;\n' +
+  '    link?: string;\n' +
+  '    brand?: string;\n' +
+  '    model?: string;\n' +
+  '    variant?: string;\n' +
+  '    tracking?: string;\n' +
+  '    \n' +
+  '    categoryId?: string;\n' +
+  '    \n' +
+  '    intake?: string;\n' +
+  '  }>();\n' +
+  '  const intakeScope = {\n' +
+  "    companyId: user?.companyId ?? '',\n" +
+  "    userId: user?.id ?? '',\n" +
+  "    branchId: branchId ?? '',\n" +
+  '  };\n' +
+  '  \n' +
+  '  const held = peekPendingIntake(intakeScope);\n' +
+  "  const scanKind = held?.primaryImei ? 'imei' : held?.serial ? 'serial' : held?.productBarcode ? 'barcode' : null;\n" +
+  "  const suggested = suggestedTracking(scanKind ?? 'unknown');\n" +
+  '  const restriction = held ? restrictionForScan(scanKind) : null;\n' +
+  '\n' +
+  "  const canManage = usePermission('catalog.manage');\n" +
+  '\n' +
+  '  const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});\n' +
+  '  const [existing, setExisting] = useState<CatalogueProduct | null>(null);\n' +
+  '  const existingId = existing?.id ?? null;\n' +
+  '  \n' +
+  '  const leaving = useRef(false);\n' +
+  '\n' +
+  '  \n' +
+  "  const linkingGroup = typeof link === 'string' && link ? link : null;\n" +
+  '  \n' +
+  '  const quick = Boolean(held) && !linkingGroup;\n' +
+  '\n' +
+  '  \n' +
+  "  const [cost, setCost] = useState(held?.cost ?? '');\n" +
+  '  const [costError, setCostError] = useState<string | undefined>();\n' +
+  '  const costField = useRef<{ focus: () => void } | null>(null);\n' +
+  "  const [quantity, setQuantity] = useState('1');\n" +
+  '  const [quantityError, setQuantityError] = useState<string | undefined>();\n' +
+  "  const [imei2, setImei2] = useState(held?.secondaryImei ?? '');\n" +
+  "  const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });\n" +
+  '  \n' +
+  '  const [clientUuid] = useState(() => uuidv4());\n' +
+  '  const [uncertain, setUncertain] = useState(false);\n' +
+  '  const [done, setDone] = useState<{ label: string } | null>(null);\n' +
+  '  \n' +
+  '  const committing = useRef(false);\n' +
+  '\n' +
+  '  const categoryOf = (values: ProductFormValues): Category | null =>\n' +
+  '    queryClient.getQueryData<Category[]>(qk.categories)?.find((c) => c.id === values.categoryId) ?? null;\n' +
+  '\n' +
+  '  const asCatalogue = (p: { id: string; brand: string; model: string; variant: string | null; trackingType: string }): CatalogueProduct => ({\n' +
+  '    id: p.id,\n' +
+  '    brand: p.brand,\n' +
+  '    model: p.model,\n' +
+  '    variant: p.variant ?? null,\n' +
+  "    trackingType: p.trackingType as CatalogueProduct['trackingType'],\n" +
+  '  });\n' +
+  '\n' +
+  '  const finishForFile = (product: CatalogueProduct, created: boolean) => {\n' +
+  '    const linked = useFileBatch.getState().linkGroupProduct(linkingGroup!, product);\n' +
+  '    toast.success(\n' +
+  '      created\n' +
+  "        ? t('fileReceive.create.linked', { count: String(linked), product: `${product.brand} ${product.model}` })\n" +
+  "        : t('fileReceive.create.linkedExisting', { count: String(linked), product: `${product.brand} ${product.model}` }),\n" +
+  '    );\n' +
+  '    leaving.current = true;\n' +
+  '    if (router.canGoBack()) router.back();\n' +
+  "    else router.replace('/receive/file' as never);\n" +
+  '  };\n' +
+  '\n' +
+  '  \n' +
+  '  const resolveExisting = async (values: ProductFormValues, exactOnly = false): Promise<CatalogueProduct | null> => {\n' +
+  "    const term = values.barcode.trim() || [values.brand, values.model, values.variant].filter(Boolean).join(' ');\n" +
+  '    try {\n' +
+  '      const page = await api.get<ProductPage>(`/products?active=all&q=${encodeURIComponent(term)}`);\n' +
+  '      const exact = page.rows.find(\n' +
+  '        (r) =>\n' +
+  '          (values.barcode.trim() && r.barcode === values.barcode.trim().toUpperCase()) ||\n' +
+  '          (r.brand.toLowerCase() === values.brand.trim().toLowerCase() &&\n' +
+  '            r.model.toLowerCase() === values.model.trim().toLowerCase() &&\n' +
+  "            (r.variant ?? '').toLowerCase() === values.variant.trim().toLowerCase()),\n" +
+  '      );\n' +
+  '      const hit = exact ?? (exactOnly ? undefined : page.rows[0]);\n' +
+  '      return hit ? asCatalogue(hit) : null;\n' +
+  '    } catch {\n' +
+  '      return null;\n' +
+  '    }\n' +
+  '  };\n' +
+  '\n' +
+  '  \n' +
+  '  const create = useMutation({\n' +
+  "    mutationFn: (values: ProductFormValues) => api.post<ProductDetail>('/products', toProductPayload(values, categoryOf(values))),\n" +
+  '    onSuccess: (product) => {\n' +
+  '      \n' +
+  "      void queryClient.invalidateQueries({ queryKey: ['products'] });\n" +
+  "      void queryClient.invalidateQueries({ queryKey: ['inventory'] });\n" +
+  '      if (linkingGroup) {\n' +
+  '        finishForFile(asCatalogue(product), true);\n' +
+  '        return;\n' +
+  '      }\n' +
+  "      toast.success(t('catalog.form.created'));\n" +
+  '      leaving.current = true;\n' +
+  '      router.replace(`/catalog/${product.id}` as never);\n' +
+  '    },\n' +
+  '    onError: async (error, values) => {\n' +
+  '      if (error instanceof ApiError && error.status === 409) {\n' +
+  '        const barcodeClash = /barcode/i.test(error.message);\n' +
+  "        setErrors(barcodeClash ? { barcode: t('catalog.conflict.barcode') } : { variant: t('catalog.conflict.variant') });\n" +
+  '        \n' +
+  '        \n' +
+  '        const found = await resolveExisting(values);\n' +
+  '        if (found) {\n' +
+  '          setExisting(found);\n' +
+  '          await dialog.alert({\n' +
+  "            title: t('catalog.conflict.maybeCreated.title'),\n" +
+  "            message: linkingGroup ? t('catalog.conflict.useExisting.body') : t('catalog.conflict.maybeCreated.body'),\n" +
+  '          });\n' +
+  '        }\n' +
+  '        return;\n' +
+  '      }\n' +
+  '      toast.error(toFriendlyError(error).body);\n' +
+  '    },\n' +
+  '  });\n' +
+  '\n' +
+  '  \n' +
+  '  const receive = useMutation({\n' +
+  '    mutationFn: (input: { values: ProductFormValues; unitCost: number | null; productId: string | null }) => {\n' +
+  '      const { values, unitCost, productId } = input;\n' +
+  '      const identifier = held?.primaryImei ?? held?.serial ?? null;\n' +
+  '      const second = imei2.trim();\n' +
+  "      return api.post<PurchaseOutcome>('/purchases', {\n" +
+  '        clientUuid,\n' +
+  '        ...purchasePaymentBody(payment),\n' +
+  '        items: purchaseItems([\n' +
+  '          {\n' +
+  "            key: 'one',\n" +
+  "            productId: productId ?? '',\n" +
+  '            ...(productId ? {} : { newProduct: toProductPayload(values, categoryOf(values)) as NewProductDraft }),\n' +
+  '            trackingType: values.trackingType,\n' +
+  '            unitCost,\n' +
+  "            ...(values.trackingType === 'quantity'\n" +
+  '              ? { quantity: Number(quantity) }\n' +
+  '              : { identifiers: identifier ? [identifier] : [], ...(second && identifier ? { secondaries: { [identifier]: second } } : {}) }),\n' +
+  '          },\n' +
+  '        ]),\n' +
+  '      });\n' +
+  '    },\n' +
+  '    onSuccess: (outcome, { values }) => {\n' +
+  '      setUncertain(false);\n' +
+  '      \n' +
+  '      if (!outcome.purchaseId || outcome.unitsCreated + outcome.stockLines === 0) {\n' +
+  '        const refusal = outcome.rejected?.[0]?.reason;\n' +
+  "        toast.error(refusal ? `${t('receive.refused.title')} — ${refusal}` : t('receive.refused.none'));\n" +
+  '        return;\n' +
+  '      }\n' +
+  '      clearPendingIntake();\n' +
+  "      void queryClient.invalidateQueries({ queryKey: ['products'] });\n" +
+  "      void queryClient.invalidateQueries({ queryKey: ['inventory'] });\n" +
+  '      void queryClient.invalidateQueries({ queryKey: qk.home(branchId) });\n' +
+  '      invalidateMoney(queryClient);\n' +
+  "      const label = [values.brand, values.model].filter(Boolean).join(' ');\n" +
+  '      setDone({ label });\n' +
+  "      toast.success(outcome.createdProducts?.length ? t('receive.createdAndAdded', { product: label }) : t('quick.receive.done.title'));\n" +
+  '    },\n' +
+  '    onError: async (e, { values }) => {\n' +
+  '      \n' +
+  "      if (e instanceof ApiError && e.status === 409 && e.code === 'product_exists') {\n" +
+  '        const found = await resolveExisting(values, true);\n' +
+  '        if (found) setExisting(found);\n' +
+  "        toast.error(t('receive.productExists'));\n" +
+  '        return;\n' +
+  '      }\n' +
+  '      if (isStoreClosedRefusal(e)) {\n' +
+  "        toast.error(t('gate.refused.receive'));\n" +
+  '        return;\n' +
+  '      }\n' +
+  '      \n' +
+  '      if (!(e instanceof ApiError) || e.status >= 500) {\n' +
+  '        setUncertain(true);\n' +
+  '        return;\n' +
+  '      }\n' +
+  '      toast.error(toErrorMessage(e));\n' +
+  '    },\n' +
+  '  });\n' +
+  '\n' +
+  '  const co'... 7458 more characters
+
+    at file:///home/runner/work/erp-mobile/erp-mobile/app/lib/receive-outcome.test.ts:223:10
+    at it (file:///home/runner/work/erp-mobile/erp-mobile/app/lib/receive-outcome.test.ts:22:5)
+    at file:///home/runner/work/erp-mobile/erp-mobile/app/lib/receive-outcome.test.ts:220:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: "import React, { useRef, useState } from 'react';\n" +
+    "import { View } from 'react-native';\n" +
+    "import { Stack, useRouter, useLocalSearchParams } from 'expo-router';\n" +
+    "import { Check } from 'lucide-react-native';\n" +
+    "import { useAuth } from '../../hooks/useAuth';\n" +
+    "import { useActiveBranchName, useBranch } from '../../lib/branch';\n" +
+    "import { clearPendingIntake, peekPendingIntake } from '../../lib/scan/pending-intake';\n" +
+    "import { purchaseItems, type NewProductDraft, type PurchaseOutcome } from '../../lib/receive-outcome';\n" +
+    "import { suggestedTracking } from '../../lib/scan/suggested-tracking';\n" +
+    "import { restrictionForScan } from '../../lib/intake-form';\n" +
+    "import { askMissingCost, parseBuyingCost } from '../../lib/missing-cost';\n" +
+    "import { useMutation, useQueryClient } from '@tanstack/react-query';\n" +
+    "import { Button, Card, ErrorState, InlineNotice, ListRow, MoneyField, Screen, Section, Text, TextField } from '../../components/ui';\n" +
+    "import { PurchasePaymentPicker, purchasePaymentBody, purchasePaymentReady, type PurchasePayment } from '../../components/receive/PurchasePaymentPicker';\n" +
+    'import {\n' +
+    '  ProductForm,\n' +
+    '  emptyProductForm,\n' +
+    '  toProductPayload,\n' +
+    '  type ProductFormValues,\n' +
+    "} from '../../components/catalog/ProductForm';\n" +
+    "import { ApiError, api } from '../../lib/api-client';\n" +
+    "import { toErrorMessage, toFriendlyError } from '../../lib/errors';\n" +
+    "import { useTranslation } from '../../lib/i18n';\n" +
+    "import { usePermission } from '../../lib/permissions';\n" +
+    "import { toast } from '../../lib/toast';\n" +
+    "import { dialog } from '../../lib/dialog';\n" +
+    "import { qk } from '../../lib/query-keys';\n" +
+    "import { invalidateMoney } from '../../lib/money-invalidation';\n" +
+    "import { isStoreClosedRefusal } from '../../lib/day-gate';\n" +
+    "import { uuidv4 } from '../../lib/utils';\n" +
+    "import { space } from '../../lib/design/tokens';\n" +
+    "import { makeStyles, useColors } from '../../lib/design/theme';\n" +
+    "import type { Category, ProductDetail, ProductPage } from '../../types/api';\n" +
+    "import { useFileBatch } from '../../lib/file-batch-store';\n" +
+    "import type { CatalogueProduct } from '../../lib/file-receiving';\n" +
+    '\n' +
+    '\n' +
+    'export default function NewProductScreen() {\n' +
+    '  const { t } = useTranslation();\n' +
+    '  const router = useRouter();\n' +
+    '  const queryClient = useQueryClient();\n' +
+    '  const styles = useStyles();\n' +
+    '  const colors = useColors();\n' +
+    '  const { user } = useAuth();\n' +
+    '  const { branchId } = useBranch();\n' +
+    '  const branchName = useActiveBranchName();\n' +
+    '  const {\n' +
+    '    barcode: scannedBarcode,\n' +
+    '    link,\n' +
+    '    brand: fileBrand,\n' +
+    '    model: fileModel,\n' +
+    '    variant: fileVariant,\n' +
+    '    tracking: fileTracking,\n' +
+    '    categoryId: scannedCategory,\n' +
+    '  } = useLocalSearchParams<{\n' +
+    '    barcode?: string;\n' +
+    '    link?: string;\n' +
+    '    brand?: string;\n' +
+    '    model?: string;\n' +
+    '    variant?: string;\n' +
+    '    tracking?: string;\n' +
+    '    \n' +
+    '    categoryId?: string;\n' +
+    '    \n' +
+    '    intake?: string;\n' +
+    '  }>();\n' +
+    '  const intakeScope = {\n' +
+    "    companyId: user?.companyId ?? '',\n" +
+    "    userId: user?.id ?? '',\n" +
+    "    branchId: branchId ?? '',\n" +
+    '  };\n' +
+    '  \n' +
+    '  const held = peekPendingIntake(intakeScope);\n' +
+    "  const scanKind = held?.primaryImei ? 'imei' : held?.serial ? 'serial' : held?.productBarcode ? 'barcode' : null;\n" +
+    "  const suggested = suggestedTracking(scanKind ?? 'unknown');\n" +
+    '  const restriction = held ? restrictionForScan(scanKind) : null;\n' +
+    '\n' +
+    "  const canManage = usePermission('catalog.manage');\n" +
+    '\n' +
+    '  const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});\n' +
+    '  const [existing, setExisting] = useState<CatalogueProduct | null>(null);\n' +
+    '  const existingId = existing?.id ?? null;\n' +
+    '  \n' +
+    '  const leaving = useRef(false);\n' +
+    '\n' +
+    '  \n' +
+    "  const linkingGroup = typeof link === 'string' && link ? link : null;\n" +
+    '  \n' +
+    '  const quick = Boolean(held) && !linkingGroup;\n' +
+    '\n' +
+    '  \n' +
+    "  const [cost, setCost] = useState(held?.cost ?? '');\n" +
+    '  const [costError, setCostError] = useState<string | undefined>();\n' +
+    '  const costField = useRef<{ focus: () => void } | null>(null);\n' +
+    "  const [quantity, setQuantity] = useState('1');\n" +
+    '  const [quantityError, setQuantityError] = useState<string | undefined>();\n' +
+    "  const [imei2, setImei2] = useState(held?.secondaryImei ?? '');\n" +
+    "  const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });\n" +
+    '  \n' +
+    '  const [clientUuid] = useState(() => uuidv4());\n' +
+    '  const [uncertain, setUncertain] = useState(false);\n' +
+    '  const [done, setDone] = useState<{ label: string } | null>(null);\n' +
+    '  \n' +
+    '  const committing = useRef(false);\n' +
+    '\n' +
+    '  const categoryOf = (values: ProductFormValues): Category | null =>\n' +
+    '    queryClient.getQueryData<Category[]>(qk.categories)?.find((c) => c.id === values.categoryId) ?? null;\n' +
+    '\n' +
+    '  const asCatalogue = (p: { id: string; brand: string; model: string; variant: string | null; trackingType: string }): CatalogueProduct => ({\n' +
+    '    id: p.id,\n' +
+    '    brand: p.brand,\n' +
+    '    model: p.model,\n' +
+    '    variant: p.variant ?? null,\n' +
+    "    trackingType: p.trackingType as CatalogueProduct['trackingType'],\n" +
+    '  });\n' +
+    '\n' +
+    '  const finishForFile = (product: CatalogueProduct, created: boolean) => {\n' +
+    '    const linked = useFileBatch.getState().linkGroupProduct(linkingGroup!, product);\n' +
+    '    toast.success(\n' +
+    '      created\n' +
+    "        ? t('fileReceive.create.linked', { count: String(linked), product: `${product.brand} ${product.model}` })\n" +
+    "        : t('fileReceive.create.linkedExisting', { count: String(linked), product: `${product.brand} ${product.model}` }),\n" +
+    '    );\n' +
+    '    leaving.current = true;\n' +
+    '    if (router.canGoBack()) router.back();\n' +
+    "    else router.replace('/receive/file' as never);\n" +
+    '  };\n' +
+    '\n' +
+    '  \n' +
+    '  const resolveExisting = async (values: ProductFormValues, exactOnly = false): Promise<CatalogueProduct | null> => {\n' +
+    "    const term = values.barcode.trim() || [values.brand, values.model, values.variant].filter(Boolean).join(' ');\n" +
+    '    try {\n' +
+    '      const page = await api.get<ProductPage>(`/products?active=all&q=${encodeURIComponent(term)}`);\n' +
+    '      const exact = page.rows.find(\n' +
+    '        (r) =>\n' +
+    '          (values.barcode.trim() && r.barcode === values.barcode.trim().toUpperCase()) ||\n' +
+    '          (r.brand.toLowerCase() === values.brand.trim().toLowerCase() &&\n' +
+    '            r.model.toLowerCase() === values.model.trim().toLowerCase() &&\n' +
+    "            (r.variant ?? '').toLowerCase() === values.variant.trim().toLowerCase()),\n" +
+    '      );\n' +
+    '      const hit = exact ?? (exactOnly ? undefined : page.rows[0]);\n' +
+    '      return hit ? asCatalogue(hit) : null;\n' +
+    '    } catch {\n' +
+    '      return null;\n' +
+    '    }\n' +
+    '  };\n' +
+    '\n' +
+    '  \n' +
+    '  const create = useMutation({\n' +
+    "    mutationFn: (values: ProductFormValues) => api.post<ProductDetail>('/products', toProductPayload(values, categoryOf(values))),\n" +
+    '    onSuccess: (product) => {\n' +
+    '      \n' +
+    "      void queryClient.invalidateQueries({ queryKey: ['products'] });\n" +
+    "      void queryClient.invalidateQueries({ queryKey: ['inventory'] });\n" +
+    '      if (linkingGroup) {\n' +
+    '        finishForFile(asCatalogue(product), true);\n' +
+    '        return;\n' +
+    '      }\n' +
+    "      toast.success(t('catalog.form.created'));\n" +
+    '      leaving.current = true;\n' +
+    '      router.replace(`/catalog/${product.id}` as never);\n' +
+    '    },\n' +
+    '    onError: async (error, values) => {\n' +
+    '      if (error instanceof ApiError && error.status === 409) {\n' +
+    '        const barcodeClash = /barcode/i.test(error.message);\n' +
+    "        setErrors(barcodeClash ? { barcode: t('catalog.conflict.barcode') } : { variant: t('catalog.conflict.variant') });\n" +
+    '        \n' +
+    '        \n' +
+    '        const found = await resolveExisting(values);\n' +
+    '        if (found) {\n' +
+    '          setExisting(found);\n' +
+    '          await dialog.alert({\n' +
+    "            title: t('catalog.conflict.maybeCreated.title'),\n" +
+    "            message: linkingGroup ? t('catalog.conflict.useExisting.body') : t('catalog.conflict.maybeCreated.body'),\n" +
+    '          });\n' +
+    '        }\n' +
+    '        return;\n' +
+    '      }\n' +
+    '      toast.error(toFriendlyError(error).body);\n' +
+    '    },\n' +
+    '  });\n' +
+    '\n' +
+    '  \n' +
+    '  const receive = useMutation({\n' +
+    '    mutationFn: (input: { values: ProductFormValues; unitCost: number | null; productId: string | null }) => {\n' +
+    '      const { values, unitCost, productId } = input;\n' +
+    '      const identifier = held?.primaryImei ?? held?.serial ?? null;\n' +
+    '      const second = imei2.trim();\n' +
+    "      return api.post<PurchaseOutcome>('/purchases', {\n" +
+    '        clientUuid,\n' +
+    '        ...purchasePaymentBody(payment),\n' +
+    '        items: purchaseItems([\n' +
+    '          {\n' +
+    "            key: 'one',\n" +
+    "            productId: productId ?? '',\n" +
+    '            ...(productId ? {} : { newProduct: toProductPayload(values, categoryOf(values)) as NewProductDraft }),\n' +
+    '            trackingType: values.trackingType,\n' +
+    '            unitCost,\n' +
+    "            ...(values.trackingType === 'quantity'\n" +
+    '              ? { quantity: Number(quantity) }\n' +
+    '              : { identifiers: identifier ? [identifier] : [], ...(second && identifier ? { secondaries: { [identifier]: second } } : {}) }),\n' +
+    '          },\n' +
+    '        ]),\n' +
+    '      });\n' +
+    '    },\n' +
+    '    onSuccess: (outcome, { values }) => {\n' +
+    '      setUncertain(false);\n' +
+    '      \n' +
+    '      if (!outcome.purchaseId || outcome.unitsCreated + outcome.stockLines === 0) {\n' +
+    '        const refusal = outcome.rejected?.[0]?.reason;\n' +
+    "        toast.error(refusal ? `${t('receive.refused.title')} — ${refusal}` : t('receive.refused.none'));\n" +
+    '        return;\n' +
+    '      }\n' +
+    '      clearPendingIntake();\n' +
+    "      void queryClient.invalidateQueries({ queryKey: ['products'] });\n" +
+    "      void queryClient.invalidateQueries({ queryKey: ['inventory'] });\n" +
+    '      void queryClient.invalidateQueries({ queryKey: qk.home(branchId) });\n' +
+    '      invalidateMoney(queryClient);\n' +
+    "      const label = [values.brand, values.model].filter(Boolean).join(' ');\n" +
+    '      setDone({ label });\n' +
+    "      toast.success(outcome.createdProducts?.length ? t('receive.createdAndAdded', { product: label }) : t('quick.receive.done.title'));\n" +
+    '    },\n' +
+    '    onError: async (e, { values }) => {\n' +
+    '      \n' +
+    "      if (e instanceof ApiError && e.status === 409 && e.code === 'product_exists') {\n" +
+    '        const found = await resolveExisting(values, true);\n' +
+    '        if (found) setExisting(found);\n' +
+    "        toast.error(t('receive.productExists'));\n" +
+    '        return;\n' +
+    '      }\n' +
+    '      if (isStoreClosedRefusal(e)) {\n' +
+    "        toast.error(t('gate.refused.receive'));\n" +
+    '        return;\n' +
+    '      }\n' +
+    '      \n' +
+    '      if (!(e instanceof ApiError) || e.status >= 500) {\n' +
+    '        setUncertain(true);\n' +
+    '        return;\n' +
+    '      }\n' +
+    '      toast.error(toErrorMessage(e));\n' +
+    '    },\n' +
+    '  });\n' +
+    '\n' +
+    '  const co'... 7458 more characters,
+  expected: /notePendingProduct\(found\.id\);[\s\S]*?leaving\.current = true;\s*if \(router\.canGoBack\(\)\) router\.back\(\);/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
