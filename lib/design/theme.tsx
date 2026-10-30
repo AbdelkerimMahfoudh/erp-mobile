@@ -28,12 +28,15 @@
  *
  * ## The first visit
  *
- * Until somebody chooses, the app starts in the device's own appearance, read
- * once at start (owner's review, 2026-10-24): a phone already in dark mode
- * should not open a bright sign-in page. The first choice — the switch in
- * Appearance, or the sun/moon on the sign-in pages — is stored and wins from
- * then on. The device is read once, not followed: the switch keeps meaning
- * exactly what it shows.
+ * Until somebody chooses, the app starts **dark** (D226, the owner's brief of
+ * 2026-10-30, superseding the 2026-10-24 rule of starting in the device's own
+ * appearance). The first choice — the switch in Appearance, or the sun/moon on
+ * the sign-in pages — is stored and wins from then on; a choice already stored
+ * is never overwritten. Nothing is stored until somebody chooses.
+ *
+ * The native splash is drawn by iOS before any script can read the stored
+ * choice, so it follows the device's appearance (`app.json`); the app itself is
+ * held behind it until the theme is applied, so no light screen is painted.
  *
  * ## The browser
  *
@@ -44,7 +47,7 @@
  * and the page is told once it is applied (`data-theme-ready`).
  */
 import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { Appearance, Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import type { ImageStyle, TextStyle, ViewStyle } from 'react-native';
 import { getItem, setItem } from '../storage';
 import { PALETTES, type Palette, type ThemeName } from './colors';
@@ -53,24 +56,22 @@ import { PALETTES, type Palette, type ThemeName } from './colors';
 export const THEME_STORAGE_KEY = 'erp.theme';
 const STORAGE_KEY = THEME_STORAGE_KEY;
 
-/** The device's appearance, for somebody who has not chosen one. */
-function deviceTheme(): ThemeName {
-  return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
-}
+/** For somebody who has not chosen: dark (D226). The device's appearance is no longer the default. */
+export const DEFAULT_THEME: ThemeName = 'dark';
 
 function isThemeName(value: unknown): value is ThemeName {
   return value === 'dark' || value === 'light';
 }
 
-/** The browser's stored choice, synchronously — or the device's appearance. Never throws. */
+/** The browser's stored choice, synchronously — or the default (dark). Never throws. */
 function webInitialTheme(): ThemeName {
   try {
     const stored = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (isThemeName(stored)) return stored;
   } catch {
-    // Storage blocked (a private window): the device's appearance, below.
+    // Storage blocked (a private window): the default, below.
   }
-  return deviceTheme();
+  return DEFAULT_THEME;
 }
 
 const isWeb = Platform.OS === 'web';
@@ -112,13 +113,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isWeb) return;
     (async () => {
-      let next = deviceTheme();
+      let next = DEFAULT_THEME;
       try {
         const stored = await getItem(STORAGE_KEY);
         if (isThemeName(stored)) next = stored;
       } catch {
         // An unreadable preference is not worth failing to start over: the
-        // device's own appearance, as for somebody who never chose.
+        // default, as for somebody who never chose.
       } finally {
         setThemeState(next);
         setReady(true);

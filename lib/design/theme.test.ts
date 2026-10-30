@@ -293,13 +293,20 @@ it('no raw ramp step is used as a surface', () => {
 
 it('the first render is light, a first visit follows the device, and a choice is stored on the device', () => {
   const code = readFileSync('lib/design/theme.tsx', 'utf8');
-  // Light first, so the browser's pre-rendered page and the first render agree; the device's appearance until a choice.
+  // Light first, so the browser's pre-rendered page and the first render agree; then dark until a choice (D226).
   assert.match(code, /useState<ThemeName>\('light'\)/);
-  assert.match(code, /Appearance\.getColorScheme\(\) === 'dark'/);
+  assert.match(code, /export const DEFAULT_THEME: ThemeName = 'dark'/);
+  assert.match(code, /let next = DEFAULT_THEME;/, 'native: no stored choice is dark');
+  assert.match(code, /return DEFAULT_THEME;/, 'browser: no stored choice is dark');
+  assert.doesNotMatch(code, /Appearance\.getColorScheme/, 'the device appearance is no longer the default');
   assert.match(code, /THEME_STORAGE_KEY = 'erp\.theme'/);
   // The browser's boot script (a file, never inline: CSP `script-src 'self'`) reads the same key and paints the same canvases.
   const boot = readFileSync('public/theme-boot.js', 'utf8');
   assert.match(boot, /localStorage\.getItem\('erp\.theme'\)/, 'the boot script reads the same key');
+  // A stored choice wins; with none the page starts dark like the app (D226), never the device's appearance.
+  assert.match(boot, /var theme = 'dark';/);
+  assert.match(boot, /if \(stored === 'dark' \|\| stored === 'light'\) theme = stored;/);
+  assert.doesNotMatch(boot, /prefers-color-scheme/);
   assert.ok(boot.includes(`'${darkColors.surface.canvas}'`) && boot.includes(`'${lightColors.surface.canvas}'`), 'the boot script paints the palette canvases');
   const shell = readFileSync('app/+html.tsx', 'utf8');
   assert.match(shell, /<script src="\/theme-boot\.js" \/>/);
