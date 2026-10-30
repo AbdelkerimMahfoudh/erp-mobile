@@ -4,7 +4,7 @@ import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useActiveBranchName, useBranch } from '../../lib/branch';
-import { clearPendingIntake, notePendingDraft, notePendingProduct, peekPendingIntake } from '../../lib/scan/pending-intake';
+import { clearPendingIntake, peekPendingIntake } from '../../lib/scan/pending-intake';
 import { purchaseItems, type NewProductDraft, type PurchaseOutcome } from '../../lib/receive-outcome';
 import { suggestedTracking } from '../../lib/scan/suggested-tracking';
 import { restrictionForScan } from '../../lib/intake-form';
@@ -37,22 +37,21 @@ import type { CatalogueProduct } from '../../lib/file-receiving';
 /**
  * Create a product (G1) — the shared form, nothing duplicated.
  *
- * Four ways in, one form:
+ * Three ways in, one form:
  *
  * - **From the catalogue**: product metadata only — no cost, no price — and it
  *   says plainly that creating a product adds no stock.
  * - **From a file review** (`link`): the product is created and linked to the
  *   rows waiting on it; the review commits the stock later.
- * - **From the delivery Receive screen** (a held scan): nothing is saved here.
- *   "Add to delivery" hands the product back as a draft, staged on the
- *   delivery's line, and the delivery's own final commit creates both.
- * - **From Quick receive** (`intake=quick`, D223, the owner's device test of
- *   2026-10-28): this IS the single-item intake. Category, product, the item's
+ * - **From a scan, in Quick receive or the delivery Receive screen**
+ *   (`intake=quick`, D223; both since D226): this IS the single-item intake. Category, product, the item's
  *   stock details and its optional buying cost, then ONE action — "Create
  *   product and add to stock" — commits the product with its unit or quantity in
  *   one purchase. Success is said only after the server committed it, and the
  *   item is in Stock and findable by Sale at once. It used to hand a draft back
- *   to an empty Receive screen, which froze on the phone.
+ *   to the Receive screens: that froze on the phone (2026-10-28), and from the
+ *   delivery Receive screen it showed no buying cost and closed the app on the
+ *   way back (TestFlight, 2026-10-30, docs/111 §8.2).
  *
  * `POST /products` has no idempotency key, but the database guarantees a unique
  * (company, brand, model, variant) and a unique (company, barcode). So a request
@@ -78,7 +77,6 @@ export default function NewProductScreen() {
     variant: fileVariant,
     tracking: fileTracking,
     categoryId: scannedCategory,
-    intake,
   } = useLocalSearchParams<{
     barcode?: string;
     link?: string;
@@ -88,7 +86,7 @@ export default function NewProductScreen() {
     tracking?: string;
     /** The category the scan's question chose (an IMEI's kind of device, D223). */
     categoryId?: string;
-    /** `quick`: the single-item intake commits here (D223). */
+    /** `quick`, sent by both Receive screens. Informational since D226: a held scan alone decides the single-item intake. */
     intake?: string;
   }>();
   const intakeScope = {
@@ -121,9 +119,8 @@ export default function NewProductScreen() {
    * (docs/21, 2026-10-05): `link` names the group of rows waiting on it.
    */
   const linkingGroup = typeof link === 'string' && link ? link : null;
-  const quick = intake === 'quick' && Boolean(held) && !linkingGroup;
-  const forDelivery = Boolean(held) && !linkingGroup && !quick;
-  const [handingBack, setHandingBack] = useState(false);
+  /** A held scan is always the single-item intake, with its buying cost (D226): there is no other path for it. */
+  const quick = Boolean(held) && !linkingGroup;
 
   // ── The single item's stock details (quick intake) ─────────────────────────
   const [cost, setCost] = useState(held?.cost ?? '');
@@ -216,29 +213,6 @@ export default function NewProductScreen() {
       toast.error(toFriendlyError(error).body);
     },
   });
-
-  // ── From the delivery: hand the product back, "Add to delivery" ───────────
-  const handBack = async (values: ProductFormValues) => {
-    setErrors({});
-    setHandingBack(true);
-    try {
-      const found = await resolveExisting(values, true);
-      if (found) {
-        // Never a duplicate: the scan is received into the product the shop already has.
-        notePendingProduct(found.id);
-        toast.success(t('catalog.intake.usingExisting'));
-      } else {
-        // No price: intake records the buying cost only.
-        notePendingDraft(toProductPayload(values, categoryOf(values)) as NewProductDraft);
-      }
-      // Set BEFORE leaving: the guard sees it in the same tick (the 2026-10-28 freeze).
-      leaving.current = true;
-      if (router.canGoBack()) router.back();
-      else router.replace('/receive');
-    } finally {
-      setHandingBack(false);
-    }
-  };
 
   // ── From Quick receive: the product and its stock, in one purchase ────────
   const receive = useMutation({
@@ -466,7 +440,7 @@ export default function NewProductScreen() {
         }}
         suggestedFromScan={suggested}
         scanRestriction={restriction}
-        submitting={create.isPending || handingBack || receive.isPending}
+        submitting={create.isPending || receive.isPending}
         allowLeaveRef={leaving}
         errors={errors}
         submitLabel={
@@ -476,14 +450,12 @@ export default function NewProductScreen() {
               : existingId
                 ? t('quick.receive.add')
                 : t('receive.createAndAdd')
-            : forDelivery
-              ? t('catalog.intake.next')
-              : undefined
+            : undefined
         }
         notice={
           linkingGroup ? null : (
             <InlineNotice tone="info">
-              {t(quick ? 'catalog.intake.notice.quick' : forDelivery ? 'catalog.intake.notice' : 'catalog.new.noStock')}
+              {t(quick ? 'catalog.intake.notice.quick' : 'catalog.new.noStock')}
             </InlineNotice>
           )
         }
@@ -492,10 +464,6 @@ export default function NewProductScreen() {
           if (quick) {
             if (!purchasePaymentReady(payment)) return;
             void commitQuick(values);
-            return;
-          }
-          if (forDelivery) {
-            void handBack(values);
             return;
           }
           setErrors({});

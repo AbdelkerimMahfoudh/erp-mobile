@@ -34,13 +34,10 @@ import {
 import { askScanIntake } from '../lib/scan/ask-intake';
 import {
   codesInDelivery,
-  draftKey,
-  draftSuggestion,
   imei2Problem,
   purchaseItems,
   settle,
   withSecondary,
-  type NewProductDraft,
   type PurchaseOutcome,
   type RejectedLine,
 } from '../lib/receive-outcome';
@@ -113,13 +110,17 @@ interface PendingScan {
   notice?: { tone: 'warning' | 'danger'; message: string };
   /** Set when either IMEI already belongs to a unit. */
   existing?: ScanInventoryMatch;
-  /** The product to create with this item, in the same request (D223). Not created yet. */
-  draft?: NewProductDraft;
 }
 
-/** The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does. */
+/**
+ * The product form, opened for a scan: a genuine barcode and a chosen category travel; an IMEI never does.
+ *
+ * Always `intake=quick` (D226, the TestFlight crash of 2026-10-30): the form shows the buying cost and receives the
+ * scanned item into stock with its new product in ONE purchase, the same path as Quick receive. It no longer hands an
+ * unsaved product draft back to this screen — the path that showed no buying cost and closed the app on its way back.
+ */
 function newProductParams(barcode: string | null, categoryId: string | undefined): Record<string, string> {
-  return { ...(barcode ? { barcode } : {}), ...(categoryId ? { categoryId } : {}) };
+  return { intake: 'quick', ...(barcode ? { barcode } : {}), ...(categoryId ? { categoryId } : {}) };
 }
 
 /** A timeout, a dropped connection or a server fault: the purchase may exist or not. */
@@ -319,12 +320,11 @@ function ReceiveScreen() {
   );
 
   /**
-   * Back from Create product — whether it was created or cancelled.
+   * Back from Create product.
    *
-   * Both IMEIs were held across the detour. A created product comes back
-   * selected; a cancelled one reopens the same phone, so the user can choose an
-   * existing product instead. Creating a product created no inventory: the
-   * phone is still only received by Finish.
+   * Created: the form received the item itself, in one purchase, and cleared
+   * the scan — nothing comes back here. Cancelled: the scan was held across the
+   * detour and reopens, so the user can choose an existing product instead.
    */
   useFocusEffect(
     useCallback(() => {
@@ -336,38 +336,12 @@ function ReceiveScreen() {
       void (async () => {
         try {
           const result = await lookUp(device, back.secondaryImei);
-          if (back.draftProduct && !result.inventory?.alreadyInInventory) {
-            /*
-             * Nothing exists yet: Finish sends the product with its stock. A
-             * model already drafted in this delivery is reused as it is, so two
-             * phones of one new model create ONE product, described once.
-             */
-            const key = draftKey(back.draftProduct);
-            const same = staged.find((l) => l.newProduct && draftKey(l.newProduct) === key)?.newProduct;
-            const draftProduct = same ?? back.draftProduct;
-            setPending({
-              result,
-              suggestion: draftSuggestion(draftProduct, result.kind),
-              secondary: back.secondaryImei,
-              draft: draftProduct,
-            });
-            toast.success(t('receive.draftSelected'));
-            return;
-          }
-          if (back.createdProductId && !result.inventory?.alreadyInInventory) {
-            const created = await api.get<ProductSuggestion>(
-              `/products/suggest?productId=${encodeURIComponent(back.createdProductId)}`,
-            );
-            setPending({ result, suggestion: created, secondary: back.secondaryImei });
-            toast.success(t('receive.createdSelected'));
-            return;
-          }
           route(result, back.secondaryImei);
         } catch (e) {
           toast.error(toErrorMessage(e));
         }
       })();
-    }, [scope, lookUp, route, t, staged]),
+    }, [scope, lookUp, route]),
   );
 
   const addStaged = (draftItem: ReceiveItemDraft) => {
@@ -381,8 +355,7 @@ function ReceiveScreen() {
       ...prev,
       {
         key: uuidv4(),
-        productId: pending.draft ? '' : suggestion.productId,
-        ...(pending.draft ? { newProduct: pending.draft } : {}),
+        productId: suggestion.productId,
         label,
         variant: suggestion.variant,
         trackingType: suggestion.trackingType,
@@ -415,8 +388,6 @@ function ReceiveScreen() {
         p
           ? {
               ...p,
-              // An existing product chosen by hand replaces any draft.
-              draft: undefined,
               suggestion: chosen,
               notice:
                 chosen.trackingType !== 'quantity' && p.result.kind === 'barcode'

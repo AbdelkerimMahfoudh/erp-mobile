@@ -343,15 +343,29 @@ describe('one action creates the product with its stock', () => {
 });
 
 describe('leaving never freezes', () => {
-  it('the delivery hand-back says "Add to delivery" and passes its own guard without a dialog', async () => {
+  it('from the delivery Receive screen the same single-item intake runs: cost shown, ONE purchase, no hand-back (D226)', async () => {
+    // The TestFlight crash of 2026-10-30 (docs/111 §8.2): this path showed no buying cost, handed an unsaved draft
+    // back with router.back() and closed the app on the way. A held scan now always receives here, in one purchase.
+    post.mockResolvedValueOnce(OK);
     await open('serial', 'delivery');
     await fillLaptop();
-    expect(mockGuard.enabled).toBe(true);
-    await press(screen.getByText(t('catalog.intake.next')));
-    // The screen left on purpose: the guard lets the navigation through at once.
-    mockGuard.cb?.({ data: { action: { type: 'GO_BACK' } } });
-    expect(mockNavigation.dispatch).toHaveBeenCalledWith({ type: 'GO_BACK' });
+    expect(screen.queryByText(t('catalog.intake.next'))).toBeNull();
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '1500'));
+    await press(cta());
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0][0]).toBe('/purchases');
+    expect(post.mock.calls[0][1].items[0]).toMatchObject({ unitCost: 1500, units: [{ identifier: SERIAL }], newProduct: { trackingType: 'serial' } });
+    // Success only after the server's answer, and the form is replaced by it: no exit to guard, no dialog.
+    expect(screen.getAllByText(t('quick.receive.done.title')).length).toBeGreaterThan(0);
+    expect(mockNavigation.dispatch).not.toHaveBeenCalled();
     expect(dialog.confirm).not.toHaveBeenCalled();
+  });
+
+  it('both Receive screens open the product form as the single-item intake', () => {
+    for (const file of ['app/receive.tsx', 'app/quick-receive.tsx']) {
+      const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', file), 'utf8');
+      expect({ file, quick: /return \{ intake: 'quick', \.\.\.\(barcode/.test(source) }).toEqual({ file, quick: true });
+    }
   });
 
   it('leaving an unfinished form asks once — a second back press cannot stack a second dialog', async () => {
