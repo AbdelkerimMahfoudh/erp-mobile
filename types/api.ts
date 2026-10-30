@@ -760,8 +760,22 @@ export interface AppNotification {
    * remain the fallback for any type this build does not recognise.
    */
   payload: TransferNotificationPayload | DiscountApprovalNotificationPayload | null;
+  /** Read by THIS person, on any of their devices (0113). */
   isRead: boolean;
   createdAt: string;
+  /** D225: the centre's filter this event belongs to; absent from an older server. */
+  category?: 'approvals' | 'sales' | 'stock' | 'money' | 'staff' | 'security' | 'other';
+}
+
+/** D225: the centre's filters. */
+export type NotificationFilter = 'all' | 'approvals' | 'sales' | 'stock' | 'money';
+export type NotificationLevel = 'all' | 'important' | 'approvals';
+
+export interface NotificationPreference {
+  level: NotificationLevel;
+  /** No choice made yet: the default for the person's role. */
+  isDefault: boolean;
+  levels: NotificationLevel[];
 }
 
 /**

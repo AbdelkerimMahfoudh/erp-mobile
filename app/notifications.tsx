@@ -1,30 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Chip, EmptyState, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BellRing, CheckCheck } from 'lucide-react-native';
+import { Button, Chip, EmptyState, ErrorState, ListRow, Screen, SegmentedControl, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { formatMoney, formatSmartDateTime } from '../lib/format';
 import { haptics } from '../lib/haptics';
-import { useTranslation } from '../lib/i18n';
+import { hasKey, useTranslation } from '../lib/i18n';
 import { internalRoute } from '../lib/navigation/internal-route';
 import { qk } from '../lib/query-keys';
 import type {
   AppNotification,
   DiscountApprovalNotificationPayload,
+  NotificationFilter,
   NotificationPage,
+  NotificationPreference,
   TransferEvent,
 } from '../types/api';
 import { makeStyles } from '../lib/design/theme';
 
 /**
- * In-app notifications.
+ * In-app notifications — the notification centre (D225).
  *
- * The minimum that makes what the backend already writes visible: a bounded
- * list, read state, and an action that lands on the thing the message is about.
- * Deliberately not a notifications *system* — no push, no provider, no
- * preferences, and no second model.
+ * Every event the person may see, whatever their push level, filtered by kind
+ * (All · Approvals · Sales · Stock · Money). Each is rendered in the language
+ * the app is set to NOW, from the structured event: a title for every known
+ * type, the server's English text only for an English reader. Read state is
+ * the person's own and follows them to every device. Tapping lands on the
+ * exact record; a record since removed, or no longer theirs to open, says so
+ * on its own screen.
  *
  * Everything shown comes from the row the server stored. Nothing is recomputed
  * here, so a `price.changed` message says exactly what the Owner was told at the
@@ -36,16 +42,27 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const [filter, setFilter] = useState<NotificationFilter>('all');
   const page = useInfiniteQuery({
-    queryKey: qk.notifications,
+    queryKey: [...qk.notifications, filter],
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) =>
-      api.get<NotificationPage>(`/notifications${pageParam ? `?cursor=${pageParam}` : ''}`),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams();
+      if (filter !== 'all') params.set('filter', filter);
+      if (pageParam) params.set('cursor', pageParam);
+      const qs = params.toString();
+      return api.get<NotificationPage>(`/notifications${qs ? `?${qs}` : ''}`);
+    },
     getNextPageParam: (last) => last.nextCursor,
   });
+  const preference = useQuery({ queryKey: qk.notificationPreference, queryFn: () => api.get<NotificationPreference>('/notifications/preferences') });
 
   const markRead = useMutation({
     mutationFn: (id: string) => api.post(`/notifications/${id}/read`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.notifications }),
+  });
+  const markAll = useMutation({
+    mutationFn: () => api.post('/notifications/read-all'),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.notifications }),
   });
 
@@ -62,6 +79,24 @@ export default function NotificationsScreen() {
   return (
     <Screen padded={false} scroll={false}>
       <Stack.Screen options={{ headerShown: true, title: t('notifications.title') }} />
+      <View style={styles.top}>
+        {/* The person's push level, one tap from the centre: what reaches the phone, never what may be seen. */}
+        <ListRow
+          leading={BellRing}
+          title={t('notifications.level.title')}
+          subtitle={preference.data ? t(`notifications.level.${preference.data.level}` as const) : undefined}
+          onPress={() => router.push('/notification-settings' as never)}
+        />
+        <SegmentedControl
+          size="sm"
+          value={filter}
+          onChange={(v) => setFilter(v)}
+          options={(['all', 'approvals', 'sales', 'stock', 'money'] as const).map((f) => ({ value: f, label: t(`notifications.filter.${f}` as const) }))}
+        />
+        {(page.data?.pages[0]?.unreadCount ?? 0) > 0 ? (
+          <Button title={t('notifications.readAll')} icon={CheckCheck} variant="tertiary" size="sm" onPress={() => markAll.mutate()} loading={markAll.isPending} />
+        ) : null}
+      </View>
 
       {page.isLoading ? (
         <SkeletonList count={6} />
@@ -106,8 +141,18 @@ const TRANSFER_EVENTS = new Set<TransferEvent>([
  * in Arabic — and, importantly, older rows that have no payload still render,
  * because the stored text remains the fallback.
  */
-function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t']) {
+function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t'], language: string) {
   const p = row.payload;
+  /*
+   * D225: never English to a reader in Arabic or French. A type the catalogue names gets its title in the reader's
+   * language; the server's English body is shown to an English reader only. A type this build does not know reads as
+   * its kind ("New activity"), never as a key.
+   */
+  const kindKey = `notifications.kind.${row.type}`;
+  const generic = {
+    title: hasKey(kindKey) ? t(kindKey) : language === 'en' ? row.title : t('notifications.kind.other'),
+    body: language === 'en' ? row.body : null,
+  };
 
   /*
    * A price approval (A2). Written by the server as English title and body,
@@ -123,7 +168,7 @@ function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t
           title: t('notifications.approval.requested.title'),
           body:
             approval.requestedPrice === undefined || approval.configuredPrice === undefined
-              ? row.body
+              ? generic.body
               : t('notifications.approval.requested.body', {
                   requested: formatMoney(approval.requestedPrice),
                   configured: formatMoney(approval.configuredPrice),
@@ -134,7 +179,7 @@ function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t
           title: t('notifications.approval.approved.title'),
           body:
             approval.approvedPrice == null
-              ? row.body
+              ? generic.body
               : t('notifications.approval.approved.body', {
                   price: formatMoney(approval.approvedPrice),
                 }),
@@ -147,12 +192,12 @@ function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t
           body: approval.note ? approval.note : t('notifications.approval.rejected.body'),
         };
       default:
-        return { title: row.title, body: row.body };
+        return generic;
     }
   }
 
   if (!p || !row.type.startsWith('transfer.') || !TRANSFER_EVENTS.has(p.event as TransferEvent)) {
-    return { title: row.title, body: row.body };
+    return generic;
   }
   const transfer = p as Extract<AppNotification['payload'], { transferNo: string }>;
   const values = {
@@ -175,8 +220,8 @@ function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t
 
 function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
   const styles = useStyles();
-  const { t } = useTranslation();
-  const { title, body } = localised(row, t);
+  const { t, language } = useTranslation();
+  const { title, body } = localised(row, t, language);
 
   /**
    * Known types get shop language; anything else falls back to the server's own
@@ -232,6 +277,7 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
 
 const useStyles = makeStyles((colors) => ({
   list: { paddingBottom: space['2xl'] },
+  top: { gap: space.sm, paddingHorizontal: space.base, paddingVertical: space.sm },
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.semantic.divider,

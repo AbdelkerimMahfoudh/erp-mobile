@@ -422,6 +422,7 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/access-closed': 'The access screen of a closed business, reached when the server refuses operational access.',
   '/select-branch': 'Reached from the branch control at the top of More.',
   '/notifications': 'Reached from the notification bell in the More header.',
+  '/notification-settings': 'Push alerts (D225): reached from the row at the top of the notification centre.',
   '/alerts': 'Every alert to review, newest first — the rest of the Analyses overview’s "Needs your attention", reached from its "View all".',
   '/receive': 'Started from Home and Inventory — a counter action, not a menu entry.',
   '/receive/pick': 'Choosing a stock file, from the Receive stock header. Owner-only, like the opening-inventory import.',

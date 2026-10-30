@@ -38,7 +38,7 @@ const FRENCH_SAME_AS_ENGLISH = new Set([
   'Total', 'Note', 'Description', 'Notifications', 'Stock', 'Transactions', 'Scan', 'Type', 'Date', 'Service',
   'Performance', 'Messages', 'Net', 'Correction', 'Code', 'Commission', 'Smartphones', 'Audio', 'Films', 'Webcams',
   'Consoles', 'Batteries', 'Message', 'Dukan ERP', '1 minute', '5 minutes', '15 minutes', 'Apple, Samsung, Anker…',
-  'PDF page {page}', 'Page {page}',
+  'PDF page {page}', 'Page {page}', 'Important',
 ]);
 
 it('every language has exactly the same keys', () => {

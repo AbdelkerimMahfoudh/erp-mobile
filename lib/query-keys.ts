@@ -150,6 +150,7 @@ export const qk = {
   /** The signed-in user's own devices (F1 Stage 3). */
   devices: ['devices'] as const,
   notifications: ['notifications'] as const,
+  notificationPreference: ['notifications', 'preference'] as const,
   /** Company-scoped, not branch-scoped — one policy for the whole business. */
   settings: ['settings'] as const,
   /**
