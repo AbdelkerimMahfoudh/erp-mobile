@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { PermissionExplainer } from '../permissions/PermissionExplainer';
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Keyboard, Flashlight, FlashlightOff, Plus, ScanLine, X } from 'lucide-react-native';
+import { Camera, Keyboard, Flashlight, FlashlightOff, Plus, ScanLine, X } from 'lucide-react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 import { radius, space, touch } from '../../lib/design/tokens';
 import { motionPlan } from '../../lib/design/motion';
@@ -975,20 +976,16 @@ export function ScannerSheet({
         ) : !permission.granted ? (
           <View style={styles.center}>
             <View style={styles.panel}>
-              <EmptyState
-                icon={Keyboard}
+              {/* D225: the app's own explanation first; only "Allow camera" opens iOS's prompt. Typing stays one tap away. */}
+              <PermissionExplainer
+                icon={Camera}
                 title={t('scanner.permission.title')}
-                body={
-                  permission.canAskAgain
-                    ? t('scanner.permission.body')
-                    : t('scanner.permission.denied')
-                }
-                action={
-                  permission.canAskAgain
-                    ? { label: t('scanner.permission.grant'), onPress: () => void requestPermission() }
-                    : undefined
-                }
-                secondaryAction={{ label: t('action.typeInstead'), onPress: () => setManual(true) }}
+                benefits={[t('scanner.permission.benefit.scan'), t('scanner.permission.benefit.mistakes'), t('scanner.permission.benefit.private')]}
+                denied={!permission.canAskAgain}
+                deniedSteps={t('scanner.permission.denied')}
+                onAllow={() => void requestPermission()}
+                allowLabel={t('scanner.permission.grant')}
+                alternative={{ label: t('action.typeInstead'), onPress: () => setManual(true) }}
               />
             </View>
           </View>

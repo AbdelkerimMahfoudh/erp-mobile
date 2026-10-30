@@ -1247,8 +1247,7 @@ export const en = {
   'scanner.permission.body':
     'Scanning is far faster than typing. Allow the camera to scan IMEIs, serials and barcodes.',
   'scanner.permission.grant': 'Allow camera',
-  'scanner.permission.denied':
-    'Camera access is turned off. Turn it on in your phone settings, or type the code instead.',
+  'scanner.permission.denied': 'Camera access is turned off. Open Settings › Dukan ERP › Camera and turn it on — or type the code instead.',
   'scanner.unavailable.title': 'Scanning is in the phone app',
   'scanner.unavailable.body': 'The browser version cannot use the camera. Type the IMEI, serial number or barcode instead — it is checked the same way.',
 
@@ -4543,4 +4542,9 @@ export const en = {
   'register.field.ownerNameAr': 'Your name in Arabic (اسمك بالعربية)',
   // ── Product name (D225) ──
   'brand.name': 'Dukan ERP',
+  // ── Permission explanations (D225) ──
+  'scanner.permission.benefit.scan': 'Scan an IMEI, serial or barcode in a second instead of typing it.',
+  'scanner.permission.benefit.mistakes': 'No mistyped digit: the code is read exactly.',
+  'scanner.permission.benefit.private': 'Used only while this scanner is open. Nothing is recorded.',
+  'permission.openSettings': 'Open Settings',
 } as const;

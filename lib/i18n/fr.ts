@@ -1328,8 +1328,7 @@ export const fr: Catalogue = {
   'scanner.permission.body':
     'Scanner est bien plus rapide que saisir. Autorisez la caméra pour scanner les IMEI, numéros de série et codes-barres.',
   'scanner.permission.grant': 'Autoriser la caméra',
-  'scanner.permission.denied':
-    'L’accès à la caméra est désactivé. Activez-le dans les réglages du téléphone, ou saisissez le code.',
+  'scanner.permission.denied': 'L’accès à la caméra est désactivé. Ouvrez Réglages › Dukan ERP › Appareil photo et activez-le — ou saisissez le code.',
   'scanner.unavailable.title': 'Le scan se fait dans l’application',
   'scanner.unavailable.body':
     'La version navigateur ne peut pas utiliser la caméra. Saisissez l’IMEI, le numéro de série ou le code-barres — il est vérifié de la même façon.',
@@ -4715,4 +4714,9 @@ export const fr: Catalogue = {
   'register.field.ownerNameAr': 'Votre nom en arabe (اسمك بالعربية)',
   // ── Product name (D225) ──
   'brand.name': 'Dukan ERP',
+  // ── Permission explanations (D225) ──
+  'scanner.permission.benefit.scan': 'Scannez un IMEI, un numéro de série ou un code-barres en une seconde, sans le saisir.',
+  'scanner.permission.benefit.mistakes': 'Aucun chiffre mal tapé : le code est lu exactement.',
+  'scanner.permission.benefit.private': 'Utilisée seulement quand ce scanner est ouvert. Rien n’est enregistré.',
+  'permission.openSettings': 'Ouvrir les Réglages',
 };

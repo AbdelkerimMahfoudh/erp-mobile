@@ -1237,8 +1237,7 @@ export const ar: Catalogue = {
   'scanner.permission.body':
     'المسح أسرع بكثير من الكتابة. اسمح باستخدام الكاميرا لمسح أرقام IMEI والأرقام التسلسلية والباركود.',
   'scanner.permission.grant': 'السماح بالكاميرا',
-  'scanner.permission.denied':
-    'إذن الكاميرا مغلق. فعّله من إعدادات الهاتف، أو أدخل الرقم يدويًا.',
+  'scanner.permission.denied': 'الوصول إلى الكاميرا متوقف. افتح الإعدادات، واختر هذا التطبيق، ثم فعّل الكاميرا — أو أدخل الرمز يدويًا.',
   'scanner.unavailable.title': 'المسح متاح في تطبيق الهاتف',
   'scanner.unavailable.body': 'لا تستطيع نسخة المتصفح استخدام الكاميرا. اكتب رقم IMEI أو الرقم التسلسلي أو الباركود — ويُتحقق منه بالطريقة نفسها.',
 
@@ -4476,4 +4475,9 @@ export const ar: Catalogue = {
   'register.field.ownerNameAr': 'اسمك بالعربية',
   // ── Product name (D225) ──
   'brand.name': 'تطبيق دكان',
+  // ── Permission explanations (D225) ──
+  'scanner.permission.benefit.scan': 'امسح رقم IMEI أو الرقم التسلسلي أو الرمز الشريطي في ثانية بدل كتابته.',
+  'scanner.permission.benefit.mistakes': 'لا رقم مكتوب خطأً: يُقرأ الرمز كما هو تمامًا.',
+  'scanner.permission.benefit.private': 'تُستخدم فقط ما دام الماسح مفتوحًا. لا يُسجَّل شيء.',
+  'permission.openSettings': 'فتح الإعدادات',
 };
