@@ -30,7 +30,7 @@ const branchName = 'Nouakchott Test Store';
 await stepUp();
 const made = await call('POST', 'platform/businesses', {
   cookie, admin: true,
-  body: { idempotencyKey: randomUUID(), ownerName: 'Test Owner', businessName: 'TSXMR Test Business', phone, branchName, language: 'en', isTest: true, reason: 'Browser input and access check', confirmPassword: ADMIN_PW },
+  body: { idempotencyKey: randomUUID(), ownerName: 'Test Owner', ownerNameAr: 'مالك تجريبي', businessName: 'TSXMR Test Business', businessNameAr: 'نشاط تجريبي', phone, branchName, branchNameAr: 'متجر نواكشوط التجريبي', language: 'en', isTest: true, reason: 'Browser input and access check', confirmPassword: ADMIN_PW },
 });
 const SETUP = made.json?.invitation?.token;
 const BUSINESS = made.json?.companyId;
