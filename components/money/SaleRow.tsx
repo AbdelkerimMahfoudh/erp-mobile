@@ -7,6 +7,7 @@ import { space, touch } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import { formatDateTime, formatMoney, formatTime } from '../../lib/format';
 import { isRTL, useTranslation } from '../../lib/i18n';
+import { illustrationForLines } from '../../lib/category-illustration';
 import type { SaleListRow } from '../../types/api';
 
 /**
@@ -45,7 +46,8 @@ export function SaleRow({
       {...pressHandlers}
       style={[styles.row, pressed ? styles.pressed : null]}
     >
-      <Thumbnail />
+      {/* The picture its lines share, or the generic when they differ — as on the sale itself (D225). */}
+      <Thumbnail illustration={illustrationForLines(sale.lineVisuals ?? [])} />
       <View style={styles.body}>
         <View style={styles.top}>
           <Text variant="bodyStrong" style={styles.title}>

@@ -9,6 +9,8 @@ import { MoneyField } from '../ui/Field';
 import { MoneyValue } from '../ui/MoneyValue';
 import { Stepper } from '../ui/Stepper';
 import { Identifier, Text } from '../ui/Text';
+import { Thumbnail } from '../ui/Thumbnail';
+import { illustrationFor } from '../../lib/category-illustration';
 import { lineTotal, type CartLine } from './types';
 import { makeStyles } from '../../lib/design/theme';
 
@@ -46,6 +48,8 @@ export function CartLineRow({ line, onPriceChange, onQuantityChange, onRemove }:
   return (
     <View style={[styles.row, belowCost ? styles.rowWarning : null]}>
       <View style={styles.header}>
+        {/* What it is, from its category (D225); a cart saved before that gets the neutral generic. */}
+        <Thumbnail illustration={line.illustration ?? illustrationFor(null, line.trackingType)} />
         <View style={styles.identity}>
           <Text variant="bodyStrong" numberOfLines={2}>
             {line.label}

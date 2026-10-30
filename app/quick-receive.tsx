@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Package, PackagePlus } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, PackagePlus } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -19,6 +19,7 @@ import { useLeave } from '../components/navigation/HeaderBack';
 import type { AcceptedImei } from '../components/scanner/ScannerSheet';
 import { ProductConfirmationCard } from '../components/product';
 import { SelectSheet } from '../components/overlay';
+import { illustrationIconFor } from '../components/ui/CategoryIllustration';
 import {
   PurchasePaymentPicker,
   purchasePaymentBody,
@@ -697,7 +698,7 @@ function QuickReceiveScreen() {
         keyExtractor={(p: ProductListRow) => p.id}
         labelExtractor={(p: ProductListRow) => [p.brand, p.model].filter(Boolean).join(' ')}
         descriptionExtractor={(p: ProductListRow) => p.variant ?? undefined}
-        leadingIcon={Package}
+        leadingExtractor={(p) => illustrationIconFor(p.categoryVisual, p.trackingType)}
         selectedKeys={scanned?.suggestion ? [scanned.suggestion.productId] : []}
         searchPlaceholder={t('receive.chooseProduct.search')}
         onSearchChange={setProductQuery}

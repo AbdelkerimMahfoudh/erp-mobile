@@ -178,6 +178,8 @@ export interface ProductListRow {
   serialized: boolean;
   barcode: string | null;
   categoryId: string | null;
+  /** The category's picture (D225). Absent from an older server. */
+  categoryVisual?: CategoryVisual | null;
   isActive: boolean;
 }
 
@@ -222,6 +224,8 @@ export interface ProductSuggestion {
   trackingType: TrackingType;
   keySpecifications: Record<string, unknown>;
   image: string | null;
+  /** The product's category, for its picture (D225). Absent from an older server. */
+  categoryVisual?: CategoryVisual | null;
   defaultCost?: number | null;
   defaultPrice: number | null;
 }
@@ -291,7 +295,15 @@ export interface Unit {
    * case that would tempt anybody to invent a date.
    */
   dateIn?: string;
-  product?: { brand: string; model: string; variant: string | null; defaultPrice?: number | null; trackingType?: TrackingType };
+  product?: {
+    brand: string;
+    model: string;
+    variant: string | null;
+    defaultPrice?: number | null;
+    trackingType?: TrackingType;
+    /** The product's category, for its picture (D225). Absent from an older server. */
+    category?: InventoryProduct['category'];
+  };
 }
 
 /** Product identity carried by every inventory row. */
@@ -892,6 +904,8 @@ export interface SaleListRow {
   cancelled: boolean;
   /** A cancellation is waiting for the Owner. */
   cancellationRequested: boolean;
+  /** What each live line is drawn as (D225); the row wears the picture they share. Absent from an older server. */
+  lineVisuals?: { categoryVisual: CategoryVisual | null; trackingType: string | null }[];
   /** Rows on the sale. NOT how many things — see `itemCount`. */
   lineCount: number;
   /** Everything sold, counted as things: 1 phone + 10 cables = 11. */

@@ -125,7 +125,10 @@ it('Sell an item: three ways on one surface, each a row with an icon, words and 
   assert.equal((chooser.match(/<RowGroup>/g) ?? []).length, 1, 'one section');
   assert.ok(chooser.includes('<ListRow key={way.mode} flat leading={way.icon} title={way.title} subtitle={way.hint} onPress='), 'rows are the design system row: icon, title, hint, chevron');
   assert.equal((chooser.match(/mode: '(scan|manual|stock)'/g) ?? []).length, 3);
-  assert.doesNotMatch(PICKER, /Thumbnail|<Image|placeholder\.png/, 'no product pictures or placeholders');
+  // The three ways are words and icons, never pictures. The stock rows and the chosen item show the category's
+  // illustration (D225: a picture of what it is, from its category) — never a photo placeholder.
+  assert.doesNotMatch(chooser, /Thumbnail|<Image|placeholder\.png/, 'no pictures among the three ways');
+  assert.doesNotMatch(PICKER, /<Image|placeholder\.png/, 'no product photo placeholders');
   assert.doesNotMatch(chooser, /<Card/, 'no card nested in the section');
   // The one action under the section, for several items: outlined and full width.
   const under = QUICK_SELL.slice(QUICK_SELL.indexOf('<PhoneChooser'), QUICK_SELL.indexOf("mode === 'scan' ?"));

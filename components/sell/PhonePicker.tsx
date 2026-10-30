@@ -18,7 +18,9 @@ import {
   StatusChip,
   Text,
   TextField,
+  Thumbnail,
 } from '../ui';
+import { illustrationFor, illustrationForNested } from '../../lib/category-illustration';
 import { usePressed } from '../ui/use-pressed';
 import { BottomSheet } from '../overlay/BottomSheet';
 import { api } from '../../lib/api-client';
@@ -513,6 +515,8 @@ const StockOption = React.memo(function StockOption({
       {...pressHandlers}
       style={[styles.option, selected ? styles.optionSelected : null, pressed ? styles.pressed : null]}
     >
+      {/* What it is, from its category (D225). */}
+      <Thumbnail illustration={illustrationForNested(row.product?.category, tracking)} />
       <View style={[styles.grow, styles.optionText]}>
         <Text variant="bodyStrong">{name}</Text>
         {row.product?.variant ? (
@@ -565,6 +569,7 @@ export function SelectedPhoneCard({
   return (
     <Card style={styles.stack}>
       <View style={styles.phoneHead}>
+        <Thumbnail size="lg" illustration={illustrationFor(p.categoryVisual, p.trackingType)} />
         <View style={styles.grow}>
           <Text variant="heading">{`${p.brand} ${p.model}`}</Text>
           {variant ? (
