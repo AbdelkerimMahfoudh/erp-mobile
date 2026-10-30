@@ -142,12 +142,14 @@ for (const lang of LANGS) {
       {
         await openSheet(page, '/team', t['team.add']);
         const f = fields(page);
+        // D225: the name in Latin letters, then in Arabic, then Phone and Email.
         await tapType(page, f.nth(0), 'Aminetou Test');
-        await tapType(page, f.nth(1), '+22240000001');
-        await tapType(page, f.nth(2), 'aminetou@example.test');
-        const values = [await f.nth(0).inputValue(), await f.nth(1).inputValue(), await f.nth(2).inputValue()];
-        const handles = await Promise.all([0, 1, 2].map((i) => f.nth(i).elementHandle()));
-        check(`New team member: Name, Phone and Email each take a tap and typing ${where}`, values[0] === 'Aminetou Test' && values[1] === '+22240000001' && values[2] === 'aminetou@example.test', JSON.stringify(values));
+        await tapType(page, f.nth(1), 'أمينتو');
+        await tapType(page, f.nth(2), '+22240000001');
+        await tapType(page, f.nth(3), 'aminetou@example.test');
+        const values = await Promise.all([0, 1, 2, 3].map((i) => f.nth(i).inputValue()));
+        const handles = await Promise.all([0, 1, 2, 3].map((i) => f.nth(i).elementHandle()));
+        check(`New team member: Name, Phone and Email each take a tap and typing ${where}`, values[0] === 'Aminetou Test' && values[1] === 'أمينتو' && values[2] === '+22240000001' && values[3] === 'aminetou@example.test', JSON.stringify(values));
         await sheet(page).getByText(t['team.role.store_manager'], { exact: true }).first().tap();
         await page.waitForTimeout(150);
         const store = sheet(page).getByText(branchName, { exact: true }).first();
@@ -155,11 +157,11 @@ for (const lang of LANGS) {
         await page.waitForTimeout(150);
         await store.tap();
         await page.waitForTimeout(150);
-        const after = [await f.nth(0).inputValue(), await f.nth(1).inputValue(), await f.nth(2).inputValue()];
+        const after = await Promise.all([0, 1, 2, 3].map((i) => f.nth(i).inputValue()));
         check(`New team member: changing role and store keeps every value ${where}`, JSON.stringify(after) === JSON.stringify(values), JSON.stringify(after));
         // The very same elements, still in the page: nothing was remounted while choices changed.
         const same = await Promise.all(handles.map((h, i) => f.nth(i).evaluate((e, old) => e === old && old.isConnected, h)));
-        check(`New team member: the fields are the same elements after the choices — nothing remounted ${where}`, same.every(Boolean) && (await f.count()) === 3, same.join(','));
+        check(`New team member: the fields are the same elements after the choices — nothing remounted ${where}`, same.every(Boolean) && (await f.count()) === 4, same.join(','));
         if (width === 375) await page.screenshot({ path: `${OUT}/new-member-${lang}-${theme}.png` });
         await closeSheet(page);
       }

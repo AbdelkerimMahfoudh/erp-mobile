@@ -267,7 +267,7 @@ for (const lang of ['en', 'fr', 'ar']) {
   await settle(page);
   await page.goBack();
   await settle(page);
-  check(`register ${lang}: Back twice from the last step is the first step, still filled`, (await boxes().count()) === 3 && (await boxes().nth(2).inputValue()) === 'Rosso');
+  check(`register ${lang}: Back twice from the last step is the first step, still filled`, (await boxes().count()) === 5 && (await boxes().nth(4).inputValue()) === 'Rosso');
   await page.goBack();
   await settle(page);
   const asked = (await page.getByRole('dialog').count()) > 0 || (await page.locator('[aria-modal="true"]').count()) > 0;
@@ -289,7 +289,8 @@ for (const lang of ['en', 'fr', 'ar']) {
     const header = await page.evaluate(() => {
       const t = document.querySelector('[data-testid="theme-toggle"]');
       const bar = t?.parentElement;
-      return { toggle: !!t, identity: !!bar && /Dukan ERP/.test(bar.textContent ?? ''), dir: getComputedStyle(document.body).direction };
+      return { toggle: !!t, // The product's name: Dukan ERP, تطبيق دكان in Arabic (D225).
+      identity: !!bar && /Dukan ERP|تطبيق دكان/.test(bar.textContent ?? ''), dir: getComputedStyle(document.body).direction };
     });
     check(`${route} ${lang}: the shared header (Dukan ERP and the theme toggle) is shown`, header.toggle && header.identity);
     const inputs = page.locator('input');
