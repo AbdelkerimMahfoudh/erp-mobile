@@ -10,6 +10,7 @@ import { useTranslation } from '../../lib/i18n';
 import { toast } from '../../lib/toast';
 import { pendingKey } from '../../lib/closing-report-view';
 import { useDecideCorrection, type PendingCorrection } from '../../lib/closing-report';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * The Owner decides a request somebody else made (docs/51 §15): what it would do,
@@ -19,7 +20,7 @@ import { useDecideCorrection, type PendingCorrection } from '../../lib/closing-r
  */
 export function DecideSheet({ pending, date, onClose }: { pending: PendingCorrection; date?: string; onClose: () => void }) {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const decide = useDecideCorrection(date);
   const [note, setNote] = useState('');
 
@@ -57,7 +58,7 @@ export function DecideSheet({ pending, date, onClose }: { pending: PendingCorrec
         <MoneyValue value={pending.amount} size="large" />
         <Text variant="body">{pending.reason}</Text>
         <Text variant="caption" tone="secondary">
-          {t('correctTx.pending.askedBy', { name: pending.requestedBy ?? '—', time: formatDateTime(new Date(pending.requestedAt)) })}
+          {t('correctTx.pending.askedBy', { name: nameIn(pending.requestedBy, pending.requestedByAr, language) || '—', time: formatDateTime(new Date(pending.requestedAt)) })}
         </Text>
         {pending.superseded ? <InlineNotice tone="warning">{t('correctTx.pending.superseded')}</InlineNotice> : null}
         <TextField label={t('correctTx.pending.note')} value={note} onChangeText={setNote} placeholder={t('correctTx.pending.note.placeholder')} maxLength={255} />

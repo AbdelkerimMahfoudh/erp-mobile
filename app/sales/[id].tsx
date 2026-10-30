@@ -26,7 +26,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { illustrationFor, illustrationForLines } from '../../lib/category-illustration';
 import { CategoryIllustrationIcon } from '../../components/ui/CategoryIllustration';
 import { useColors } from '../../lib/design/theme';
-import { displayName } from '../../lib/display-name';
+import { displayName, nameIn } from '../../lib/display-name';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { isolateLtr } from '../../lib/design/direction';
@@ -187,7 +187,7 @@ function Body({ sale }: { sale: SaleDetail }) {
         {sale.balanceDue > 0 ? <Fact label={t('saleDetail.owed')} money={sale.balanceDue} strong /> : null}
         {sale.balanceDue > 0 && sale.dueDate ? <Fact label={t('saleDetail.dueDate')} value={formatDate(sale.dueDate)} /> : null}
         <Fact label={t('saleDetail.soldOn')} value={formatDateTime(new Date(sale.soldAt))} />
-        {sale.soldBy ? <Fact label={t('saleDetail.soldBy')} value={sale.soldBy} /> : null}
+        {nameIn(sale.soldBy, sale.soldByAr, language) ? <Fact label={t('saleDetail.soldBy')} value={nameIn(sale.soldBy, sale.soldByAr, language)} /> : null}
       </Card>
 
       {/* Who bought it, or who owes the balance — a customer or a partner store,
@@ -242,9 +242,9 @@ function Body({ sale }: { sale: SaleDetail }) {
         ) : null}
         {/* Who decided this sale was different, and why. Shown only when
             somebody actually changed it. */}
-        {sale.returnPolicy.overriddenBy ? (
+        {nameIn(sale.returnPolicy.overriddenBy, sale.returnPolicy.overriddenByAr, language) ? (
           <Text variant="caption" tone="tertiary" style={styles.notice}>
-            {t('returns.policy.changedBy', { name: sale.returnPolicy.overriddenBy })}
+            {t('returns.policy.changedBy', { name: nameIn(sale.returnPolicy.overriddenBy, sale.returnPolicy.overriddenByAr, language) })}
             {sale.returnPolicy.overrideReason ? ` — ${sale.returnPolicy.overrideReason}` : ''}
           </Text>
         ) : null}
@@ -293,13 +293,13 @@ function Body({ sale }: { sale: SaleDetail }) {
  * back. One waiting for the Owner says that too. The sale below stays as recorded.
  */
 function CancellationNotice({ sale }: { sale: SaleDetail }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const c = sale.cancellation;
   if (!c) return null;
   if (c.status === 'requested') {
     return (
       <InlineNotice tone="warning">
-        {t('saleDetail.cancel.requested', { name: c.requestedBy ?? '—', reason: c.reason })}
+        {t('saleDetail.cancel.requested', { name: nameIn(c.requestedBy, c.requestedByAr, language) || '—', reason: c.reason })}
       </InlineNotice>
     );
   }
@@ -309,7 +309,7 @@ function CancellationNotice({ sale }: { sale: SaleDetail }) {
   return (
     <InlineNotice tone="neutral">
       {[
-        t('saleDetail.cancel.done', { date: c.correctionDate ?? '—', name: c.decidedBy ?? '—' }),
+        t('saleDetail.cancel.done', { date: c.correctionDate ?? '—', name: nameIn(c.decidedBy, c.decidedByAr, language) || '—' }),
         t('saleDetail.cancel.reason', { reason: c.reason }),
         back ? t('saleDetail.cancel.moneyBack', { money: back }) : t('saleDetail.cancel.noMoney'),
       ].join('\n')}
@@ -337,7 +337,7 @@ function receiptOf(
     soldAt: new Date(sale.soldAt),
     storeName: names?.business ? displayName(names.business, language) : storeName,
     branchName: displayName(names?.branch ?? sale.branch, language),
-    cashierName: names?.seller ? displayName(names.seller, language) : sale.soldBy ?? '',
+    cashierName: names?.seller ? displayName(names.seller, language) : nameIn(sale.soldBy, sale.soldByAr, language) || '',
     // The customer as named when the sale was confirmed (0108); an older server's answer falls back to the record.
     customer:
       sale.receiptCustomer !== undefined
@@ -457,7 +457,7 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
  * changes none of this.
  */
 function PaymentLine({ payment: p, onCorrectPayer }: { payment: SalePaymentRecord; onCorrectPayer?: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const via = p.method === 'cash' ? t('payment.cash') : (p.accountLabel ?? t(`payment.${p.method}` as never));
   return (
     <View style={styles.payment}>
@@ -469,7 +469,7 @@ function PaymentLine({ payment: p, onCorrectPayer }: { payment: SalePaymentRecor
       </View>
       <Text variant="caption" tone="secondary">
         {t(p.kind === 'collection' ? 'saleDetail.history.collected' : 'saleDetail.history.atSale')}
-        {p.recordedBy ? ` · ${t('saleDetail.history.by', { name: p.recordedBy })}` : ''}
+        {nameIn(p.recordedBy, p.recordedByAr, language) ? ` · ${t('saleDetail.history.by', { name: nameIn(p.recordedBy, p.recordedByAr, language) })}` : ''}
       </Text>
       {/* The number the money came from (D151), under its method and apart from the transfer's reference. */}
       {p.payerNumber && p.method !== 'cash' ? (

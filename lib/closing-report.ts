@@ -259,6 +259,8 @@ export interface PendingCorrection {
   to: { method: 'cash' | 'account' | null; accountLabel: string | null } | null;
   reason: string;
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   version: number;
   label: string | null;

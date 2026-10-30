@@ -26,6 +26,7 @@ import {
   useRequestCorrection,
 } from '../../lib/corrections';
 import type { FinancialCorrectionKind, PaymentCorrectionRef } from '../../types/api';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * Correcting a confirmed payment, from wherever that payment is shown.
@@ -62,7 +63,7 @@ export function CorrectionSection({
   correction,
   onChanged,
 }: CorrectionSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const canRequest = usePermission('financial.correction.request');
   const canApprove = usePermission('financial.correction.approve');
 
@@ -114,8 +115,8 @@ export function CorrectionSection({
         {correction.supportingReference ? (
           <Detail label={t('correction.reference')} value={correction.supportingReference} />
         ) : null}
-        <Detail label={t('correction.requestedBy')} value={correction.requestedBy ?? '—'} />
-        <Detail label={t('correction.approvedBy')} value={correction.decidedBy ?? '—'} />
+        <Detail label={t('correction.requestedBy')} value={nameIn(correction.requestedBy, correction.requestedByAr, language) || '—'} />
+        <Detail label={t('correction.approvedBy')} value={nameIn(correction.decidedBy, correction.decidedByAr, language) || '—'} />
         {/* The replacement path, said plainly so nobody thinks the money is gone. */}
         <InlineNotice tone="info" style={styles.gap}>
           {t('correction.approved.next')}
@@ -135,7 +136,7 @@ export function CorrectionSection({
           {t('correction.requested.body')}
         </Text>
         <Detail label={t('correction.reason')} value={correction.reason} />
-        <Detail label={t('correction.requestedBy')} value={correction.requestedBy ?? '—'} />
+        <Detail label={t('correction.requestedBy')} value={nameIn(correction.requestedBy, correction.requestedByAr, language) || '—'} />
         <Detail
           label={t('correction.requestedAt')}
           value={formatDateTime(new Date(correction.requestedAt))}
@@ -162,7 +163,7 @@ export function CorrectionSection({
                     // no amount of its own that could disagree.
                     `${t('correction.amount')}: ${formatMoney(amount)}`,
                     `${t('correction.reason')}: ${correction.reason}`,
-                    `${t('correction.requestedBy')}: ${correction.requestedBy ?? '—'}`,
+                    `${t('correction.requestedBy')}: ${nameIn(correction.requestedBy, correction.requestedByAr, language) || '—'}`,
                   ].join('\n'),
                   confirmLabel: t('correction.approve.action'),
                   cancelLabel: t('action.cancel'),

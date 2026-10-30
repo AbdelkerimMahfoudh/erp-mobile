@@ -21,6 +21,15 @@ export function displayName(named: BilingualName | null | undefined, language: s
   return named.name;
 }
 
+/**
+ * The same rule for a name the server sends as two fields (`requestedBy` and `requestedByAr`): the Arabic one in the
+ * Arabic interface when there is one, the Latin one otherwise — never blank when either exists.
+ */
+export function nameIn(latin: string | null | undefined, arabic: string | null | undefined, language: string): string {
+  if (language === 'ar' && arabic) return arabic;
+  return latin ?? arabic ?? '';
+}
+
 /** No Arabic name yet: shown with the Latin one, and marked for the Owner to complete. */
 export function nameIncomplete(named: BilingualName | null | undefined): boolean {
   return Boolean(named) && !named?.nameAr;

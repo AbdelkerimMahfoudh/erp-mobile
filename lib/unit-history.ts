@@ -24,8 +24,9 @@ export interface UnitHistoryEvent {
   fromStatus?: string | null;
   toStatus?: string | null;
   context?: string | null;
-  actor?: { name: string; role: string | null } | null;
-  branch?: { name: string } | null;
+  /** D225: the Arabic name is null until given. */
+  actor?: { name: string; nameAr?: string | null; role: string | null } | null;
+  branch?: { name: string; nameAr?: string | null } | null;
   fromBranch?: { name: string } | null;
   toBranch?: { name: string } | null;
   transferId?: string | null;

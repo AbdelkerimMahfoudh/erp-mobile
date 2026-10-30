@@ -253,6 +253,8 @@ export interface ConsignmentSummary {
   side: Side;
   /** Always the OTHER party, whichever side you are on. */
   otherParty: string;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  otherPartyAr?: string | null;
   phones: number;
   proposedAmount: number | null;
   counterAmount: number | null;

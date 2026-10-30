@@ -436,7 +436,7 @@ const PRICE_EDIT = 'price.edit';
  * granted.
  */
 function PriceEditDelegation({ user }: { user: TeamUser }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const [pendingBranch, setPendingBranch] = useState<string | null>(null);
 
@@ -466,7 +466,7 @@ function PriceEditDelegation({ user }: { user: TeamUser }) {
       void queryClient.invalidateQueries({ queryKey: ['permissions'] });
       toast.success(
         t(next ? 'team.delegation.granted' : 'team.delegation.revoked', {
-          branch: branch?.branchName ?? '',
+          branch: branch ? displayName({ name: branch.branchName, nameAr: branch.branchNameAr }, language) : '',
         }),
       );
     },
@@ -512,13 +512,13 @@ function PriceEditDelegation({ user }: { user: TeamUser }) {
       {eligible.map((b) => (
         <Toggle
           key={b.branchId}
-          label={t('team.delegation.allow', { branch: b.branchName })}
+          label={t('team.delegation.allow', { branch: displayName({ name: b.branchName, nameAr: b.branchNameAr }, language) })}
           hint={t('team.delegation.allowHint')}
           onLabel={t('settings.toggle.on')}
           offLabel={t('settings.toggle.off')}
           value={b.grantedPermissions.includes(PRICE_EDIT)}
           disabled={mutate.isPending && pendingBranch === b.branchId}
-          onValueChange={(next) => void onToggle(b.branchId, b.branchName, next)}
+          onValueChange={(next) => void onToggle(b.branchId, displayName({ name: b.branchName, nameAr: b.branchNameAr }, language), next)}
         />
       ))}
 
@@ -549,7 +549,7 @@ const CLOSING = 'closing.perform';
  * is not delegated here.
  */
 function ClosingDelegation({ user }: { user: TeamUser }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const [pendingBranch, setPendingBranch] = useState<string | null>(null);
 
@@ -565,7 +565,7 @@ function ClosingDelegation({ user }: { user: TeamUser }) {
       queryClient.setQueryData<TeamUser[]>(qk.users, (list) => (list ? list.map((u) => (u.id === fresh.id ? fresh : u)) : list));
       void queryClient.invalidateQueries({ queryKey: qk.users });
       void queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast.success(t(next ? 'team.closing.granted' : 'team.closing.revoked', { branch: branch?.branchName ?? '' }));
+      toast.success(t(next ? 'team.closing.granted' : 'team.closing.revoked', { branch: branch ? displayName({ name: branch.branchName, nameAr: branch.branchNameAr }, language) : '' }));
     },
     onError: (error) => {
       if (error instanceof ApiError && error.status === 409) {
@@ -584,7 +584,7 @@ function ClosingDelegation({ user }: { user: TeamUser }) {
   const onToggle = async (branchId: string, branchName: string, next: boolean) => {
     const ok = await dialog.confirm({
       title: t(next ? 'team.closing.confirmOnTitle' : 'team.closing.confirmOffTitle', { name: user.name }),
-      message: t(next ? 'team.closing.confirmOnBody' : 'team.closing.confirmOffBody', { name: user.name, branch: branchName }),
+      message: t(next ? 'team.closing.confirmOnBody' : 'team.closing.confirmOffBody', { name: displayName(user, language), branch: branchName }),
       confirmLabel: t(next ? 'team.closing.confirmOn' : 'team.closing.confirmOff'),
       cancelLabel: t('action.cancel'),
       tone: next ? 'default' : 'danger',
@@ -603,13 +603,13 @@ function ClosingDelegation({ user }: { user: TeamUser }) {
       {eligible.map((b) => (
         <Toggle
           key={b.branchId}
-          label={t('team.closing.allow', { branch: b.branchName })}
+          label={t('team.closing.allow', { branch: displayName({ name: b.branchName, nameAr: b.branchNameAr }, language) })}
           hint={t('team.closing.allowHint')}
           onLabel={t('settings.toggle.on')}
           offLabel={t('settings.toggle.off')}
           value={b.grantedPermissions.includes(CLOSING)}
           disabled={mutate.isPending && pendingBranch === b.branchId}
-          onValueChange={(next) => void onToggle(b.branchId, b.branchName, next)}
+          onValueChange={(next) => void onToggle(b.branchId, displayName({ name: b.branchName, nameAr: b.branchNameAr }, language), next)}
         />
       ))}
     </View>

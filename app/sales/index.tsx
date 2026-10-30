@@ -23,6 +23,7 @@ import { policyStatus } from '../../lib/return-policy';
 import { useSales } from '../../lib/sales';
 import type { SaleListRow, SalePayStatus } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * Sale history — what this branch sold, and whether it can still come back.
@@ -180,7 +181,7 @@ export default function SalesScreen() {
 
 function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const status = policyStatus(row.returnPolicy, t, formatDateTime);
 
   return (
@@ -234,9 +235,9 @@ function Row({ row, onPress }: { row: SaleListRow; onPress: () => void }) {
               {status.detail}
             </Text>
           ) : null}
-          {row.soldBy ? (
+          {nameIn(row.soldBy, row.soldByAr, language) ? (
             <Text variant="caption" tone="tertiary" numberOfLines={1}>
-              {row.soldBy}
+              {nameIn(row.soldBy, row.soldByAr, language)}
             </Text>
           ) : null}
         </View>

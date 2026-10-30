@@ -38,7 +38,8 @@ export interface Goal {
   id: string;
   scope: GoalScope;
   branchId: string | null;
-  targetUser: { id: string; name: string } | null;
+  /** D225: the person's Arabic name is null until given. */
+  targetUser: { id: string; name: string; nameAr?: string | null } | null;
   metric: GoalMetric;
   /** Whether to format the figures as money, decided by the server. */
   isMoney: boolean;

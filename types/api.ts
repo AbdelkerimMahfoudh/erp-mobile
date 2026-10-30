@@ -193,6 +193,8 @@ export interface ProductPage {
 export interface ProductStockRow {
   branchId: string;
   branchName: string;
+  /** D225: the store's Arabic name; null until given. Absent from an older server. */
+  branchNameAr?: string | null;
   quantity: number;
   /** Per-branch quantity price; null for serialized stock. */
   price: number | null;
@@ -543,7 +545,7 @@ export interface TeamPending {
   phone: 'verified' | 'awaiting' | 'not_selected';
   invitation: TeamInvitation;
   /** One per store: `included` (a free seat), `held` (a seat held for this person) or `awaiting_payment` (the platform has not approved it yet). */
-  seats: { branchId: string; branchName: string; state: 'included' | 'held' | 'awaiting_payment' }[];
+  seats: { branchId: string; branchName: string; branchNameAr?: string | null; state: 'included' | 'held' | 'awaiting_payment' }[];
 }
 
 /** An invitation as issued: its reference shown to the Owner once, never again (D214). */
@@ -881,6 +883,8 @@ export interface SaleReturnPolicy {
   remainingMs: number | null;
   requiresOwnerException: boolean;
   overriddenBy?: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  overriddenByAr?: string | null;
   overrideReason?: string | null;
   /** The written conditions snapshotted at confirmation (0108); absent from an older server. */
   texts?: { en: string | null; fr: string | null; ar: string | null } | null;
@@ -912,6 +916,8 @@ export interface SaleListRow {
   itemCount: number;
   serializedCount: number;
   soldBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  soldByAr?: string | null;
   customer: string | null;
   /** Who owes the balance, whichever kind (0074). */
   debtor: { kind: DebtorKind; name: string | null } | null;
@@ -978,6 +984,8 @@ export interface SalePaymentRecord {
   /** The phone or account number the money came from (D151); never on cash, never the reference. */
   payerNumber: string | null;
   recordedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  recordedByAr?: string | null;
 }
 
 /** What POST /sales/:id/payments answers with. */
@@ -1044,12 +1052,16 @@ export type SaleCancellation =
       status: 'approved';
       reason: string;
       requestedBy: string | null;
+      /** D225: the same name in Arabic; null until given. Absent from an older server. */
+      requestedByAr?: string | null;
       decidedBy: string | null;
+      /** D225: the same name in Arabic; null until given. Absent from an older server. */
+      decidedByAr?: string | null;
       decidedAt: string | null;
       correctionDate: string | null;
       moneyBack: { method: 'cash' | 'account'; accountLabel: string | null; amount: number }[];
     }
-  | { status: 'requested'; reason: string; requestedBy: string | null; requestedAt: string };
+  | { status: 'requested'; reason: string; requestedBy: string | null; requestedByAr?: string | null; requestedAt: string };
 
 export interface TransferListRow {
   id: string;
@@ -1065,6 +1077,8 @@ export interface TransferListRow {
   /** Everything being moved, counted as things: 2 phones + 10 cables = 12. */
   totalQuantity: number;
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   approvedAt: string | null;
   sentAt: string | null;
@@ -1116,10 +1130,18 @@ export interface TransferDetail {
   decisionReason: string | null;
   people: {
     requestedBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    requestedByAr?: string | null;
     approvedBy: string | null;
     decidedBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    decidedByAr?: string | null;
     sentBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    sentByAr?: string | null;
     receivedBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    receivedByAr?: string | null;
   };
   timestamps: {
     requestedAt: string;
@@ -1234,6 +1256,8 @@ export interface ReturnListRow {
   product: string;
   identifier: string | null;
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   /** The eligibility reason snapshotted when the request was raised. */
   policyReason: ReturnEligibilityReason;
@@ -1283,8 +1307,12 @@ export interface PaymentCorrectionRef {
   reason: string;
   supportingReference?: string | null;
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   decidedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  decidedByAr?: string | null;
   /** The day the money went back. Null until approved. */
   correctionDate: string | null;
   version: number;
@@ -1310,8 +1338,12 @@ export interface ReturnPayout {
   transactionReference: string | null;
   note: string | null;
   reportedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  reportedByAr?: string | null;
   reportedAt: string;
   confirmedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  confirmedByAr?: string | null;
   confirmedAt: string | null;
   /** Any correction raised against this payout. Null means none. */
   correction: PaymentCorrectionRef | null;
@@ -1333,7 +1365,11 @@ export interface RefundReceipt {
   transactionReference: string | null;
   status: 'confirmed';
   reportedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  reportedByAr?: string | null;
   confirmedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  confirmedByAr?: string | null;
 }
 
 /**
@@ -1404,6 +1440,8 @@ export interface ReturnDetail {
   adjustments: ReturnAdjustmentRow[];
   timeline: ReturnTimelineEntry[];
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   /** `null` until somebody reports a payout. See `ReturnPayout`. */
   payout: ReturnPayout | null;
@@ -1457,8 +1495,12 @@ export interface SupplierSettlement {
   note: string | null;
   branch: string | null;
   reportedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  reportedByAr?: string | null;
   reportedAt: string;
   confirmedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  confirmedByAr?: string | null;
   confirmedAt: string | null;
   confirmationDate: string | null;
   allocations: { purchaseId: string; amount: number }[];
@@ -1528,8 +1570,12 @@ export interface FinancialCorrection {
   method: RefundMethod;
   accountLabel: string | null;
   requestedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requestedByAr?: string | null;
   requestedAt: string;
   decidedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  decidedByAr?: string | null;
   decidedAt: string | null;
   /** The business day the compensating movement posts to. Null until approved. */
   correctionDate: string | null;
@@ -1576,8 +1622,12 @@ export interface Expense {
   rejectedReason: string | null;
   spentOn: string;
   reportedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  reportedByAr?: string | null;
   reportedAt: string | null;
   confirmedBy: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  confirmedByAr?: string | null;
   confirmedAt: string | null;
   /** The business day the money is counted against. Null until confirmed. */
   confirmationDate: string | null;
@@ -1591,7 +1641,11 @@ export interface Expense {
     reason: string;
     correctionDate: string | null;
     requestedBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    requestedByAr?: string | null;
     decidedBy: string | null;
+    /** D225: the same name in Arabic; null until given. Absent from an older server. */
+    decidedByAr?: string | null;
   } | null;
   /** Send with confirm/reject. A stale one is a 409. */
   version: number;

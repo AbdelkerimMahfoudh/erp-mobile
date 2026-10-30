@@ -28,6 +28,7 @@ import { transferStanding } from '../../lib/custody-state';
 import { toast } from '../../lib/toast';
 import { isStaleTransfer, useTransfer, useTransferAction } from '../../lib/transfers';
 import type { TransferAction, TransferActionName, TransferDetail } from '../../types/api';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One transfer, and what this person may do with it right now.
@@ -370,13 +371,13 @@ function Actions({
 
 /** What happened, in the order it happened. Audit-friendly, and no money. */
 function Timeline({ transfer }: { transfer: TransferDetail }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const who = (name: string | null) => name ?? t('transfers.person.unknown');
 
   const events: { at: string | null; label: string }[] = [
     {
       at: transfer.timestamps.requestedAt,
-      label: t('transfers.event.requested', { name: who(transfer.people.requestedBy) }),
+      label: t('transfers.event.requested', { name: who(nameIn(transfer.people.requestedBy, transfer.people.requestedByAr, language)) }),
     },
     {
       at: transfer.timestamps.approvedAt,
@@ -384,17 +385,17 @@ function Timeline({ transfer }: { transfer: TransferDetail }) {
     },
     {
       at: transfer.timestamps.sentAt,
-      label: t('transfers.event.shipped', { name: who(transfer.people.sentBy) }),
+      label: t('transfers.event.shipped', { name: who(nameIn(transfer.people.sentBy, transfer.people.sentByAr, language)) }),
     },
     {
       at: transfer.timestamps.receivedAt,
-      label: t('transfers.event.received', { name: who(transfer.people.receivedBy) }),
+      label: t('transfers.event.received', { name: who(nameIn(transfer.people.receivedBy, transfer.people.receivedByAr, language)) }),
     },
     {
       at: transfer.timestamps.decidedAt,
       label: t(
         transfer.status === 'rejected' ? 'transfers.event.rejected' : 'transfers.event.cancelled',
-        { name: who(transfer.people.decidedBy) },
+        { name: who(nameIn(transfer.people.decidedBy, transfer.people.decidedByAr, language)) },
       ),
     },
   ];

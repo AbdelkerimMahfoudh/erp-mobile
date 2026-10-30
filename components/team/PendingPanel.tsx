@@ -12,6 +12,7 @@ import { qk } from '../../lib/query-keys';
 import { toast } from '../../lib/toast';
 import type { IssuedInvitation, TeamInvitation, TeamUser } from '../../types/api';
 import { InvitationReference } from './InvitationReference';
+import { nameIn } from '../../lib/display-name';
 
 const INVITATION_LABEL = {
   none: 'team.pending.invitation.none',
@@ -40,7 +41,7 @@ const INVITATION_TONE: Record<TeamInvitation['state'], 'info' | 'success' | 'war
  * holds.
  */
 export function PendingPanel({ user, onCancelled }: { user: TeamUser; onCancelled: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const pending = user.pending;
   // A new invitation's reference, held only while this panel is on screen.
@@ -128,10 +129,10 @@ export function PendingPanel({ user, onCancelled }: { user: TeamUser; onCancelle
         {pending.seats.map((s) => (
           <Text key={s.branchId} variant="caption" tone="secondary">
             {s.state === 'awaiting_payment'
-              ? t('team.pending.seat.awaiting', { branch: s.branchName })
+              ? t('team.pending.seat.awaiting', { branch: nameIn(s.branchName, s.branchNameAr, language) })
               : s.state === 'held'
-                ? t('team.pending.seat.held', { branch: s.branchName })
-                : t('team.pending.seat.included', { branch: s.branchName })}
+                ? t('team.pending.seat.held', { branch: nameIn(s.branchName, s.branchNameAr, language) })
+                : t('team.pending.seat.included', { branch: nameIn(s.branchName, s.branchNameAr, language) })}
           </Text>
         ))}
         {issued ? null : (

@@ -1,6 +1,6 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
-import { arabicNameHint, displayName, latinNameHint, matchesName, nameIncomplete } from './display-name.ts';
+import { arabicNameHint, displayName, latinNameHint, matchesName, nameIn, nameIncomplete } from './display-name.ts';
 
 /**
  * Bilingual names (D225): the Arabic interface reads the Arabic name, French and English the Latin one, and a
@@ -41,4 +41,12 @@ it('guides the script without refusing a real shop name', () => {
   assert.equal(arabicNameHint('مركز PS5'), null);
   assert.equal(arabicNameHint('PS5 Center'), 'arabic_needs_arabic');
   assert.equal(arabicNameHint(''), null);
+});
+
+it('a name sent as two fields reads in the reader’s script, never blank when either exists', () => {
+  assert.equal(nameIn('Mariem', 'مريم', 'ar'), 'مريم');
+  assert.equal(nameIn('Mariem', 'مريم', 'fr'), 'Mariem');
+  assert.equal(nameIn('Mariem', null, 'ar'), 'Mariem');
+  assert.equal(nameIn(null, 'مريم', 'en'), 'مريم');
+  assert.equal(nameIn(undefined, undefined, 'ar'), '');
 });

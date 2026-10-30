@@ -31,6 +31,7 @@ import {
   useRejectExpense,
 } from '../../lib/expenses';
 import type { Expense } from '../../types/api';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One expense, and the Owner's decision on it.
@@ -64,7 +65,7 @@ export default function ExpenseDetailScreen() {
 }
 
 function Body({ expense, refetch }: { expense: Expense; refetch: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const canReview = usePermission('expense.review');
   /** A confirmed expense that was wrong is reversed, in whole or part, by a correction (0079). */
   const canCorrect = usePermission('financial.correction.request') && expense.status === 'confirmed' && !expense.reversal;
@@ -184,12 +185,12 @@ function Body({ expense, refetch }: { expense: Expense; refetch: () => void }) {
             />
             {expense.reference ? <Row label={t('expenses.reference')} value={expense.reference} /> : null}
             <Row label={t('expenses.note')} value={expense.note ?? t('expenses.note.none')} />
-            <Row label={t('expenses.reportedBy')} value={expense.reportedBy ?? '—'} />
+            <Row label={t('expenses.reportedBy')} value={nameIn(expense.reportedBy, expense.reportedByAr, language) || '—'} />
             {expense.reportedAt ? (
               <Row label={t('expenses.reportedAt')} value={formatDateTime(new Date(expense.reportedAt))} />
             ) : null}
-            {expense.confirmedBy ? (
-              <Row label={t('expenses.confirmedBy')} value={expense.confirmedBy} />
+            {nameIn(expense.confirmedBy, expense.confirmedByAr, language) ? (
+              <Row label={t('expenses.confirmedBy')} value={nameIn(expense.confirmedBy, expense.confirmedByAr, language)} />
             ) : null}
             {expense.confirmationDate ? (
               <Row label={t('expenses.countedOn')} value={expense.confirmationDate} />
@@ -215,7 +216,7 @@ function Body({ expense, refetch }: { expense: Expense; refetch: () => void }) {
             <InlineNotice tone={expense.reversal.status === 'approved' ? 'neutral' : 'warning'} style={styles.gap}>
               {expense.reversal.status === 'approved'
                 ? t('expenses.reversal.done', { amount: formatMoney(expense.reversal.amount), date: expense.reversal.correctionDate ?? '—', reason: expense.reversal.reason })
-                : t('expenses.reversal.requested', { amount: formatMoney(expense.reversal.amount), name: expense.reversal.requestedBy ?? '—' })}
+                : t('expenses.reversal.requested', { amount: formatMoney(expense.reversal.amount), name: nameIn(expense.reversal.requestedBy, expense.reversal.requestedByAr, language) || '—' })}
             </InlineNotice>
           ) : null}
         </Card>

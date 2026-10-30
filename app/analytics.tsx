@@ -24,6 +24,7 @@ import { usePermission } from '../lib/permissions';
 import { num } from '../lib/theme';
 import { space } from '../lib/design/tokens';
 import { makeStyles, useColors } from '../lib/design/theme';
+import { nameIn } from '../lib/display-name';
 
 /**
  * Analytics — what the shop actually did.
@@ -76,6 +77,8 @@ interface Dashboard {
   branchComparison: {
     branchId: string;
     name: string | null;
+    /** D225: the store's Arabic name; null until given. */
+    nameAr?: string | null;
     revenue: number;
     grossProfit?: number;
     netProfit?: number;
@@ -85,6 +88,8 @@ interface Dashboard {
   employeePerformance: {
     userId: string;
     name: string | null;
+    /** D225: the person's Arabic name; null until given. */
+    nameAr?: string | null;
     salesCount: number;
     returnsCount?: number;
     revenue: number;
@@ -95,7 +100,7 @@ interface Dashboard {
 export default function AnalyticsScreen() {
   const styles = useStyles();
   const colors = useColors();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { branchId } = useBranch();
   const canView = usePermission('report.view');
   const { data, isLoading, isFetching, refetch } = useQuery({
@@ -271,7 +276,7 @@ export default function AnalyticsScreen() {
                     <ListRow
                       key={b.branchId}
                       flat
-                      title={b.name ?? '—'}
+                      title={nameIn(b.name, b.nameAr, language) || '—'}
                       subtitle={`${t('analytics.revenue')} ${num(b.revenue)}`}
                       value={<MoneyValue value={b.netProfit} signed />}
                       valueCaption={t('analytics.net')}
@@ -294,7 +299,7 @@ export default function AnalyticsScreen() {
                     <ListRow
                       key={e.userId}
                       flat
-                      title={e.name ?? '—'}
+                      title={nameIn(e.name, e.nameAr, language) || '—'}
                       subtitle={
                         (e.returnsCount ?? 0) > 0
                           ? t('analytics.salesReturns', { n: num(e.salesCount), r: num(e.returnsCount ?? 0) })

@@ -20,6 +20,7 @@ import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { toneOf, useGoals, type Goal } from '../../lib/goals';
 import { makeStyles } from '../../lib/design/theme';
+import { displayName } from '../../lib/display-name';
 
 /**
  * What the shop is aiming at, and whether it is getting there (Milestone F).
@@ -91,7 +92,7 @@ export default function GoalsScreen() {
 
 function GoalCard({ goal }: { goal: Goal }) {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const p = goal.progress;
   // As the figures above it are: money when the server says so, a count otherwise — never a bare 10675.
   const perDay = p.neededPerRemainingDay ?? 0;
@@ -99,7 +100,7 @@ function GoalCard({ goal }: { goal: Goal }) {
 
   const who =
     goal.scope === 'user'
-      ? (goal.targetUser?.name ?? t('goals.scope.user'))
+      ? (goal.targetUser ? displayName(goal.targetUser, language) : t('goals.scope.user'))
       : t(`goals.scope.${goal.scope}`);
 
   return (

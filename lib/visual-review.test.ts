@@ -122,7 +122,8 @@ it('a debt never offers what the server refuses: agreeing to or countering your 
   assert.match(loan, /const mayAnswer = !loan\.ownOffer;/);
   assert.match(loan, /const mayDispute = loan\.status !== 'disputed';/);
   assert.match(loan, /\{mayAnswer \? \(\s*<>\s*<MoneyField label=\{t\('loans\.counterAmount'\)\}/);
-  assert.match(loan, /t\('loans\.ownOffer', \{ name: loan\.otherParty \}\)/);
+  // The other business in the reader's script (D225).
+  assert.match(loan, /t\('loans\.ownOffer', \{ name: nameIn\(loan\.otherParty, loan\.otherPartyAr, language\) \}\)/);
   assert.match(code('lib/loans.ts'), /ownOffer\?: boolean;/);
 });
 

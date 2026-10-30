@@ -57,7 +57,11 @@ export interface DiscountApproval {
   identifier: string | null;
   branchName: string | null;
   requesterName: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  requesterNameAr?: string | null;
   approverName: string | null;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  approverNameAr?: string | null;
 }
 
 /** Terminal states. Asking again means a NEW request, never reviving one. */

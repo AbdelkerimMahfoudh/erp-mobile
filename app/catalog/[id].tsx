@@ -32,6 +32,7 @@ import { useActiveBranchName } from '../../lib/branch';
 import type { ProductDetail } from '../../types/api';
 import { AddCostSheet } from '../../components/cost/AddCostSheet';
 import { formatDate } from '../../lib/format';
+import { nameIn } from '../../lib/display-name';
 
 /** Counted stock received without a buying cost (0107), line by line — `GET /inventory/stock/:id/missing-costs`. */
 interface MissingCosts {
@@ -56,7 +57,7 @@ interface MissingCosts {
  */
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const canManage = usePermission('catalog.manage');
@@ -205,7 +206,7 @@ export default function ProductDetailScreen() {
               <ListRow
                 key={s.branchId}
                 flat
-                title={s.branchName}
+                title={nameIn(s.branchName, s.branchNameAr, language)}
                 subtitle={
                   // Quantity stock carries its own per-branch price; serialized
                   // stock does not, so nothing is invented for it.

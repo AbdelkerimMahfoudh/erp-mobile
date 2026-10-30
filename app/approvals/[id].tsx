@@ -41,6 +41,7 @@ import {
   viewOf,
   type DiscountApproval,
 } from '../../lib/discount-approval-state';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One request, and the Owner's answer (A2/CP4).
@@ -70,7 +71,7 @@ import {
  */
 export default function ApprovalDetailScreen() {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const leave = useLeave('/approvals/[id]');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
@@ -198,14 +199,14 @@ export default function ApprovalDetailScreen() {
         {row.identifier ? <Text variant="mono">{row.identifier}</Text> : null}
 
         <View style={styles.meta}>
-          {row.requesterName ? (
-            <Text tone="secondary">{t('approvals.askedBy', { name: row.requesterName })}</Text>
+          {nameIn(row.requesterName, row.requesterNameAr, language) ? (
+            <Text tone="secondary">{t('approvals.askedBy', { name: nameIn(row.requesterName, row.requesterNameAr, language) })}</Text>
           ) : null}
           {row.branchName ? (
             <Text tone="secondary">{t('approvals.atBranch', { branch: row.branchName })}</Text>
           ) : null}
-          {row.approverName && view !== 'pending' ? (
-            <Text tone="secondary">{t('approvals.answeredBy', { name: row.approverName })}</Text>
+          {nameIn(row.approverName, row.approverNameAr, language) && view !== 'pending' ? (
+            <Text tone="secondary">{t('approvals.answeredBy', { name: nameIn(row.approverName, row.approverNameAr, language) })}</Text>
           ) : null}
         </View>
       </Card>

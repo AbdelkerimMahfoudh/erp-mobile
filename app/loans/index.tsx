@@ -17,6 +17,7 @@ import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
 import { loanStatusLabel, useLoans, type LoanGroup, type LoanSummary } from '../../lib/loans';
+import { nameIn } from '../../lib/display-name';
 
 const GROUPS: LoanGroup[] = ['pending', 'accepted', 'confirmed'];
 
@@ -88,7 +89,7 @@ export default function LoansScreen() {
 }
 
 function Row({ row, onPress }: { row: LoanSummary; onPress: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   /*
     Once accepted, what is left. Before that, whatever number is on the table —
     a counter-offer if there is one, otherwise the original proposal.
@@ -100,7 +101,7 @@ function Row({ row, onPress }: { row: LoanSummary; onPress: () => void }) {
     <ListRow
       flat
       leading={HandCoins}
-      title={row.otherParty}
+      title={nameIn(row.otherParty, row.otherPartyAr, language)}
       subtitle={[
         /* In words, both ways round. Never a minus sign. */
         t(`loans.direction.${row.direction}`),

@@ -24,6 +24,7 @@ import {
 } from '../../lib/discount-approval-state';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * Price approvals — the Owner's queue, or your own history.
@@ -88,13 +89,13 @@ export default function ApprovalsScreen() {
 }
 
 function Row({ row, onPress }: { row: DiscountApproval; onPress: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const now = new Date();
   const view = viewOf(row, now);
   const percent = discountPercent(row);
 
   const subtitle = [
-    row.requesterName ? t('approvals.askedBy', { name: row.requesterName }) : null,
+    nameIn(row.requesterName, row.requesterNameAr, language) ? t('approvals.askedBy', { name: nameIn(row.requesterName, row.requesterNameAr, language) }) : null,
     percent === null ? null : t('approval.percentOff', { percent }),
     // A countdown only where one still means something. On a decided request it
     // would be a number ticking down beside an answer that is already given.

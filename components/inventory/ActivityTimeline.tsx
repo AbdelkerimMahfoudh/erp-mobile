@@ -28,6 +28,7 @@ import {
   type HistoryRun,
   type UnitHistoryEvent,
 } from '../../lib/unit-history';
+import { displayName } from '../../lib/display-name';
 
 /**
  * A phone's activity, newest first — in the Stock screen's visual language.
@@ -114,7 +115,7 @@ export function ActivityTimeline({ events }: { events: UnitHistoryEvent[] }) {
 function RunRow({ run, last }: { run: HistoryRun; last: boolean }) {
   const styles = useStyles();
   const colors = useColors();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const { described } = run;
@@ -130,10 +131,10 @@ function RunRow({ run, last }: { run: HistoryRun; last: boolean }) {
   const role = roleKey(actor?.role);
   const who = actor
     ? role
-      ? t('history.byRole', { name: actor.name, role: t(role as never) })
-      : t('history.byName', { name: actor.name })
+      ? t('history.byRole', { name: displayName(actor, language), role: t(role as never) })
+      : t('history.byName', { name: displayName(actor, language) })
     : t('history.system');
-  const place = run.lead.branch?.name;
+  const place = run.lead.branch ? displayName(run.lead.branch, language) : undefined;
   const time = isolateLtr(formatTime(run.lead.at));
 
   const summary = [title, who, place, time, count > 1 ? t('history.repeat', { count }) : null].filter(Boolean).join(', ');

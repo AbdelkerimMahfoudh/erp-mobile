@@ -45,6 +45,7 @@ import {
   useReportSold,
   type ConsignmentDetail,
 } from '../../lib/consignment';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One consignment, from whichever side you are on (Milestone H).
@@ -58,7 +59,7 @@ import {
  * arrived or a phone that came back.
  */
 export default function ConsignmentDetailScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useConsignment(id);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export default function ConsignmentDetailScreen() {
 
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ headerShown: true, title: c.otherParty }} />
+      <Stack.Screen options={{ headerShown: true, title: nameIn(c.otherParty, c.otherPartyAr, language) }} />
       <ScrollView contentContainerStyle={styles.list}>
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
@@ -223,7 +224,7 @@ const MONEY_TONE: Record<MoneyState, 'neutral' | 'warning' | 'success'> = {
  * because the phone arrived. Derived from the server's status only.
  */
 function Standing({ consignment: c }: { consignment: ConsignmentDetail }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   if (!isKnownConsignmentStatus(c.status)) return null;
   const s = consignmentStanding(c.status);
   const mine = c.side === 'source' ? 'sender' : 'holder';
@@ -234,17 +235,17 @@ function Standing({ consignment: c }: { consignment: ConsignmentDetail }) {
       : s.phonesAt === 'sender' || s.phonesAt === 'holder'
         ? s.phonesAt === mine
           ? t('consignment.at.with.you')
-          : t('consignment.at.with.them', { name: c.otherParty })
+          : t('consignment.at.with.them', { name: nameIn(c.otherParty, c.otherPartyAr, language) })
         : (s.phonesAt === 'to_holder' ? 'holder' : 'sender') === mine
           ? t('consignment.at.toward.you')
-          : t('consignment.at.toward.them', { name: c.otherParty });
+          : t('consignment.at.toward.them', { name: nameIn(c.otherParty, c.otherPartyAr, language) });
 
   const move = whoseMove(s.next, c.side);
   const next =
     move === 'you'
       ? t('consignment.nextStep.you')
       : move === 'them'
-        ? t('consignment.nextStep.them', { name: c.otherParty })
+        ? t('consignment.nextStep.them', { name: nameIn(c.otherParty, c.otherPartyAr, language) })
         : move === 'both'
           ? t('consignment.nextStep.both')
           : t('consignment.nextStep.none');

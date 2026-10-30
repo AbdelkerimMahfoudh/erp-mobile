@@ -35,6 +35,7 @@ import {
   type LoanDetail,
   type LoanLedgerEntry,
 } from '../../lib/loans';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One debt, from whichever side you are on (Milestone I).
@@ -50,7 +51,7 @@ import {
  *   repayment — and the server refuses it regardless of what is on screen.
  */
 export default function LoanDetailScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useLoan(id);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +78,7 @@ export default function LoanDetailScreen() {
 
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ headerShown: true, title: loan.otherParty }} />
+      <Stack.Screen options={{ headerShown: true, title: nameIn(loan.otherParty, loan.otherPartyAr, language) }} />
       <ScrollView contentContainerStyle={styles.list}>
         {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
@@ -208,7 +209,7 @@ function Entry({ entry: e }: { entry: LoanLedgerEntry }) {
  * button nobody's company may press is the same lie as one their role may not.
  */
 function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const owed = iAmOwed(loan);
 
   const canManage = usePermission('loan.manage');
@@ -275,7 +276,7 @@ function Actions({ loan, onError }: { loan: LoanDetail; onError: (m: string) => 
               </>
             ) : (
               <Text variant="caption" tone="secondary">
-                {t('loans.ownOffer', { name: loan.otherParty })}
+                {t('loans.ownOffer', { name: nameIn(loan.otherParty, loan.otherPartyAr, language) })}
               </Text>
             )}
             {mayDispute ? (

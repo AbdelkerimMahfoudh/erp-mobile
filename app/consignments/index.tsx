@@ -22,6 +22,7 @@ import {
   type ConsignmentGroup,
   type ConsignmentSummary,
 } from '../../lib/consignment';
+import { nameIn } from '../../lib/display-name';
 
 const GROUPS: ConsignmentGroup[] = ['pending', 'accepted', 'confirmed'];
 
@@ -96,7 +97,7 @@ export default function ConsignmentsScreen() {
 }
 
 function Row({ row, onPress }: { row: ConsignmentSummary; onPress: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // The amount that currently matters: agreed if there is one, otherwise
   // whatever is still on the table.
   const amount = row.agreedAmount ?? row.counterAmount ?? row.proposedAmount ?? 0;
@@ -106,7 +107,7 @@ function Row({ row, onPress }: { row: ConsignmentSummary; onPress: () => void })
       flat
       leading={Handshake}
       /* Always the other party, whichever side we are on. */
-      title={row.otherParty}
+      title={nameIn(row.otherParty, row.otherPartyAr, language)}
       subtitle={[
         t(row.side === 'source' ? 'consignment.side.sent' : 'consignment.side.holding'),
         t('consignment.phones', { count: String(row.phones) }),

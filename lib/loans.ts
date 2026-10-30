@@ -38,6 +38,8 @@ export interface LoanSummary {
   direction: LoanDirection;
   /** Always the OTHER party, whichever side you are on. */
   otherParty: string;
+  /** D225: the same name in Arabic; null until given. Absent from an older server. */
+  otherPartyAr?: string | null;
   proposedAmount: number;
   counterAmount: number | null;
   /** Null until somebody accepted. Immutable once set. */

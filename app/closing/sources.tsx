@@ -15,6 +15,7 @@ import { useTranslation } from '../../lib/i18n';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
 import { actionKey, pendingKey, refusalKey, targetIdFor, type CorrectionAction } from '../../lib/closing-report-view';
 import { useClosingSources, type PendingCorrection, type SourceRow } from '../../lib/closing-report';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * "Correct a transaction" (docs/51 §15): every record behind one business date —
@@ -28,7 +29,7 @@ import { useClosingSources, type PendingCorrection, type SourceRow } from '../..
  * the Owner, posted to the current open day. A refund is corrected on its return.
  */
 export default function CorrectTransactionScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const styles = useStyles();
   const router = useRouter();
   const headerShown = React.useContext(HeaderShownContext);
@@ -78,7 +79,7 @@ export default function CorrectTransactionScreen() {
                     flat
                     leading={Undo2}
                     title={t(pendingKey(p) as never)}
-                    subtitle={[p.label, p.requestedBy].filter(Boolean).join(' · ')}
+                    subtitle={[p.label, nameIn(p.requestedBy, p.requestedByAr, language)].filter(Boolean).join(' · ')}
                     value={<MoneyValue value={p.amount} size="small" />}
                     valueCaption={p.superseded ? t('correctTx.pending.supersededShort') : t('correctTx.status.correction_requested')}
                     onPress={data?.canApprove ? () => setDeciding(p) : undefined}

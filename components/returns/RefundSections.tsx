@@ -8,6 +8,7 @@ import { Card, Section } from '../ui/Surface';
 import { Chip } from '../ui/Chip';
 import { Text } from '../ui/Text';
 import type { ReturnDetail, ReturnPayout } from '../../types/api';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * The three refund states, said in words that cannot be misread.
@@ -72,7 +73,7 @@ export function RefundDueSection({ detail }: { detail: ReturnDetail }) {
 
 /** Reported, waiting on a manager or owner. Still not money that has moved. */
 export function RefundPendingSection({ payout }: { payout: ReturnPayout }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   return (
     <Section title={t('refund.section')}>
       <Card>
@@ -86,7 +87,7 @@ export function RefundPendingSection({ payout }: { payout: ReturnPayout }) {
           <Row label={t('refund.reference')} value={payout.transactionReference} />
         ) : null}
         {payout.note ? <Row label={t('refund.note')} value={payout.note} /> : null}
-        <Row label={t('refund.reportedBy')} value={payout.reportedBy ?? '—'} />
+        <Row label={t('refund.reportedBy')} value={nameIn(payout.reportedBy, payout.reportedByAr, language) || '—'} />
         {/* The SERVER's time, never the device clock. */}
         <Row label={t('refund.reportedAt')} value={formatDateTime(new Date(payout.reportedAt))} />
         <Text variant="caption" tone="tertiary" style={styles.gap}>
@@ -105,7 +106,7 @@ export function RefundConfirmedSection({
   payout: ReturnPayout;
   onChanged: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   return (
     <Section title={t('refund.section')}>
       <Card>
@@ -115,8 +116,8 @@ export function RefundConfirmedSection({
         {payout.transactionReference ? (
           <Row label={t('refund.reference')} value={payout.transactionReference} />
         ) : null}
-        <Row label={t('refund.reportedBy')} value={payout.reportedBy ?? '—'} />
-        <Row label={t('refund.confirmedBy')} value={payout.confirmedBy ?? '—'} />
+        <Row label={t('refund.reportedBy')} value={nameIn(payout.reportedBy, payout.reportedByAr, language) || '—'} />
+        <Row label={t('refund.confirmedBy')} value={nameIn(payout.confirmedBy, payout.confirmedByAr, language) || '—'} />
         {payout.confirmedAt ? (
           <Row label={t('refund.confirmedAt')} value={formatDateTime(new Date(payout.confirmedAt))} />
         ) : null}

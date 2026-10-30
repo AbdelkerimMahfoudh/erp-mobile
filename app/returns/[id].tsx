@@ -49,6 +49,7 @@ import {
 } from '../../components/returns/RefundSections';
 import { CustodySheet } from '../../components/returns/CustodySheet';
 import type { RefundMethod, ReturnDetail } from '../../types/api';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * One return, in full.
@@ -87,7 +88,7 @@ export default function ReturnDetailScreen() {
 }
 
 function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const canRequest = usePermission('return.request');
   const canReview = usePermission('return.review');
   const canApprove = usePermission('return.approve');
@@ -204,7 +205,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
             ? t('refund.method.cash')
             : payout.accountLabel ?? t('refund.method.account')
         }`,
-        `${t('refund.reportedBy')}: ${payout.reportedBy ?? '\u2014'}`,
+        `${t('refund.reportedBy')}: ${nameIn(payout.reportedBy, payout.reportedByAr, language) || '\u2014'}`,
         `${t('refund.reportedAt')}: ${formatDateTime(new Date(payout.reportedAt))}`,
       ].join('\n'),
       confirmLabel: t('refund.confirm.action'),

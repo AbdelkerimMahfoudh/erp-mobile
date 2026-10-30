@@ -25,6 +25,7 @@ import { usePermission } from '../../lib/permissions';
 import { useReturns } from '../../lib/returns';
 import type { ReturnListRow, ReturnStatus } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * Returns — what has been brought back, and what is waiting for somebody.
@@ -172,7 +173,7 @@ export default function ReturnsScreen() {
 
 function Row({ row, onPress }: { row: ReturnListRow; onPress: () => void }) {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   return (
     <Pressable onPress={onPress} accessibilityRole="button">
@@ -201,7 +202,7 @@ function Row({ row, onPress }: { row: ReturnListRow; onPress: () => void }) {
         <View style={styles.rowFoot}>
           <Text variant="caption" tone="secondary">
             {t('sales.invoice', { no: row.invoiceNo })}
-            {row.requestedBy ? ` · ${t('returns.requestedBy', { name: row.requestedBy })}` : ''}
+            {nameIn(row.requestedBy, row.requestedByAr, language) ? ` · ${t('returns.requestedBy', { name: nameIn(row.requestedBy, row.requestedByAr, language) })}` : ''}
           </Text>
           {/* Named provisional on the row itself: an approved return shows the
               agreed figure, everything earlier is still a proposal. */}

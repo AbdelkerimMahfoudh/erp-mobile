@@ -25,6 +25,7 @@ import { usePermission } from '../../lib/permissions';
 import { useTransfers } from '../../lib/transfers';
 import type { TransferListRow, TransferStatus } from '../../types/api';
 import { makeStyles } from '../../lib/design/theme';
+import { nameIn } from '../../lib/display-name';
 
 /**
  * Transfers — the history, and the work waiting.
@@ -200,7 +201,7 @@ export default function TransfersScreen() {
 
 function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
   const styles = useStyles();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const outgoing = row.direction === 'outgoing';
 
   return (
@@ -235,9 +236,9 @@ function Row({ row, onPress }: { row: TransferListRow; onPress: () => void }) {
               they differ, and never calls a carton one item. */}
           {transferSummary(row, t)}
         </Text>
-        {row.requestedBy ? (
+        {nameIn(row.requestedBy, row.requestedByAr, language) ? (
           <Text variant="caption" tone="tertiary" numberOfLines={1}>
-            {t('transfers.requestedBy', { name: row.requestedBy })}
+            {t('transfers.requestedBy', { name: nameIn(row.requestedBy, row.requestedByAr, language) })}
           </Text>
         ) : null}
       </View>
