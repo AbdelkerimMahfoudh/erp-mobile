@@ -54,6 +54,11 @@ import {
 } from '../../lib/warnings';
 import { useAuth } from '../../hooks/useAuth';
 import type { ProductSuggestion, ScanResult, Unit } from '../../types/api';
+import {
+  illustrationFor,
+  illustrationForNested,
+  type CategoryIllustration,
+} from '../../lib/category-illustration';
 import { selectableAccounts } from '../../lib/receiving-accounts';
 import { invalidateMoney } from '../../lib/money-invalidation';
 import { classifySubmitFailure } from '../../lib/sale-submission';
@@ -102,6 +107,17 @@ interface PendingScan {
   suggestion: ProductSuggestion | null;
   notice?: { tone: 'warning' | 'danger'; message: string };
   needsPrice: boolean;
+}
+
+/**
+ * What a scanned device is drawn as in the cart (D225): its own product's category, or — when the unit read
+ * came from an older server — the category of the product the scan suggested.
+ */
+function unitIllustration(unit: Unit, suggestion: ProductSuggestion | null | undefined): CategoryIllustration {
+  const trackingType = unit.product?.trackingType ?? (unit.imeiPrimary ? 'imei' : 'serial');
+  return unit.product?.category
+    ? illustrationForNested(unit.product.category, trackingType)
+    : illustrationFor(suggestion?.categoryVisual, trackingType);
 }
 
 function SellScreen() {
@@ -280,6 +296,7 @@ function SellScreen() {
           label,
           variant: unit.product?.variant ?? suggestion?.variant ?? null,
           trackingType: unit.product?.trackingType ?? (unit.imeiPrimary ? 'imei' : 'serial'),
+          illustration: unitIllustration(unit, suggestion),
           quantity: 1,
           price,
           // An unknown buying cost (0107) has nothing to warn against.
@@ -314,6 +331,7 @@ function SellScreen() {
           label: `${suggestion.brand} ${suggestion.model}`,
           variant: suggestion.variant,
           trackingType: 'quantity',
+          illustration: illustrationFor(suggestion.categoryVisual, 'quantity'),
           quantity: 1,
           price: suggestion.defaultPrice,
         });
@@ -351,6 +369,7 @@ function SellScreen() {
             : identifier,
         variant: unit.product?.variant ?? suggestion?.variant ?? null,
         trackingType: unit.product?.trackingType ?? (unit.imeiPrimary ? 'imei' : 'serial'),
+        illustration: unitIllustration(unit, suggestion),
         quantity: 1,
         price,
         // An unknown buying cost (0107) has nothing to warn against.
@@ -364,6 +383,7 @@ function SellScreen() {
         label: `${suggestion.brand} ${suggestion.model}`,
         variant: suggestion.variant,
         trackingType: 'quantity',
+        illustration: illustrationFor(suggestion.categoryVisual, 'quantity'),
         quantity: 1,
         price,
       });

@@ -63,6 +63,8 @@ export interface CatalogueProduct {
   model: string;
   variant: string | null;
   trackingType: 'imei' | 'serial' | 'quantity';
+  /** What the candidate is drawn as (D225), in the shape `lib/category-illustration.ts` reads. */
+  categoryVisual?: { key?: string | null; icon?: string | null; parentKey?: string | null; parentIcon?: string | null } | null;
 }
 
 export interface SheetSummary {

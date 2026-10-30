@@ -43,6 +43,7 @@ import {
   remainingAfter,
 } from '../../../lib/sale-payment-rules';
 import { useSale } from '../../../lib/sales';
+import { illustrationForLines } from '../../../lib/category-illustration';
 import type { PaymentMethod } from '../../../types/api';
 
 /**
@@ -193,7 +194,7 @@ function Form({ sale }: { sale: NonNullable<ReturnType<typeof useSale>['data']> 
 
       {/* Who owes, for which sale, for what. */}
       <Card style={styles.who}>
-        <Thumbnail />
+        <Thumbnail illustration={illustrationForLines(sale.lines)} />
         <View style={styles.grow}>
           <Text variant="bodyStrong" numberOfLines={2}>
             {`${sale.debtor?.name ?? t('outstanding.kind.unknown')} · ${t('sales.invoice', { no: sale.invoiceNo })}`}

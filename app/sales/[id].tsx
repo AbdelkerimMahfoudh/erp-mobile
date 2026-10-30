@@ -23,7 +23,9 @@ import {
   Thumbnail,
 } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
-import { illustrationForLines } from '../../lib/category-illustration';
+import { illustrationFor, illustrationForLines } from '../../lib/category-illustration';
+import { CategoryIllustrationIcon } from '../../components/ui/CategoryIllustration';
+import { useColors } from '../../lib/design/theme';
 import { displayName } from '../../lib/display-name';
 import { ApiError } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
@@ -378,6 +380,7 @@ function receiptOf(
 /** One sold item. For a one-phone sale only the identifier and its actions — the name is the heading above. */
 function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; returnsOpen: boolean }) {
   const { t } = useTranslation();
+  const colors = useColors();
   const router = useRouter();
   const canRequestReturn = usePermission('return.request');
   const identifier = line.imei ?? line.serialNo ?? line.barcode;
@@ -393,9 +396,17 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
     <View style={styles.line}>
       {!alone ? (
         <View style={styles.lineHead}>
-          <Text variant="body" style={styles.lineName}>
-            {line.product ?? ''}
-          </Text>
+          {/* Each line wears its own picture (D225): the card's picture is the generic when they differ. */}
+          <View style={[styles.lineName, styles.lineTitle]}>
+            <CategoryIllustrationIcon
+              name={illustrationFor(line.categoryVisual ?? null, line.trackingType)}
+              color={colors.text.accent}
+              size={16}
+            />
+            <Text variant="body" style={styles.grow}>
+              {line.product ?? ''}
+            </Text>
+          </View>
           <MoneyValue value={line.price * line.quantity} size="small" />
         </View>
       ) : null}
@@ -531,6 +542,7 @@ const styles = StyleSheet.create({
   // An amount beside its words, or below them when it needs more than half the row (docs/61 §8).
   lineHead: { ...AMOUNT_ROW, alignItems: 'flex-start', columnGap: space.sm },
   lineName: AMOUNT_LABEL,
+  lineTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   lineMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
   amountRow: { ...AMOUNT_ROW, paddingVertical: space.xs, columnGap: space.sm },
   factLabel: AMOUNT_LABEL,

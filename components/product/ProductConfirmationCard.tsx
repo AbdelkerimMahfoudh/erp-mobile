@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { CircleCheck, CircleHelp, Package, Sparkles, TriangleAlert } from 'lucide-react-native';
+import { CircleCheck, CircleHelp, Sparkles, TriangleAlert } from 'lucide-react-native';
 import { type Intent } from '../../lib/design/colors';
 import { radius, space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
@@ -9,6 +9,8 @@ import { Button, type IconComponent } from '../ui/Button';
 import { Chip, StatusChip } from '../ui/Chip';
 import { Divider } from '../ui/Surface';
 import { Identifier, Text } from '../ui/Text';
+import { Thumbnail } from '../ui/Thumbnail';
+import { illustrationFor } from '../../lib/category-illustration';
 import type { ProductSuggestion, ScanResult } from '../../types/api';
 import { scanHintKey } from '../../lib/scan/hint';
 import { makeStyles, useColors } from '../../lib/design/theme';
@@ -161,9 +163,8 @@ export function ProductConfirmationCard({
       {/* Identity */}
       {suggestion ? (
         <View style={styles.identity}>
-          <View style={styles.thumb}>
-            <Package color={colors.brand[600]} size={22} />
-          </View>
+          {/* What the product is, from its category (D225) — never a box for a console. */}
+          <Thumbnail size="lg" illustration={illustrationFor(suggestion.categoryVisual, suggestion.trackingType)} />
           <View style={styles.identityText}>
             <Text variant="heading" numberOfLines={2}>
               {[suggestion.brand, suggestion.model].filter(Boolean).join(' ')}
@@ -328,14 +329,6 @@ const useStyles = makeStyles((colors) => ({
   identity: {
     flexDirection: 'row',
     gap: space.md,
-  },
-  thumb: {
-    width: 52,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    backgroundColor: colors.intent.info.bg,
   },
   identityText: {
     flex: 1,

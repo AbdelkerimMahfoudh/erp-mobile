@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Package, PencilLine, RotateCcw } from 'lucide-react-native';
+import { Archive, PencilLine, RotateCcw } from 'lucide-react-native';
 import {
   Button,
   Card,
@@ -14,7 +14,10 @@ import {
   Section,
   SkeletonList,
   Text,
+  Thumbnail,
 } from '../../components/ui';
+import { illustrationIconFor } from '../../components/ui/CategoryIllustration';
+import { illustrationFor } from '../../lib/category-illustration';
 import { ApiError, api } from '../../lib/api-client';
 import { space } from '../../lib/design/tokens';
 import { toFriendlyError } from '../../lib/errors';
@@ -137,7 +140,13 @@ export default function ProductDetailScreen() {
 
       {/* ── Identity ─────────────────────────────────────────────────────── */}
       <View>
-        <Text variant="title">{p.label}</Text>
+        {/* What the product is, from its category (D225); the generic when it has none. */}
+        <View style={styles.identity}>
+          <Thumbnail size="lg" illustration={illustrationFor(p.categoryVisual, p.trackingType)} />
+          <Text variant="title" style={styles.grow}>
+            {p.label}
+          </Text>
+        </View>
         <View style={styles.chips}>
           {/* Status by colour AND words. */}
           <Chip
@@ -202,7 +211,7 @@ export default function ProductDetailScreen() {
                   // stock does not, so nothing is invented for it.
                   s.price !== null ? `${s.quantity} · ${t('catalog.detail.branchPrice')} ${money(s.price)}` : String(s.quantity)
                 }
-                leading={Package}
+                leading={illustrationIconFor(p.categoryVisual, p.trackingType)}
                 chevron={false}
               />
             ))}
@@ -318,6 +327,8 @@ function formatSpec(value: unknown): string {
 }
 
 const styles = StyleSheet.create({
+  identity: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  grow: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.sm },
   note: { marginTop: space.sm },
   list: { gap: space.sm },

@@ -21,6 +21,7 @@ import {
   Screen,
   Text,
 } from '../../components/ui';
+import { illustrationIconFor } from '../../components/ui/CategoryIllustration';
 import { BottomSheet } from '../../components/overlay/BottomSheet';
 import { RowAction } from '../../components/receive/RowAction';
 import { usePressed } from '../../components/ui/use-pressed';
@@ -968,6 +969,7 @@ function MatchSheet({
               <ListRow
                 key={c.id}
                 flat
+                leading={illustrationIconFor(c.categoryVisual, c.trackingType)}
                 title={`${c.brand} ${c.model}`}
                 subtitle={c.variant ?? undefined}
                 onPress={() => onChoose(c)}
@@ -1109,6 +1111,7 @@ function ItemSheet({
                 <ListRow
                   key={c.id}
                   flat
+                  leading={illustrationIconFor(c.categoryVisual, c.trackingType)}
                   title={`${c.brand} ${c.model}`}
                   subtitle={c.variant ?? undefined}
                   selected={c.id === chosen}

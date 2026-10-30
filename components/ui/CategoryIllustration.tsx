@@ -22,7 +22,11 @@ import {
   Tv,
   Watch,
 } from 'lucide-react-native';
-import type { CategoryIllustration as Illustration } from '../../lib/category-illustration';
+import {
+  illustrationFor,
+  type CategoryIllustration as Illustration,
+  type CategoryVisualInput,
+} from '../../lib/category-illustration';
 import type { IconComponent } from './Button';
 
 /**
@@ -131,4 +135,12 @@ export const ILLUSTRATION_ICONS: Readonly<Record<Illustration, IconComponent>> =
 export function CategoryIllustrationIcon({ name, color, size }: GlyphProps & { name: Illustration }) {
   const Icon = ILLUSTRATION_ICONS[name] ?? ILLUSTRATION_ICONS.electronics;
   return <Icon color={color} size={size} />;
+}
+
+/**
+ * The drawing for a product row that takes an icon rather than a node — a picker's `leading`, a list row —
+ * resolved from the product's category the one way every screen does (D225).
+ */
+export function illustrationIconFor(visual: CategoryVisualInput | null | undefined, trackingType?: string | null): IconComponent {
+  return ILLUSTRATION_ICONS[illustrationFor(visual, trackingType)];
 }

@@ -46,6 +46,8 @@ export interface SelectSheetProps<T> {
   /** Chip or badge rendered before the value. */
   accessoryExtractor?: (item: T) => React.ReactNode;
   leadingIcon?: IconComponent;
+  /** A per-row picture — a product's category illustration (D225). Wins over `leadingIcon`. */
+  leadingExtractor?: (item: T) => IconComponent | undefined;
 
   selectedKeys?: string[];
   onSelect: (item: T) => void;
@@ -85,6 +87,7 @@ export function SelectSheet<T>({
   valueExtractor,
   accessoryExtractor,
   leadingIcon,
+  leadingExtractor,
   selectedKeys = [],
   onSelect,
   multi = false,
@@ -234,7 +237,7 @@ export function SelectSheet<T>({
                 subtitle={descriptionExtractor?.(item)}
                 identifier={identifierExtractor?.(item)}
                 value={valueExtractor?.(item)}
-                leading={leadingIcon}
+                leading={leadingExtractor?.(item) ?? leadingIcon}
                 selected={isSelected}
                 accessory={
                   isSelected ? (

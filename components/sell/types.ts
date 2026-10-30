@@ -1,4 +1,5 @@
 import type { TrackingType } from '../../types/api';
+import type { CategoryIllustration } from '../../lib/category-illustration';
 
 /**
  * One line in the sale being built.
@@ -19,6 +20,8 @@ export interface CartLine {
   label: string;
   variant?: string | null;
   trackingType: TrackingType;
+  /** What the line is drawn as, from its product's category (D225). Absent on a cart saved by an older build. */
+  illustration?: CategoryIllustration;
   quantity: number;
   /** Unit price, editable at the counter. */
   price: number;

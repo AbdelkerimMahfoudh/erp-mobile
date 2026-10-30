@@ -10,7 +10,7 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Plus, Tag } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import {
   Badge,
   DEFAULT_SEPARATOR_INSET,
@@ -21,6 +21,8 @@ import {
   Text as AppText,
 } from '../../components/ui';
 import { usePressed } from '../../components/ui/use-pressed';
+import { CategoryIllustrationIcon } from '../../components/ui/CategoryIllustration';
+import { illustrationFor } from '../../lib/category-illustration';
 import { elevation, radius, space, touch } from '../../lib/design/tokens';
 import { api } from '../../lib/api-client';
 import { qk } from '../../lib/query-keys';
@@ -247,10 +249,9 @@ function ProductRow({
       }}
     >
       {/*
-        A category mark, not a photograph. There is no product image in the API
-        or the model, and inventing one would mean a storage feature nobody
-        asked for — so this is a consistent icon that never lies about what it
-        is showing.
+        A category mark, not a photograph: there is no product image in the API
+        or the model. The mark is what the product IS, from its category (D225)
+        — a console wears a console — and the neutral generic without one.
       */}
       <View
         style={{
@@ -262,7 +263,7 @@ function ProductRow({
           backgroundColor: colors.semantic.primarySoft,
         }}
       >
-        <Tag size={18} color={colors.semantic.primary} />
+        <CategoryIllustrationIcon name={illustrationFor(row.categoryVisual, row.trackingType)} size={18} color={colors.semantic.primary} />
       </View>
       <View style={{ marginStart: space.md, flex: 1, gap: 2 }}>
         {/* The exact-variant label the server assembled — one name everywhere. */}

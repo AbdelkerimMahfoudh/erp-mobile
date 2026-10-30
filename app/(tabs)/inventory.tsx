@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Cable, FileSpreadsheet, PackagePlus, PackageSearch, X } from 'lucide-react-native';
+import { ArrowLeftRight, FileSpreadsheet, PackagePlus, PackageSearch, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -26,6 +26,8 @@ import { SelectSheet } from '../../components/overlay';
 import { inTreeOrder } from '../../lib/category-label';
 import { useCategoryLabel } from '../../lib/use-category-label';
 import { STOCK_THUMB, StockRow } from '../../components/inventory/StockRow';
+import { ILLUSTRATION_ICONS } from '../../components/ui/CategoryIllustration';
+import { illustrationForNested, type NestedCategory } from '../../lib/category-illustration';
 import { api } from '../../lib/api-client';
 import { useActiveBranchName, useBranch } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
@@ -520,7 +522,7 @@ export default function InventoryScreen() {
                       <ListRow
                         key={row.id}
                         flat
-                        leading={PackageSearch}
+                        leading={illustrationIconForNested(row.product?.category, row.product?.trackingType)}
                         title={productTitle(row.product, shownIdentifier(row.identifier))}
                         subtitle={variantSummary(row.product) || undefined}
                         identifier={shownIdentifier(row.identifier)}
@@ -562,7 +564,7 @@ export default function InventoryScreen() {
                       <ListRow
                         key={row.id}
                         flat
-                        leading={Cable}
+                        leading={illustrationIconForNested(row.product?.category, 'quantity')}
                         title={productTitle(row.product)}
                         subtitle={variantSummary(row.product) || undefined}
                         identifier={row.product?.barcode ?? undefined}
@@ -606,6 +608,11 @@ export default function InventoryScreen() {
  * Complete rather than paginated — it is one row per variant, not per unit — so
  * narrowing by category on the phone hides nothing the server knows about.
  */
+/** A searched unit or accessory row wears its category's picture (D225), like the Stock list above it. */
+function illustrationIconForNested(category: NestedCategory | null | undefined, trackingType: string | null | undefined) {
+  return ILLUSTRATION_ICONS[illustrationForNested(category, trackingType)];
+}
+
 function ShelfList({
   loading,
   rows,

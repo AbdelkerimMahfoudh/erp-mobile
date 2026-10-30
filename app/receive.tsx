@@ -2,11 +2,12 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Package, PackagePlus } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, PackagePlus } from 'lucide-react-native';
 import { Button, EmptyState, MoneyValue, Screen, Text } from '../components/ui';
 import { useLeave } from '../components/navigation/HeaderBack';
 import { IconButton } from '../components/ui/IconButton';
 import { SelectSheet } from '../components/overlay';
+import { illustrationIconFor } from '../components/ui/CategoryIllustration';
 import { BottomSheet } from '../components/overlay/BottomSheet';
 import { ScanTarget } from '../components/scanner';
 import type { AcceptedImei } from '../components/scanner/ScannerSheet';
@@ -770,7 +771,7 @@ function ReceiveScreen() {
         keyExtractor={(p) => p.id}
         labelExtractor={(p) => [p.brand, p.model].filter(Boolean).join(' ')}
         descriptionExtractor={(p) => p.variant ?? undefined}
-        leadingIcon={Package}
+        leadingExtractor={(p) => illustrationIconFor(p.categoryVisual, p.trackingType)}
         selectedKeys={pending?.suggestion ? [pending.suggestion.productId] : []}
         searchPlaceholder={t('receive.chooseProduct.search')}
         onSearchChange={setProductQuery}
