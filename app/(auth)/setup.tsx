@@ -72,7 +72,7 @@ export default function OwnerSetupScreen() {
     <SafeAreaView style={[styles.fill, { backgroundColor: colors.surface.canvas }]}>
       <Stack.Screen options={{ headerShown: true, title: t('setup.title') }} />
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}>
           {result ? (
             <View style={styles.group}>
               <InlineNotice tone="success">{t('setup.done', { business: result.businessName })}</InlineNotice>

@@ -14,6 +14,13 @@ import { radius, space } from '../../lib/design/tokens';
 import { LOGIN } from '../../lib/navigation/entry';
 
 /**
+ * How a drag dismisses the keyboard. On the web there is no on-screen keyboard to dismiss, and react-native-web treats
+ * ANY scroll as a drag: focusing a field scrolls it into view and the scroll blurred it again — the first field of a
+ * refused form lost its cursor (visual-check, D225).
+ */
+const KEYBOARD_DISMISS = Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'web' ? 'none' : 'on-drag';
+
+/**
  * The pages before signing in, as one product (owner's review, 2026-10-24).
  *
  * Every authentication route — sign-in, a new business, an Owner's setup code,
@@ -124,7 +131,7 @@ export function AuthPage({ children, footer, scrollRef }: AuthPageProps) {
           ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardDismissMode={KEYBOARD_DISMISS}
         >
           <View style={styles.main}>{children}</View>
           {footer ? <View style={styles.footer}>{footer}</View> : null}

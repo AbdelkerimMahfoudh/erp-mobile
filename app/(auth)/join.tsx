@@ -170,7 +170,7 @@ function TeamJoin() {
     <SafeAreaView style={[styles.fill, { backgroundColor: colors.surface.canvas }]}>
       <Stack.Screen options={{ headerShown: true, title: t('join.title') }} />
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}>
           {step === 'reference' ? (
             <View style={styles.group}>
               <Text variant="body" tone="secondary">

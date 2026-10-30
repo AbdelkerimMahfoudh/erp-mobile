@@ -20,6 +20,13 @@ import { layout, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 
 /**
+ * How a drag dismisses the keyboard. On the web there is no on-screen keyboard to dismiss, and react-native-web treats
+ * ANY scroll as a drag: focusing a field scrolls it into view and the scroll blurred it again — the first field of a
+ * refused form lost its cursor (visual-check, D225).
+ */
+const KEYBOARD_DISMISS = Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'web' ? 'none' : 'on-drag';
+
+/**
  * The page wrapper.
  *
  * Owns safe area, background and the standard page gutter so no screen sets its
@@ -155,7 +162,7 @@ export function Screen({
        * Android that mode does not exist, and dismissing on any drag is the
        * closest equivalent.
        */
-      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      keyboardDismissMode={KEYBOARD_DISMISS}
       showsVerticalScrollIndicator={false}
       refreshControl={
         onRefresh ? (

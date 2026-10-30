@@ -323,8 +323,10 @@ it('the dismiss wrapper does not swallow button presses', () => {
 it('scrolling does not yank the keyboard away unexpectedly', () => {
   const code = withoutComments(source(SCREEN));
   // iOS drags it with the finger and can give it back; Android has no such
-  // mode, so dismissing on drag is the closest equivalent there.
-  assert.match(code, /keyboardDismissMode=\{Platform\.OS === 'ios' \? 'interactive' : 'on-drag'\}/);
+  // mode, so dismissing on drag is the closest equivalent there. The web has no
+  // on-screen keyboard, and react-native-web blurs on any scroll: none (D225).
+  assert.match(code, /keyboardDismissMode=\{KEYBOARD_DISMISS\}/);
+  assert.match(code, /const KEYBOARD_DISMISS = Platform\.OS === 'ios' \? 'interactive' : Platform\.OS === 'web' \? 'none' : 'on-drag';/);
 });
 
 it('adds no dependency the app did not already have', () => {
