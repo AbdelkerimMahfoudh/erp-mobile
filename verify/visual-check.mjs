@@ -391,7 +391,7 @@ if (OWNER) {
     await page.locator('input').nth(1).press('Enter');
     await page.waitForURL(/select-branch|\/$/, { timeout: 20000 });
     if (page.url().includes('select-branch')) {
-      await page.locator('[role="button"]').filter({ hasText: /Zeina|Tevragh/ }).first().click();
+      await page.locator('[role="button"]').filter({ hasText: /Zeina|Tevragh|تفرغ زينة/ }).first().click();
       await page.waitForTimeout(2000);
     }
   };

@@ -91,7 +91,7 @@ await page.waitForTimeout(1500);
 check('with the grant the ERP opens at once — “Check again”, no sign-out, no approval', opened && !/access-closed/.test(page.url()), new URL(page.url()).pathname);
 // The first time in, the Owner picks the store to work in (the app's store picker), as any Owner does once.
 if (/select-branch/.test(page.url())) {
-  await page.getByText(branchName, { exact: true }).first().tap();
+  await page.getByText(new RegExp(`^(${branchName}|متجر نواكشوط التجريبي)$`)).first().tap();
   await page.waitForURL((u) => !/select-branch/.test(u.pathname), { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1500);
 }

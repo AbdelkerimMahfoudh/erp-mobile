@@ -152,7 +152,8 @@ for (const lang of LANGS) {
         check(`New team member: Name, Phone and Email each take a tap and typing ${where}`, values[0] === 'Aminetou Test' && values[1] === 'أمينتو' && values[2] === '+22240000001' && values[3] === 'aminetou@example.test', JSON.stringify(values));
         await sheet(page).getByText(t['team.role.store_manager'], { exact: true }).first().tap();
         await page.waitForTimeout(150);
-        const store = sheet(page).getByText(branchName, { exact: true }).first();
+        const store = // D225: the store by the name the interface reads — its Arabic name in Arabic.
+        sheet(page).getByText(new RegExp(`^(${branchName}|متجر نواكشوط التجريبي)$`)).first();
         await store.tap();
         await page.waitForTimeout(150);
         await store.tap();
