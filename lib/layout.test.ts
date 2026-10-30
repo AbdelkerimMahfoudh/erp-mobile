@@ -69,7 +69,8 @@ it('Home and Money open on Today at launch and on every arrival from another tab
   }
   // The Daily closing's date bar is a date, not a period: its own state, untouched by an arrival.
   const closing = code(read('../app/closing/index.tsx'));
-  assert.match(closing, /useState<string \| undefined>\(undefined\)/);
+  // Its own state, from the day a notification opened (D225) or the branch's current day — never the period.
+  assert.match(closing, /useState<string \| undefined>\(typeof opened === 'string'/);
   assert.ok(!closing.includes('useTodayOnArrival'), 'the closing keeps its own date');
 });
 

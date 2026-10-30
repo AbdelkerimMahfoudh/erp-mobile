@@ -196,6 +196,7 @@ const REGISTRIES: Record<string, string> = {
   entryRoute: 'navigation/entry',
   tabRouteOf: 'navigation/registry',
   internalRoute: 'navigation/internal-route',
+  notificationRoute: 'navigation/notification-route',
 };
 /** Where the app's own modules are, as an import resolves them. */
 const LIB = new URL('lib', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -665,7 +666,7 @@ function trialWording(file: string): string[] {
  */
 const PACKAGES = [
   '@tanstack/react-query', 'date-fns', 'expo-camera', 'expo-clipboard', 'expo-constants', 'expo-document-picker', 'expo-file-system',
-  'expo-haptics', 'expo-image', 'expo-image-picker', 'expo-localization', 'expo-print', 'expo-router', 'expo-secure-store', 'expo-sharing',
+  'expo-haptics', 'expo-image', 'expo-image-picker', 'expo-localization', 'expo-notifications', 'expo-print', 'expo-router', 'expo-secure-store', 'expo-sharing',
   'expo-splash-screen', 'expo-status-bar', 'lucide-react-native', 'react', 'react-native', 'react-native-gesture-handler',
   'react-native-reanimated', 'react-native-safe-area-context', 'react-native-svg', 'zustand',
 ];
@@ -798,6 +799,16 @@ describe('the website’s entry points are gone from the app', () => {
     assert.match(guard, /^\s*window\.open = \(url, \.\.\.rest\) => \(String\(url \?\? ''\)\.startsWith\('blob:'\) \? open\(url, \.\.\.rest\) : null\);$/m);
     assert.doesNotMatch(guard, /expo-linking|location|href|require\(/);
     assert.match(strip(read('app/_layout.tsx')), /^import \{ refuseBrowser \} from '\.\.\/lib\/navigation\/no-browser';$[\s\S]*^refuseBrowser\(\);$/m);
+  });
+
+  it('the one way to iOS Settings opens the app’s own page there, takes no address, and is reached only by the permission explanation (D225)', () => {
+    const guard = code(new URL(GUARD, ROOT).pathname);
+    // `openSettings` opens the app's page in Settings: no address in, none built. It is called once, here.
+    assert.equal((guard.match(/openSettings/g) ?? []).length, 1);
+    assert.match(guard, /^export function openAppSettings\(\): Promise<void> \{\n\s*if \(Platform\.OS !== 'ios' && Platform\.OS !== 'android'\) return Promise\.reject\([^\n]*\);\n\s*return Linking\.openSettings\(\);\n\}$/m);
+    // Nobody else calls it (React Native's Linking is banned outside the guard anyway); the explanation's label key is words.
+    assert.deepEqual(SOURCES.filter((f) => relative(f) !== GUARD && /\bopenSettings\s*\(/.test(code(f))).map(relative), []);
+    assert.deepEqual(SOURCES.filter((f) => relative(f) !== GUARD && /\bopenAppSettings\b/.test(code(f))).map(relative), ['components/permissions/PermissionExplainer.tsx']);
   });
 
   it('every navigation leads to a screen of the app’s own — a path written out, or a route its registries hold — and expo-router is reached only by name, a router only through its own methods', () => {

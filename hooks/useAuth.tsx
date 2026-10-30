@@ -27,6 +27,8 @@ import type { AccountChoice, AuthResponse, AuthUser, LoginResult } from '../type
 import { isAccountChoice } from '../types/api';
 import { credentialNamespace } from '../lib/identifier';
 import { entryRoute } from '../lib/navigation/entry';
+import { unregisterThisPhone } from '../lib/push';
+import { usePushOffer } from '../lib/push-offer';
 
 /**
  * The second half of the credential key, now that there is no login to put
@@ -214,6 +216,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Now that the login is known, retire any pre-3.2 key for it. It can never
     // be presented again, and leaving it would be dead credential material.
     await clearLegacyCredential(res.user.login);
+    // Somebody just signed in on this phone: the one moment the app may offer notifications (D225).
+    usePushOffer.getState().signedIn();
     setUser(res.user);
   };
 
@@ -248,6 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setItem(TOKEN_KEYS.USER, JSON.stringify(me));
     await deleteItem(SESSION_NAMESPACE_KEY);
     await rememberStoreId(me.publicStoreId);
+    usePushOffer.getState().signedIn();
     setUser(me);
     return me;
   };
@@ -267,6 +272,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // First, while the session still works: this phone stops receiving this person's notifications (D225).
+    await unregisterThisPhone().catch(() => undefined);
     try {
       const refreshToken = await getItem(TOKEN_KEYS.REFRESH_TOKEN);
       if (refreshToken) await api.post('/auth/logout', { refreshToken });

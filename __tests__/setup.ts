@@ -7,6 +7,8 @@ jest.mock('react-native-safe-area-context', () => require('react-native-safe-are
 // Gesture Handler 3's own Jest setup: its native module and detectors, mocked as the library ships them.
 require('react-native-gesture-handler/jestSetup');
 jest.mock('expo-router', () => require('./mocks/expo-router'));
+// Push (D225): what iOS answers and a tapped push, set per test (mocks/expo-notifications.ts).
+jest.mock('expo-notifications', () => require('./mocks/expo-notifications'));
 // The preset's ScrollView mock, plus the scroll context the real one provides (see mocks/ScrollView.tsx).
 jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => require('./mocks/ScrollView'));
 // Worklets and Reanimated through their own Jest mocks: animations resolve at once, on the JS thread. The

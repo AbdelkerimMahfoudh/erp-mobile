@@ -116,6 +116,7 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/sync': TABS.more,
   '/notifications': TABS.more,
   '/notification-settings': '/notifications',
+  '/notification-open': '/notifications',
   '/hub/[id]': TABS.more,
   '/dev/gallery': TABS.more,
   // The Money Services Agent counter (docs/21 D157). The counter flow is Home's big action, as Quick sell is; one

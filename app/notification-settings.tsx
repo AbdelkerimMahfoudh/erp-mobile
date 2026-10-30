@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check } from 'lucide-react-native';
-import { ErrorState, InlineNotice, PageIntro, Screen, SkeletonList, Text } from '../components/ui';
+import { BellRing, Check } from 'lucide-react-native';
+import { Button, ErrorState, InlineNotice, PageIntro, Screen, SkeletonList, Text } from '../components/ui';
+import { PermissionExplainer } from '../components/permissions/PermissionExplainer';
 import { api } from '../lib/api-client';
 import { radius, space, touch } from '../lib/design/tokens';
 import { makeStyles, useColors } from '../lib/design/theme';
@@ -11,6 +12,9 @@ import { toFriendlyError } from '../lib/errors';
 import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
+import { askPushPermission, pushPermission, registerThisPhone } from '../lib/push';
+import { phoneState, type PushPermission } from '../lib/push-policy';
+import { useAuth } from '../hooks/useAuth';
 import type { NotificationLevel, NotificationPreference } from '../types/api';
 
 const LEVELS: readonly NotificationLevel[] = ['all', 'important', 'approvals'];
@@ -86,9 +90,48 @@ export default function NotificationSettingsScreen() {
           {t('notifications.level.default')}
         </Text>
       ) : null}
-      {/* Honest about this build: the choice is saved now; this phone shows alerts once an app version with push is installed. */}
-      <InlineNotice tone="info">{t('notifications.level.thisPhone')}</InlineNotice>
+      <ThisPhone />
     </Screen>
+  );
+}
+
+/**
+ * This phone (D225): whether alerts reach it. Turning them on is the person's own choice, here, at any time — the app
+ * never asks by itself after "Not now". After iOS refused, only iOS Settings can turn them back on: the steps, and the
+ * way to the app's page there.
+ */
+function ThisPhone() {
+  const { t, language } = useTranslation();
+  const { user } = useAuth();
+  const styles = useStyles();
+  const [permission, setPermission] = useState<PushPermission | null>(null);
+  useEffect(() => {
+    void pushPermission().then(setPermission);
+  }, []);
+  if (permission === null) return null;
+  const state = phoneState(permission);
+  if (state === 'on') return <InlineNotice tone="success">{t('push.phone.on')}</InlineNotice>;
+  if (state === 'unsupported') return <InlineNotice tone="info">{t('notifications.level.thisPhone')}</InlineNotice>;
+  if (state === 'settings') {
+    return <PermissionExplainer icon={BellRing} title={t('push.phone.offTitle')} benefits={[]} denied onAllow={() => undefined} allowLabel="" deniedSteps={t('push.phone.settingsSteps')} />;
+  }
+  return (
+    <View style={styles.group}>
+      <Text variant="body" tone="secondary">
+        {t('push.phone.off')}
+      </Text>
+      <Button
+        title={t('push.offer.allow')}
+        icon={BellRing}
+        onPress={() =>
+          void askPushPermission().then(async (p) => {
+            setPermission(p);
+            if (p === 'granted' && user) await registerThisPhone(user.id, language).catch(() => undefined);
+          })
+        }
+        fullWidth
+      />
+    </View>
   );
 }
 

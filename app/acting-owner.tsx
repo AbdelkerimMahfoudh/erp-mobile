@@ -27,8 +27,9 @@ const KEPT = ['owner', 'appoint', 'delete', 'security', 'subscription', 'audit']
 /**
  * More → Acting Owner (D225). The Owner appoints one person to run the business while they are away: from now or
  * tomorrow morning, until a chosen day or until removed. The server holds the authority and ends it on time, so it
- * does not depend on either phone being online. Appointing and removing ask for the Owner's password, after a summary
- * of who, from when, until when and what they may do.
+ * does not depend on either phone being online. Appointing and removing ask for the Owner's password and then a code
+ * sent to the Owner's verified WhatsApp number for that very change (the account-deletion code service), after a
+ * summary of who, from when, until when and what they may do.
  */
 export default function ActingOwnerScreen() {
   const { t, language } = useTranslation();
@@ -131,6 +132,67 @@ function Powers() {
   );
 }
 
+/** The code the server sent for one change (`POST /acting-owner/code`): where it went, never the code. */
+interface StepUpSent {
+  challengeId: string;
+  destinationMasked: string;
+  expiresAt: string;
+  resendAvailableAt: string | null;
+}
+
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+/** The server's refusals of the step-up and of the change, in words. */
+function stepUpProblem(e: unknown, t: Translate): string {
+  if (e instanceof ApiError) {
+    switch (e.code) {
+      case 'password_incorrect':
+        return t('actingOwner.error.password');
+      case 'delegation_overlap':
+        return t('actingOwner.error.overlap');
+      case 'whatsapp_number_required':
+        return t('actingOwner.error.needNumber');
+      case 'step_up_unavailable':
+        return t('actingOwner.error.unavailable');
+      case 'too_many_codes':
+        return t('account.code.tooMany');
+      case 'invalid_code':
+        return t('account.code.wrong', { left: String((e.body as { attemptsRemaining?: number } | undefined)?.attemptsRemaining ?? '') });
+      case 'code_expired':
+        return t('account.code.expired');
+      case 'code_locked':
+        return t('account.code.locked');
+      case 'code_not_active':
+        return t('account.code.notActive');
+    }
+  }
+  return toFriendlyError(e).body;
+}
+
+/** The second half of the step-up: where the code went, and the field to type it in. */
+function CodeStep({ sent, code, onCode, error }: { sent: StepUpSent; code: string; onCode: (v: string) => void; error?: string }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <InlineNotice tone="info">{t('actingOwner.stepUp.sent', { destination: sent.destinationMasked })}</InlineNotice>
+      <TextField
+        label={t('actingOwner.stepUp.code')}
+        value={code}
+        onChangeText={onCode}
+        keyboardType="number-pad"
+        autoComplete="one-time-code"
+        maxLength={6}
+        variant="identifier"
+        error={error}
+      />
+    </>
+  );
+}
+
+/**
+ * Naming an Acting Owner: who, from when, until when — then the Owner's password, then the code WhatsApp brings for
+ * exactly that appointment. The times are fixed when the code is asked for, so the code confirms what was shown.
+ */
 function AppointSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, language } = useTranslation();
   const queryClient = useQueryClient();
@@ -139,6 +201,8 @@ function AppointSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const [start, setStart] = useState<StartChoice>('now');
   const [end, setEnd] = useState<EndChoice>('until_revoked');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [sent, setSent] = useState<(StepUpSent & { startsAt: string | null; endsAt: string | null }) | null>(null);
   const [error, setError] = useState<string | undefined>();
 
   const team = useQuery({ queryKey: qk.users, queryFn: () => api.get<TeamUser[]>('/users'), enabled: open });
@@ -149,85 +213,130 @@ function AppointSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const startsAt = startOf(start, now);
   const endsAt = endOf(endChoicesFor(start).includes(end) ? end : 'until_revoked', now, startsAt);
 
+  const reset = () => {
+    setPassword('');
+    setCode('');
+    setSent(null);
+    setError(undefined);
+  };
+
+  const requestCode = useMutation({
+    mutationFn: () => {
+      const window = { startsAt: startsAt?.toISOString() ?? null, endsAt: endsAt?.toISOString() ?? null };
+      return api
+        .post<StepUpSent>('/acting-owner/code', {
+          action: 'appoint',
+          delegateId: person!.id,
+          ...(window.startsAt ? { startsAt: window.startsAt } : {}),
+          ...(window.endsAt ? { endsAt: window.endsAt } : {}),
+          currentPassword: password,
+          language,
+        })
+        .then((s) => ({ ...s, ...window }));
+    },
+    onSuccess: (s) => {
+      setSent(s);
+      setCode('');
+      setError(undefined);
+    },
+    onError: (e) => setError(stepUpProblem(e, t)),
+  });
+
   const appoint = useMutation({
     mutationFn: () =>
       api.post<ActingOwnerDelegation>('/acting-owner', {
         delegateId: person!.id,
-        ...(startsAt ? { startsAt: startsAt.toISOString() } : {}),
-        ...(endsAt ? { endsAt: endsAt.toISOString() } : {}),
+        ...(sent!.startsAt ? { startsAt: sent!.startsAt } : {}),
+        ...(sent!.endsAt ? { endsAt: sent!.endsAt } : {}),
         currentPassword: password,
+        challengeId: sent!.challengeId,
+        code: code.trim(),
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: KEY });
       toast.success(t('actingOwner.appointed'));
-      setPassword('');
+      reset();
       setPerson(null);
       onClose();
     },
-    onError: (e) => {
-      if (e instanceof ApiError && e.code === 'password_incorrect') return setError(t('actingOwner.error.password'));
-      if (e instanceof ApiError && e.code === 'delegation_overlap') return setError(t('actingOwner.error.overlap'));
-      setError(toFriendlyError(e).body);
-    },
+    onError: (e) => setError(stepUpProblem(e, t)),
   });
 
+  const footer = sent ? (
+    <View style={styles.block}>
+      <Button title={t('actingOwner.confirm')} onPress={() => appoint.mutate()} loading={appoint.isPending} disabled={code.trim().length !== 6} fullWidth />
+      <Button title={t('account.code.resend')} variant="secondary" onPress={() => requestCode.mutate()} loading={requestCode.isPending} disabled={appoint.isPending} fullWidth />
+      <Button title={t('actingOwner.stepUp.back')} variant="tertiary" onPress={() => reset()} disabled={appoint.isPending} />
+    </View>
+  ) : (
+    <Button
+      title={t('actingOwner.stepUp.send')}
+      onPress={() => (person && password ? requestCode.mutate() : setError(t(person ? 'actingOwner.error.passwordRequired' : 'actingOwner.error.person')))}
+      loading={requestCode.isPending}
+      fullWidth
+    />
+  );
+
   return (
-    <BottomSheet
-      scroll
-      open={open}
-      onClose={onClose}
-      title={t('actingOwner.appoint')}
-      footer={
-        <Button
-          title={t('actingOwner.confirm')}
-          onPress={() => (person && password ? appoint.mutate() : setError(t(person ? 'actingOwner.error.passwordRequired' : 'actingOwner.error.person')))}
-          loading={appoint.isPending}
-          fullWidth
-        />
-      }
-    >
+    <BottomSheet scroll open={open} onClose={onClose} title={t('actingOwner.appoint')} footer={footer}>
       <View style={styles.sheet}>
-        <ListRow
-          title={person ? displayName(person, language) : t('actingOwner.choosePerson')}
-          subtitle={t('actingOwner.person')}
-          leading={UserRound}
-          onPress={() => setPicking(true)}
-        />
-        <View style={styles.block}>
-          <Text variant="label">{t('actingOwner.from')}</Text>
-          <SegmentedControl value={start} onChange={(v) => setStart(v)} options={START_CHOICES.map((c) => ({ value: c, label: t(`actingOwner.start.${c}` as const) }))} />
-        </View>
-        <View style={styles.block}>
-          <Text variant="label">{t('actingOwner.until')}</Text>
-          <SegmentedControl
-            value={endChoicesFor(start).includes(end) ? end : 'until_revoked'}
-            onChange={(v) => setEnd(v)}
-            options={endChoicesFor(start).map((c) => ({ value: c, label: t(`actingOwner.end.${c}` as const) }))}
-          />
-        </View>
-        {/* The confirmation: who, from when, until when — before the password commits it. */}
+        {sent ? null : (
+          <>
+            <ListRow
+              title={person ? displayName(person, language) : t('actingOwner.choosePerson')}
+              subtitle={t('actingOwner.person')}
+              leading={UserRound}
+              onPress={() => setPicking(true)}
+            />
+            <View style={styles.block}>
+              <Text variant="label">{t('actingOwner.from')}</Text>
+              <SegmentedControl value={start} onChange={(v) => setStart(v)} options={START_CHOICES.map((c) => ({ value: c, label: t(`actingOwner.start.${c}` as const) }))} />
+            </View>
+            <View style={styles.block}>
+              <Text variant="label">{t('actingOwner.until')}</Text>
+              <SegmentedControl
+                value={endChoicesFor(start).includes(end) ? end : 'until_revoked'}
+                onChange={(v) => setEnd(v)}
+                options={endChoicesFor(start).map((c) => ({ value: c, label: t(`actingOwner.end.${c}` as const) }))}
+              />
+            </View>
+          </>
+        )}
+        {/* The confirmation: who, from when, until when — before the password and the code commit it. */}
         {person ? (
           <InlineNotice tone="info" title={t('actingOwner.summary.title')}>
             {[
               t('actingOwner.summary.who', { name: displayName(person, language) }),
-              t('actingOwner.summary.from', { date: startsAt ? formatDateTime(startsAt) : t('actingOwner.start.now') }),
-              endsAt ? t('actingOwner.summary.until', { date: formatDateTime(endsAt) }) : t('actingOwner.summary.untilRevoked'),
+              t('actingOwner.summary.from', { date: (sent ? sent.startsAt : startsAt) ? formatDateTime((sent ? sent.startsAt : startsAt)!) : t('actingOwner.start.now') }),
+              (sent ? sent.endsAt : endsAt) ? t('actingOwner.summary.until', { date: formatDateTime((sent ? sent.endsAt : endsAt)!) }) : t('actingOwner.summary.untilRevoked'),
               t('actingOwner.summary.what'),
             ].join('\n')}
           </InlineNotice>
         ) : null}
-        <TextField
-          label={t('actingOwner.password')}
-          hint={t('actingOwner.passwordHint')}
-          value={password}
-          onChangeText={(v) => {
-            setPassword(v);
-            setError(undefined);
-          }}
-          secureTextEntry
-          autoComplete="current-password"
-          error={error}
-        />
+        {sent ? (
+          <CodeStep
+            sent={sent}
+            code={code}
+            onCode={(v) => {
+              setCode(v);
+              setError(undefined);
+            }}
+            error={error}
+          />
+        ) : (
+          <TextField
+            label={t('actingOwner.password')}
+            hint={t('actingOwner.stepUp.why')}
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              setError(undefined);
+            }}
+            secureTextEntry
+            autoComplete="current-password"
+            error={error}
+          />
+        )}
       </View>
       <SelectSheet
         open={picking}
@@ -247,34 +356,97 @@ function AppointSheet({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
+/** Removing the Acting Owner now: the Owner's password, then the code WhatsApp brings for this removal. */
 function RemoveSheet({ delegation, onClose }: { delegation: ActingOwnerDelegation | null; onClose: () => void }) {
   const { t, language } = useTranslation();
   const queryClient = useQueryClient();
   const { refreshUser } = useAuth();
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [sent, setSent] = useState<StepUpSent | null>(null);
   const [error, setError] = useState<string | undefined>();
+
+  const reset = () => {
+    setPassword('');
+    setCode('');
+    setSent(null);
+    setError(undefined);
+  };
+
+  const requestCode = useMutation({
+    mutationFn: () => api.post<StepUpSent>('/acting-owner/code', { action: 'revoke', delegationId: delegation!.id, currentPassword: password, language }),
+    onSuccess: (s) => {
+      setSent(s);
+      setCode('');
+      setError(undefined);
+    },
+    onError: (e) => setError(stepUpProblem(e, t)),
+  });
+
   const remove = useMutation({
-    mutationFn: () => api.post(`/acting-owner/${delegation!.id}/revoke`, { currentPassword: password }),
+    mutationFn: () => api.post(`/acting-owner/${delegation!.id}/revoke`, { currentPassword: password, challengeId: sent!.challengeId, code: code.trim() }),
     onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: KEY });
       await refreshUser().catch(() => undefined);
       toast.success(t('actingOwner.removed'));
-      setPassword('');
+      reset();
       onClose();
     },
-    onError: (e) => setError(e instanceof ApiError && e.code === 'password_incorrect' ? t('actingOwner.error.password') : toFriendlyError(e).body),
+    onError: (e) => setError(stepUpProblem(e, t)),
   });
+
+  const footer = sent ? (
+    <View style={styles.block}>
+      <Button title={t('actingOwner.removeConfirm')} variant="danger" onPress={() => remove.mutate()} loading={remove.isPending} disabled={code.trim().length !== 6} fullWidth />
+      <Button title={t('account.code.resend')} variant="secondary" onPress={() => requestCode.mutate()} loading={requestCode.isPending} disabled={remove.isPending} fullWidth />
+    </View>
+  ) : (
+    <Button
+      title={t('actingOwner.stepUp.send')}
+      variant="danger"
+      onPress={() => (password ? requestCode.mutate() : setError(t('actingOwner.error.passwordRequired')))}
+      loading={requestCode.isPending}
+      fullWidth
+    />
+  );
+
   return (
     <BottomSheet
       scroll
       open={delegation !== null}
-      onClose={onClose}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
       title={t('actingOwner.remove')}
-      footer={<Button title={t('actingOwner.removeConfirm')} variant="danger" onPress={() => (password ? remove.mutate() : setError(t('actingOwner.error.passwordRequired')))} loading={remove.isPending} fullWidth />}
+      footer={footer}
     >
       <View style={styles.sheet}>
         <Text variant="body">{t('actingOwner.removeBody', { name: delegation?.delegate ? displayName(delegation.delegate, language) : '' })}</Text>
-        <TextField label={t('actingOwner.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" error={error} />
+        {sent ? (
+          <CodeStep
+            sent={sent}
+            code={code}
+            onCode={(v) => {
+              setCode(v);
+              setError(undefined);
+            }}
+            error={error}
+          />
+        ) : (
+          <TextField
+            label={t('actingOwner.password')}
+            hint={t('actingOwner.stepUp.why')}
+            value={password}
+            onChangeText={(v) => {
+              setPassword(v);
+              setError(undefined);
+            }}
+            secureTextEntry
+            autoComplete="current-password"
+            error={error}
+          />
+        )}
       </View>
     </BottomSheet>
   );

@@ -79,6 +79,14 @@
       "expo-font",
       "expo-image",
       "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "mode": "production",
+          "enableRemoteNotifications": true,
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {

@@ -12,6 +12,7 @@ import { DialogHost, ToastHost } from '../components/overlay';
 import { EmptyState, OfflineBanner } from '../components/ui';
 import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
 import { ActingOwnerBanner } from '../components/ui/ActingOwnerBanner';
+import { PushBridge } from '../components/notifications/PushBridge';
 import { BrandIntro } from '../components/brand/DukanMark';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
@@ -189,6 +190,8 @@ function AppShell() {
           {/* Above the navigator so overlays survive screen transitions. */}
           <ToastHost />
           <DialogHost />
+          {/* Push on the phone: registration, the one-time offer after sign-in, and a tapped push (D225). */}
+          <PushBridge />
         </AuthProvider>
       </QueryClientProvider>
       </NavigationThemeProvider>

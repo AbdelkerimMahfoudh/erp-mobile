@@ -1,10 +1,12 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check, Settings } from 'lucide-react-native';
 import { Button, Text } from '../ui';
 import type { IconComponent } from '../ui/Button';
 import { radius, space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
+import { useTranslation } from '../../lib/i18n';
+import { openAppSettings } from '../../lib/navigation/no-browser';
 
 /**
  * The app's own explanation before iOS asks for a permission (D225, the owner's TestFlight feedback of 2026-10-29).
@@ -13,8 +15,9 @@ import { makeStyles, useColors } from '../../lib/design/theme';
  * to Settings to undo it. So the app asks first, in its own words — what the permission is for in this shop, in two or
  * three short lines — with a clear way forward and a way that does not need it at all ("Type it instead", "Not now").
  * Only the primary action opens iOS's prompt. After a refusal, iOS will not ask again, so the screen says where in
- * Settings to turn it on — in words: the app opens no other app and no address (`lib/access-boundary.test.ts`) — and
- * keeps the way that needs no permission. It never asks again by itself.
+ * Settings to turn it on, and offers to open the app's own page there (`openAppSettings`, the one approved way out:
+ * no address, no other app — `lib/access-boundary.test.ts`), and keeps the way that needs no permission. It never asks
+ * again by itself.
  */
 export interface PermissionExplainerProps {
   icon: IconComponent;
@@ -26,8 +29,8 @@ export interface PermissionExplainerProps {
   /** Opens iOS's own prompt. */
   onAllow: () => void;
   allowLabel: string;
-  /** The way that needs no permission, or "Not now". */
-  alternative: { label: string; onPress: () => void };
+  /** The way that needs no permission, or "Not now"; none where the screen itself is the way back. */
+  alternative?: { label: string; onPress: () => void };
   /** The Settings path, already in the reader's words. */
   deniedSteps: string;
 }
@@ -35,6 +38,7 @@ export interface PermissionExplainerProps {
 export function PermissionExplainer({ icon: Icon, title, benefits, denied, onAllow, allowLabel, alternative, deniedSteps }: PermissionExplainerProps) {
   const styles = useStyles();
   const colors = useColors();
+  const { t } = useTranslation();
   return (
     <View style={styles.card} accessibilityRole="summary">
       <View style={styles.badge} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -60,8 +64,12 @@ export function PermissionExplainer({ icon: Icon, title, benefits, denied, onAll
         </View>
       )}
       <View style={styles.actions}>
-        {denied ? null : <Button title={allowLabel} onPress={onAllow} fullWidth />}
-        <Button title={alternative.label} variant="tertiary" onPress={alternative.onPress} fullWidth />
+        {denied ? (
+          <Button title={t('permissions.openSettings')} icon={Settings} onPress={() => void openAppSettings().catch(() => undefined)} fullWidth />
+        ) : (
+          <Button title={allowLabel} onPress={onAllow} fullWidth />
+        )}
+        {alternative ? <Button title={alternative.label} variant="tertiary" onPress={alternative.onPress} fullWidth /> : null}
       </View>
     </View>
   );

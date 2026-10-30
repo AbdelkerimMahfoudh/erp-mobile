@@ -2,7 +2,7 @@ import React, { useContext, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderShownContext } from '../../lib/navigation/router-internals';
-import { Stack, useRouter, type Href } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { CalendarDays, HelpCircle, PencilLine, Scale } from 'lucide-react-native';
 import { Button, Card, Chip, Divider, ErrorState, Expandable, FilterChip, IconButton, InlineNotice, ListRow, MoneyValue, RowGroup, SkeletonList, Text } from '../../components/ui';
 import { SelectSheet } from '../../components/overlay/SelectSheet';
@@ -58,8 +58,10 @@ export default function DailyClosingScreen() {
   const { t } = useTranslation();
   const styles = useStyles();
   const headerShown = useContext(HeaderShownContext);
+  /** A notification opens the day it is about (D225); otherwise the branch's current business day. */
+  const opened = useLocalSearchParams<{ date?: string }>().date;
   /** Undefined = the branch's current business day, whatever the phone's clock says. */
-  const [date, setDate] = useState<string | undefined>(undefined);
+  const [date, setDate] = useState<string | undefined>(typeof opened === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(opened) ? opened : undefined);
   const report = useDailyReport(date);
   const day = useOpenClosing(date);
   /** Remembered from the last read so the selector stays while another day loads (derived, no effect). */

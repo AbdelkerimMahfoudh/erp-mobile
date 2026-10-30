@@ -6,14 +6,13 @@ import { BellRing, CheckCheck } from 'lucide-react-native';
 import { Button, Chip, EmptyState, ErrorState, ListRow, Screen, SegmentedControl, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
-import { formatMoney, formatSmartDateTime } from '../lib/format';
+import { formatDate, formatDateTime, formatMoney, formatSmartDateTime } from '../lib/format';
+import { notificationCopy, type Translate } from '../lib/notification-copy';
 import { haptics } from '../lib/haptics';
-import { hasKey, useTranslation } from '../lib/i18n';
-import { internalRoute } from '../lib/navigation/internal-route';
+import { useTranslation } from '../lib/i18n';
 import { qk } from '../lib/query-keys';
 import type {
   AppNotification,
-  DiscountApprovalNotificationPayload,
   NotificationFilter,
   NotificationPage,
   NotificationPreference,
@@ -26,8 +25,9 @@ import { makeStyles } from '../lib/design/theme';
  *
  * Every event the person may see, whatever their push level, filtered by kind
  * (All · Approvals · Sales · Stock · Money). Each is rendered in the language
- * the app is set to NOW, from the structured event: a title for every known
- * type, the server's English text only for an English reader. Read state is
+ * the app is set to NOW, from the structured event: a title and a body for
+ * every catalogued type, with the store and the people in the reader's script;
+ * the server's stored English is never shown. Read state is
  * the person's own and follows them to every device. Tapping lands on the
  * exact record; a record since removed, or no longer theirs to open, says so
  * on its own screen.
@@ -70,10 +70,9 @@ export default function NotificationsScreen() {
 
   const open = (n: AppNotification) => {
     void haptics.tap();
+    // The server decides, now, where it leads and whether this person may open it (D225): the opening screen asks.
+    if (n.actionLink) return router.push({ pathname: '/notification-open', params: { id: n.id } });
     if (!n.isRead) markRead.mutate(n.id);
-    // The server decides where a notification points, among the app's own screens: any other address opens nothing.
-    const route = internalRoute(n.actionLink);
-    if (route) router.push(route as never);
   };
 
   return (
@@ -122,106 +121,22 @@ export default function NotificationsScreen() {
   );
 }
 
-/** Transfer types whose wording the app can compose itself, in either language. */
-const TRANSFER_EVENTS = new Set<TransferEvent>([
-  'requested',
-  'created_approved',
-  'approved',
-  'rejected',
-  'shipped',
-  'received',
-  'cancelled',
-]);
+/** The formatters the composer words amounts and dates with: the app's own, in the reader's language. */
+const FORMAT = { money: formatMoney, date: formatDate, dateTime: (v: string) => formatDateTime(v) };
 
-/**
- * Say it in the reader's language, when the server gave us the fields.
- *
- * `title`/`body` are English text written at the moment it happened. For
- * transfers the server also stores the FIELDS, so the sentence can be rebuilt
- * in Arabic — and, importantly, older rows that have no payload still render,
- * because the stored text remains the fallback.
- */
-function localised(row: AppNotification, t: ReturnType<typeof useTranslation>['t'], language: string) {
-  const p = row.payload;
-  /*
-   * D225: never English to a reader in Arabic or French. A type the catalogue names gets its title in the reader's
-   * language; the server's English body is shown to an English reader only. A type this build does not know reads as
-   * its kind ("New activity"), never as a key.
-   */
-  const kindKey = `notifications.kind.${row.type}`;
-  const generic = {
-    title: hasKey(kindKey) ? t(kindKey) : language === 'en' ? row.title : t('notifications.kind.other'),
-    body: language === 'en' ? row.body : null,
-  };
-
-  /*
-   * A price approval (A2). Written by the server as English title and body,
-   * and rebuilt here from the fields — an Owner running the app in Arabic must
-   * not be told about a discount in English. Older rows without a payload still
-   * render, because the stored text stays the fallback.
-   */
-  if (p && row.type.startsWith('discount_approval.')) {
-    const approval = p as DiscountApprovalNotificationPayload;
-    switch (approval.event) {
-      case 'requested':
-        return {
-          title: t('notifications.approval.requested.title'),
-          body:
-            approval.requestedPrice === undefined || approval.configuredPrice === undefined
-              ? generic.body
-              : t('notifications.approval.requested.body', {
-                  requested: formatMoney(approval.requestedPrice),
-                  configured: formatMoney(approval.configuredPrice),
-                }),
-        };
-      case 'approved':
-        return {
-          title: t('notifications.approval.approved.title'),
-          body:
-            approval.approvedPrice == null
-              ? generic.body
-              : t('notifications.approval.approved.body', {
-                  price: formatMoney(approval.approvedPrice),
-                }),
-        };
-      case 'rejected':
-        return {
-          title: t('notifications.approval.rejected.title'),
-          // The Owner's note is the part worth reading, exactly as a transfer
-          // refusal's reason is.
-          body: approval.note ? approval.note : t('notifications.approval.rejected.body'),
-        };
-      default:
-        return generic;
-    }
-  }
-
-  if (!p || !row.type.startsWith('transfer.') || !TRANSFER_EVENTS.has(p.event as TransferEvent)) {
-    return generic;
-  }
-  const transfer = p as Extract<AppNotification['payload'], { transferNo: string }>;
-  const values = {
-    ref: transfer.transferNo,
-    actor: transfer.actor,
-    from: transfer.fromBranch,
-    to: transfer.toBranch,
-    count:
-      transfer.units === 1
-        ? t('transfers.items.one')
-        : t('transfers.items', { count: transfer.units }),
-  };
-  const body = t(`notifications.transfer.${transfer.event}.body` as never, values);
-  return {
-    title: t(`notifications.transfer.${transfer.event}.title` as never, values),
-    // A refusal or cancellation carries why, and that is the part worth reading.
-    body: transfer.reason ? `${body} ${transfer.reason}` : body,
-  };
-}
+/** Transfer types the type chip names. */
+const TRANSFER_EVENTS = new Set<TransferEvent>(['requested', 'created_approved', 'approved', 'rejected', 'shipped', 'received', 'cancelled']);
 
 function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
   const styles = useStyles();
   const { t, language } = useTranslation();
-  const { title, body } = localised(row, t, language);
+  // Every event in the reader's language, from its fields: title, body and store (D225, `lib/notification-copy.ts`).
+  const { title, body, store } = notificationCopy(
+    { type: row.type, payload: row.payload as Record<string, unknown> | null, branch: row.branch ?? null },
+    t as Translate,
+    language,
+    FORMAT,
+  );
 
   /**
    * Known types get shop language; anything else falls back to the server's own
@@ -236,7 +151,7 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
     row.type === 'price.changed' ||
     row.type === 'transfer.incoming' ||
     row.type === 'transfer.received' ||
-    (row.payload && TRANSFER_EVENTS.has(row.payload.event as TransferEvent))
+    (row.type.startsWith('transfer.') && TRANSFER_EVENTS.has(row.type.slice('transfer.'.length) as TransferEvent))
       ? t(typeKey as never)
       : null;
 
@@ -266,11 +181,9 @@ function Row({ row, onPress }: { row: AppNotification; onPress: () => void }) {
       <Text variant="bodyStrong" style={styles.title}>
         {title}
       </Text>
-      {body ? (
-        <Text variant="caption" tone="secondary" style={styles.body} numberOfLines={2}>
-          {body}
-        </Text>
-      ) : null}
+      <Text variant="caption" tone="secondary" style={styles.body} numberOfLines={3}>
+        {store ? `${store} · ${body}` : body}
+      </Text>
     </Pressable>
   );
 }

@@ -759,7 +759,9 @@ export interface AppNotification {
    * composes the sentence from these in the reader's language; `title`/`body`
    * remain the fallback for any type this build does not recognise.
    */
-  payload: TransferNotificationPayload | DiscountApprovalNotificationPayload | null;
+  payload: TransferNotificationPayload | DiscountApprovalNotificationPayload | Record<string, unknown> | null;
+  /** D225: the store it is about, in both names; absent from an older server. */
+  branch?: { name: string; nameAr: string | null } | null;
   /** Read by THIS person, on any of their devices (0113). */
   isRead: boolean;
   createdAt: string;

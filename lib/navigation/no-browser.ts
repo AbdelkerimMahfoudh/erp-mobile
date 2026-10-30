@@ -51,6 +51,17 @@ export function refuseBrowser(): void {
   legalOpener ??= tab ?? phone;
 }
 
+/**
+ * The app's own page in iOS Settings — the one place outside the app it may open besides the legal pages (D225, the
+ * owner's brief of 2026-10-30). After iOS refused the camera or notifications it will not ask again, and the person
+ * can only turn them on there; this takes them to exactly that page. `openSettings` opens no address and takes none:
+ * it is not `openURL`, which stays refused. Reached only by `PermissionExplainer` (`lib/access-boundary.test.ts`).
+ */
+export function openAppSettings(): Promise<void> {
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return Promise.reject(new Error('No settings page on this platform.'));
+  return Linking.openSettings();
+}
+
 /** Whether this build has a legal page to open: false when no origin is configured. */
 export function legalPagesAvailable(): boolean {
   return LEGAL_ORIGIN !== null;

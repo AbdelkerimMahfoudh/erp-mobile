@@ -23,32 +23,34 @@ const DAY_MS = 86_400_000;
 /** A business day starts at 06:00 on the store's clock (docs/50 §3.1, D225). */
 export const BUSINESS_DAY_START_HOUR = 6;
 
-/** The first market's zone: UTC+0 all year, no daylight saving. */
-export const DEFAULT_BUSINESS_TIMEZONE = 'Africa/Nouakchott';
-
 /**
  * The business date an instant belongs to, by the 06:00 rule on `timeZone`'s clock — never the
  * phone's own zone. The server's `businessDateOf` is the authority; this is its twin for the moment
  * before the server has answered. Only `Intl.DateTimeFormat.format` is used (Hermes has no reliable
- * `formatToParts`, see `zoned-time.ts`); a zone the device cannot read falls back to UTC's clock.
+ * `formatToParts`, see `zoned-time.ts`). Without a zone — the server has not named the store's yet —
+ * it reads UTC's clock, which is the first market's (Africa/Nouakchott: UTC+0 all year, no daylight
+ * saving); the app writes no zone of its own (`zoned-time.test.ts`). A zone the device cannot read
+ * falls back to the same.
  */
-export function businessDateOf(instant: Date, timeZone: string = DEFAULT_BUSINESS_TIMEZONE): string {
+export function businessDateOf(instant: Date, timeZone?: string): string {
   let date = instant.toISOString().slice(0, 10);
   let hour = instant.getUTCHours();
-  try {
-    // "11/2/2026, 05:59": US English writes the month, the day, the year, the hour and the minute.
-    const fields = (
-      new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
-        .format(instant)
-        .match(/\d+/g) ?? []
-    ).map(Number);
-    if (fields.length === 5) {
-      const [month, day, year] = fields;
-      date = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      hour = fields[3] % 24;
+  if (timeZone) {
+    try {
+      // "11/2/2026, 05:59": US English writes the month, the day, the year, the hour and the minute.
+      const fields = (
+        new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+          .format(instant)
+          .match(/\d+/g) ?? []
+      ).map(Number);
+      if (fields.length === 5) {
+        const [month, day, year] = fields;
+        date = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        hour = fields[3] % 24;
+      }
+    } catch {
+      // Unknown zone on this device: UTC's clock, as read above.
     }
-  } catch {
-    // Unknown zone on this device: UTC's clock, as read above.
   }
   return hour < BUSINESS_DAY_START_HOUR ? addDays(date, -1) : date;
 }

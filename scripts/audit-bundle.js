@@ -194,6 +194,10 @@ const LIBRARY_HOSTS = new Set([
   'www.w3.org', 'w3.org', 'reactnavigation.org', 'github.com', 'docs.swmansion.com', 'react.dev', 'reactjs.org', 'fb.me',
   'reactnative.dev', 'docs.expo.dev', 'expo.dev', 'dev.to', 'naver.github.io', 'fastly.jsdelivr.net', 'classic-assets.eascdn.net',
   'localhost', '127.0.0.1', '10.0.2.2',
+  // expo-notifications on the phone (D225, push): `exp.host` is Expo's push-token API the library calls to obtain the
+  // installation's token — a request, never a page — and `expo.fyi` is the documentation link in its Expo Go warning.
+  // The web build carries neither (`lib/push.web.ts` keeps the library out of it).
+  'exp.host', 'expo.fyi',
 ]);
 const HOST = '([a-z0-9][a-z0-9-]*(?:\\.[a-z0-9-]+)*\\.[a-z]{2,}|localhost|\\d{1,3}(?:\\.\\d{1,3}){3})';
 /** Absolute and `www.` addresses anywhere; protocol-relative ones (`//host`) inside strings. */

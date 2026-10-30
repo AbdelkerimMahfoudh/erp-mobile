@@ -53,9 +53,12 @@ const row = (id: string, isRead = false) => ({
   isRead,
   createdAt: '2026-10-06T01:00:00.000Z',
   readAt: null,
-  payload: null,
+  // The fields the centre words it from (D225): the stored English title is never what is shown.
+  payload: { event: 'requested', transferNo: `TR-${id}`, fromBranch: 'Warehouse', fromBranchAr: 'المستودع', toBranch: 'Ksar', toBranchAr: 'لكصر', units: 2, actor: 'Mariem', actorAr: 'مريم', reason: null },
   actionLink: null,
 });
+/** The composed title names the transfer's reference; the reference is isolated, so it is matched as a part. */
+const titled = (id: string) => new RegExp(`TR-${id}`);
 
 function Harness({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
@@ -112,7 +115,7 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
       </Harness>,
     );
     const list = await waitFor(() => componentOfType(FlatList));
-    expect(await screen.findByText('Transfer n1')).toBeTruthy();
+    expect(await screen.findByText(titled('n1'))).toBeTruthy();
     const above = ancestorNames(list);
     expect(above.filter(isScrollView)).toEqual([]);
     // The page wrapper is there — as a plain view, not a scroller.
@@ -156,17 +159,17 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
         <NotificationsScreen />
       </Harness>,
     );
-    await fireEvent.press(await screen.findByText('Transfer n1'));
+    await fireEvent.press(await screen.findByText(titled('n1')));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/notifications/n1/read'));
   });
 
-  it('a row opens the screen its link names; a link to an address outside the app opens nothing', async () => {
+  it('a row with a destination opens the opening screen, which asks the server — the stored link itself is never followed', async () => {
     routerPush.mockClear();
     (api.get as jest.Mock).mockResolvedValue({
       rows: [
         { ...row('n1', true), actionLink: '/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a' },
         { ...row('n2', true), actionLink: 'https://example.invalid/account/trial#t=token' },
-        { ...row('n3', true), actionLink: '//example.invalid/start' },
+        { ...row('n3', true), actionLink: null },
       ],
       nextCursor: null,
     });
@@ -175,10 +178,25 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
         <NotificationsScreen />
       </Harness>,
     );
-    await fireEvent.press(await screen.findByText('Transfer n1'));
-    await fireEvent.press(screen.getByText('Transfer n2'));
-    await fireEvent.press(screen.getByText('Transfer n3'));
-    expect(routerPush.mock.calls).toEqual([['/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a']]);
+    await fireEvent.press(await screen.findByText(titled('n1')));
+    await fireEvent.press(screen.getByText(titled('n2')));
+    await fireEvent.press(screen.getByText(titled('n3')));
+    expect(routerPush.mock.calls).toEqual([
+      [{ pathname: '/notification-open', params: { id: 'n1' } }],
+      [{ pathname: '/notification-open', params: { id: 'n2' } }],
+    ]);
+  });
+
+  it('every row reads in the app’s language with its body, never the stored English (D225)', async () => {
+    (api.get as jest.Mock).mockResolvedValue({ rows: [{ ...row('n1'), branch: { name: 'Ksar', nameAr: 'لكصر' } }], nextCursor: null });
+    await render(
+      <Harness>
+        <NotificationsScreen />
+      </Harness>,
+    );
+    expect(await screen.findByText(/Mariem/)).toBeTruthy();
+    expect(screen.queryByText('Transfer n1')).toBeNull();
+    expect(screen.queryByText('From the warehouse')).toBeNull();
   });
 });
 
