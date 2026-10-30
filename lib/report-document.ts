@@ -16,6 +16,9 @@ export const REPORT_DOCUMENT_VERSION = 1;
 export interface ReportIdentity {
   company: string;
   branch: string;
+  /** D225: the Arabic names, null until given; an Arabic report prints them. Absent from an older server. */
+  companyAr?: string | null;
+  branchAr?: string | null;
   timezone: string;
 }
 

@@ -239,9 +239,14 @@ function writer(ctx: ReportPdfContext) {
   return { word, fill, figure, count, money, less, result, row, chip, section, note, lines, tile, channel, warnings };
 }
 
-/** The shop's name as the title, and the branch under it — once, when the two are the same name. */
-function identity(doc: ReportDocument): string {
-  const { company, branch } = doc.identity;
+/**
+ * The shop's name as the title, and the branch under it — once, when the two are the same name. An Arabic report
+ * prints the Arabic names when they are given (D225); the file name stays in the Latin alphabet.
+ */
+function identity(doc: ReportDocument, ctx: ReportPdfContext): string {
+  const arabic = ctx.lang === 'ar';
+  const company = (arabic && doc.identity.companyAr) || doc.identity.company;
+  const branch = (arabic && doc.identity.branchAr) || doc.identity.branch;
   const title = company || branch;
   return `<h1>${esc(title)}</h1>${branch && branch !== title ? `<div class="branch">${esc(branch)}</div>` : ''}`;
 }
@@ -349,7 +354,7 @@ export function buildDailyReportHtml(doc: DailyReportDocument, ctx: ReportPdfCon
 <header class="head">
   <div class="who">
     <div class="eyebrow">${w.word('reportPdf.daily.title')}</div>
-    ${identity(doc)}
+    ${identity(doc, ctx)}
   </div>
   <div class="when">
     <div class="period">${esc(ctx.formatDate(doc.date))}</div>
@@ -495,7 +500,7 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
 <header class="head">
   <div class="who">
     <div class="eyebrow">${w.word('reportPdf.monthly.title')}</div>
-    ${identity(doc)}
+    ${identity(doc, ctx)}
   </div>
   <div class="when">
     <div class="period">${esc(ctx.formatMonth(doc.month))}</div>

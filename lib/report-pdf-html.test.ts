@@ -555,3 +555,14 @@ it('file names: DukanERP, the store, the kind and period, the language — plain
 });
 
 console.log(`report pdf html: ${passed} passed`);
+
+it('an Arabic report prints the business and the store by their Arabic names; the file name stays Latin (D225)', () => {
+  const named = daily({ identity: { company: 'Tech Plus', branch: 'Main Store', companyAr: 'تك بلس', branchAr: 'المتجر الرئيسي', timezone: 'Africa/Nouakchott' } });
+  const arabic = buildReportHtml(named, ctx('ar'));
+  assert.ok(textOf(arabic).includes('تك بلس') && textOf(arabic).includes('المتجر الرئيسي'));
+  assert.match(arabic, /<title>DukanERP_MainStore_Daily_/);
+  const french = textOf(buildReportHtml(named, ctx('fr')));
+  assert.ok(french.includes('Tech Plus') && !french.includes('تك بلس'));
+  // Without an Arabic name, the Latin one — never a blank title.
+  assert.ok(textOf(buildReportHtml(daily(), ctx('ar'))).includes('Tech Plus'));
+});
