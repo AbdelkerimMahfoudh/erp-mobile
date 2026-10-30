@@ -37,7 +37,7 @@ if (existsSync(`${W}totp.secret`)) {
   step('MFA confirmed', (await call('POST', 'platform/admin/mfa/enrolment/confirm', { code: await fresh() })).status);
 }
 step('step-up', (await call('POST', 'platform/admin/step-up', { password: ADMIN_PW, code: await fresh() })).status);
-const made = await call('POST', 'platform/businesses', { idempotencyKey: randomUUID(), ownerName: 'Mariem Test', businessName: 'Boutique Démo Tevragh', phone: '+22241999001', branchName: 'Tevragh Zeina', language: 'fr', isTest: true, reason: 'Visual check (fictional)', confirmPassword: ADMIN_PW });
+const made = await call('POST', 'platform/businesses', { idempotencyKey: randomUUID(), ownerName: 'Mariem Test', ownerNameAr: 'مريم تجربة', businessName: 'Boutique Démo Tevragh', businessNameAr: 'متجر تجريبي تفرغ زينة', phone: '+22241999001', branchName: 'Tevragh Zeina', branchNameAr: 'تفرغ زينة', language: 'fr', isTest: true, reason: 'Visual check (fictional)', confirmPassword: ADMIN_PW });
 step('test business', made.status);
 step('no-payment grant', (await call('POST', `platform/businesses/${made.json.companyId}/activate-grant`, { days: 30, reason: 'Test access', confirmPassword: ADMIN_PW })).status);
 const password = `demo-${randomUUID()}`;
