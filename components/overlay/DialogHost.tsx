@@ -74,6 +74,7 @@ export function DialogHost() {
 
   if (!show && !closing) return null;
   const cancel = () => resolveTop({ confirmed: false });
+  const onDismiss = () => dismissed.current?.();
   return (
     <Modal
       visible={show}
@@ -81,7 +82,7 @@ export function DialogHost() {
       statusBarTranslucent
       animationType="none"
       onRequestClose={cancel}
-      onDismiss={() => dismissed.current?.()}
+      onDismiss={onDismiss}
     >
       <ModalBoundary>{show ? <DialogCard /> : null}</ModalBoundary>
     </Modal>

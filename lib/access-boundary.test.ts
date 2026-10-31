@@ -330,12 +330,16 @@ const STAYS = ['back', 'canGoBack', 'canDismiss', 'dismiss', 'dismissAll', 'setP
 /** The hooks that take a list of what they depend on: a router may be named there, to be compared, never called. */
 const DEPENDENT_HOOKS = ['useEffect', 'useLayoutEffect', 'useInsertionEffect', 'useCallback', 'useMemo', 'useImperativeHandle'];
 /**
- * The two paths inside expo-router the app imports, each for one name that goes nowhere — whether a header is shown,
- * and a hook that keeps a screen from being left with unsaved work — in `lib/navigation/router-internals.ts` alone.
+ * The paths inside expo-router the app imports, each for one name that goes nowhere — whether a header is shown, a
+ * hook that keeps a screen from being left with unsaved work, and the two the shared unsaved-changes guard reads to
+ * know its own route and when the router has lifted that route's prevention (2026-10-31) — in
+ * `lib/navigation/router-internals.ts` alone.
  */
 const ROUTER_INTERNALS: Record<string, string> = {
   'expo-router/build/react-navigation/elements/Header/HeaderShownContext': 'HeaderShownContext',
   'expo-router/build/react-navigation/core/usePreventRemove': 'usePreventRemove',
+  'expo-router/build/global-state/removalPrevention': 'useRoutesWithRemovalPrevented',
+  'expo-router/build/react-navigation/core/useRoute': 'useRoute',
 };
 /**
  * The browser export's page shell (`app/+html.tsx`, 2026-10-24) imports from `expo-router/html`, there alone, these
