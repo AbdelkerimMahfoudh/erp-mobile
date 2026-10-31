@@ -1,7 +1,7 @@
 import { ApiError } from './api-client';
 import { agentRefusal, QUEUE_ONLY_REFUSALS } from './agent-rules';
 import { IncompatibleResponse } from './contract';
-import { t, type TranslationKey } from './i18n';
+import { getLanguage, t, type TranslationKey } from './i18n';
 
 /**
  * Turn any thrown value into something a shop employee can act on.
@@ -38,6 +38,19 @@ export function isIncompatible(error: unknown): boolean {
   return error instanceof IncompatibleResponse;
 }
 
+/**
+ * The server's own sentence, when it can be shown: it is English, so only on an English screen, and never the API's
+ * input-validation wording ("Invalid query parameters", "name must be a string") — that names fields, not problems.
+ * In Arabic the owner saw "Invalid query parameters" under a names screen (2026-10-31); the app's words say it now.
+ */
+function serverSentence(error: ApiError): string | null {
+  if (!error.message || getLanguage() !== 'en') return null;
+  if (VALIDATION_WORDING.test(error.message)) return null;
+  return error.message;
+}
+
+const VALIDATION_WORDING = /Invalid query parameters|Internal server error| must be | should not exist|must not be empty/;
+
 export function toFriendlyError(error: unknown): FriendlyError {
   // A server older than the app: nothing it sent is shown, and the fix is on the server, not a retry (docs/54).
   if (error instanceof IncompatibleResponse) {
@@ -65,7 +78,7 @@ export function toFriendlyError(error: unknown): FriendlyError {
       return {
         titleKey: 'state.error.permission.title',
         title: t('state.error.permission.title'),
-        body: error.message || t('state.error.permission.body'),
+        body: serverSentence(error) ?? t('state.error.permission.body'),
         retryable: false,
         permissionDenied: true,
         status: error.status,
@@ -76,7 +89,7 @@ export function toFriendlyError(error: unknown): FriendlyError {
       return {
         titleKey: 'state.error.notFound.title',
         title: t('state.error.notFound.title'),
-        body: error.message || t('state.error.body'),
+        body: serverSentence(error) ?? t('state.error.body'),
         retryable: false,
         permissionDenied: false,
         status: error.status,
@@ -85,11 +98,11 @@ export function toFriendlyError(error: unknown): FriendlyError {
 
     // 4xx carries a specific, already-human reason from the server — surface it
     // verbatim ("This IMEI has already been sold"). 5xx messages are internal.
-    const serverSpoke = error.status < 500 && Boolean(error.message);
+    const spoken = error.status < 500 ? serverSentence(error) : null;
     return {
       titleKey: 'state.error.title',
       title: t('state.error.title'),
-      body: serverSpoke ? error.message : t('state.error.body'),
+      body: spoken ?? t('state.error.body'),
       retryable: error.status >= 500 || error.status === 429,
       permissionDenied: false,
       status: error.status,

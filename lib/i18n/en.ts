@@ -4535,7 +4535,6 @@ export const en = {
   // ── Export period (D225) ──
   'reports.scopePeriod': '{branch} · {period}',
   // ── Names screen (D225) ──
-  'nav.names': 'Business and store names',
   // ── Sign-up Arabic names (D225) ──
   'register.field.businessNameAr': 'Business name in Arabic (اسم النشاط بالعربية)',
   'register.field.branchNameAr': 'Store name in Arabic (اسم المتجر بالعربية)',

@@ -16,6 +16,7 @@ import { usePermission } from '../lib/permissions';
 import { qk } from '../lib/query-keys';
 import { toast } from '../lib/toast';
 import { dialog } from '../lib/dialog';
+import { NamesSection } from '../components/names/NamesSection';
 import type {
   OwnerReceivingAccount,
   OwnerSettings,
@@ -83,6 +84,7 @@ export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const canManage = usePermission('settings.manage');
+  const canEditReturns = usePermission('return.policy.edit');
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editing, setEditing] = useState<OwnerReceivingAccount | 'new' | null>(null);
@@ -179,9 +181,26 @@ export default function SettingsScreen() {
     );
   }
 
-  // Non-Owners get no editable controls at all. The route is already hidden
-  // from them, and the server strips the Owner-only fields regardless — this is
-  // the third layer, for the case where someone arrives here by deep link.
+  // The return policy is set here, and a Store Manager or an Employee who may edit it reaches it here too: Business
+  // settings is its one place (More no longer lists it, 2026-10-31). They see that section and nothing of the Owner's.
+  const returnsSection = (
+    <Section title={t('settings.returns.section')}>
+      <ListRow title={t('nav.returnPolicy')} subtitle={t('settings.returns.moved')} onPress={() => router.push('/return-policy')} />
+    </Section>
+  );
+
+  if ((!owner || !canManage) && canEditReturns) {
+    return (
+      <Screen gap="xl">
+        {header}
+        <PageIntro description={t('settings.subtitle')} />
+        {returnsSection}
+      </Screen>
+    );
+  }
+
+  // Anyone else gets no controls at all. The route is hidden from them, and the server strips the Owner-only fields
+  // regardless — this is the third layer, for the case where someone arrives here by deep link.
   if (!owner || !canManage) {
     return (
       <Screen>
@@ -213,15 +232,16 @@ export default function SettingsScreen() {
       <PersonalIdCard />
       <StoreAccountIdCard />
 
+      {/* ── Names (D225) — the business and each store, Latin and Arabic: their one place. ── */}
+      <NamesSection />
+
       {/*
         ── Returns ───────────────────────────────────────────────────────────
         Set per branch now, with its written conditions (0108): its own screen,
         because Store Managers and Employees edit it too. The company window
         stays the fallback for a branch that has not set its own.
       */}
-      <Section title={t('settings.returns.section')}>
-        <ListRow title={t('nav.returnPolicy')} subtitle={t('settings.returns.moved')} onPress={() => router.push('/return-policy')} />
-      </Section>
+      {returnsSection}
 
       {/* ── Receiving accounts ──────────────────────────────────────────── */}
       <Section title={t('settings.accounts.section')} subtitle={t('settings.accounts.hint')}>

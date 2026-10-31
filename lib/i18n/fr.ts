@@ -4701,7 +4701,6 @@ export const fr: Catalogue = {
   // ── Export period (D225) ──
   'reports.scopePeriod': '{branch} · {period}',
   // ── Names screen (D225) ──
-  'nav.names': 'Noms de l’entreprise et des boutiques',
   // ── Sign-up Arabic names (D225) ──
   'register.field.businessNameAr': 'Nom de l’entreprise en arabe (اسم النشاط بالعربية)',
   'register.field.branchNameAr': 'Nom de la boutique en arabe (اسم المتجر بالعربية)',

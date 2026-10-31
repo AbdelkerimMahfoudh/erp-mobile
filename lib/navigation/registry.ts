@@ -288,14 +288,12 @@ export const HUBS: readonly Hub[] = [
       // Ungated: anyone may see where the business's access stands. Status and dates only — no price, no action (docs/21, 2026-10-05).
       { id: 'access', route: '/access', titleKey: 'nav.access', icon: 'BadgeCheck' },
       /*
-       * The branch's return policy and its written conditions (0108, the owner's decision of
-       * 2026-10-28): an Owner, Store Manager or Store Employee of the branch edits it — not only the
-       * Owner, so it is its own screen rather than a section of Settings.
+       * Business settings is the one place for the return policy and for the business's and stores' names
+       * (2026-10-31: More no longer lists "Return policy" or "Business and store names"). The return policy
+       * (0108) is edited by an Owner, Store Manager or Store Employee of the branch, so the entry shows for
+       * either permission; someone without `settings.manage` sees only its Returns section.
        */
-      { id: 'return-policy', route: '/return-policy', titleKey: 'nav.returnPolicy', icon: 'Undo2', perm: 'return.policy.edit' },
-      { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', perm: 'settings.manage' },
-      // D225: the business's and its stores' Latin and Arabic names; the Owner's alone.
-      { id: 'names', route: '/names', titleKey: 'nav.names', icon: 'Building2', perm: 'settings.manage' },
+      { id: 'settings', route: '/settings', titleKey: 'nav.settings', icon: 'SlidersHorizontal', anyOf: ['settings.manage', 'return.policy.edit'] },
       // D225: the temporary Acting Owner. Ungated: the Owner appoints there, and the person appointed sees their own.
       { id: 'acting-owner', route: '/acting-owner', titleKey: 'nav.actingOwner', icon: 'ShieldCheck' },
       // Ungated (0103, D221): every Owner, Manager and Employee may invite a shop owner to create their own business.
@@ -347,7 +345,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'return-policy', 'settings', 'names', 'acting-owner', 'invite'] },
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings', 'acting-owner', 'invite'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
 
@@ -401,6 +399,8 @@ export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/+not-found': 'An address the app does not have — reached only by a wrong link, never from a menu.',
   '/sell': 'The full sale — no longer a tab, still a route. Reached from Quick Sell (Home’s Sell, docs/59 D75); kept so links and the saved cart keep working.',
   '/stores': 'Legacy link — redirects to the Partners tab.',
+  '/names': 'Legacy link — redirects to Business settings, where the business and store names are edited (2026-10-31).',
+  '/return-policy': 'Reached from Business settings → Returns, its one entry point (2026-10-31); a deep link still opens it.',
   '/closing': 'The Daily closing — reached from Home’s Daily closing card (Review closing), no longer a row of Money (docs/63). Everybody who counts (`closing.count`) reaches it there.',
   '/partners/[id]': 'One store this shop deals with, opened from Partners.',
   '/inventory': 'Bottom tab — Inventory.',

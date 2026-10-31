@@ -150,6 +150,7 @@ beforeEach(() => {
   useBranch.setState({ branchId: 'b1', branchName: 'Main' } as never);
   get.mockImplementation(async (url: string) => {
     if (url === '/settings') return SETTINGS;
+    if (url === '/business/names') return { business: { name: 'Boutique', nameAr: 'بوتيك', nameIncomplete: false }, stores: [] };
     if (url.startsWith('/categories')) return [EARBUDS];
     if (url.startsWith('/products')) return { rows: [], nextCursor: null };
     return [];
@@ -170,7 +171,7 @@ describe.each<Language>(['en', 'fr', 'ar'])('in %s', (lang) => {
 
   it('Business settings: a changed summary language, Back, "Discard changes"', async () => {
     await open('/settings');
-    await fireEvent.press(screen.getByText('العربية'));
+    await fireEvent.press(await screen.findByText('العربية'));
     await back();
     expect(screen.getByText(say('unsaved.title'))).toBeTruthy();
     expectNoEnglish(lang);

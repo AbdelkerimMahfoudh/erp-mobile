@@ -283,10 +283,10 @@ it('a Manager sees every business hub, without Team or Business settings', () =>
   // Money moved to the tab bar, and a Manager still reaches it there.
   assert.equal(tabHubIsVisible(MANAGER), true);
   const business = visibleChildren(hubById('business')!, MANAGER).map((c) => c.id);
-  // The branch's return policy is theirs to edit (0108), and inviting someone is every member's (0103, D221);
-  // Team and Business settings are not. Acting Owner is everyone's to read (D225): the Owner appoints there, and the
+  // The branch's return policy is theirs to edit (0108), so Business settings — its one place since 2026-10-31 — shows
+  // for them, with only its Returns section; inviting someone is every member's (0103, D221); Team is not. Acting Owner is everyone's to read (D225): the Owner appoints there, and the
   // person appointed — often a Manager — sees their own appointment.
-  assert.deepEqual(business, ['access', 'return-policy', 'acting-owner', 'invite'], 'a Manager holds neither user.manage nor settings.manage');
+  assert.deepEqual(business, ['access', 'settings', 'acting-owner', 'invite'], 'a Manager holds return.policy.edit, not user.manage');
 
   /*
     A Manager runs consignments, and reaches the Partner stores screen the way the Partners tab is shown to them
@@ -761,9 +761,9 @@ it('groups show only permitted destinations and never render empty', () => {
   const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
   assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
   const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
-  // The branch's return policy (0108) and inviting someone to Dukan ERP (0103, D221) are a Manager's too.
+  // The branch's return policy (0108, inside Business settings) and inviting someone to Dukan ERP (0103, D221) are a Manager's too.
   // Acting Owner too (D225): the person appointed reads their own appointment there.
-  assert.deepEqual(manager, ['catalog', 'return-policy', 'acting-owner', 'invite'], 'a Manager holds neither user.manage, import.run nor settings.manage');
+  assert.deepEqual(manager, ['catalog', 'settings', 'acting-owner', 'invite'], 'a Manager holds return.policy.edit, not user.manage or import.run');
 });
 
 it('every More group name exists in all three catalogues', () => {
@@ -920,3 +920,10 @@ it('More and Money pass the branch’s activity to the registry', () => {
 });
 
 console.log('\n' + passed + ' passed');
+
+it('More lists neither "Return policy" nor "Business and store names": Business settings is their one place (2026-10-31)', () => {
+  const all = HUBS.flatMap((h) => h.children.map((c) => c.id));
+  assert.ok(!all.includes('return-policy') && !all.includes('names'), 'the redundant entries are gone');
+  const settings = HUBS.flatMap((h) => h.children).find((c) => c.id === 'settings')!;
+  assert.deepEqual(settings.anyOf, ['settings.manage', 'return.policy.edit'], 'reachable by the Owner and by whoever edits returns');
+});
