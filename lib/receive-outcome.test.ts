@@ -217,13 +217,13 @@ it('a non-cash purchase is not ready until an account is chosen', async () => {
   assert.doesNotMatch(picker, /amount/i);
 });
 
-it('returns from Create product to the same Receive screen with the created product', () => {
+it('Create product never hands a product or a draft back to a Receive screen (D226)', () => {
+  // The hand-back had no cost field and failed during the return (the 2026-10-30 mouse crash).
   const create = withoutComments(source('app/catalog/new.tsx'));
-  // The existing product is handed back, and the exit is allowed before it happens (the 2026-10-28 freeze).
-  assert.match(create, /notePendingProduct\(found\.id\);[\s\S]*?leaving\.current = true;\s*if \(router\.canGoBack\(\)\) router\.back\(\);/);
-  const screen = withoutComments(source('app/receive.tsx'));
-  assert.match(screen, /back\.createdProductId/);
-  assert.match(screen, /\/products\/suggest\?productId=/);
+  assert.doesNotMatch(create, /notePendingProduct|notePendingDraft|handBack|forDelivery/);
+  for (const file of ['app/receive.tsx', 'app/quick-receive.tsx']) {
+    assert.match(withoutComments(source(file)), /return \{ intake: 'quick', \.\.\.\(barcode/, `${file} opens the single-item intake`);
+  }
 });
 
 // ── D223: a product created by the intake, in the same request ─────────────
@@ -268,12 +268,7 @@ it('compares drafts as the server does: case and spacing', () => {
 
 it('a product made from a scan is saved only with its stock, and success is said only after the commit (D223)', () => {
   const create = withoutComments(source('app/catalog/new.tsx'));
-  // From the delivery: a draft handed back, nothing saved — the delivery's own commit creates both.
-  const handBack = create.slice(create.indexOf('const handBack'), create.indexOf('const receive = useMutation'));
-  assert.match(handBack, /notePendingDraft\(/);
-  assert.doesNotMatch(handBack, /api\.post|create\.mutate/, 'the form hands a draft back and saves nothing');
-  assert.match(create, /if \(forDelivery\) \{\s*void handBack\(values\);\s*return;/);
-  // From Quick receive (2026-10-28): ONE purchase creates the product with its stock, here.
+  // From either Receive screen (D226): ONE purchase creates the product with its stock, here.
   const receive = create.slice(create.indexOf('const receive = useMutation'), create.indexOf('const commitQuick'));
   assert.match(receive, /api\.post<PurchaseOutcome>\('\/purchases'/);
   assert.match(receive.slice(receive.indexOf('onSuccess:'), receive.indexOf('onError:')), /receive\.createdAndAdded/);
