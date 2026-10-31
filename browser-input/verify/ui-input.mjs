@@ -216,21 +216,23 @@ for (const [lang, theme, width] of [['en', 'light', 375], ['ar', 'dark', 320]]) 
   await openSheet(page, '/team', t['team.add']);
   const f = fields(page);
   await tapType(page, f.nth(0), `Salma ${lang}`);
-  await tapType(page, f.nth(1), '12');
+  // D225: Name, Arabic name, Phone, Email.
+  await tapType(page, f.nth(1), 'سلمى');
+  await tapType(page, f.nth(2), '12');
   await sheet(page).getByText(t['team.create.submit'], { exact: true }).last().tap();
   const phoneRefused = await sheet(page).getByText(t['team.error.phone']).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
-  await f.nth(1).tap();
+  await f.nth(2).tap();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.press('Backspace');
   const phone = `+2224${String(Date.now()).slice(-7)}`;
   await page.keyboard.type(phone, { delay: 8 });
-  check(`New team member: a wrong phone is refused in words, then corrected in place ${where}`, phoneRefused && (await f.nth(1).inputValue()) === phone && (await f.nth(0).inputValue()) === `Salma ${lang}`);
+  check(`New team member: a wrong phone is refused in words, then corrected in place ${where}`, phoneRefused && (await f.nth(2).inputValue()) === phone && (await f.nth(0).inputValue()) === `Salma ${lang}`);
   // Keyboard navigation: from Phone, Tab reaches Email, which types.
   await page.keyboard.press('Tab');
   await page.waitForTimeout(150);
-  const onEmail = await f.nth(2).evaluate((e) => document.activeElement === e);
+  const onEmail = await f.nth(3).evaluate((e) => document.activeElement === e);
   if (onEmail) await page.keyboard.type(`salma.${lang}@example.test`, { delay: 8 });
-  check(`New team member: Tab moves from Phone to Email, which types ${where}`, onEmail && (await f.nth(2).inputValue()) === `salma.${lang}@example.test`);
+  check(`New team member: Tab moves from Phone to Email, which types ${where}`, onEmail && (await f.nth(3).inputValue()) === `salma.${lang}@example.test`);
   if (!MOCK) {
     const created = page.waitForResponse((r) => /\/users$/.test(r.url()) && r.request().method() === 'POST', { timeout: 15000 });
     await sheet(page).getByText(t['team.create.submit'], { exact: true }).last().tap();

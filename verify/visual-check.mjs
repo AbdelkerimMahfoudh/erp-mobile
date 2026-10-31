@@ -193,7 +193,8 @@ for (const lang of process.env.SKIP_MATRIX ? [] : ['en', 'fr', 'ar']) {
   const { context, page } = await open({ scheme: 'light' });
   await page.goto(`${APP}/login`);
   await settle(page);
-  check('first visit with the device in light: light', (await themeOf(page)) === 'light');
+  // D226: dark is the default; a device in light does not change a first visit.
+  check('first visit with the device in light: dark (D226 default)', (await themeOf(page)) === 'dark');
   // Keyboard: the toggle is reached with Tab and pressed with Enter.
   let reached = false;
   for (let i = 0; i < 6 && !reached; i++) {
@@ -202,7 +203,7 @@ for (const lang of process.env.SKIP_MATRIX ? [] : ['en', 'fr', 'ar']) {
   }
   if (reached) await page.keyboard.press('Enter');
   await settle(page);
-  check('the toggle is reached by keyboard and switches with Enter', reached && (await themeOf(page)) === 'dark');
+  check('the toggle is reached by keyboard and switches with Enter', reached && (await themeOf(page)) === 'light');
   const name = await page.getByTestId('theme-toggle').first().getAttribute('aria-label');
   check('the toggle has an accessible name in words', !!name && name.length > 5, name ?? '');
   await context.close();
@@ -360,7 +361,7 @@ for (const lang of ['en', 'fr', 'ar']) {
     await page.goto(`${APP}/login`);
     await settle(page);
     const ok = await page.evaluate(() => ({ theme: document.documentElement.dataset.theme, ready: document.documentElement.dataset.themeReady, toggle: !!document.querySelector('[data-testid="theme-toggle"]') }));
-    check(`strict CSP (script-src 'self' + Expo's hash, no 'unsafe-inline' scripts), device ${scheme}: the page starts in ${scheme} with no violation`, ok.theme === scheme && ok.ready === 'true' && ok.toggle && violations.length === 0, violations.slice(0, 2).join(' | '));
+    check(`strict CSP (script-src 'self' + Expo's hash, no 'unsafe-inline' scripts), device ${scheme}: the page starts dark (D226) with no violation`, ok.theme === 'dark' && ok.ready === 'true' && ok.toggle && violations.length === 0, violations.slice(0, 2).join(' | '));
     await context.close();
   }
 }
