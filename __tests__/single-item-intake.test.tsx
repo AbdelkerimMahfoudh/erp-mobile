@@ -9,6 +9,7 @@
  * once, ONE purchase that creates the product with its stock, success only
  * after the server's answer, and every failure leaving the screen usable.
  */
+declare const __dirname: string;
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -363,7 +364,7 @@ describe('leaving never freezes', () => {
 
   it('both Receive screens open the product form as the single-item intake', () => {
     for (const file of ['app/receive.tsx', 'app/quick-receive.tsx']) {
-      const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', file), 'utf8');
+      const source = (require('fs') as { readFileSync(p: string, e: 'utf8'): string }).readFileSync(`${__dirname}/../${file}`, 'utf8');
       expect({ file, quick: /return \{ intake: 'quick', \.\.\.\(barcode/.test(source) }).toEqual({ file, quick: true });
     }
   });

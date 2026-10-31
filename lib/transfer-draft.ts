@@ -1,4 +1,5 @@
 import type { TransferStatus } from '../types/api';
+import type { CategoryIllustration } from './category-illustration';
 
 /**
  * The rules of a transfer draft, kept pure so they can be tested without a
@@ -18,6 +19,8 @@ export interface DraftUnitLine {
   identifier: string;
   /** What the scanner or the server said this is. Shown before submitting. */
   product: string | null;
+  /** The category picture, when the search or scan knew it (D225). */
+  illustration?: CategoryIllustration | null;
 }
 
 /** Some of what this branch holds of one accessory. */
@@ -35,6 +38,8 @@ export interface DraftStockLine {
   reservedQuantity: number;
   /** The ceiling for this line: physical minus reserved, as the server saw it. */
   availableQuantity: number;
+  /** The category picture (D225). */
+  illustration?: CategoryIllustration | null;
 }
 
 export type DraftLine = DraftUnitLine | DraftStockLine;
@@ -63,7 +68,7 @@ export const isStockLine = (l: DraftLine): l is DraftStockLine => l.kind === 'st
 export function addUnitToDraft(
   lines: DraftLine[],
   identifier: string,
-  opts: { product?: string | null } = {},
+  opts: { product?: string | null; illustration?: CategoryIllustration | null } = {},
 ): AddResult {
   const id = identifier.trim();
   if (!id) return { ok: false, reason: 'blank', lines };
@@ -73,7 +78,7 @@ export function addUnitToDraft(
   return {
     ok: true,
     reason: null,
-    lines: [...lines, { kind: 'unit', identifier: id, product: opts.product ?? null }],
+    lines: [...lines, { kind: 'unit', identifier: id, product: opts.product ?? null, ...(opts.illustration ? { illustration: opts.illustration } : {}) }],
   };
 }
 
@@ -85,6 +90,7 @@ export interface StockCandidate {
   physicalQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
+  illustration?: CategoryIllustration | null;
 }
 
 /**
@@ -146,6 +152,7 @@ export function addStockToDraft(
         physicalQuantity: candidate.physicalQuantity,
         reservedQuantity: candidate.reservedQuantity,
         availableQuantity: candidate.availableQuantity,
+        ...(candidate.illustration ? { illustration: candidate.illustration } : {}),
       },
     ],
   };

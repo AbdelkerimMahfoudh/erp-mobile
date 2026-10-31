@@ -10,13 +10,14 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { ThemeProvider } from '../lib/design/theme';
+import { DEFAULT_THEME, ThemeProvider } from '../lib/design/theme';
 import { PALETTES } from '../lib/design/colors';
 import { TextField } from '../components/ui/Field';
 import { fieldRing } from '../components/ui/field-chrome';
 import { textInput } from './tree';
 
-const light = PALETTES.light;
+// The palette a first launch renders: dark by default (D226).
+const palette = PALETTES[DEFAULT_THEME];
 
 async function renderField(props: Partial<React.ComponentProps<typeof TextField>> = {}) {
   return render(
@@ -46,7 +47,7 @@ describe('the field ring', () => {
     await act(async () => {});
     await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(1);
-    expect(ringStyle().borderColor).toBe(light.border.focus);
+    expect(ringStyle().borderColor).toBe(palette.border.focus);
     expect(ringStyle().borderWidth).toBe(2);
     expect(ringStyle().pointerEvents).toBe('none');
     expect(wellBorder()).toBe(StyleSheet.hairlineWidth);
@@ -58,7 +59,7 @@ describe('the field ring', () => {
     await renderField({ error: 'Name the account so staff can recognise it.' });
     await act(async () => {});
     expect(rings()).toHaveLength(1);
-    expect(ringStyle().borderColor).toBe(light.intent.danger.solid);
+    expect(ringStyle().borderColor).toBe(palette.intent.danger.solid);
     expect(ringStyle().borderWidth).toBe(1.5);
     expect(screen.getByText('Name the account so staff can recognise it.')).toBeTruthy();
     expect(wellBorder()).toBe(StyleSheet.hairlineWidth);
@@ -69,7 +70,7 @@ describe('the field ring', () => {
     await act(async () => {});
     await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(1);
-    expect(ringStyle().borderColor).toBe(light.intent.danger.solid);
+    expect(ringStyle().borderColor).toBe(palette.intent.danger.solid);
     expect(ringStyle().borderWidth).toBe(2.5);
     expect(wellBorder()).toBe(StyleSheet.hairlineWidth);
   });
@@ -79,8 +80,8 @@ describe('the field ring', () => {
     await act(async () => {});
     await fireEvent(input(), 'focus');
     expect(rings()).toHaveLength(0);
-    expect((StyleSheet.flatten(input().parent!.props.style) as { backgroundColor: string }).backgroundColor).toBe(light.surface.sunken);
-    expect((StyleSheet.flatten(input().props.style) as { color: string }).color).toBe(light.text.disabled);
+    expect((StyleSheet.flatten(input().parent!.props.style) as { backgroundColor: string }).backgroundColor).toBe(palette.surface.sunken);
+    expect((StyleSheet.flatten(input().props.style) as { color: string }).color).toBe(palette.text.disabled);
   });
 
   it('a disabled field that is also invalid keeps its error visible', () => {
