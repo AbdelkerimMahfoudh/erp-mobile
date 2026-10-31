@@ -2040,6 +2040,16 @@ export const fr: Catalogue = {
   'team.delegation.notYet':
     'La modification des prix elle-même arrive avec le travail sur la tarification. Ceci définit qui y sera autorisé.',
   // ── Devices (F1 Stage 3) ──────────────────────────────────────────────────
+  'devices.intake.title': 'Dernières étapes d’entrée d’un article sur ce téléphone',
+  'devices.intake.lastSafe': 'Dernier enregistrement sur le serveur : {when}',
+  'devices.intake.noSafe': 'Rien d’enregistré sur le serveur dans ces étapes',
+  'devices.intake.step.opened': 'ouverte',
+  'devices.intake.step.category': 'catégorie choisie',
+  'devices.intake.step.submitted': 'envoyée',
+  'devices.intake.step.committed': 'enregistrée',
+  'devices.intake.step.refused': 'refusée',
+  'devices.intake.step.uncertain': 'sans réponse',
+  'devices.intake.step.left': 'quittée',
   'devices.title': 'Appareils',
   'devices.subtitle': 'Téléphones et tablettes connectés à votre compte.',
   'devices.current': 'Cet appareil',

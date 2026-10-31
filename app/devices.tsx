@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
@@ -14,6 +14,7 @@ import { toast } from '../lib/toast';
 import { dialog } from '../lib/dialog';
 import { useAuth } from '../hooks/useAuth';
 import type { UserDeviceView } from '../types/api';
+import { lastSafeStep, readIntakeTrail, type TrailEntry } from '../lib/intake-trail';
 
 /**
  * Security → Devices (F1 Stage 3).
@@ -141,7 +142,42 @@ export default function DevicesScreen() {
       <Text variant="caption" tone="tertiary">
         {t('devices.notVerifiedYet')}
       </Text>
+      <IntakeTrail />
     </Screen>
+  );
+}
+
+/**
+ * The single-item intake's last steps on this phone (lib/intake-trail), in every build: what to read out when an
+ * intake froze, since a freeze leaves no crash report. Step names and times only — nothing about the item.
+ */
+function IntakeTrail() {
+  const { t } = useTranslation();
+  const [entries, setEntries] = useState<TrailEntry[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    void readIntakeTrail().then((read) => {
+      if (live) setEntries(read);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!entries || entries.length === 0) return null;
+  const time = (at: string) => at.replace('T', ' ').slice(5, 16) + 'Z';
+  const safe = lastSafeStep(entries);
+  return (
+    <View style={styles.build} testID="intake-trail">
+      <Text variant="caption" tone="tertiary">
+        {t('devices.intake.title')}
+      </Text>
+      <Text variant="caption" tone="secondary" selectable>
+        {entries.slice(-6).map((e) => `${time(e.at)} ${t(`devices.intake.step.${e.step}`)}`).join(' · ')}
+      </Text>
+      <Text variant="caption" tone="tertiary">
+        {safe ? t('devices.intake.lastSafe', { when: time(safe.at) }) : t('devices.intake.noSafe')}
+      </Text>
+    </View>
   );
 }
 

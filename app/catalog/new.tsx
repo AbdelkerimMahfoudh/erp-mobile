@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Check } from 'lucide-react-native';
@@ -28,6 +28,7 @@ import { qk } from '../../lib/query-keys';
 import { invalidateMoney } from '../../lib/money-invalidation';
 import { isStoreClosedRefusal } from '../../lib/day-gate';
 import { uuidv4 } from '../../lib/utils';
+import { recordIntakeStep } from '../../lib/intake-trail';
 import { space } from '../../lib/design/tokens';
 import { makeStyles, useColors } from '../../lib/design/theme';
 import type { Category, ProductDetail, ProductPage } from '../../types/api';
@@ -132,6 +133,12 @@ export default function NewProductScreen() {
   const [payment, setPayment] = useState<PurchasePayment>({ method: 'cash', receivingAccountId: null });
   /** One request identity for the purchase that MAY have landed: kept across every uncertain retry. */
   const [clientUuid] = useState(() => uuidv4());
+
+  // The intake's steps, kept across a restart so a freeze can be placed afterwards (lib/intake-trail): names and times only.
+  useEffect(() => {
+    if (quick) recordIntakeStep('opened');
+  }, [quick]);
+  const lastCategory = useRef<string | null>(null);
   const [uncertain, setUncertain] = useState(false);
   const [done, setDone] = useState<{ label: string } | null>(null);
   /** A second press while the first is still being decided does nothing. */
@@ -242,9 +249,11 @@ export default function NewProductScreen() {
       // Success ONLY on a server-confirmed receipt: a refused line wrote nothing.
       if (!outcome.purchaseId || outcome.unitsCreated + outcome.stockLines === 0) {
         const refusal = outcome.rejected?.[0]?.reason;
+        recordIntakeStep('refused');
         toast.error(refusal ? `${t('receive.refused.title')} — ${refusal}` : t('receive.refused.none'));
         return;
       }
+      recordIntakeStep('committed');
       clearPendingIntake();
       void queryClient.invalidateQueries({ queryKey: ['products'] });
       void queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -268,9 +277,11 @@ export default function NewProductScreen() {
       }
       // A timeout or a server fault: it may have landed. The same key replays rather than receives twice.
       if (!(e instanceof ApiError) || e.status >= 500) {
+        recordIntakeStep('uncertain');
         setUncertain(true);
         return;
       }
+      recordIntakeStep('refused');
       toast.error(toErrorMessage(e));
     },
   });
@@ -300,6 +311,7 @@ export default function NewProductScreen() {
       }
       // An exact product already in the catalogue receives the item; none is duplicated.
       const found = existing ?? (await resolveExisting(values, true));
+      recordIntakeStep('submitted');
       await receive.mutateAsync({ values, unitCost: parsed, productId: found?.id ?? null }).catch(() => undefined);
     } finally {
       committing.current = false;
@@ -336,6 +348,7 @@ export default function NewProductScreen() {
               fullWidth
               // Back to Quick receive, which waits empty for the next scan.
               onPress={() => {
+                recordIntakeStep('left');
                 if (router.canGoBack()) router.back();
                 else router.replace('/quick-receive');
               }}
@@ -345,6 +358,7 @@ export default function NewProductScreen() {
               variant="secondary"
               fullWidth
               onPress={() => {
+                recordIntakeStep('left');
                 if (router.canGoBack()) router.dismiss(2);
                 else router.replace('/');
               }}
@@ -460,6 +474,10 @@ export default function NewProductScreen() {
           )
         }
         renderExtra={stockSection}
+        onValuesChange={(values) => {
+          if (quick && values.categoryId && values.categoryId !== lastCategory.current) recordIntakeStep('category');
+          lastCategory.current = values.categoryId;
+        }}
         onSubmit={(values) => {
           if (quick) {
             if (!purchasePaymentReady(payment)) return;
