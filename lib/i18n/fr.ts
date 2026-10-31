@@ -1309,6 +1309,10 @@ export const fr: Catalogue = {
   'dialog.discard.title': 'Abandonner les modifications ?',
   'dialog.discard.body': 'Ce que vous avez saisi ne sera pas enregistré.',
   'dialog.discard.confirm': 'Abandonner',
+  'unsaved.title': 'Quitter sans enregistrer ?',
+  'unsaved.body': 'Les modifications faites ici seront perdues.',
+  'unsaved.discard': 'Abandonner les modifications',
+  'unsaved.keep': 'Continuer la modification',
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   'toast.dismiss': 'Fermer',
@@ -1897,9 +1901,6 @@ export const fr: Catalogue = {
   'settings.subtitle': 'Le fonctionnement de votre boutique. Tout le monde s’y conforme.',
   'settings.save': 'Enregistrer les modifications',
   'settings.saved': 'Paramètres enregistrés',
-  'settings.unsaved.title': 'Quitter sans enregistrer ?',
-  'settings.unsaved.body': 'Vos modifications seront perdues.',
-  'settings.unsaved.confirm': 'Abandonner les modifications',
   'settings.conflict.title': 'Modifié sur un autre appareil',
   'settings.conflict.body':
     'Quelqu’un a enregistré d’autres paramètres pendant que cet écran était ouvert. Nous avons chargé les paramètres actuels — vérifiez-les avant d’enregistrer de nouveau.',
@@ -2267,9 +2268,6 @@ export const fr: Catalogue = {
   'catalog.form.updated': 'Produit mis à jour',
   'catalog.form.required': 'Obligatoire',
   'catalog.form.noChanges': 'Rien n’a encore changé.',
-  'catalog.form.unsaved.title': 'Quitter sans enregistrer ?',
-  'catalog.form.unsaved.body': 'Vos modifications seront perdues.',
-  'catalog.form.unsaved.confirm': 'Abandonner les modifications',
 
   // Conflicts
   'catalog.conflict.barcode': 'Un autre produit utilise déjà ce code-barres.',

@@ -542,9 +542,13 @@ function ReceiveScreen() {
       title: t('dialog.discard.title'),
       message: t('dialog.discard.body'),
       confirmLabel: t('dialog.discard.confirm'),
+      cancelLabel: t('unsaved.keep'),
       tone: 'danger',
     });
-    if (ok) leave();
+    if (!ok) return;
+    // Leave only once the dialog's modal is gone, or the screen is popped from under it (lib/dialog).
+    await dialog.afterClose();
+    leave();
   };
 
   // ── Render ────────────────────────────────────────────────────────────────

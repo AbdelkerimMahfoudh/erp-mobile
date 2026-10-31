@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useNavigation, useRouter, Stack } from 'expo-router';
-import { usePreventRemove } from '../lib/navigation/router-internals';
+import { useRouter, Stack } from 'expo-router';
+import { useUnsavedChangesGuard } from '../lib/navigation/unsaved-changes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
 import { Button, Card, Chip, EmptyState, ErrorState, Identifier, ListRow, PageIntro, Screen, Section, SegmentedControl, SkeletonList, Text, TextField, Toggle } from '../components/ui';
@@ -81,7 +81,6 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const header = <Stack.Screen options={{ headerShown: true, title: t('settings.title') }} />;
   const queryClient = useQueryClient();
-  const navigation = useNavigation();
   const router = useRouter();
   const canManage = usePermission('settings.manage');
 
@@ -115,17 +114,11 @@ export default function SettingsScreen() {
   // ── Unsaved-change protection ─────────────────────────────────────────────
   // Covers every exit — the back gesture, the header arrow, the hardware button
   // — because they all resolve to the same navigation action.
-  usePreventRemove(dirty, ({ data }) => {
-    void (async () => {
-      const leave = await dialog.confirm({
-        title: t('settings.unsaved.title'),
-        message: t('settings.unsaved.body'),
-        confirmLabel: t('settings.unsaved.confirm'),
-        cancelLabel: t('action.cancel'),
-        tone: 'danger',
-      });
-      if (leave) navigation.dispatch(data.action);
-    })();
+  useUnsavedChangesGuard({
+    dirty,
+    onDiscard: () => {
+      if (owner) load(owner);
+    },
   });
 
   // ── Saving ────────────────────────────────────────────────────────────────

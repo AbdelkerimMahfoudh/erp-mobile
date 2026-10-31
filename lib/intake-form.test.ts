@@ -97,8 +97,11 @@ it('a buying cost is a positive amount, nothing typed is unknown — never zero'
 
 it('the freeze: a deliberate exit is allowed BEFORE navigating, and the guard lets it through without a dialog', () => {
   const form = withoutComments(source('components/catalog/ProductForm.tsx'));
-  assert.match(form, /if \(allowLeaveRef\?\.current\) \{\s*navigation\.dispatch\(data\.action\);\s*return;\s*\}/);
-  assert.match(form, /if \(asking\.current\) return;/, 'only one confirm at a time');
+  // The shared guard (lib/navigation/unsaved-changes) takes `allowLeaveRef` as its bypass and asks once at a time.
+  assert.match(form, /useUnsavedChangesGuard\(\{ dirty: dirty && !submitting, bypass: allowLeaveRef \}\)/);
+  const guard = withoutComments(source('lib/navigation/unsaved-changes.ts'));
+  assert.match(guard, /if \(bypass\?\.current\) \{\s*setLeaving\(data\.action\);\s*return;\s*\}/);
+  assert.match(guard, /if \(asking\.current\) return;/, 'only one confirm at a time');
   const screen = withoutComments(source('app/catalog/new.tsx'));
   assert.match(screen, /leaving\.current = true;\s*if \(router\.canGoBack\(\)\) router\.back\(\);/);
   // The old order — clear the busy flag, then navigate — is gone.

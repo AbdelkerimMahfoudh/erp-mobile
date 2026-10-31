@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, type ScrollViewInstance, type TextInputInstance, type ViewInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthPage } from '../../components/auth/AuthChrome';
 import { AuthLanguageSwitch, Button, Card, TextField } from '../../components/ui';
 import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
@@ -94,7 +94,6 @@ const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'businessNa
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
   const router = useRouter();
-  const navigation = useNavigation();
   const styles = useStyles();
   const params = useLocalSearchParams<{ r?: string }>();
   /** The registration address arrived with (0103): read once, then out of the route — memory only from here. */
@@ -178,7 +177,7 @@ export default function RegisterScreen() {
       title: t('register.leave.title'),
       message: t('register.leave.body'),
       confirmLabel: t('register.leave.confirm'),
-      cancelLabel: t('action.cancel'),
+      cancelLabel: t('unsaved.keep'),
       tone: 'danger',
     });
 
@@ -195,13 +194,14 @@ export default function RegisterScreen() {
    * later step goes to the one before it, and the first step asks before a typed form is thrown away. Nothing is asked
    * once the registration was accepted and the screen is on its way to the code check.
    */
-  usePreventRemove(!leaving && (step > 0 || dirty), ({ data }) => {
+  usePreventRemove(!leaving && (step > 0 || dirty), ({ repeat }) => {
     if (step > 0) {
       steps.back();
       return;
     }
     void confirmLeave().then((leave) => {
-      if (leave) steps.release(() => navigation.dispatch(data.action));
+      // Replay the blocked exit once, with prevention lifted, after the dialog's modal is gone (useUnsavedChangesGuard).
+      if (leave) void dialog.afterClose().then(() => steps.release(repeat));
     });
   });
 

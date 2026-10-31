@@ -1,11 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { inTreeOrder } from '../../lib/category-label';
 import { useCategoryLabel } from '../../lib/use-category-label';
 import { BrandModelSelect } from './BrandModelSelect';
 import { VariantSelect } from './VariantSelect';
 import { StyleSheet, View } from 'react-native';
-import { useNavigation } from 'expo-router';
-import { usePreventRemove } from '../../lib/navigation/router-internals';
+import { useUnsavedChangesGuard } from '../../lib/navigation/unsaved-changes';
 import { useQuery } from '@tanstack/react-query';
 import { ScanLine } from 'lucide-react-native';
 import {
@@ -138,7 +137,6 @@ export function ProductForm({
   allowLeaveRef,
 }: ProductFormProps) {
   const { t } = useTranslation();
-  const navigation = useNavigation();
   const [values, setValuesState] = useState<ProductFormValues>(initial);
   const [localErrors, setLocalErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
   const [categorySheet, setCategorySheet] = useState(false);
@@ -188,38 +186,9 @@ export function ProductForm({
 
   const dirty = useMemo(() => JSON.stringify(values) !== JSON.stringify(initial), [values, initial]);
 
-  /*
-   * Covers the back gesture, the header arrow and the hardware button alike.
-   *
-   * The device test of 2026-10-28 froze the app here: a successful hand-back
-   * cleared `submitting` and THEN navigated, so this guard stopped the screen's
-   * own exit, the native stack popped anyway, and the confirm sat invisible over
-   * every touch. Now a deliberate exit sets `allowLeaveRef` first and passes
-   * straight through, and only one confirm can be up at a time.
-   */
-  const asking = useRef(false);
-  usePreventRemove(dirty && !submitting, ({ data }) => {
-    if (allowLeaveRef?.current) {
-      navigation.dispatch(data.action);
-      return;
-    }
-    if (asking.current) return;
-    asking.current = true;
-    void (async () => {
-      try {
-        const leave = await dialog.confirm({
-          title: t('catalog.form.unsaved.title'),
-          message: t('catalog.form.unsaved.body'),
-          confirmLabel: t('catalog.form.unsaved.confirm'),
-          cancelLabel: t('action.cancel'),
-          tone: 'danger',
-        });
-        if (leave) navigation.dispatch(data.action);
-      } finally {
-        asking.current = false;
-      }
-    })();
-  });
+  // Every exit asks once while the form differs from what it opened with; a save or hand-back sets
+  // `allowLeaveRef` and passes. Discarding needs no reset: the form leaves with its screen.
+  useUnsavedChangesGuard({ dirty: dirty && !submitting, bypass: allowLeaveRef });
 
   const handleScan = useCallback(
     (result: ScanResult) => {

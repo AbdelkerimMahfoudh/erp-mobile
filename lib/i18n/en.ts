@@ -1228,6 +1228,10 @@ export const en = {
   'dialog.discard.title': 'Discard changes?',
   'dialog.discard.body': 'What you have entered will not be saved.',
   'dialog.discard.confirm': 'Discard',
+  'unsaved.title': 'Leave without saving?',
+  'unsaved.body': 'The changes you made here will be lost.',
+  'unsaved.discard': 'Discard changes',
+  'unsaved.keep': 'Keep editing',
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   'toast.dismiss': 'Dismiss',
@@ -1792,9 +1796,6 @@ export const en = {
   'settings.subtitle': 'How your shop works. Everyone follows these.',
   'settings.save': 'Save changes',
   'settings.saved': 'Settings saved',
-  'settings.unsaved.title': 'Leave without saving?',
-  'settings.unsaved.body': 'Your changes will be lost.',
-  'settings.unsaved.confirm': 'Discard changes',
   'settings.conflict.title': 'Changed on another device',
   'settings.conflict.body':
     'Someone saved different settings while this screen was open. We have loaded the current ones — check them before saving again.',
@@ -2141,9 +2142,6 @@ export const en = {
   'catalog.form.updated': 'Product updated',
   'catalog.form.required': 'Required',
   'catalog.form.noChanges': 'Nothing has changed yet.',
-  'catalog.form.unsaved.title': 'Leave without saving?',
-  'catalog.form.unsaved.body': 'Your changes will be lost.',
-  'catalog.form.unsaved.confirm': 'Discard changes',
 
   // Conflicts
   'catalog.conflict.barcode': 'Another product already uses that barcode.',

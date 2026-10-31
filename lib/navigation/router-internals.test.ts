@@ -34,6 +34,7 @@ const HEADER_CTX =
   'node_modules/expo-router/build/react-navigation/elements/Header/HeaderShownContext';
 const PREVENT_REMOVE =
   'node_modules/expo-router/build/react-navigation/core/usePreventRemove';
+const REMOVAL_PREVENTION = 'node_modules/expo-router/build/global-state/removalPrevention';
 
 it('the vendored HeaderShownContext module is where the shim expects it', () => {
   assert.ok(existsSync(join(ROOT, `${HEADER_CTX}.js`)), `${HEADER_CTX}.js is missing`);
@@ -45,6 +46,11 @@ it('the vendored usePreventRemove module is where the shim expects it', () => {
   assert.match(source(`${PREVENT_REMOVE}.d.ts`), /usePreventRemove/);
 });
 
+it('the vendored removal-prevention state is where the unsaved-changes guard expects it', () => {
+  assert.ok(existsSync(join(ROOT, `${REMOVAL_PREVENTION}.js`)), `${REMOVAL_PREVENTION}.js is missing`);
+  assert.match(source(`${REMOVAL_PREVENTION}.d.ts`), /export declare function useRoutesWithRemovalPrevented\(\): ReadonlySet<string>/);
+});
+
 it('the shim points at those exact paths', () => {
   const shim = source('lib/navigation/router-internals.ts');
   assert.match(
@@ -52,6 +58,7 @@ it('the shim points at those exact paths', () => {
     /from 'expo-router\/build\/react-navigation\/elements\/Header\/HeaderShownContext'/,
   );
   assert.match(shim, /from 'expo-router\/build\/react-navigation\/core\/usePreventRemove'/);
+  assert.match(shim, /from 'expo-router\/build\/global-state\/removalPrevention'/);
 });
 
 it('no file imports the standalone @react-navigation packages', () => {

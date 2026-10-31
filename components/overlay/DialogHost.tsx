@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut, ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { motion } from '../../lib/design/motion';
 import { elevation, radius, space, touch } from '../../lib/design/tokens';
@@ -36,16 +36,60 @@ export function DialogHost() {
   const sheetOpen = useSheetStack((s) => s.ids.length > 0);
   const active = useDialogStore((s) => s.queue[0]);
   const resolveTop = useDialogStore((s) => s.resolveTop);
-  if (!active || sheetOpen) return null;
+  const setPresented = useDialogStore((s) => s.setPresented);
+  const show = Boolean(active) && !sheetOpen;
+  // The modal stays mounted, hidden, until iOS reports it dismissed: unmounting it outright let a
+  // navigation in the same tick pop its presenting screen first (see `presented` in lib/dialog).
+  const [shown, setShown] = useState(show);
+  const [closing, setClosing] = useState(false);
+  const dismissed = useRef<(() => void) | null>(null);
+  if (shown !== show) {
+    setShown(show);
+    // Only iOS dismisses a modal after it is hidden; elsewhere hiding it is the end of it.
+    setClosing(!show && Platform.OS === 'ios');
+  }
+
+  useEffect(() => {
+    if (show) setPresented(true);
+    else if (!closing) setPresented(false);
+  }, [show, closing, setPresented]);
+
+  useEffect(() => {
+    if (!closing) return;
+    const finish = () => {
+      dismissed.current = null;
+      setClosing(false);
+    };
+    // `onDismiss` is the signal; the timer only covers a dismissal iOS never reports.
+    const fallback = setTimeout(finish, DISMISS_FALLBACK_MS);
+    dismissed.current = () => {
+      clearTimeout(fallback);
+      finish();
+    };
+    return () => clearTimeout(fallback);
+  }, [closing]);
+
+  // Unmounting with the modal up (a sign-out tearing the tree down) must not strand a waiter.
+  useEffect(() => () => setPresented(false), [setPresented]);
+
+  if (!show && !closing) return null;
   const cancel = () => resolveTop({ confirmed: false });
   return (
-    <Modal visible transparent statusBarTranslucent animationType="none" onRequestClose={cancel}>
-      <ModalBoundary>
-        <DialogCard />
-      </ModalBoundary>
+    <Modal
+      visible={show}
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={cancel}
+      onDismiss={() => dismissed.current?.()}
+    >
+      <ModalBoundary>{show ? <DialogCard /> : null}</ModalBoundary>
     </Modal>
   );
 }
+
+/** Longest wait for iOS to report a dialog's modal dismissed before carrying on without it. */
+export const DISMISS_FALLBACK_MS = 500;
 
 /** The dialog, drawn inside the sheet that is on top. Nothing when this sheet is not the top one. */
 export function SheetDialogLayer({ sheetId }: { sheetId: string }) {

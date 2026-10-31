@@ -1218,6 +1218,10 @@ export const ar: Catalogue = {
   'dialog.discard.title': 'تجاهل التغييرات؟',
   'dialog.discard.body': 'لن يتم حفظ ما أدخلته.',
   'dialog.discard.confirm': 'تجاهل',
+  'unsaved.title': 'الخروج دون حفظ؟',
+  'unsaved.body': 'ستفقد التغييرات التي أجريتها هنا.',
+  'unsaved.discard': 'تجاهل التغييرات',
+  'unsaved.keep': 'متابعة التعديل',
 
   // ── Toast ─────────────────────────────────────────────────────────────────
   'toast.dismiss': 'إخفاء',
@@ -1769,9 +1773,6 @@ export const ar: Catalogue = {
   'settings.subtitle': 'طريقة عمل متجرك. الجميع يلتزم بها.',
   'settings.save': 'حفظ التغييرات',
   'settings.saved': 'تم حفظ الإعدادات',
-  'settings.unsaved.title': 'الخروج دون حفظ؟',
-  'settings.unsaved.body': 'ستفقد تغييراتك.',
-  'settings.unsaved.confirm': 'تجاهل التغييرات',
   'settings.conflict.title': 'تم التغيير من جهاز آخر',
   'settings.conflict.body':
     'حفظ شخص ما إعدادات مختلفة بينما كانت هذه الشاشة مفتوحة. عرضنا الإعدادات الحالية — راجعها قبل الحفظ مرة أخرى.',
@@ -2098,9 +2099,6 @@ export const ar: Catalogue = {
   'catalog.form.updated': 'تم تحديث المنتج',
   'catalog.form.required': 'مطلوب',
   'catalog.form.noChanges': 'لم يتغيّر شيء بعد.',
-  'catalog.form.unsaved.title': 'الخروج دون حفظ؟',
-  'catalog.form.unsaved.body': 'ستفقد تغييراتك.',
-  'catalog.form.unsaved.confirm': 'تجاهل التغييرات',
 
   'catalog.conflict.barcode': 'منتج آخر يستخدم هذا الباركود.',
   'catalog.conflict.variant': 'هذا المنتج موجود بالفعل.',

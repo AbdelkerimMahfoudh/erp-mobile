@@ -26,6 +26,7 @@ jest.mock('expo-router', () => ({
 const mockGuard: { enabled: boolean; cb: ((e: { data: { action: unknown } }) => void) | null } = { enabled: false, cb: null };
 jest.mock('../lib/navigation/router-internals', () => ({
   ...jest.requireActual('../lib/navigation/router-internals'),
+  useRoute: () => ({ key: 'product-form' }),
   usePreventRemove: (enabled: boolean, cb: (e: { data: { action: unknown } }) => void) => {
     mockGuard.enabled = enabled;
     mockGuard.cb = cb;

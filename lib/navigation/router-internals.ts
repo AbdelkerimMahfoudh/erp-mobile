@@ -35,3 +35,9 @@ export { HeaderShownContext } from 'expo-router/build/react-navigation/elements/
 
 // eslint-disable-next-line import/no-internal-modules
 export { usePreventRemove } from 'expo-router/build/react-navigation/core/usePreventRemove';
+
+// eslint-disable-next-line import/no-internal-modules
+export { useRoutesWithRemovalPrevented } from 'expo-router/build/global-state/removalPrevention';
+
+// eslint-disable-next-line import/no-internal-modules
+export { useRoute } from 'expo-router/build/react-navigation/core/useRoute';

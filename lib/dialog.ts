@@ -93,12 +93,25 @@ export interface ConfirmWithReasonOptions extends ConfirmOptions {
 
 interface DialogState {
   queue: DialogRequest[];
+  /**
+   * The root host's native modal is on screen, or still being taken down.
+   *
+   * An answer resolves the moment it is pressed, but on iOS the modal that drew it is dismissed
+   * afterwards. Navigating away in that window pops the screen the modal was presented from, the
+   * dismissal is orphaned, and a transparent modal stays over every touch — the 2026-10-31 freeze
+   * after "Discard changes". `afterClose` waits for this to clear.
+   */
+  presented: boolean;
+  closeWaiters: (() => void)[];
   push: (request: DialogRequest) => void;
   resolveTop: (result: DialogResult) => void;
+  setPresented: (presented: boolean) => void;
 }
 
 export const useDialogStore = create<DialogState>((set, get) => ({
   queue: [],
+  presented: false,
+  closeWaiters: [],
   push: (request) => set((state) => ({ queue: [...state.queue, request] })),
   resolveTop: (result) => {
     const [top, ...rest] = get().queue;
@@ -106,7 +119,25 @@ export const useDialogStore = create<DialogState>((set, get) => ({
     set({ queue: rest });
     top.resolve(result);
   },
+  setPresented: (presented) => {
+    if (presented) {
+      set({ presented });
+      return;
+    }
+    const waiters = get().closeWaiters;
+    set({ presented, closeWaiters: [] });
+    for (const wake of waiters) wake();
+  },
 }));
+
+/** Resolves once no dialog modal is on screen — immediately when none was. */
+function afterClose(): Promise<void> {
+  const state = useDialogStore.getState();
+  if (!state.presented) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    useDialogStore.setState((s) => ({ closeWaiters: [...s.closeWaiters, resolve] }));
+  });
+}
 
 function request(
   options: ConfirmWithReasonOptions & {
@@ -157,4 +188,10 @@ export const dialog = {
   alert: async (options: Omit<ConfirmOptions, 'cancelLabel'>): Promise<void> => {
     await request({ ...options, acknowledgeOnly: true });
   },
+
+  /**
+   * Wait until the dialog's modal is fully gone. Call it between an answer and a navigation that
+   * removes the current screen, so the screen is never popped from under its own modal.
+   */
+  afterClose,
 };
