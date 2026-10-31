@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellOff, ShieldOff } from 'lucide-react-native';
 import { EmptyState, ErrorState, Screen, SkeletonList } from '../components/ui';
@@ -53,7 +53,7 @@ export default function NotificationOpenScreen() {
         const store = mine.find((b) => b.id === answer.branchId);
         if (store) setBranch(store);
       }
-      router.replace(route);
+      router.replace(route as Href);
     };
     void go();
   }, [open.data, user?.id, id, activeBranch, setBranch, queryClient, router]);
