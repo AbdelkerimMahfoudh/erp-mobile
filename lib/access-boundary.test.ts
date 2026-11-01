@@ -30,6 +30,7 @@
  * source and what ships are judged alike: words after their spelling is
  * normalized, in each language's own verbs; routes decoded and in any case.
  */
+import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -58,9 +59,9 @@ function walk(dir: string, out: string[] = []): string[] {
   }
   return out;
 }
-const SOURCES = ['app', 'lib', 'hooks', 'components', 'constants'].flatMap((d) => walk(new URL(d, ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1')));
+const SOURCES = ['app', 'lib', 'hooks', 'components', 'constants'].flatMap((d) => walk(fileURLToPath(new URL(d, ROOT)).replace(/^\/([A-Za-z]:)/, '$1')));
 const code = (f: string) => strip(readFileSync(f, 'utf8'));
-const relative = (f: string) => f.slice(new URL('.', ROOT).pathname.length);
+const relative = (f: string) => f.slice(fileURLToPath(new URL('.', ROOT)).length);
 
 /**
  * Every key of a catalogue with its value, in the catalogue's order — read from the catalogue itself, so a value
@@ -199,7 +200,7 @@ const REGISTRIES: Record<string, string> = {
   notificationRoute: 'navigation/notification-route',
 };
 /** Where the app's own modules are, as an import resolves them. */
-const LIB = new URL('lib', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const LIB = fileURLToPath(new URL('lib', ROOT)).replace(/^\/([A-Za-z]:)/, '$1');
 /**
  * The module a name is imported from, as itself — a module of the app's own by the path it resolves to, a package by
  * its name — when nothing else in the file is bound to that name; otherwise null.
@@ -734,7 +735,7 @@ describe('the website’s entry points are gone from the app', () => {
     // The guard refuses: React Native's openURL — which expo-linking and expo-router call — and, on the web, any new
     // tab but a blob page. The root layout installs it once, at module scope, before any screen exists. It keeps the
     // phone's own opener first, and reaches it only for an exact legal page (the owner's brief of 2026-10-16).
-    const guard = code(new URL(GUARD, ROOT).pathname);
+    const guard = code(fileURLToPath(new URL(GUARD, ROOT)));
     assert.equal((guard.match(/openURL/g) ?? []).length, 2);
     assert.match(guard, /^\s*const phone = Linking\.openURL\.bind\(Linking\);\n\s*Linking\.openURL = \(\) => Promise\.reject\(new Error\('Dukan ERP opens no address outside the app\.'\)\);$/m);
     assert.match(guard, /^\s*legalOpener \?\?= tab \?\? phone;$/m);
@@ -749,7 +750,7 @@ describe('the website’s entry points are gone from the app', () => {
   });
 
   it('the one way to iOS Settings opens the app’s own page there, takes no address, and is reached only by the permission explanation (D225)', () => {
-    const guard = code(new URL(GUARD, ROOT).pathname);
+    const guard = code(fileURLToPath(new URL(GUARD, ROOT)));
     // `openSettings` opens the app's page in Settings: no address in, none built. It is called once, here.
     assert.equal((guard.match(/openSettings/g) ?? []).length, 1);
     assert.match(guard, /^export function openAppSettings\(\): Promise<void> \{\n\s*if \(Platform\.OS !== 'ios' && Platform\.OS !== 'android'\) return Promise\.reject\([^\n]*\);\n\s*return Linking\.openSettings\(\);\n\}$/m);
@@ -770,7 +771,7 @@ describe('the website’s entry points are gone from the app', () => {
     for (const d of allDestinations()) assert.match(d.route, SEGMENT, d.id);
     for (const hub of HUBS) assert.match(tabRouteOf(hub), PATH, hub.id);
     // The sign-in guard answers one of its own routes, or nothing.
-    const entry = treeOf(new URL('lib/navigation/entry.ts', ROOT).pathname);
+    const entry = treeOf(fileURLToPath(new URL('lib/navigation/entry.ts', ROOT)));
     const answers = nodesOf(entry).filter(ts.isReturnStatement).map((r) => r.expression!);
     const routeOrNothing = (e: ts.Expression): boolean =>
       e.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(e) && ['LOGIN', 'SELECT_BRANCH', 'ACCESS_CLOSED', 'ACCESS_STATUS', 'APP_HOME'].includes(e.text)) || (ts.isConditionalExpression(e) && routeOrNothing(e.whenTrue) && routeOrNothing(e.whenFalse));
@@ -792,8 +793,8 @@ describe('the website’s entry points are gone from the app', () => {
       // The CSV the browser saves: a link to a blob made from the report already in memory.
       'lib/report-export.ts: assigns link.href',
     ]);
-    assert.match(code(new URL('lib/browser-tab.ts', ROOT).pathname), /const url = URL\.createObjectURL\(new Blob\(\[html\][^)]*\)\);\s*const tab = window\.open\(url, '_blank'\);/);
-    assert.match(code(new URL('lib/report-export.ts', ROOT).pathname), /const url = URL\.createObjectURL\(blob\);\s*const link = document\.createElement\('a'\);\s*link\.href = url;/);
+    assert.match(code(fileURLToPath(new URL('lib/browser-tab.ts', ROOT))), /const url = URL\.createObjectURL\(new Blob\(\[html\][^)]*\)\);\s*const tab = window\.open\(url, '_blank'\);/);
+    assert.match(code(fileURLToPath(new URL('lib/report-export.ts', ROOT))), /const url = URL\.createObjectURL\(blob\);\s*const link = document\.createElement\('a'\);\s*link\.href = url;/);
   });
 
   it('the app never asks the server for a price, a payment instruction, a store or a seat, or the platform’s own routes — in any spelling', () => {
@@ -908,7 +909,7 @@ describe('the words', () => {
     for (const lang of LANGS) {
       // The catalogue as its file writes it: the exported object, every property a key written as itself — no spread,
       // computed key or getter through which a value could arrive unseen.
-      const file = treeOf(new URL(`lib/i18n/${lang}.ts`, ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+      const file = treeOf(fileURLToPath(new URL(`lib/i18n/${lang}.ts`, ROOT)).replace(/^\/([A-Za-z]:)/, '$1'));
       const declaration = nodesOf(file).find((n): n is ts.VariableDeclaration => ts.isVariableDeclaration(n) && n.name.getText(file) === lang);
       const object = declaration?.initializer && bare(declaration.initializer);
       assert.ok(object && ts.isObjectLiteralExpression(object), `${lang}: the catalogue is one object literal`);
@@ -1017,7 +1018,7 @@ describe('the checks above, held to every way out that was ever found', () => {
   ].join('\n');
   let probes = 0;
   const probe = (code: string, head = HEAD): string => {
-    const file = join(new URL('app', ROOT).pathname.replace(/^\/([A-Za-z]:)/, '$1'), `zz-probe-${probes++}.tsx`);
+    const file = join(fileURLToPath(new URL('app', ROOT)).replace(/^\/([A-Za-z]:)/, '$1'), `zz-probe-${probes++}.tsx`);
     trees.set(file, ts.createSourceFile(file, `${head}${code}\n`, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));
     return file;
   };

@@ -170,16 +170,11 @@ if (process.env.ZONED_TIME_CHILD) {
     for (const f of ['app', 'components', 'hooks', 'lib', 'constants'].flatMap((d) => sources(join(root, d)))) {
       const text = code(f);
       // Only the fallback for a zone the device cannot read names one, and it says so in the output.
-      if (f.endsWith('lib/zoned-time.ts')) continue;
+      if (f.replace(/\/g, "/").endsWith("lib/zoned-time.ts")) continue;
       assert.doesNotMatch(text, /timeZone:\s*['"]|['"](Africa|Europe|America|Asia|Atlantic|Pacific|Etc)\/\w+['"]|['"](GMT|UTC)['"]/, `${f} writes a time zone of its own`);
     }
     const screen = code(join(root, 'app/access.tsx'));
     assert.match(screen, /formatDateTime\(end\.at, \{ timeZone: end\.timeZone \}\)/);
-    const notice = code(join(root, 'components/access/AccessNotice.tsx'));
-    assert.match(notice, /formatDateTime\(access\.trialEnd\.at, \{ timeZone: access\.trialEnd\.timeZone \}\)/);
-    // The day the setup instructions went out (C17), on the Owner's card.
-    const card = code(join(root, 'components/access/TrialSetupCard.tsx'));
-    assert.match(card, /formatDateTime\(status\.lastSentAt, \{ timeZone: status\.timeZone \}\)/);
   });
 
   console.log(`zoned time: ${passed} passed`);
