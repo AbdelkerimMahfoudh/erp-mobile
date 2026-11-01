@@ -54,16 +54,14 @@ it('Analytics: returned units and returns counted apart, and the rule stated', (
   assert.match(a, /t\('analytics\.rule'\)/);
 });
 
-it('Goals and the Daily closing state what their count and figures mean', () => {
-  assert.match(code(read('../app/goals/index.tsx')), /t\(`goals\.rule\.\$\{goal\.metric\}`\)/);
-  for (const m of ['gross_profit', 'revenue', 'sales_count', 'units_sold']) assert.ok(en.includes(`'goals.rule.${m}':`), m);
+it('The Daily closing states what its count and figures mean', () => {
   const closing = code(read('../app/closing/index.tsx'));
   assert.match(closing, /count: String\(report\.sales\.salesCount \?\? report\.sales\.count\)/);
   assert.match(closing, /t\('dailyReport\.countRule'\)/);
 });
 
 it('the definition reads the same everywhere: invoices less whole sales cancelled, a return apart', () => {
-  for (const k of ['dailyReport.countRule', 'analytics.rule', 'goals.rule.sales_count']) {
+  for (const k of ['dailyReport.countRule', 'analytics.rule']) {
     const line = en.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
     assert.match(line, /less whole sales cancelled/, k);
   }
@@ -81,17 +79,6 @@ it('Home: net sales under the gross value and its adjustments; the chart and Col
   const line = (k: string) => en.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
   assert.match(line('home.chart.basis'), /before cancellations and returns/);
   assert.match(line('home.sales.collected.scope'), /older debts included/);
-});
-
-it('the revenue goal is named for what it measures, and the units goal takes returns off (docs/54)', () => {
-  for (const lang of ['en', 'fr', 'ar']) {
-    const file = read(`./i18n/${lang}.ts`);
-    const line = (k: string) => file.split(/\r?\n/).find((l) => l.includes(`'${k}':`)) ?? '';
-    assert.ok(!/Money taken|Argent encaissé|المبالغ المحصّلة/.test(line('goals.metric.revenue')), lang);
-    assert.equal(line('goals.metric.revenue'), line('moneyOverview.netSales').replace('moneyOverview.netSales', 'goals.metric.revenue'), lang);
-  }
-  const units = en.split(/\r?\n/).find((l) => l.includes(`'goals.rule.units_sold':`)) ?? '';
-  assert.match(units, /less items on cancelled sales and items returned, each taken off on the day it was approved/);
 });
 
 it('Analytics says what "not moving" counts, and a product row keeps its width for the name', () => {

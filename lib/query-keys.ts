@@ -105,9 +105,6 @@ export const qk = {
   discrepancy: (id: string) => ['discrepancy', id] as const,
   /** The signed-in person's own ledger — theirs, not a branch's. */
   myDebt: () => ['my-debt'] as const,
-  /** Goals (Milestone F). Branch-scoped: two branches aim at different things. */
-  goals: (branchId: string | null, includeArchived: boolean) =>
-    ['goals', branchId, includeArchived] as const,
   /** Stock imports (Milestone G). Branch-scoped: stock lands in one branch. */
   imports: (branchId: string | null) => ['imports', branchId] as const,
   import: (id: string) => ['import', id] as const,

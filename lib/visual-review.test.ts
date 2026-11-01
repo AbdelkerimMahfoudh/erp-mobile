@@ -38,7 +38,7 @@ it('a placeholder is single-braced, and every language fills the same ones', () 
 });
 
 it('one is never "1 items", "1 lines", "1 phones" or "the 1 days before"', () => {
-  for (const key of ['sales.items.one', 'sales.itemsInOneLine', 'salesPeriod.phones.one', 'salesPeriod.dayLine.one', 'goals.hint.running.one', 'goals.hint.notStarted.one']) {
+  for (const key of ['sales.items.one', 'sales.itemsInOneLine', 'salesPeriod.phones.one', 'salesPeriod.dayLine.one']) {
     for (const [lang, catalogue] of Object.entries(catalogues)) assert.ok(catalogue[key], `${lang} lacks ${key}`);
   }
   const sales = code('app/sales/index.tsx');
@@ -59,14 +59,6 @@ it('every warning worded for one exists in every language, with the same placeho
   // Eight since D159 added money moved after a count.
   assert.equal(singles.length, 8);
   for (const key of singles) for (const [lang, catalogue] of Object.entries(catalogues)) assert.ok(catalogue[key], `${lang} lacks ${key}`);
-});
-
-it('a target says its daily figure as money or a count, and its dates in words', () => {
-  const goals = code('app/goals/index.tsx');
-  assert.match(goals, /goal\.isMoney \? formatMoney\(perDay\) : formatNumber\(perDay/);
-  assert.doesNotMatch(goals, /needed: String\(/, 'the bare "10675 a day"');
-  assert.match(goals, /formatDayRange\(goal\.periodStart, goal\.periodEnd\)/);
-  assert.match(code('app/goals/new.tsx'), /from: formatDate\(month\.periodStart\), to: formatDate\(month\.periodEnd\)/);
 });
 
 it('choosing Custom opens the hours field and changes nothing — never a silent "No returns"', () => {
@@ -144,22 +136,13 @@ it('a page opened by a link without the right says so — never an empty "all no
   const outstanding = code('app/outstanding.tsx');
   assert.match(outstanding, /useOutstanding\(\{ enabled: canView \}\)/);
   assert.match(outstanding, /if \(!canView\) \{[\s\S]*?t\('money\.noPermission\.title'\)/);
-  for (const [file, permission] of [['app/loans/new.tsx', 'loan.manage'], ['app/goals/new.tsx', 'goal.manage'], ['app/receive/pick.tsx', 'import.run']]) {
+  for (const [file, permission] of [['app/loans/new.tsx', 'loan.manage'], ['app/receive/pick.tsx', 'import.run']]) {
     const src = code(file);
     assert.match(src, new RegExp(`usePermission\\('${permission.replace('.', '\\.')}'\\)`), file);
     assert.match(src, /<ErrorState error=\{new ApiError\(t\('state\.error\.permission\.body'\), 403\)\} \/>/, file);
   }
   // Nobody is asked for the team list who could not use it.
-  assert.match(code('app/goals/new.tsx'), /useAssignableTeam\(\{ enabled: canManage && canNamePerson \}\)/);
   assert.match(code('app/discrepancies/[id].tsx'), /useAssignableTeam\(\{ enabled: canDecide \}\)/);
-});
-
-it('"One person" is offered only to a role that can list the people — never an option with no names to pick', () => {
-  // A Manager holds goal.manage but not user.manage: GET /users refused, and the form could never be saved.
-  const goal = code('app/goals/new.tsx');
-  assert.match(goal, /const canNamePerson = usePermission\('user\.manage'\);/);
-  assert.match(goal, /\.\.\.\(canNamePerson \? \[\{ value: 'user', label: t\('goals\.scope\.user'\) \}\] : \[\]\)/);
-  assert.match(goal, /setScope\(v\.scope === 'user' && !canNamePerson \? 'branch' :/, 'a saved draft cannot reopen on the hidden choice');
 });
 
 it('at 320 points with large text a status wraps inside its chip and the row makes room — nothing runs off the screen', () => {

@@ -179,56 +179,7 @@ export const fr: Catalogue = {
   'debt.kind.repayment': 'Remboursé',
   'debt.kind.deduction': 'Retenu sur salaire',
   'debt.kind.forgiveness': 'Annulé',
-  'goals.title': 'Objectifs',
-  'goals.filter.active': 'En cours',
-  'goals.filter.all': 'Y compris terminés',
-  'goals.empty.title': 'Aucun objectif fixé',
-  'goals.empty.body': 'Personne n’a encore fixé d’objectif pour cette boutique.',
-  'goals.empty.body.manager': 'Fixez-en un et toute l’équipe verra où en est le mois.',
-  'goals.set.action': 'Fixer un objectif',
-  'goals.set.title': 'Fixer un objectif',
-  'goals.set.who': 'Pour qui',
-  'goals.set.what': 'Quoi viser',
-  'goals.set.howMuch': 'Combien',
-  'goals.set.period': 'Du {from} au {to}',
-  'goals.set.note': 'Note',
-  'goals.set.notePlaceholder': 'Ce que l’équipe doit savoir',
-  'goals.set.failed': 'Impossible de fixer cet objectif',
-  'goals.scope.company': 'Toute l’entreprise',
-  'goals.scope.branch': 'Cette boutique',
-  'goals.scope.user': 'Une personne',
-  'goals.metric.gross_profit': 'Bénéfice conservé',
-  'goals.metric.revenue': 'Ventes nettes',
-  'goals.metric.sales_count': 'Nombre de ventes',
-  'goals.metric.units_sold': 'Articles vendus',
-  'goals.rule.gross_profit': 'Net des retours et des ventes annulées, chacun le jour de son approbation.',
-  'goals.rule.revenue': 'Net des retours et des ventes annulées, chacun le jour de son approbation.',
-  'goals.rule.sales_count': 'Factures moins ventes annulées en entier, chacune à sa date. Un article retourné reste une vente et compte comme retour.',
-  'goals.rule.units_sold': 'Articles des ventes, moins ceux des ventes annulées et les articles retournés, chacun déduit le jour de son approbation.',
-  'goals.metric.gross_profit.help':
-    'Ce qui reste après le coût des marchandises. Le loyer et les factures n’entrent pas en compte.',
-  'goals.metric.revenue.help': 'Les ventes après annulations et retours, avant les coûts.',
-  'goals.metric.sales_count.help':
-    'Combien de ventes. Trois téléphones sur un même ticket comptent pour une.',
-  'goals.metric.units_sold.help': 'Combien d’articles ont été vendus et le sont restés.',
-  'goals.achieved': 'Jusqu’ici',
-  'goals.target': 'Objectif',
-  'goals.state.not_started': 'Pas commencé',
-  'goals.state.on_track': 'En bonne voie',
-  'goals.state.behind': 'En retard',
-  'goals.state.met': 'Atteint',
-  'goals.state.missed': 'Non atteint',
-  'goals.hint.met': 'Objectif atteint — {percent} % de la cible.',
-  'goals.hint.missed': 'La période s’est terminée à {percent} %.',
-  'goals.hint.notStarted': 'Démarre bientôt, sur {days} jours.',
-  'goals.hint.notStarted.one': 'Démarre bientôt, sur une journée.',
-  'goals.hint.running': '{needed} par jour sur les {days} jours restants.',
-  'goals.hint.running.one': '{needed} à faire le dernier jour.',
-  'goals.archived.reason': 'Clos : {reason}',
 
-  // ── Goals (Milestone F) ───────────────────────────────────────────────────
-  // The state is always a word before it is a number: "62%" does not tell
-  // anybody whether that is good on the 20th of the month.
 
   // ── Correcting a confirmed payment (Milestone B) ──────────────────────────
   // Worded throughout so "asked for" can never be mistaken for "done".
@@ -713,7 +664,6 @@ export const fr: Catalogue = {
   'nav.returns': 'Retours',
   'nav.transfers': 'Transferts',
   'nav.expenses': 'Dépenses',
-  'nav.goals': 'Objectifs',
   // ── Bringing a stock list in (Milestone G) ────────────────────────────────
   // Worded so that picking a file can never be mistaken for importing one.
   'imports.title': 'Importer du stock',
@@ -2734,7 +2684,7 @@ export const fr: Catalogue = {
   'hub.network.title': 'Réseau de boutiques',
   'hub.network.desc': 'Boutiques partenaires et stock confié entre boutiques.',
   'hub.performance.title': 'Performance',
-  'hub.performance.desc': 'Résultats, tendances et objectifs.',
+  'hub.performance.desc': 'Résultats et tendances.',
   'hub.business.title': 'Équipe et entreprise',
   'hub.business.desc': 'Personnel, accès de l’entreprise et configuration de la boutique.',
   'hub.account.title': 'Compte et sécurité',

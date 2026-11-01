@@ -63,13 +63,13 @@ const APP_DIR = path.join(MOBILE, 'app');
 // ── the real seeded role permission sets ─────────────────────────────────────
 
 const OWNER = new Set(
-  'branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,goal.manage,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
+  'branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
     ',',
   ),
 );
 
 const MANAGER = new Set(
-  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,goal.manage,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
+  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
     ',',
   ),
 );
@@ -306,7 +306,7 @@ it('an Employee sees no money report, no imports and no loans', () => {
   assert.deepEqual(stock, ['catalog', 'transfers'], 'no import.run');
 
   const performance = visibleChildren(hubById('performance')!, EMPLOYEE).map((c) => c.id);
-  assert.deepEqual(performance, ['goals'], 'no report.view, so no analytics');
+  assert.deepEqual(performance, [], 'no report.view, so no analytics');
 });
 
 it('Import stock is a Stock-tab action, not a hub child or a More row (2026-10-05)', () => {
@@ -325,8 +325,9 @@ it('Suppliers is not a destination and has no screen (removed from the MVP)', ()
   assert.ok(!fs.existsSync(path.join(MOBILE, 'app', 'suppliers')));
 });
 
-it('Goals and Analytics remain reachable', () => {
-  for (const id of ['goals', 'analytics']) {
+it('Analytics remains reachable; Goals are out of the product (D227)', () => {
+  assert.ok(!allDestinations().some((d) => d.id === 'goals'));
+  for (const id of ['analytics']) {
     assert.ok(allDestinations().some((d) => d.id === id), id + ' must stay a destination');
     assert.ok(MORE_GROUPS.some((g) => g.destinationIds.includes(id)), id + ' must stay on More');
   }
@@ -439,7 +440,7 @@ it('every route the old More screen linked to is still linked, unchanged', () =>
   const legacy = [
     // Suppliers was removed from the MVP on purpose.
     '/sales', '/returns', '/catalog', '/transfers', '/team',
-    '/money', '/analytics', '/expenses', '/closing', '/goals', '/stores',
+    '/money', '/analytics', '/expenses', '/closing', '/stores',
     // /subscription became /access (2026-10-05): the status screen, under the same place.
     '/consignments', '/loans', '/sync', '/access', '/imports',
     '/settings', '/devices', '/notifications', '/select-branch',
@@ -742,9 +743,9 @@ it('what More leaves out is reachable from a tab, and says which', () => {
   assert.match(partners, /router\.push\('\/consignments' as Href\)/, 'Partners must lead to consignments');
 });
 
-it('More lists Goals and Analytics, and nothing deferred', () => {
+it('More lists Analytics, and nothing deferred', () => {
   const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
-  for (const id of ['analytics', 'goals', 'sales', 'returns', 'approvals', 'team', 'settings']) {
+  for (const id of ['analytics', 'sales', 'returns', 'approvals', 'team', 'settings']) {
     assert.ok(grouped.includes(id), id + ' must be on More');
   }
   assert.ok(!grouped.includes('suppliers'));
@@ -758,8 +759,7 @@ it('groups show only permitted destinations and never render empty', () => {
       for (const d of entry.destinations) assert.ok(canSee(d, granted), d.id + ' shown without permission');
     }
   }
-  const employee = visibleGroups(EMPLOYEE).find((e) => e.group.id === 'reports')!.destinations.map((d) => d.id);
-  assert.deepEqual(employee, ['goals'], 'an Employee has no report.view, so no analytics');
+  assert.ok(!visibleGroups(EMPLOYEE).some((e) => e.group.id === 'reports'), 'an Employee has no report.view, so no reports');
   const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
   // The branch's return policy (0108, inside Business settings) and inviting someone to Dukan ERP (0103, D221) are a Manager's too.
   // Acting Owner too (D225): the person appointed reads their own appointment there.

@@ -81,7 +81,7 @@ it('nor anything that settles money', () => {
 it('nor anything that grants authority', () => {
   for (const kind of [
     'user.update', 'settings.update', 'price.set', 'price.remove', 'sale.belowCostOverride',
-    'goal.create', 'goal.archive', 'product.create', 'auth.login', 'auth.logout',
+    'product.create', 'auth.login', 'auth.logout',
     'device.adopt', 'device.revoke',
   ]) {
     assert.equal(classify(kind), 'online_only', `${kind} must be online-only`);

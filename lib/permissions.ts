@@ -131,7 +131,6 @@ export const PERMISSIONS = [
    * gated at all — an employee with a personal target must see it, and
    * 'report.view' would hand them the shop's profit reporting with it.
    */
-  'goal.manage',
   /**
    * Milestone H — inter-store consignment. Narrow keys, because consignment
    * mixes physical acts (hand a phone over) with company-level authority

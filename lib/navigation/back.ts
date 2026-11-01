@@ -98,8 +98,6 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/imports/[id]': '/imports',
   '/analytics': TABS.more,
   '/alerts': '/analytics',
-  '/goals': TABS.more,
-  '/goals/new': '/goals',
   '/team': TABS.more,
   '/access': TABS.more,
   '/settings': TABS.more,

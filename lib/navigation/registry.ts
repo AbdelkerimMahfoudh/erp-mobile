@@ -268,13 +268,10 @@ export const HUBS: readonly Hub[] = [
     descriptionKey: 'hub.performance.desc',
     icon: 'BarChart3',
     placement: 'business',
-    // Sales analyses and sales targets: the store's; the counter's reports are its own tab.
+    // Sales analyses: the store's; the counter's reports are its own tab.
     activity: 'electronics',
     children: [
       { id: 'analytics', route: '/analytics', titleKey: 'nav.analytics', icon: 'BarChart3', perm: 'report.view' },
-      // Ungated: an employee with a personal target must be able to see it, and
-      // the list scopes somebody without `goal.manage` to their own.
-      { id: 'goals', route: '/goals', titleKey: 'nav.goals', icon: 'Target' },
     ],
   },
   {
@@ -344,7 +341,7 @@ export interface MoreGroup {
 export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
-  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics', 'goals'] },
+  { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics'] },
   { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings', 'acting-owner', 'invite'] },
   { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
 ];
@@ -470,7 +467,6 @@ export const WRITE_ONLY_ROUTES: Readonly<Record<string, string>> = {
   '/consignments/new': 'A consignment.',
   '/loans/new': 'A loan.',
   '/returns/new': 'A return.',
-  '/goals/new': 'A target.',
   '/catalog/new': 'A product.',
   '/catalog/edit': 'A product change.',
   '/unit/edit': 'A stock correction.',

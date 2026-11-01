@@ -125,8 +125,6 @@ export const OPERATIONS: readonly OperationSpec[] = [
   spec('expense.reject', 'online_only', 'Refusing one is equally a decision somebody is waiting on'),
 
   // ── Goals, people, settings, identity ─────────────────────────────────────
-  spec('goal.create', 'online_only', 'Sets a target other people are then measured against'),
-  spec('goal.archive', 'online_only', 'Retiring a target changes what a whole branch is measured against'),
   spec('user.update', 'online_only', 'Changes who can do what, and a late replay could restore access somebody just removed'),
   spec('settings.update', 'online_only', 'Company-wide policy that every branch reads'),
   spec('receivingAccount.create', 'online_only', 'Where money is received is policy, not a local note'),
@@ -206,7 +204,6 @@ export const DRAFTABLE_FORMS: readonly { form: string; becomes: string; note: st
   { form: 'consignment.proposal', becomes: 'consignment.create', note: 'Drafting must not imply the other store was told' },
   { form: 'loan.proposal', becomes: 'loan.create', note: 'Same — nobody has been notified' },
   { form: 'closing.counts', becomes: 'closing.count', note: 'Counted values survive; the day cannot be closed' },
-  { form: 'goal.form', becomes: 'goal.create', note: 'A target nobody has been set yet' },
   { form: 'agent.exchange', becomes: 'agent.exchange.record', note: 'The unsent exchange survives a restart; the customer’s number stays in SecureStore, never in the draft' },
 ] as const;
 
