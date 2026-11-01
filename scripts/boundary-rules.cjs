@@ -70,7 +70,7 @@ function normalizePath(text) {
  * its query key and its card's test id. Its words: "trial"; "essai" alone, never inside "nécessaire" or "essais"
  * (attempts); the Arabic root without its diacritics.
  */
-const TRIAL_KEY = /^(trialSetup\.|access\.state\.trial_|access\.trial\.)/;
+const TRIAL_KEY = /^access\.state\.trial_/; // D227: state words only, none of which says trial.
 const TRIAL_WORDS = words(/\btrial\b|\bessai\b|تجريب|تجرب/i);
 const TRIAL_NAME = /^(?:(?:trialSetup|access\.state\.trial_|access\.trial)[\w.]*|\/?account\/trial-setup|trial-setup(?:-card)?)$/;
 

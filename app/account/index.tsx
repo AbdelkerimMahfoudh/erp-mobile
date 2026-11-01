@@ -272,8 +272,6 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       await queryClient.invalidateQueries({ queryKey: qk.account });
       // The new number carries its own consent; the replaced number's ended on the server.
       await queryClient.invalidateQueries({ queryKey: qk.whatsappConsent });
-      // A verified number may be what the free trial's setup instructions were waiting for (0095): read their status again.
-      await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     } catch (e) {
       if (classifyError(e).kind === 'timeout_uncertain') {
         // The answer was lost, not necessarily the confirmation: the account, read again, says which.
@@ -298,7 +296,6 @@ function WhatsAppSection({ me }: { me: AccountView }) {
       return;
     }
     queryClient.setQueryData(qk.account, now);
-    await queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
     if (now.whatsappVerified && now.phone === whatsAppNumber(typed)) {
       setLost(null);
       toast.success(t('account.whatsapp.done'));

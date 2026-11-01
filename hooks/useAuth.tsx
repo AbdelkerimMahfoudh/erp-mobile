@@ -364,7 +364,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         void queryClient.invalidateQueries({ queryKey: qk.entitlement() });
-        void queryClient.invalidateQueries({ queryKey: qk.trialSetup() });
       }
     });
     return () => sub.remove();

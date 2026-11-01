@@ -28,10 +28,8 @@ export function AccessNotice({ style }: { style?: StyleProp<ViewStyle> }) {
   if (kind === 'none') return null;
 
   const message =
-    kind === 'read_only'
+    kind === 'read_only' || kind === 'trial_ended'
       ? t('access.readOnly.notice')
-      : kind === 'trial_ended'
-        ? t('access.trial.ended', { date: access.trialEnd ? formatDateTime(access.trialEnd.at, { timeZone: access.trialEnd.timeZone }) : '' })
         : t('access.grace.notice', { deadline: access.graceEnd ? formatDateTime(access.graceEnd, { timeZone: access.timeZone ?? undefined }) : '' });
 
   return (

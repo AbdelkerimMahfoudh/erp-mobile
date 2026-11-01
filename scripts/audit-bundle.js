@@ -244,10 +244,6 @@ const pageText = (html) =>
     .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' })[e]);
 
 const PRESENT = [
-  ['read-only status route', 'account/trial-setup'],
-  ['card title (EN)', catalogueValue('en', 'trialSetup.title')],
-  ['card title (FR)', catalogueValue('fr', 'trialSetup.title')],
-  ['card title (AR)', catalogueValue('ar', 'trialSetup.title')],
   ['browser guard’s refusal', guardRefusal()],
 ];
 

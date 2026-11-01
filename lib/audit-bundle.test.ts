@@ -51,8 +51,6 @@ function exportWith(platform: 'web' | 'ios', injected = '', without = ''): strin
   }
   const present = Object.fromEntries((auditor.PRESENT as [string, string][]).map(([check, text]) => [check, JSON.stringify(text)]));
   add(auditor.GUARD, `var refusal=${present['browser guard’s refusal']};`);
-  add('/lib/trial-setup.ts', `var route=${present['read-only status route']};`);
-  for (const lang of ['EN', 'FR', 'AR']) add(`/lib/i18n/${lang.toLowerCase()}.ts`, `var title=${present[`card title (${lang})`]};`);
   const kept = [...modules].filter(([module]) => module !== without);
   const lines = kept.map(([, code]) => `__d(function(g,r,i,a,m,e,d){var x=r(1),u=r(2);${code.join('')}});`);
   const mappings = kept.map((_, i) => `A${vlq(i === 0 ? 0 : 1)}AA`).join(';');
@@ -236,8 +234,6 @@ describe('words a screen could say', () => {
       caught('web', `;n.x=${JSON.stringify(text)};`, named);
     }
     caught('ios', ";n.x='Use my free '+'trial';", named);
-    // The trial's own sentence, as the catalogue writes it, is no finding.
-    assert.deepEqual(findings(exportWith('web', `;n.x=${JSON.stringify('Free trial: active, ends {date}')};`)), []);
     const page = exportWith('web');
     writeFileSync(join(page, 'access.html'), '<html><body><p>Your business is eligible for a 7-day free trial</p><p>Enable your free trial</p></body></html>');
     assert.ok(findings(page).includes(`web: ${named}`), 'a page rendered ahead of time');

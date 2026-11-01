@@ -19,10 +19,8 @@ import { isStale, useEntitlement, type Entitlement } from '../lib/entitlement';
  * have to be kept in step with a commercial contract the app has no business
  * knowing. Every figure comes from the server; nothing here derives a state.
  *
- * A free trial (0095) is said the same way: the server's exact end, on the
- * business's own clock with that clock's name — never the phone's zone, never a
- * zone written here — while it runs, and the moment it ended once it is over.
- * So is the grace (0099): its deadline on the business's clock, and the
+ * Access that runs out is dated on the business's own clock with that clock's
+ * name — never the phone's zone. So is the grace (0099): its deadline on the business's clock, and the
  * allowance of three in any 12 months as the server counts it — how many are
  * left, that none followed, or that none would follow — never counted here.
  */
@@ -30,6 +28,7 @@ export default function AccessScreen() {
   const { t } = useTranslation();
   const query = useEntitlement();
   const mayManageStaff = usePermission('user.manage');
+  const runsBusiness = usePermission('settings.manage');
 
   if (query.isLoading) {
     return (
@@ -63,7 +62,10 @@ export default function AccessScreen() {
             <Text variant="bodyStrong">{t(`access.state.${e.state}`)}</Text>
             <Chip tone={toneFor(access)} label={t(`access.state.${e.state}`)} size="sm" dot />
           </View>
-          <StatusBody access={access} entitlement={e} />
+          <StatusBody access={access} entitlement={e} runsBusiness={runsBusiness} />
+          <Text variant="caption" tone="secondary">
+            {t('access.covered', { stores: e.subscribedBranchCount, seats: e.seatLimit })}
+          </Text>
           <Divider style={styles.divider} />
           <Text variant="caption" tone="secondary">
             {t('access.managed')}
@@ -84,7 +86,7 @@ export default function AccessScreen() {
 }
 
 /** The words for each mode — the server's dates, shown verbatim. */
-function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitlement: Entitlement }) {
+function StatusBody({ access, entitlement: e, runsBusiness }: { access: BusinessAccess; entitlement: Entitlement; runsBusiness: boolean }) {
   const { t } = useTranslation();
 
   const grace = e.grace;
@@ -110,7 +112,7 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
     return (
       <View style={styles.body}>
         <InlineNotice tone="danger">
-          {access.trialEnd ? t('access.trial.ended', { date: trialDate(access.trialEnd) }) : t('access.readOnly.body')}
+          {runsBusiness ? t('access.inactive.owner') : t('access.readOnly.body')}
         </InlineNotice>
         {allowance && !access.trialEnd && grace?.status === 'unavailable' ? (
           <Text variant="caption" tone="secondary">
@@ -126,12 +128,11 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
 
   if (access.mode === 'open') {
     if (access.trialEnd) {
-      const date = trialDate(access.trialEnd);
-      // Heard as a trial that is running, with its end — never confused with one that has not started.
       return (
-        <Text variant="body" accessibilityLabel={t('access.trial.active', { date })}>
-          {t('access.trial.ends', { date })}
-        </Text>
+        <View style={styles.body}>
+          <Text variant="body">{t('access.active.until', { date: endDate(access.trialEnd) })}</Text>
+          <DaysLeft days={e.daysRemaining} />
+        </View>
       );
     }
     // The later of a running grant's end and the paid end; a grant without an end has no date.
@@ -139,6 +140,7 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
     return (
       <View style={styles.body}>
         <Text variant="body">{end ? t('access.active.until', { date: formatDate(end) }) : t('access.active.open')}</Text>
+        {end ? <DaysLeft days={e.daysRemaining} /> : null}
         {/* The server's answer: this period's end, passing unextended, would open no grace. */}
         {allowance && grace?.availableAtPeriodEnd === false ? (
           <Text variant="caption" tone="secondary">
@@ -153,8 +155,19 @@ function StatusBody({ access, entitlement: e }: { access: BusinessAccess; entitl
   return null;
 }
 
-/** A free trial's instant on the business's clock, with the clock's name (`formatDateTime`'s `timeZone`). */
-function trialDate(end: TrialEnd): string {
+/** The server's count of days left; the phone does no date arithmetic. */
+function DaysLeft({ days }: { days?: number | null }) {
+  const { t } = useTranslation();
+  if (!days || days <= 0) return null;
+  return (
+    <Text variant="caption" tone="secondary">
+      {days === 1 ? t('access.daysLeft.one') : t('access.daysLeft', { days })}
+    </Text>
+  );
+}
+
+/** An end on the business's clock, with the clock's name (`formatDateTime`'s `timeZone`). */
+function endDate(end: TrialEnd): string {
   return formatDateTime(end.at, { timeZone: end.timeZone });
 }
 

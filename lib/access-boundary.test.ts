@@ -687,76 +687,19 @@ function packagesOf(source: string): string[] {
  */
 const TRIAL_COPY: Record<string, Record<string, string>> = {
   en: {
-    'access.state.trial_available': 'Not started',
-    'access.state.trial_active': 'Free trial',
-    'access.state.trial_expired': 'Free trial ended',
-    'access.trial.ends': 'Ends {date}',
-    'access.trial.active': 'Free trial: active, ends {date}',
-    'access.trial.ended': 'The free trial ended on {date}. You can still read and export everything.',
-    'trialSetup.title': 'Your business is eligible for a 7-day free trial',
-    'trialSetup.notStarted': 'Your trial has not started yet.',
-    'trialSetup.status': 'Trial status: Available',
-    'trialSetup.status.label': 'Trial status: Available, not started',
-    'trialSetup.duration': 'Duration after activation: {durationDays} days',
-    'trialSetup.startsAfterClaim': 'Starts only after you claim it',
-    'trialSetup.contact': 'Verified contact: {masked}',
-    'trialSetup.delivery.sent': 'We sent the instructions for completing your business setup to your verified contact.',
-    'trialSetup.delivery.sent.whatsapp': 'We sent the instructions for completing your business setup by WhatsApp to {masked} on {date}.',
-    'trialSetup.delivery.sent.email': 'We sent the instructions for completing your business setup by email to {masked} on {date}.',
-    'trialSetup.delivery.sending': 'We are sending the instructions for completing your business setup to your verified contact.',
-    'trialSetup.delivery.waiting.phone': 'The instructions will be sent automatically once your WhatsApp number is verified.',
-    'trialSetup.delivery.waiting.email': 'The instructions will be sent automatically once your email address is verified.',
-    'trialSetup.delivery.failed': 'The setup instructions could not be sent. Your trial has not started. Please contact Dukan ERP support.',
-    'trialSetup.delivery.not_sent': 'The setup instructions have not been sent. Your trial has not started. Please contact Dukan ERP support.',
-    'trialSetup.delivery.not_sent.latest': 'The setup instructions were sent to your verified contact on {date}, but the latest ones have not been sent. Your trial has not started. Please contact Dukan ERP support.',
+    'access.state.trial_available': 'Not active',
+    'access.state.trial_active': 'Active',
+    'access.state.trial_expired': 'Access ended',
   },
   fr: {
-    'access.state.trial_available': 'Pas encore commencé',
-    'access.state.trial_active': 'Essai gratuit',
-    'access.state.trial_expired': 'Essai gratuit terminé',
-    'access.trial.ends': 'Se termine le {date}',
-    'access.trial.active': 'Essai gratuit : actif, se termine le {date}',
-    'access.trial.ended': 'L’essai gratuit s’est terminé le {date}. Vous pouvez encore tout consulter et tout exporter.',
-    'trialSetup.title': 'Votre commerce peut bénéficier d’un essai gratuit de 7 jours',
-    'trialSetup.notStarted': 'Votre essai n’a pas encore commencé.',
-    'trialSetup.status': 'Statut de l’essai : disponible',
-    'trialSetup.status.label': 'Statut de l’essai : disponible, pas encore commencé',
-    'trialSetup.duration': 'Durée après activation : {durationDays} jours',
-    'trialSetup.startsAfterClaim': 'Ne commence qu’après votre demande',
-    'trialSetup.contact': 'Contact vérifié : {masked}',
-    'trialSetup.delivery.sent': 'Nous avons envoyé les instructions pour finaliser la configuration de votre commerce à votre contact vérifié.',
-    'trialSetup.delivery.sent.whatsapp': 'Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par WhatsApp au {masked} le {date}.',
-    'trialSetup.delivery.sent.email': 'Nous avons envoyé les instructions pour finaliser la configuration de votre commerce par e-mail à {masked} le {date}.',
-    'trialSetup.delivery.sending': 'Nous envoyons les instructions pour finaliser la configuration de votre commerce à votre contact vérifié.',
-    'trialSetup.delivery.waiting.phone': 'Les instructions seront envoyées automatiquement dès que votre numéro WhatsApp sera vérifié.',
-    'trialSetup.delivery.waiting.email': 'Les instructions seront envoyées automatiquement dès que votre adresse e-mail sera vérifiée.',
-    'trialSetup.delivery.failed': 'Les instructions de configuration n’ont pas pu être envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
-    'trialSetup.delivery.not_sent': 'Les instructions de configuration n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
-    'trialSetup.delivery.not_sent.latest': 'Les instructions de configuration ont été envoyées à votre contact vérifié le {date}, mais les plus récentes n’ont pas été envoyées. Votre essai n’a pas commencé. Veuillez contacter l’assistance Dukan ERP.',
+    'access.state.trial_available': 'Non actif',
+    'access.state.trial_active': 'Actif',
+    'access.state.trial_expired': 'Accès terminé',
   },
   ar: {
-    'access.state.trial_available': 'لم تبدأ بعد',
-    'access.state.trial_active': 'فترة تجريبية مجانية',
-    'access.state.trial_expired': 'انتهت الفترة التجريبية المجانية',
-    'access.trial.ends': 'تنتهي في {date}',
-    'access.trial.active': 'الفترة التجريبية المجانية: نشطة، تنتهي في {date}',
-    'access.trial.ended': 'انتهت الفترة التجريبية المجانية في {date}. لا يزال بإمكانك قراءة كل شيء وتصديره.',
-    'trialSetup.title': 'نشاطك التجاري مؤهل لفترة تجريبية مجانية مدتها 7 أيام',
-    'trialSetup.notStarted': 'لم تبدأ فترتك التجريبية بعد.',
-    'trialSetup.status': 'حالة الفترة التجريبية: متاحة',
-    'trialSetup.status.label': 'حالة الفترة التجريبية: متاحة، لم تبدأ بعد',
-    'trialSetup.duration': 'المدة بعد التفعيل: {durationDays} أيام',
-    'trialSetup.startsAfterClaim': 'لا تبدأ إلا بعد أن تطلبها',
-    'trialSetup.contact': 'وسيلة الاتصال المُتحقق منها: {masked}',
-    'trialSetup.delivery.sent': 'أرسلنا تعليمات إكمال إعداد نشاطك التجاري إلى وسيلة الاتصال التي تم التحقق منها.',
-    'trialSetup.delivery.sent.whatsapp': 'أرسلنا تعليمات إكمال إعداد نشاطك التجاري عبر واتساب إلى {masked} في {date}.',
-    'trialSetup.delivery.sent.email': 'أرسلنا تعليمات إكمال إعداد نشاطك التجاري عبر البريد الإلكتروني إلى {masked} في {date}.',
-    'trialSetup.delivery.sending': 'نرسل الآن تعليمات إكمال إعداد نشاطك التجاري إلى وسيلة الاتصال التي تم التحقق منها.',
-    'trialSetup.delivery.waiting.phone': 'سيتم إرسال التعليمات تلقائيًا بمجرد التحقق من رقم واتساب الخاص بك.',
-    'trialSetup.delivery.waiting.email': 'سيتم إرسال التعليمات تلقائيًا بمجرد التحقق من بريدك الإلكتروني.',
-    'trialSetup.delivery.failed': 'تعذّر إرسال تعليمات الإعداد. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم تطبيق دكان.',
-    'trialSetup.delivery.not_sent': 'لم تُرسل تعليمات الإعداد. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم تطبيق دكان.',
-    'trialSetup.delivery.not_sent.latest': 'أُرسلت تعليمات الإعداد إلى وسيلة الاتصال التي تم التحقق منها في {date}، لكن أحدث التعليمات لم تُرسل. لم تبدأ فترتك التجريبية. يرجى التواصل مع دعم تطبيق دكان.',
+    'access.state.trial_available': 'غير مفعّل',
+    'access.state.trial_active': 'نشط',
+    'access.state.trial_expired': 'انتهى الوصول',
   },
 };
 
@@ -872,13 +815,7 @@ describe('the website’s entry points are gone from the app', () => {
       assert.doesNotMatch(text, /api\.(post|put|patch|delete)(?:<[^>]*>)?\(\s*['`][^'`]*trial/i, `${f} writes something about the trial`);
     }
     const reads = SOURCES.flatMap((f) => [...code(f).matchAll(/api\.get(?:<[^>]*>)?\(\s*['`]([^'`]*trial[^'`]*)['`]/gi)].map((m) => m[1]));
-    assert.deepEqual(reads, ['/account/trial-setup']);
-  });
-
-  it('the Owner’s trial card is display only: nothing pressable, linked, sent or counted down', () => {
-    const card = strip(read('components/access/TrialSetupCard.tsx'));
-    assert.doesNotMatch(card, /\b(Button|IconButton|Pressable|Touchable\w*|Link|FilterChip|Toggle)\b|onPress|onLongPress|href=/);
-    assert.doesNotMatch(card, /\bapi\b|api\.post|useMutation|useRouter|router\.|Linking|WebView|useCountdown|Date\.now/);
+    assert.deepEqual(reads, [], 'D227: not even a read');
   });
 
   it('the platform console is not in the customer app (2026-10-05)', () => {
@@ -916,14 +853,21 @@ describe('the access screens', () => {
     assert.doesNotMatch(closed, /http|www\.|MRU|\d{3,}|\bpay|portal|website|renew|subscri/i);
   });
 
-  it('the status screen shows state and dates only — no price, no allowance arithmetic, no action, no clock', () => {
+  it('the status screen shows state, dates, the days left the server counts and what is covered (D227) — no price, no arithmetic, no action, no clock', () => {
     assert.match(status, /access\.active\.until/);
     assert.match(status, /access\.grace\.body/);
     assert.match(status, /access\.readOnly\.body/);
     assert.match(status, /access\.managed/);
-    assert.doesNotMatch(status, /http|www\.|MRU|\bpay|portal|website|renew|subscri|Bankily/i);
-    assert.doesNotMatch(status, /subscribedBranchCount|seatLimit|includedSeats|additionalSeats|seatsUsed|daysRemaining|graceHoursRemaining/, 'no billing composition, no countdown computed on the phone');
+    assert.doesNotMatch(status.replace(/subscribedBranchCount/g, ''), /http|www\.|MRU|\bpay|portal|website|renew|subscri|Bankily/i);
+    assert.doesNotMatch(status, /includedSeats|additionalSeats|seatsUsed|graceHoursRemaining/, 'no billing composition, no countdown computed on the phone');
     assert.doesNotMatch(status, /Date\.now|new Date\(|getTime\(/, 'no date arithmetic on the phone');
+  });
+
+  it('the inactive message is the owner’s, word for word, in all three languages (D227)', () => {
+    const said = (lang: string) => entries(lang).find(([key]) => key === 'access.inactive.owner')?.[1];
+    assert.equal(said('en'), 'Your business access is not active. Account information has been sent to your verified WhatsApp number. If you need help, contact Dukan support.');
+    assert.equal(said('fr'), 'L’accès de votre commerce n’est pas actif. Les informations relatives à votre compte ont été envoyées sur votre numéro WhatsApp vérifié. Si vous avez besoin d’aide, contactez l’assistance Dukan.');
+    assert.equal(said('ar'), 'وصول نشاطك التجاري غير مفعّل. أُرسلت معلومات حسابك إلى رقم واتساب الموثّق لديك. إذا احتجت إلى المساعدة، فتواصل مع دعم دكان.');
   });
 
   it('the five tabs share the one notice and read the one access decision', () => {

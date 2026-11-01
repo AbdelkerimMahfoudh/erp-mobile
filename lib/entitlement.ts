@@ -4,7 +4,6 @@ import { branchActivity, companySells, scheduledActivity, type Activity } from '
 import { api } from './api-client';
 import { useBranch } from './branch';
 import { qk } from './query-keys';
-import { refusedToStaff, type TrialSetupStatus } from './trial-setup';
 
 /**
  * What the shop is entitled to (Milestone K).
@@ -154,23 +153,6 @@ export function useEntitlement(enabled = true) {
     // Checked often enough that a lapse is noticed within a shift, and cached
     // long enough that it is not asked on every screen change.
     staleTime: 5 * 60_000,
-  });
-}
-
-/**
- * The Owner's status of the free trial's setup instructions (0095), for the
- * closed screen of a business that has not started. Display data only: the
- * app reads it and can do nothing about it.
- *
- * The server answers it to the Owner alone; everybody else is refused (403),
- * which is the closed screen's answer for staff, not a failure to try again.
- */
-export function useTrialSetup(enabled: boolean) {
-  return useQuery({
-    queryKey: qk.trialSetup(),
-    queryFn: () => api.get<TrialSetupStatus>('/account/trial-setup'),
-    enabled,
-    retry: (failures, error) => !refusedToStaff(error) && failures < 1,
   });
 }
 

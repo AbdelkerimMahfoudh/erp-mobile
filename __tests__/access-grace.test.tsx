@@ -184,7 +184,7 @@ describe('a paid period that ended', () => {
     const trial = { status: 'expired', durationHours: 168, durationDays: 7, claimedAt: '2026-10-10T10:00:00.000Z', startedAt: '2026-10-10T10:00:00.000Z', endsAt: '2026-10-17T10:00:00.000Z', timeZone: 'Asia/Tokyo' };
     serve({ ...expired({ status: 'unavailable', usesInWindow: 3, usesRemaining: 0 }), state: 'trial_expired', status: 'pending_activation', periodEnd: null, trial });
     await renderScreen();
-    await waitFor(() => expect(screen.getAllByText(/The free trial ended on/).length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/access has ended/i).length).toBeGreaterThan(0));
     expect(screen.queryByText(/grace period/i)).toBeNull();
   });
 });
