@@ -16,7 +16,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { sep, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatInZone } from './zoned-time.ts';
 
@@ -170,7 +170,7 @@ if (process.env.ZONED_TIME_CHILD) {
     for (const f of ['app', 'components', 'hooks', 'lib', 'constants'].flatMap((d) => sources(join(root, d)))) {
       const text = code(f);
       // Only the fallback for a zone the device cannot read names one, and it says so in the output.
-      if (f.replace(/\/g, "/").endsWith("lib/zoned-time.ts")) continue;
+      if (f.split(sep).join('/').endsWith('lib/zoned-time.ts')) continue;
       assert.doesNotMatch(text, /timeZone:\s*['"]|['"](Africa|Europe|America|Asia|Atlantic|Pacific|Etc)\/\w+['"]|['"](GMT|UTC)['"]/, `${f} writes a time zone of its own`);
     }
     const screen = code(join(root, 'app/access.tsx'));
