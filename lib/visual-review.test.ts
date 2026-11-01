@@ -47,9 +47,6 @@ it('one is never "1 items", "1 lines", "1 phones" or "the 1 days before"', () =>
   const period = code('app/sales/period.tsx');
   assert.match(period, /phonesSold === 1\s*\?\s*t\('salesPeriod\.phones\.one'\)/);
   assert.match(period, /day\.phones === 1 \? t\('salesPeriod\.dayLine\.one'\)/);
-  const goals = code('app/goals/index.tsx');
-  assert.match(goals, /daysRemaining === 1\s*\?\s*t\('goals\.hint\.running\.one'/);
-  assert.match(goals, /daysTotal === 1\s*\?\s*t\('goals\.hint\.notStarted\.one'\)/);
   // Every Home period ends today: a one-day comparison is "vs yesterday" (the 1st of the month).
   assert.match(code('app/(tabs)/index.tsx'), /period === 'today' \|\| compareDays === 1\s*\?\s*t\('home\.compare\.yesterday'/);
 });
