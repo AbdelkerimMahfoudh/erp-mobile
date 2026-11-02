@@ -1,0 +1,27 @@
+PASS  the brand contract was read from the checkout
+PASS  the launch animation lasts 800–1100 ms (the pack’s motion contract)
+PASS  the iOS icon is a PNG of 1024×1024
+PASS  the iOS icon is opaque RGB: colour type 2, 8-bit, no alpha channel
+PASS  the iOS icon carries no transparency chunk (tRNS)
+PASS  iPhone only: ios.supportsTablet is false
+PASS  light and dark follow the device: userInterfaceStyle automatic
+PASS  the static splash is the mark on the light canvas
+PASS  the static splash has its dark variant on the dark canvas
+PASS  the splash image is as wide as the animation’s mark, so the hand-over does not move it
+PASS  Android has the adaptive icon’s layers
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4320/login
+Call log:
+  - navigating to "http://127.0.0.1:4320/login", waiting until "load"
+
+    at /home/runner/work/erp-mobile/erp-mobile/tools/verify/brand.mjs:148:18 {
+  log: [
+    '  - navigating to "http://127.0.0.1:4320/login", waiting until "load"'
+  ],
+  name: 'Error'
+}
+
+Node.js v22.23.4
