@@ -1,0 +1,324 @@
+(node:3094) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/runner/work/erp-mobile/erp-mobile/app/lib/navigation/back.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/runner/work/erp-mobile/erp-mobile/app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# Subtest: every route file is exactly one of: parent tab, child with the arrow, invisible redirect or bootstrap, authentication root
+ok 1 - every route file is exactly one of: parent tab, child with the arrow, invisible redirect or bootstrap, authentication root
+  ---
+  duration_ms: 1.548449
+  type: 'test'
+  ...
+# Subtest: the routes without an arrow: /stores is an invisible redirect; branch choice and the access refusal are authentication roots
+not ok 2 - the routes without an arrow: /stores is an invisible redirect; branch choice and the access refusal are authentication roots
+  ---
+  duration_ms: 1.145927
+  type: 'test'
+  location: '/home/runner/work/erp-mobile/erp-mobile/app/lib/navigation/back.test.ts:73:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /onPress=\{\(\) => setBranch\(branch\)\}/. Input:
+    
+    "import React from 'react';\n" +
+      "import { displayName } from '../lib/display-name';\n" +
+      "import { StyleSheet, View } from 'react-native';\n" +
+      "import { useQuery } from '@tanstack/react-query';\n" +
+      "import { useRouter } from 'expo-router';\n" +
+      "import { CircleUserRound, LogOut, Store, Warehouse } from 'lucide-react-native';\n" +
+      "import { LegalPageButtons } from '../components/legal/LegalPages';\n" +
+      'import {\n' +
+      '  Button,\n' +
+      '  EmptyState,\n' +
+      '  ErrorState,\n' +
+      '  ListRow,\n' +
+      '  Screen,\n' +
+      '  SkeletonList,\n' +
+      '  Text,\n' +
+      "} from '../components/ui';\n" +
+      "import { api } from '../lib/api-client';\n" +
+      "import { qk } from '../lib/query-keys';\n" +
+      "import { useBranch } from '../lib/branch';\n" +
+      "import { useAuth } from '../hooks/useAuth';\n" +
+      "import { space } from '../lib/design/tokens';\n" +
+      "import { useTranslation } from '../lib/i18n';\n" +
+      "import type { UserBranch } from '../types/api';\n" +
+      '\n' +
+      '\n' +
+      'export default function SelectBranch() {\n' +
+      '  const { t, language } = useTranslation();\n' +
+      '  const { setBranch, branchId } = useBranch();\n' +
+      '  const { signOut, user } = useAuth();\n' +
+      '  const router = useRouter();\n' +
+      '\n' +
+      '  const query = useQuery({\n' +
+      '    queryKey: qk.branches,\n' +
+      "    queryFn: () => api.get<UserBranch[]>('/auth/branches'),\n" +
+      '  });\n' +
+      '\n' +
+      '  return (\n' +
+      '    <Screen gap="lg">\n' +
+      '      <View style={styles.head}>\n' +
+      '        <View style={styles.headText}>\n' +
+      `          <Text variant="title">{t('branch.select.title')}</Text>\n` +
+      '          <Text variant="body" tone="secondary">\n' +
+      "            {t('branch.select.signedInAs', { name: user ? displayName(user, language) : '' })}\n" +
+      '          </Text>\n' +
+      '        </View>\n' +
+      '        <Button\n' +
+      "          title={t('action.signOut')}\n" +
+      '          variant="tertiary"\n' +
+      '          size="sm"\n' +
+      '          icon={LogOut}\n' +
+      '          onPress={signOut}\n' +
+      '        />\n' +
+      '      </View>\n' +
+      '\n' +
+      '      {query.isLoading ? (\n' +
+      '        <SkeletonList count={3} />\n' +
+      '      ) : query.isError ? (\n' +
+      '        <ErrorState error={query.error} onRetry={() => void query.refetch()} />\n' +
+      '      ) : !query.data || query.data.length === 0 ? (\n' +
+      '        \n' +
+      '        <View style={styles.list}>\n' +
+      '          <EmptyState\n' +
+      '            icon={Store}\n' +
+      "            title={t('branch.select.none.title')}\n" +
+      "            body={t('branch.select.none.body')}\n" +
+      '          />\n' +
+      '          <Button\n' +
+      "            title={t('nav.account')}\n" +
+      '            variant="secondary"\n' +
+      '            icon={CircleUserRound}\n' +
+      "            onPress={() => router.push('/account' as never)}\n" +
+      '          />\n' +
+      '          <LegalPageButtons />\n' +
+      '        </View>\n' +
+      '      ) : (\n' +
+      '        <View style={styles.list}>\n' +
+      '          {query.data.map((branch) => (\n' +
+      '            <ListRow\n' +
+      '              key={branch.id}\n' +
+      "              leading={branch.type === 'warehouse' ? Warehouse : Store}\n" +
+      '              title={displayName(branch, language)}\n' +
+      '              subtitle={[\n' +
+      "                branch.id === branchId ? t('branch.select.current') : null,\n" +
+      '                t(`branch.type.${branch.type}` as never),\n' +
+      '                t(`team.role.${branch.role}` as never),\n' +
+      '              ]\n' +
+      '                .filter(Boolean)\n' +
+      "                .join(' · ')}\n" +
+      '              onPress={() => {\n' +
+      '\n' +
+      '                const switching = branchId !== null;\n' +
+      '                setBranch(branch);\n' +
+      "                if (switching) router.replace('/');\n" +
+      '              }}\n' +
+      '            />\n' +
+      '          ))}\n' +
+      '        </View>\n' +
+      '      )}\n' +
+      '    </Screen>\n' +
+      '  );\n' +
+      '}\n' +
+      '\n' +
+      'const styles = StyleSheet.create({\n' +
+      '  head: {\n' +
+      "    flexDirection: 'row',\n" +
+      "    alignItems: 'flex-start',\n" +
+      "    justifyContent: 'space-between',\n" +
+      '    gap: space.md,\n' +
+      '  },\n' +
+      '  headText: { flex: 1, gap: space.xs },\n' +
+      '  list: { gap: space.sm },\n' +
+      '});\n'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    import React from 'react';
+    import { displayName } from '../lib/display-name';
+    import { StyleSheet, View } from 'react-native';
+    import { useQuery } from '@tanstack/react-query';
+    import { useRouter } from 'expo-router';
+    import { CircleUserRound, LogOut, Store, Warehouse } from 'lucide-react-native';
+    import { LegalPageButtons } from '../components/legal/LegalPages';
+    import {
+      Button,
+      EmptyState,
+      ErrorState,
+      ListRow,
+      Screen,
+      SkeletonList,
+      Text,
+    } from '../components/ui';
+    import { api } from '../lib/api-client';
+    import { qk } from '../lib/query-keys';
+    import { useBranch } from '../lib/branch';
+    import { useAuth } from '../hooks/useAuth';
+    import { space } from '../lib/design/tokens';
+    import { useTranslation } from '../lib/i18n';
+    import type { UserBranch } from '../types/api';
+    
+    
+    export default function SelectBranch() {
+      const { t, language } = useTranslation();
+      const { setBranch, branchId } = useBranch();
+      const { signOut, user } = useAuth();
+      const router = useRouter();
+    
+      const query = useQuery({
+        queryKey: qk.branches,
+        queryFn: () => api.get<UserBranch[]>('/auth/branches'),
+      });
+    
+      return (
+        <Screen gap="lg">
+          <View style={styles.head}>
+            <View style={styles.headText}>
+              <Text variant="title">{t('branch.select.title')}</Text>
+              <Text variant="body" tone="secondary">
+                {t('branch.select.signedInAs', { name: user ? displayName(user, language) : '' })}
+              </Text>
+            </View>
+            <Button
+              title={t('action.signOut')}
+              variant="tertiary"
+              size="sm"
+              icon={LogOut}
+              onPress={signOut}
+            />
+          </View>
+    
+          {query.isLoading ? (
+            <SkeletonList count={3} />
+          ) : query.isError ? (
+            <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+          ) : !query.data || query.data.length === 0 ? (
+            
+            <View style={styles.list}>
+              <EmptyState
+                icon={Store}
+                title={t('branch.select.none.title')}
+                body={t('branch.select.none.body')}
+              />
+              <Button
+                title={t('nav.account')}
+                variant="secondary"
+                icon={CircleUserRound}
+                onPress={() => router.push('/account' as never)}
+              />
+              <LegalPageButtons />
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {query.data.map((branch) => (
+                <ListRow
+                  key={branch.id}
+                  leading={branch.type === 'warehouse' ? Warehouse : Store}
+                  title={displayName(branch, language)}
+                  subtitle={[
+                    branch.id === branchId ? t('branch.select.current') : null,
+                    t(`branch.type.${branch.type}` as never),
+                    t(`team.role.${branch.role}` as never),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  onPress={() => {
+    
+                    const switching = branchId !== null;
+                    setBranch(branch);
+                    if (switching) router.replace('/');
+                  }}
+                />
+              ))}
+            </View>
+          )}
+        </Screen>
+      );
+    }
+    
+    const styles = StyleSheet.create({
+      head: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: space.md,
+      },
+      headText: { flex: 1, gap: space.xs },
+      list: { gap: space.sm },
+    });
+    
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/erp-mobile/erp-mobile/app/lib/navigation/back.test.ts:89:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: every listed route exists — the map cannot rot
+ok 3 - every listed route exists — the map cannot rot
+  ---
+  duration_ms: 0.134351
+  type: 'test'
+  ...
+# Subtest: every parent is a real screen or tab, and following parents always ends at a tab
+ok 4 - every parent is a real screen or tab, and following parents always ends at a tab
+  ---
+  duration_ms: 0.218918
+  type: 'test'
+  ...
+# Subtest: with no history the arrow goes to the parent, with the route’s own parameters, never to a broken address
+ok 5 - with no history the arrow goes to the parent, with the route’s own parameters, never to a broken address
+  ---
+  duration_ms: 0.269393
+  type: 'test'
+  ...
+# Subtest: file and navigator names become the same pattern
+ok 6 - file and navigator names become the same pattern
+  ---
+  duration_ms: 0.103305
+  type: 'test'
+  ...
+# Subtest: the root stack gives every child route its header and the shared arrow, and keeps the swipe
+ok 7 - the root stack gives every child route its header and the shared arrow, and keeps the swipe
+  ---
+  duration_ms: 0.658466
+  type: 'test'
+  ...
+# Subtest: no screen hides the header, turns the swipe off or replaces the arrow, except the approved flows
+ok 8 - no screen hides the header, turns the swipe off or replaces the arrow, except the approved flows
+  ---
+  duration_ms: 8.710276
+  type: 'test'
+  ...
+# Subtest: no screen leaves with a bare router.back(): Back, Cancel, Discard and after-save all follow the shared rule
+ok 9 - no screen leaves with a bare router.back(): Back, Cancel, Discard and after-save all follow the shared rule
+  ---
+  duration_ms: 6.821417
+  type: 'test'
+  ...
+# Subtest: the arrow: the same step as the swipe with history, the parent without; left in LTR, right in Arabic; 48 points
+ok 10 - the arrow: the same step as the swipe with history, the parent without; left in LTR, right in Arabic; 48 points
+  ---
+  duration_ms: 0.471927
+  type: 'test'
+  ...
+# Subtest: Sell, outside the stack header, carries the same arrow — and so does its closed-store panel
+ok 11 - Sell, outside the stack header, carries the same arrow — and so does its closed-store panel
+  ---
+  duration_ms: 0.317245
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 10
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29.105653
