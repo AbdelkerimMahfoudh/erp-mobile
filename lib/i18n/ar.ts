@@ -1048,6 +1048,8 @@ export const ar: Catalogue = {
   'access.covered': 'المتاجر المشمولة: {stores}. المقاعد المشمولة: {seats}.',
   'access.daysLeft': 'الأيام المتبقية: {days}.',
   'access.daysLeft.one': 'يوم واحد متبقٍ.',
+  'error.writeConflict.title': 'تعذّر الحفظ الآن',
+  'error.writeConflict.body': 'لم يُحفظ أي شيء. يُرجى المحاولة مرة أخرى.',
   'access.recheck': 'تحقّق مرة أخرى',
   'access.staff.over': 'عدد الموظفين النشطين أكبر مما تسمح به صلاحية وصول متجرك. لم يُوقَف أحد — أوقِف شخصًا في الفريق قبل إضافة أي شخص جديد.',
   'access.blocked.title': 'انتهت الصلاحية',

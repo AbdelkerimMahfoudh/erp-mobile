@@ -61,6 +61,10 @@ export function toFriendlyError(error: unknown): FriendlyError {
     // The business's access has ended (docs/21, 2026-10-05): not a role, not a
     // fault. The code is matched, never the English; the app's own words say
     // what still works.
+    // A write conflict with somebody else: nothing was saved, and trying again works (D227).
+    if (error.status === 409 && error.code === 'write_conflict') {
+      return { titleKey: 'error.writeConflict.title', title: t('error.writeConflict.title'), body: t('error.writeConflict.body'), retryable: true, permissionDenied: false };
+    }
     if (error.status === 403 && error.code === 'ENTITLEMENT_WRITE_BLOCKED') {
       return {
         titleKey: 'access.blocked.title',

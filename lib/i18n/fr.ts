@@ -1122,6 +1122,8 @@ export const fr: Catalogue = {
   'access.covered': 'Boutiques couvertes : {stores}. Places couvertes : {seats}.',
   'access.daysLeft': '{days} jours restants.',
   'access.daysLeft.one': '1 jour restant.',
+  'error.writeConflict.title': 'Enregistrement impossible pour le moment',
+  'error.writeConflict.body': 'Rien n’a été enregistré. Veuillez réessayer.',
   'access.recheck': 'Vérifier à nouveau',
   'access.staff.over': 'Plus de membres du personnel sont actifs que l’accès de votre entreprise ne le permet. Personne n’a été désactivé — désactivez quelqu’un dans Équipe avant d’ajouter une personne.',
   'access.blocked.title': 'Accès terminé',

@@ -1056,6 +1056,8 @@ export const en = {
   'access.covered': 'Stores covered: {stores}. Seats covered: {seats}.',
   'access.daysLeft': '{days} days left.',
   'access.daysLeft.one': '1 day left.',
+  'error.writeConflict.title': 'Could not save just now',
+  'error.writeConflict.body': 'Nothing was saved. Please try again.',
   'access.recheck': 'Check again',
   'access.staff.over': 'More staff are active than your business access allows. Nobody has been switched off — deactivate someone in Team before adding anyone new.',
   'access.blocked.title': 'Access ended',
