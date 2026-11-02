@@ -1119,6 +1119,8 @@ export const fr: Catalogue = {
   'access.mistake': 'Contactez l’administrateur de votre organisation si vous pensez qu’il s’agit d’une erreur.',
   'access.stale': 'Affiche ce que ce téléphone savait en dernier. Impossible de vérifier auprès du serveur pour le moment.',
   'access.inactive.owner': 'L’accès de votre commerce n’est pas actif. Les informations relatives à votre compte ont été envoyées sur votre numéro WhatsApp vérifié. Si vous avez besoin d’aide, contactez l’assistance Dukan.',
+  'access.inactive.acting_owner': 'L’accès de ce commerce n’est pas actif. Vous agissez pour son propriétaire. Si vous avez besoin d’aide, contactez l’assistance Dukan.',
+  'access.inactive.no_store': 'Vous n’avez aucune boutique active sur ce compte. Demandez à la personne qui le gère ou contactez l’assistance Dukan.',
   'access.covered': 'Boutiques couvertes : {stores}. Places couvertes : {seats}.',
   'access.daysLeft': '{days} jours restants.',
   'access.daysLeft.one': '1 jour restant.',

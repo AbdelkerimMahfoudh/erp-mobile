@@ -40,6 +40,8 @@ export interface AuthUser {
   isTestBusiness?: boolean;
   /** D225: the Acting Owner appointment in force for this person now; null or absent otherwise. */
   actingOwner?: { delegationId: string; until: string | null } | null;
+  /** D227: for wording before a store is chosen; it grants nothing. Absent from an older server. */
+  account?: { isOwner: boolean; activeStores: number };
 }
 
 export interface AuthResponse {

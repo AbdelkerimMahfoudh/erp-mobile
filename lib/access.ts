@@ -148,3 +148,20 @@ function later(a: string | null, b: string | null): string | null {
   if (!b) return a;
   return b > a ? b : a;
 }
+
+/**
+ * Whose words the closed screen uses (D227), from account-level data only: it decides wording and grants nothing. A state
+ * that could not be read keeps its own words, and nobody without an active store is told about an Owner's account.
+ */
+export type ClosedWording = 'owner' | 'acting_owner' | 'no_store' | 'state';
+
+export function closedWording(
+  reason: ClosedReason,
+  account: { isOwner: boolean; activeStores: number } | undefined,
+  actingOwner: unknown,
+): ClosedWording {
+  if (reason === 'unknown' || !account) return 'state';
+  if (account.activeStores === 0) return 'no_store';
+  if (account.isOwner) return 'owner';
+  return actingOwner ? 'acting_owner' : 'state';
+}

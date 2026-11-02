@@ -1053,6 +1053,8 @@ export const en = {
   'access.mistake': 'Contact your organisation administrator if you believe this is a mistake.',
   'access.stale': 'Showing what this phone last knew. It could not be checked with the server just now.',
   'access.inactive.owner': 'Your business access is not active. Account information has been sent to your verified WhatsApp number. If you need help, contact Dukan support.',
+  'access.inactive.acting_owner': 'This business’s access is not active. You are acting for its Owner. If you need help, contact Dukan support.',
+  'access.inactive.no_store': 'You have no active store on this account. Ask whoever manages it, or contact Dukan support.',
   'access.covered': 'Stores covered: {stores}. Seats covered: {seats}.',
   'access.daysLeft': '{days} days left.',
   'access.daysLeft.one': '1 day left.',
