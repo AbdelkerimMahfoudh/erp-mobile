@@ -280,7 +280,7 @@ function OwnStoreCode() {
  * the other store is ever in it — the server does not send it.
  */
 function ConnectedStore({ connection: c, onOpen }: { connection: Connection; onOpen: () => void }) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // Lending and consigning are business writes: not offered while the business is read-only (lib/access.ts).

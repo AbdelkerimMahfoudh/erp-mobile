@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Store } from 'lucide-react-native';
-import { Button, Chip, ErrorState, InlineNotice, ListRow, RowGroup, Section, SkeletonList, Text } from '../ui';
+import { Button, ErrorState, ListRow, RowGroup, Section, SkeletonList, Text } from '../ui';
 import { BottomSheet } from '../overlay';
 import { BilingualNameFields, bilingualNameErrors, nameErrorText } from './BilingualNameFields';
 import { api } from '../../lib/api-client';
