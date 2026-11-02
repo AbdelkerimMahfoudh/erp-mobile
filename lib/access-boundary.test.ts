@@ -61,7 +61,7 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 const SOURCES = ['app', 'lib', 'hooks', 'components', 'constants'].flatMap((d) => walk(fileURLToPath(new URL(d, ROOT)).replace(/^\/([A-Za-z]:)/, '$1')));
 const code = (f: string) => strip(readFileSync(f, 'utf8'));
-const relative = (f: string) => f.slice(fileURLToPath(new URL('.', ROOT)).length);
+const relative = (f: string) => f.slice(fileURLToPath(new URL('.', ROOT)).length).replace(/\\/g, '/');
 
 /**
  * Every key of a catalogue with its value, in the catalogue's order — read from the catalogue itself, so a value

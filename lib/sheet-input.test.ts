@@ -9,13 +9,14 @@
  * the modal's edge (`ModalBoundary`), so it holds for every modal the app draws, not for two screens. Reproduced and
  * proven in a real browser by `ops/verify-browser-input` (Chromium and WebKit).
  */
+import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { coveredByKeyboard, WEB_KEYBOARD_MIN } from './web-keyboard.ts';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 function files(dir: string): string[] {
   return readdirSync(join(ROOT, dir)).flatMap((name) => {
     const path = join(dir, name);

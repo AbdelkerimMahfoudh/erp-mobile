@@ -861,7 +861,7 @@ function PickMark({ on }: { on: boolean }) {
   const { t } = useTranslation();
   const Icon = on ? CheckCircle2 : Circle;
   return (
-    <View accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={t('basket.pick')}>
+    <View accessibilityRole="checkbox" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={t('basket.pick')}>
       <Icon size={22} color={on ? colors.brand[600] : colors.text.tertiary} />
     </View>
   );

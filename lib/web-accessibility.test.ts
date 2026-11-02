@@ -10,11 +10,12 @@
  *   node lib/web-accessibility.test.ts
  * Exits non-zero on any failure.
  */
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 let passed = 0;
 const it = (name: string, fn: () => void) => {
   fn();
@@ -47,7 +48,7 @@ it('every checked, selected or expanded state is also given as its aria- prop', 
 });
 
 it('the screen reader is moved only through the web-safe helper', () => {
-  const direct = files.filter((f) => !f.endsWith('lib/accessibility-focus.ts') && readFileSync(f, 'utf8').includes('sendAccessibilityEvent'));
+  const direct = files.filter((f) => !f.replace(/\\/g, '/').endsWith('lib/accessibility-focus.ts') && readFileSync(f, 'utf8').includes('sendAccessibilityEvent'));
   assert.deepEqual(direct.map((f) => relative(ROOT, f)), []);
 });
 
