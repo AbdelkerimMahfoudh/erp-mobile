@@ -584,7 +584,7 @@ function SellScreen() {
             };
             const line =
               typeof body.lineIndex === 'number' ? lines[body.lineIndex] : undefined;
-            if (!body.unitId) {
+            if (!body.unitId && !body.cartHash) {
               // A quantity line has no single thing to hold an approval, so
               // there is nothing to ask for. Say what the server said.
               toast.error(toErrorMessage(e));
@@ -593,7 +593,7 @@ function SellScreen() {
             heldPayments.current = payments;
             // The approval sheet opens from `onPaymentClosed`, once this one is gone.
             pendingApproval.current = {
-              unitId: body.unitId,
+              unitId: body.unitId ?? null,
               label: line?.label ?? body.identifier ?? t('approvals.item'),
               identifier: body.identifier ?? line?.identifier ?? null,
               configuredPrice: body.configuredPrice ?? null,

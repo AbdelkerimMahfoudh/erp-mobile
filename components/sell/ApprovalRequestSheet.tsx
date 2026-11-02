@@ -18,7 +18,7 @@ import { useConnectivity } from '../../lib/connectivity';
 import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
-import { useApprovalsForUnit, useRequestApproval, useRequestCartApproval } from '../../lib/discount-approvals';
+import { useApprovalsForCart, useApprovalsForUnit, useRequestApproval, useRequestCartApproval } from '../../lib/discount-approvals';
 import {
   approvalFor,
   discountPercent,
@@ -63,7 +63,7 @@ import {
 
 export interface ApprovalRequest {
   /** The physical unit, from the server's refusal. */
-  unitId: string;
+  unitId: string | null;
   /** What the counter is showing for it. */
   label: string;
   identifier: string | null;
@@ -111,11 +111,14 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
 
   const outstanding = useApprovalsForUnit(request?.unitId ?? null);
   // An answer about another version of this sale is not an answer about this one.
-  const rows = (outstanding.data ?? []).filter((r) => !r.cartHash || r.cartHash === request?.cart?.hash);
+  const forCart = useApprovalsForCart(request?.cart?.hash ?? null);
+  const rows = request?.cart && !request.unitId ? forCart.data ?? [] : (outstanding.data ?? []).filter((r) => !r.cartHash || r.cartHash === request?.cart?.hash);
   const now = new Date();
 
   const live = useMemo(() => {
     if (!request) return null;
+    // A counted line has no unit to look up: the cart's one decision is the answer.
+    if (request.unitId === null) return rows[0] ?? null;
     return (
       approvalFor(rows, request.unitId, request.proposedPrice, now) ??
       pendingFor(rows, request.unitId, request.proposedPrice, now) ??
@@ -162,7 +165,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
         return;
       }
       await submit.mutateAsync({
-        unitId: request.unitId,
+        unitId: request.unitId!,
         requestedPrice: request.proposedPrice,
         reason: reason.trim() || undefined,
         clientUuid: clientUuidFor(request),

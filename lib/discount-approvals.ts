@@ -136,15 +136,27 @@ export function useRequestApproval() {
   });
 }
 
+/** The one decision about a cart, polled while the seller waits. */
+export function useApprovalsForCart(hash: string | null) {
+  const branchId = useBranch((s) => s.branchId);
+  const online = useConnectivity((s) => s.online);
+  return useQuery({
+    queryKey: ['discount-approvals', 'cart', branchId, hash],
+    queryFn: async () => (await api.get<ApprovalListResponse>('/discount-approvals')).rows.filter((r) => r.cartHash === hash),
+    enabled: online && Boolean(hash),
+    refetchInterval: 10_000,
+  });
+}
+
 /** One asking for a whole sale: the server finds every device below cost in these lines and hashes the cart itself. */
 export function useRequestCartApproval() {
   const invalidate = useInvalidateApprovals();
   return useMutation({
-    mutationFn: ({ unitId: _unitId, hash: _hash, ...body }: { unitId: string; hash?: string; clientUuid: string; reason: string; lines: unknown[]; saleDiscount?: number }) =>
+    mutationFn: ({ unitId: _unitId, hash: _hash, ...body }: { unitId: string | null; hash?: string; clientUuid: string; reason: string; lines: unknown[]; saleDiscount?: number }) =>
       api.post<{ cartHash: string; rows: DiscountApproval[] }>('/discount-approvals/cart', body),
     onSuccess: (result, input) => {
       for (const row of result.rows) invalidate(row.id, row.unitId);
-      invalidate(undefined, input.unitId);
+      invalidate(undefined, input.unitId ?? undefined);
     },
   });
 }

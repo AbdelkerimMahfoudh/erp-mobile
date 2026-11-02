@@ -1437,6 +1437,7 @@ export interface ReturnDetail {
     /** So a screen can say "held, not sellable" from the same fact inventory uses. */
     unitStatus: string | null;
     returnedQuantity?: number | null;
+    disposition?: 'sellable' | 'damaged' | null;
   };
   policy: {
     windowHours: number;

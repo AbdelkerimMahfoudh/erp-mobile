@@ -1569,6 +1569,10 @@ export const fr: Catalogue = {
   'returns.adjustment.other': 'Autre',
 
   'returns.approve.action': 'Approuver le retour',
+  'returns.disposition.sellable': 'Remis en vente',
+  'returns.disposition.damaged': 'Abîmé, pas à vendre',
+  'returns.disposition.title': 'Ces pièces peuvent-elles être revendues ?',
+  'returns.disposition.required': 'Indiquez si ces pièces peuvent être revendues.',
   'returns.approve.title': 'Approuver ce retour ?',
   'returns.approve.body':
     'La boutique DEVRA {amount}. Ceci n’enregistre aucun versement. Le téléphone reste retenu et n’est pas à la vente.',

@@ -261,7 +261,16 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
   /** The two Owner-only cases, exactly as the server decides them. */
   const isException = detail.policy.requiresException || detail.responsibility === 'customer_damage';
 
+  const counted = Boolean(detail.phone.returnedQuantity);
+  // Asked every time, never assumed: going back on the shelf is a decision about these pieces.
+  const [disposition, setDisposition] = useState<'sellable' | 'damaged' | null>(null);
+  const dispositionField = disposition ? { disposition } : {};
+
   const onApprove = async () => {
+    if (counted && !disposition) {
+      toast.warning(t('returns.disposition.required'));
+      return;
+    }
     if (isException && !canException) {
       toast.warning(t('returns.approve.notAllowed'));
       return;
@@ -279,7 +288,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
       });
       if (!res.confirmed || !res.reason?.trim()) return;
       try {
-        await approve.mutateAsync({ expectedVersion: detail.version, exceptionReason: res.reason.trim() });
+        await approve.mutateAsync({ expectedVersion: detail.version, exceptionReason: res.reason.trim(), ...dispositionField });
         toast.success(t('returns.approve.done'));
       } catch (e) {
         if (!handleConflict(e, refetch)) throw e;
@@ -295,7 +304,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
     });
     if (!ok) return;
     try {
-      await approve.mutateAsync({ expectedVersion: detail.version });
+      await approve.mutateAsync({ expectedVersion: detail.version, ...dispositionField });
       toast.success(t('returns.approve.done'));
     } catch (e) {
       if (!handleConflict(e, refetch)) throw e;
@@ -353,7 +362,7 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
                 <Identifier>{detail.phone.imei ?? detail.phone.serialNo}</Identifier>
               ) : null}
               <View style={styles.inlineChips}>
-                {detail.phone.unitStatus ? <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" /> : null}
+                {detail.phone.unitStatus && !detail.phone.returnedQuantity ? <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" /> : null}
                 {detail.phone.returnedQuantity ? <Text variant="caption" tone="secondary">{t('sales.detail.quantity', { count: detail.phone.returnedQuantity })}</Text> : null}
               </View>
             </View>
@@ -496,6 +505,22 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
           ) : null}
           {canReview ? (
             <Button title={t('returns.review.action')} variant="secondary" onPress={() => setReviewOpen(true)} />
+          ) : null}
+          {canApprove && counted ? (
+            <View>
+              <Text variant="label" tone="secondary">{t('returns.disposition.title')}</Text>
+              {(['sellable', 'damaged'] as const).map((choice) => (
+                <Button
+                  key={choice}
+                  title={t(`returns.disposition.${choice}`)}
+                  variant={disposition === choice ? 'primary' : 'secondary'}
+                  accessibilityState={{ selected: disposition === choice }}
+                  aria-selected={disposition === choice}
+                  testID={`return-disposition-${choice}`}
+                  onPress={() => setDisposition(choice)}
+                />
+              ))}
+            </View>
           ) : null}
           {canApprove ? (
             <Button

@@ -1455,6 +1455,10 @@ export const ar: Catalogue = {
   'returns.adjustment.other': 'أخرى',
 
   'returns.approve.action': 'قبول الإرجاع',
+  'returns.disposition.sellable': 'تعود إلى البيع',
+  'returns.disposition.damaged': 'تالفة، ليست للبيع',
+  'returns.disposition.title': 'هل يمكن بيع هذه القطع مجددًا؟',
+  'returns.disposition.required': 'حدد هل يمكن بيع هذه القطع مجددًا.',
   'returns.approve.title': 'قبول هذا الإرجاع؟',
   'returns.approve.body': 'سيصبح على المتجر دفع {amount}. هذا لا يسجّل أي دفع. يبقى الهاتف محتجزًا وغير معروض للبيع.',
   'returns.approve.exceptionTitle': 'القبول كاستثناء من المالك؟',

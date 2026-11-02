@@ -1468,6 +1468,10 @@ export const en = {
   'returns.adjustment.other': 'Other',
 
   'returns.approve.action': 'Approve the return',
+  'returns.disposition.sellable': 'Going back on sale',
+  'returns.disposition.damaged': 'Damaged, not for sale',
+  'returns.disposition.title': 'Can these pieces be sold again?',
+  'returns.disposition.required': 'Say whether these pieces can be sold again.',
   'returns.approve.title': 'Approve this return?',
   'returns.approve.body': 'The shop will OWE {amount}. This does not record any payment. The phone stays held and is not for sale.',
   'returns.approve.exceptionTitle': 'Approve as an owner exception?',

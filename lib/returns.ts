@@ -195,7 +195,7 @@ export function useRemoveAdjustment(id: string) {
 export function useApproveReturn(id: string) {
   const refresh = useRefresh(id);
   return useMutation({
-    mutationFn: (body: { expectedVersion: number; exceptionReason?: string }) =>
+    mutationFn: (body: { expectedVersion: number; exceptionReason?: string; disposition?: 'sellable' | 'damaged' }) =>
       api.post<ReturnDetail>(`/returns/${id}/approve`, body),
     onSuccess: refresh,
   });
