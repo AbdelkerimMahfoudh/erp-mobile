@@ -29,6 +29,7 @@ const phone = `+2224${String(Date.now()).slice(-7)}`;
 const branchName = 'Nouakchott Test Store';
 await stepUp();
 const made = await call('POST', 'platform/businesses', {
+  access: { kind: 'grant', days: 30, reason: 'Test access' },
   cookie, admin: true,
   body: { idempotencyKey: randomUUID(), ownerName: 'Test Owner', ownerNameAr: 'مالك تجريبي', businessName: 'TSXMR Test Business', businessNameAr: 'نشاط تجريبي', phone, branchName, branchNameAr: 'متجر نواكشوط التجريبي', language: 'en', isTest: true, reason: 'Browser input and access check', confirmPassword: ADMIN_PW },
 });
