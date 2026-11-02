@@ -29,9 +29,8 @@ const phone = `+2224${String(Date.now()).slice(-7)}`;
 const branchName = 'Nouakchott Test Store';
 await stepUp();
 const made = await call('POST', 'platform/businesses', {
-  access: { kind: 'grant', days: 30, reason: 'Test access' },
   cookie, admin: true,
-  body: { idempotencyKey: randomUUID(), ownerName: 'Test Owner', ownerNameAr: 'مالك تجريبي', businessName: 'TSXMR Test Business', businessNameAr: 'نشاط تجريبي', phone, branchName, branchNameAr: 'متجر نواكشوط التجريبي', language: 'en', isTest: true, reason: 'Browser input and access check', confirmPassword: ADMIN_PW },
+  body: { idempotencyKey: randomUUID(), access: { kind: 'grant', days: 365, reason: 'Persistent test business: access without payment' }, ownerName: 'Test Owner', ownerNameAr: 'مالك تجريبي', businessName: 'TSXMR Test Business', businessNameAr: 'نشاط تجريبي', phone, branchName, branchNameAr: 'متجر نواكشوط التجريبي', language: 'en', isTest: true, reason: 'Browser input and access check', confirmPassword: ADMIN_PW },
 });
 const SETUP = made.json?.invitation?.token;
 const BUSINESS = made.json?.companyId;
@@ -70,6 +69,9 @@ await boxes.nth(0).tap();
 await page.keyboard.type(phone, { delay: 5 });
 await boxes.nth(1).tap();
 await page.keyboard.type(OWNER_PW, { delay: 2 });
+// D227: an administrator's business has its basis from birth, so the state without access is answered here; the server's is checked below.
+const pendingAnswer = { state: 'pending', status: 'pending_activation', canRead: false, canWrite: false, periodEnd: null, graceEnd: null, isComplimentary: false, overLimit: false };
+await page.route(`${API}/entitlement`, (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pendingAnswer) }));
 await page.getByRole('button', { name: T.en['auth.action.signIn'] }).tap();
 const closed = await page.getByText(T.en['access.closed.pending.title']).first().waitFor({ timeout: 25000 }).then(() => true, () => false);
 const text = await page.locator('body').innerText();
@@ -78,14 +80,14 @@ check('without an entitlement the app says "No active access yet" — never "wai
 await page.screenshot({ path: `${OUT}/access-pending-en.png`, fullPage: true });
 const token = await page.evaluate(() => localStorage.getItem('erp.accessToken'));
 const ent = await call('GET', 'entitlement', { token });
-check('redeeming the code created no paid subscription and granted nothing (pending_activation, no period, closed)',
-  ent.status === 200 && ent.json?.state === 'pending' && ent.json?.status === 'pending_activation' && ent.json?.periodEnd === null && ent.json?.isComplimentary === false && ent.json?.canRead === false,
-  JSON.stringify({ status: ent.status, state: ent.json?.state, sub: ent.json?.status, periodEnd: ent.json?.periodEnd, comp: ent.json?.isComplimentary, canRead: ent.json?.canRead }));
+check('redeeming the code bought nothing: the recorded grant, no paid period', ent.status === 200 && ent.json?.state === 'complimentary' && ent.json?.isComplimentary === true && ent.json?.periodEnd === null,
+  JSON.stringify({ status: ent.status, state: ent.json?.state, periodEnd: ent.json?.periodEnd, comp: ent.json?.isComplimentary }));
 
 // ── An audited no-payment grant: the ERP opens at once ──────────────────────────────────────────────────────────────
 await stepUp();
 const grant = await call('POST', `platform/businesses/${BUSINESS}/activate-grant`, { cookie, admin: true, body: { days: 365, reason: 'Persistent test business: access without payment', confirmPassword: ADMIN_PW } });
 check('the administrator gives access without payment (audited grant)', grant.status === 200 || grant.status === 201, `status ${grant.status}`);
+await page.unroute(`${API}/entitlement`);
 await page.getByText(T.en['access.recheck'], { exact: true }).first().tap();
 const opened = await page.getByText(T.en['testBusiness.banner']).first().waitFor({ timeout: 20000 }).then(() => true, () => false);
 await page.waitForTimeout(1500);
