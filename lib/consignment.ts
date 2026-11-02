@@ -22,7 +22,13 @@ import { qk } from './query-keys';
 
 export interface StorePreview {
   publicStoreId: string;
+  /** One string: a trading name, or a compact `Store A (+2)`. A search preview has only this. */
   name: string;
+  nameAr?: string | null;
+  /** D227: only once a connection is accepted. A connection joins whole accounts, not one store. */
+  tradingName?: string | null;
+  tradingNameAr?: string | null;
+  stores?: { name: string; nameAr: string | null }[];
   city: string | null;
   logoRef: string | null;
   /** A literal placeholder. Never render it as an achieved badge. */

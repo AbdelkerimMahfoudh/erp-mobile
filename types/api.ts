@@ -19,6 +19,10 @@ export interface AuthUser {
   companyName?: string;
   /** D225: the business's Arabic name; null until the Owner gives it. */
   companyNameAr?: string | null;
+  /** D227: what a person chooses among; absent from an older server. */
+  stores?: { name: string; nameAr: string | null }[];
+  tradingName?: string | null;
+  tradingNameAr?: string | null;
   /**
    * Public Store Account ID (Stage 3.2) — the client namespaces its device
    * credential by this, at login and on a restored session. NOT a secret.
@@ -67,6 +71,10 @@ export interface AccountChoice {
     companyName: string;
     /** D225: absent from an older server, null until given. */
     companyNameAr?: string | null;
+    /** D227: what a person chooses among; absent from an older server. */
+    stores?: { name: string; nameAr: string | null }[];
+    tradingName?: string | null;
+    tradingNameAr?: string | null;
     userName: string;
     userNameAr?: string | null;
   }[];
@@ -567,6 +575,8 @@ export interface StaffInvitationResult {
 
 /** `POST staff/join/open`: whose invitation it is — never the number, only its last two digits. */
 export interface OpenedInvitation {
+  /** The stores this person is being given (D227): absent from an older server. */
+  stores?: { name: string; nameAr: string | null }[];
   business: string;
   name: string;
   numberEnding: string;
@@ -575,6 +585,8 @@ export interface OpenedInvitation {
 
 /** `POST staff/join/confirm`: the number confirmed, and where the account stands. */
 export interface JoinConfirmResult {
+  /** The stores this person is being given (D227): absent from an older server. */
+  stores?: { name: string; nameAr: string | null }[];
   verified: true;
   business: string;
   name: string;

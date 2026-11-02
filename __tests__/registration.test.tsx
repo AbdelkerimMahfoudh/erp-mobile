@@ -122,9 +122,7 @@ function screenText(): string {
 /** The first two steps as a person fills them — the business, then the Owner — to the last one. Nothing is sent. */
 async function toLastStep() {
   // D225: each name in the Latin alphabet, then in Arabic.
-  const [business, businessAr, branch, branchAr] = textInputs();
-  await fireEvent.changeText(business, 'Nour Electronics');
-  await fireEvent.changeText(businessAr, 'نور للإلكترونيات');
+  const [branch, branchAr] = textInputs();
   await fireEvent.changeText(branch, 'Main Store');
   await fireEvent.changeText(branchAr, 'المتجر الرئيسي');
   await fireEvent.press(screen.getByText(t('register.next')));
@@ -209,7 +207,10 @@ describe('the form', () => {
     expect(api.post).toHaveBeenCalledTimes(1);
     const [path, body] = (api.post as jest.Mock).mock.calls[0];
     expect(path).toBe('/auth/register');
-    expect(body).toEqual(expect.objectContaining({ ownerName: 'Aicha', businessName: 'Nour Electronics', branchName: 'Main Store', phone: '+22236000001', language: 'en' }));
+    expect(body).toEqual(expect.objectContaining({ ownerName: 'Aicha' }));
+    // D227: no business name is asked for, or sent.
+    expect(body).not.toHaveProperty('businessName');
+    expect(body).not.toHaveProperty('businessNameAr');
     // The consent ticked: the server's version, and the language it was shown in.
     expect(body).toEqual(expect.objectContaining({ whatsappConsentVersion: CONSENT_VERSION, whatsappConsentLocale: 'en' }));
     // No email address given: none is sent, not even an empty one.
@@ -292,7 +293,6 @@ describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
     await renderWith(<RegisterScreen />);
     expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
     await fireEvent.press(screen.getByText(t('register.next')));
-    expect(screen.getByText(t('register.problem.businessName'))).toBeTruthy();
     expect(screen.getByText(t('register.problem.branchName'))).toBeTruthy();
     // Still the business step: no Owner field yet, and nothing about a password not yet asked for.
     expect(screen.queryByText(t('register.field.ownerName'))).toBeNull();
@@ -300,15 +300,13 @@ describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
     // Typing into a refused field is never blocked: the correction is taken and its message cleared.
     await fireEvent.changeText(textInputs()[0], 'Nour Electronics');
     expect(value(0)).toBe('Nour Electronics');
-    expect(screen.queryByText(t('register.problem.businessName'))).toBeNull();
+    expect(screen.queryByText(t('register.problem.branchName'))).toBeNull();
     expect(api.post).not.toHaveBeenCalled();
   });
 
   it('keeps every value going back and forward, by its own button or by the way back', async () => {
     await renderWith(<RegisterScreen />);
-    const [business, businessAr, branch, branchAr, city] = textInputs();
-    await fireEvent.changeText(business, 'Nour Electronics');
-    await fireEvent.changeText(businessAr, 'نور للإلكترونيات');
+    const [branch, branchAr, city] = textInputs();
     await fireEvent.changeText(branch, 'Main Store');
     await fireEvent.changeText(branchAr, 'المتجر الرئيسي');
     await fireEvent.changeText(city, 'Rosso');
@@ -317,7 +315,7 @@ describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
     await fireEvent.changeText(textInputs()[0], 'Aicha');
 
     await fireEvent.press(screen.getByText(t('register.previous')));
-    expect([value(0), value(1), value(2), value(3), value(4)]).toEqual(['Nour Electronics', 'نور للإلكترونيات', 'Main Store', 'المتجر الرئيسي', 'Rosso']);
+    expect([value(0), value(1), value(2)]).toEqual(['Main Store', 'المتجر الرئيسي', 'Rosso']);
     await fireEvent.press(screen.getByText(t('register.next')));
     expect(value(0)).toBe('Aicha');
 
@@ -325,7 +323,7 @@ describe('three steps, one submission (owner’s review, 2026-10-24)', () => {
     expect(mockPrevent.enabled).toBe(true);
     await act(() => mockPrevent.leave?.({ data: { action: { type: 'GO_BACK' } } }));
     expect(screen.getByText(t('register.step', { current: 1, total: 3 }))).toBeTruthy();
-    expect(value(0)).toBe('Nour Electronics');
+    expect(value(0)).toBe('Main Store');
     expect(api.post).not.toHaveBeenCalled();
   });
 

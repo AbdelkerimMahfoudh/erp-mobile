@@ -1,3 +1,4 @@
+import { accountTitle } from '../../lib/store-list';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -66,7 +67,7 @@ import { consignmentStanding, whoseMove } from '../../lib/custody-state';
  * cannot quietly go to the wrong shop.
  */
 export default function PartnersScreen() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const canManage = usePermission('connection.manage');
   const canView = usePermission('consignment.view');
@@ -223,7 +224,7 @@ export default function PartnersScreen() {
                     key={c.id}
                     flat
                     leading={Building2}
-                    title={c.store.name}
+                    title={accountTitle(c.store, language, t)}
                     subtitle={t('partners.pastHint')}
                     accessory={<StatusChip status={c.status} />}
                     onPress={() => open(c)}
@@ -279,7 +280,7 @@ function OwnStoreCode() {
  * the other store is ever in it — the server does not send it.
  */
 function ConnectedStore({ connection: c, onOpen }: { connection: Connection; onOpen: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // Lending and consigning are business writes: not offered while the business is read-only (lib/access.ts).
@@ -366,10 +367,11 @@ function SharedLine({ label, value }: { label: string; value: React.ReactNode })
 }
 
 function StoreHeading({ connection: c }: { connection: Connection }) {
+  const { t, language } = useTranslation();
   return (
     <View style={styles.head}>
       <View style={styles.headText}>
-        <Text variant="bodyStrong">{c.store.name}</Text>
+        <Text variant="bodyStrong">{accountTitle(c.store, language, t)}</Text>
         <Text variant="caption" tone="secondary">
           {[c.store.city, isolateLtr(c.store.publicStoreId)].filter(Boolean).join(' · ')}
         </Text>

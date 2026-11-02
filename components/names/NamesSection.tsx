@@ -16,7 +16,8 @@ import { toast } from '../../lib/toast';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Named {
-  name: string;
+  /** Optional for the business: a registered or trading name, when there is one (D227). */
+  name: string | null;
   nameAr: string | null;
   nameIncomplete: boolean;
 }
@@ -31,9 +32,9 @@ type Editing = { kind: 'business'; current: Named } | { kind: 'store'; id: strin
 const NAMES_KEY = ['business-names'] as const;
 
 /**
- * The business's and its stores' Latin and Arabic names (D225), inside Business settings (2026-10-31: the separate
+ * The optional trading name and the stores' Latin and Arabic names (D225, D227), inside Business settings (2026-10-31: the separate
  * More → "Business and store names" entry is gone). The Owner's: the business first, then one row per store, each
- * opening its own names. A record from before the Arabic names is marked "Arabic name missing" and keeps working.
+ * opening its own names. working.
  * A rename changes what screens show from now on; a receipt already issued keeps the names it was issued under.
  *
  * A failure here stays here: the rest of Business settings keeps working, and the words are the app's own.
@@ -48,10 +49,9 @@ export function NamesSection() {
       flat
       key={key}
       leading={icon}
-      title={displayName(named, language)}
+      title={displayName(named, language) || t('names.trading.none')}
       // The other script under it, so the Owner sees both names at a glance.
-      subtitle={language === 'ar' ? named.name : (named.nameAr ?? undefined)}
-      accessory={named.nameIncomplete ? <Chip tone="warning" label={t('names.incomplete')} /> : undefined}
+      subtitle={(language === 'ar' ? named.name : named.nameAr) ?? undefined}
       onPress={onPress}
     />
   );
@@ -64,11 +64,6 @@ export function NamesSection() {
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (
         <View style={styles.section}>
-          {query.data.business.nameIncomplete || query.data.stores.some((s) => s.nameIncomplete) ? (
-            <InlineNotice tone="warning" title={t('names.prompt.title')}>
-              {t('names.prompt.body')}
-            </InlineNotice>
-          ) : null}
           <Text variant="label" tone="secondary">
             {t('names.screen.business')}
           </Text>
@@ -96,7 +91,7 @@ function NamesSheet({ editing, onClose }: { editing: Editing | null; onClose: ()
 
   useEffect(() => {
     if (!editing) return;
-    setValue({ name: editing.current.name, nameAr: editing.current.nameAr ?? '' });
+    setValue({ name: editing.current.name ?? '', nameAr: editing.current.nameAr ?? '' });
     setErrors({});
   }, [editing]);
 
@@ -109,7 +104,7 @@ function NamesSheet({ editing, onClose }: { editing: Editing | null; onClose: ()
       void queryClient.invalidateQueries({ queryKey: NAMES_KEY });
       void queryClient.invalidateQueries({ queryKey: qk.branches });
       if (editing?.kind === 'store' && editing.id === activeBranchId) {
-        useBranch.setState({ branchName: fresh.name, branchNameAr: fresh.nameAr });
+        useBranch.setState({ branchName: fresh.name ?? '', branchNameAr: fresh.nameAr });
       }
       if (editing?.kind === 'business') await refreshUser().catch(() => undefined);
       toast.success(t('names.screen.saved'));
@@ -122,14 +117,14 @@ function NamesSheet({ editing, onClose }: { editing: Editing | null; onClose: ()
     if (!editing) return;
     const name = value.name.trim();
     const nameAr = value.nameAr.trim();
-    const problems = bilingualNameErrors({ name, nameAr }, { arabicRequired: false });
+    const problems = bilingualNameErrors({ name, nameAr }, { nameOptional: editing.kind === 'business' });
     const next = { name: nameErrorText(problems.name, t), nameAr: nameErrorText(problems.nameAr, t) };
     setErrors(next);
     if (next.name || next.nameAr) return;
     // Each name on its own: only what changed is sent, and the server never touches the other.
     const body: Record<string, string> = {};
-    if (name !== editing.current.name) body.name = name;
-    if (nameAr && nameAr !== (editing.current.nameAr ?? '')) body.nameAr = nameAr;
+    if (name !== (editing.current.name ?? '')) body.name = name;
+    if (nameAr !== (editing.current.nameAr ?? '')) body.nameAr = nameAr;
     if (Object.keys(body).length === 0) {
       onClose();
       return;
@@ -145,7 +140,7 @@ function NamesSheet({ editing, onClose }: { editing: Editing | null; onClose: ()
       title={t(editing?.kind === 'store' ? 'names.screen.editStore' : 'names.screen.editBusiness')}
       footer={<Button title={t('action.save')} onPress={submit} loading={save.isPending} fullWidth />}
     >
-      <BilingualNameFields value={value} onChange={setValue} errors={errors} arabicRequired={false} />
+      <BilingualNameFields value={value} onChange={setValue} errors={errors} nameOptional={editing?.kind === 'business'} hint={editing?.kind === 'business' ? t('names.trading.hint') : undefined} />
     </BottomSheet>
   );
 }

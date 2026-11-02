@@ -32,11 +32,8 @@ const code = (p: string) =>
 const base: RegistrationDraft = {
   ...emptyRegistration,
   ownerName: 'Aicha',
-  businessName: 'Nour Electronics',
   branchName: 'Main Store',
-  // D225: every name in Arabic too.
   ownerNameAr: 'عائشة',
-  businessNameAr: 'نور للإلكترونيات',
   branchNameAr: 'المتجر الرئيسي',
   password: 'correct horse',
   passwordConfirm: 'correct horse',
@@ -75,10 +72,9 @@ it('a malformed number is refused', () => {
 
 // ── the other required fields ────────────────────────────────────────────────
 
-it('owner name, business name and branch name are all required', () => {
+it('owner name and first store name are required, and no business name is asked for (D227)', () => {
   const problems = validateRegistration({ ...emptyRegistration, email: 'a@b.co' });
   assert.equal(problems.ownerName, 'register.problem.ownerName');
-  assert.equal(problems.businessName, 'register.problem.businessName');
   assert.equal(problems.branchName, 'register.problem.branchName');
 });
 
@@ -113,8 +109,6 @@ it('the draft has no field for a Store ID, a personal ID or any internal id', ()
   assert.deepEqual(Object.keys(emptyRegistration).sort(), [
     'branchName',
     'branchNameAr',
-    'businessName',
-    'businessNameAr',
     'city',
     'email',
     'ownerName',
@@ -146,8 +140,9 @@ it('the WhatsApp number is always sent; optional fields are omitted rather than 
 });
 
 it('values are trimmed, so a stray space cannot create a second business', () => {
-  const body = registrationPayload({ ...withPhone, businessName: '  Nour  ' }, 'k', 'fr');
-  assert.equal(body.businessName, 'Nour');
+  const body = registrationPayload({ ...withPhone, branchName: '  Nour  ' }, 'k', 'fr');
+  assert.equal(body.branchName, 'Nour');
+  assert.equal('businessName' in body, false);
 });
 
 it('the same key is reused on retry — that is what makes it idempotent', () => {
@@ -160,7 +155,7 @@ it('the same key is reused on retry — that is what makes it idempotent', () =>
 
 it('a retry of the same registration is the same attempt — stray spaces and the confirmation field included', () => {
   assert.equal(sameRegistration(withEmail, { ...withEmail }), true);
-  assert.equal(sameRegistration(withEmail, { ...withEmail, businessName: ' Nour Electronics ', email: 'aicha@example.invalid ' }), true);
+  assert.equal(sameRegistration(withEmail, { ...withEmail, branchName: ' Main Store ', email: 'aicha@example.invalid ' }), true);
   // The confirmation is never sent: retyping it changes nothing the server sees.
   assert.equal(sameRegistration(withEmail, { ...withEmail, passwordConfirm: 'something else' }), true);
 });
@@ -172,7 +167,6 @@ it('any field the server receives, edited after a failure, makes a new attempt',
     { phone: '+22212345678' },
     { password: 'another horse' },
     { ownerName: 'Aïcha' },
-    { businessName: 'Nour Phones' },
     { branchName: 'Second Store' },
     { city: 'Nouakchott' },
   ]) {
@@ -254,17 +248,17 @@ it('the screen keeps no consent copy or version of its own: both come from the s
 
 it('every field with a rule belongs to exactly one step, in the order the screen shows them', () => {
   const all = REGISTRATION_STEPS.flat();
-  assert.deepEqual([...all].sort(), ['branchName', 'branchNameAr', 'businessName', 'businessNameAr', 'email', 'ownerName', 'ownerNameAr', 'passwordConfirm', 'password', 'phone', 'whatsappConsent'].sort());
+  assert.deepEqual([...all].sort(), ['branchName', 'branchNameAr', 'email', 'ownerName', 'ownerNameAr', 'passwordConfirm', 'password', 'phone', 'whatsappConsent'].sort());
   assert.equal(new Set(all).size, all.length);
-  assert.deepEqual(REGISTRATION_STEPS[0], ['businessName', 'businessNameAr', 'branchName', 'branchNameAr']);
+  assert.deepEqual(REGISTRATION_STEPS[0], ['branchName', 'branchNameAr']);
   assert.deepEqual(REGISTRATION_STEPS[1], ['ownerName', 'ownerNameAr']);
 });
 
 it('a step is checked on its own fields only: the business step does not complain about a password not yet asked for', () => {
   const problems = validateRegistration(emptyRegistration);
-  assert.deepEqual(Object.keys(stepProblems(problems, 0)), ['businessName', 'businessNameAr', 'branchName', 'branchNameAr']);
-  assert.deepEqual(Object.keys(stepProblems(problems, 1)), ['ownerName', 'ownerNameAr']);
-  assert.deepEqual(Object.keys(stepProblems(validateRegistration({ ...withPhone, businessName: '' }), 2)), []);
+  assert.deepEqual(Object.keys(stepProblems(problems, 0)), ['branchName']);
+  assert.deepEqual(Object.keys(stepProblems(problems, 1)), ['ownerName']);
+  assert.deepEqual(Object.keys(stepProblems(validateRegistration({ ...withPhone, branchName: '' }), 2)), []);
 });
 
 it('a refused submission names the first step with something to fix', () => {
@@ -282,22 +276,20 @@ it('the steps reach the server once, at the end: no request between steps', () =
 });
 
 
-it('D225: a new business, its first store and its Owner need an Arabic name each, sent with the Latin one', () => {
-  const problems = validateRegistration({ ...base, phone: '+22236000001', ownerNameAr: '', businessNameAr: ' ', branchNameAr: '' });
-  assert.equal(problems.ownerNameAr, 'names.error.blank');
-  assert.equal(problems.businessNameAr, 'names.error.blank');
-  assert.equal(problems.branchNameAr, 'names.error.blank');
+it('D227: the Arabic names are optional, and not limited to Arabic letters', () => {
+  const problems = validateRegistration({ ...base, phone: '+22236000001', ownerNameAr: '', branchNameAr: '' });
+  assert.equal(problems.ownerNameAr, undefined);
+  assert.equal(problems.branchNameAr, undefined);
+  assert.equal(validateRegistration({ ...base, phone: '+22236000001', branchNameAr: 'PS5' }).branchNameAr, undefined);
   const body = registrationPayload({ ...base, phone: '+22236000001' }, 'k', 'ar');
-  assert.equal(body.businessNameAr, 'نور للإلكترونيات');
   assert.equal(body.branchNameAr, 'المتجر الرئيسي');
   assert.equal(body.ownerNameAr, 'عائشة');
 });
 
-it('D225: each name in the other one’s field is said beside it; a brand name with digits is fine', () => {
-  const swapped = validateRegistration({ ...base, phone: '+22236000001', businessName: 'نور', businessNameAr: 'Nour' });
-  assert.equal(swapped.businessName, 'names.hint.latinHasArabic');
-  assert.equal(swapped.businessNameAr, 'names.hint.arabicNeedsArabic');
-  assert.deepEqual(validateRegistration({ ...base, phone: '+22236000001', businessName: 'PS5 Center', businessNameAr: 'مركز PS5' }), {});
+it('Arabic letters in a Latin field are said beside it; a brand name with digits is fine', () => {
+  const swapped = validateRegistration({ ...base, phone: '+22236000001', branchName: 'نور' });
+  assert.equal(swapped.branchName, 'names.hint.latinHasArabic');
+  assert.deepEqual(validateRegistration({ ...base, phone: '+22236000001', branchName: 'PS5 Center', branchNameAr: 'مركز PS5' }), {});
 });
 
 console.log('\n' + passed + ' passed');

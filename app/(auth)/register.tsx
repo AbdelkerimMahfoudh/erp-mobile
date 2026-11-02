@@ -89,7 +89,7 @@ const STEP_COUNT = REGISTRATION_STEPS.length;
 const STEP_TITLES = ['register.section.business', 'register.section.owner', 'register.section.contact'] as const;
 
 /** The order of the fields on screen: the first one with a problem is where a screen reader is taken. */
-const FIELD_ORDER: (keyof RegistrationProblems)[] = ['businessName', 'businessNameAr', 'branchName', 'branchNameAr', 'ownerName', 'ownerNameAr', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
+const FIELD_ORDER: (keyof RegistrationProblems)[] = ['branchName', 'branchNameAr', 'ownerName', 'ownerNameAr', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
 
 export default function RegisterScreen() {
   const { t, language } = useTranslation();
@@ -373,31 +373,6 @@ export default function RegisterScreen() {
 
           {step === 0 ? (
             <>
-              <TextField
-                ref={(node) => {
-                  inputs.current.businessName = node;
-                }}
-                label={t('register.field.businessName')}
-                hint={t('register.field.businessName.hint')}
-                value={draft.businessName}
-                onChangeText={(v) => set('businessName', v)}
-                autoCapitalize="words"
-                error={problem('businessName')}
-                returnKeyType="next"
-                onSubmitEditing={() => inputs.current.businessNameAr?.focus()}
-              />
-              <TextField
-                ref={(node) => {
-                  inputs.current.businessNameAr = node;
-                }}
-                label={t('register.field.businessNameAr')}
-                script="arabic"
-                value={draft.businessNameAr}
-                onChangeText={(v) => set('businessNameAr', v)}
-                error={problem('businessNameAr')}
-                returnKeyType="next"
-                onSubmitEditing={() => inputs.current.branchName?.focus()}
-              />
               <TextField
                 ref={(node) => {
                   inputs.current.branchName = node;

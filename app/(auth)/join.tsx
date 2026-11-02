@@ -1,3 +1,4 @@
+import { storesLine } from '../../lib/store-list';
 import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -198,7 +199,7 @@ function TeamJoin() {
 
           {step === 'details' && invitation ? (
             <View style={styles.group}>
-              <Text variant="body">{t('join.hello', { name: invitation.name, business: invitation.business })}</Text>
+              <Text variant="body">{t('join.hello', { name: invitation.name, business: invitation.stores?.length ? storesLine(invitation.stores, language) : invitation.business })}</Text>
               <TextField
                 label={t('join.field.number')}
                 hint={t('join.field.number.hint', { ending: invitation.numberEnding })}
@@ -273,7 +274,7 @@ function TeamJoin() {
           {step === 'done' && result ? (
             <View style={styles.group}>
               <InlineNotice tone={result.activated ? 'success' : 'info'}>
-                {t(result.activated ? 'join.done.ready' : 'join.done.waiting', { business: result.business })}
+                {t(result.activated ? 'join.done.ready' : 'join.done.waiting', { business: result.stores?.length ? storesLine(result.stores, language) : result.business })}
               </InlineNotice>
               <Button title={t('join.signIn')} onPress={() => router.replace(LOGIN as never)} />
             </View>

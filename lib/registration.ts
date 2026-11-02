@@ -25,15 +25,13 @@
 
 import type { Language } from './i18n';
 import type { AcquisitionClaim } from './acquisition';
-import { arabicNameHint, latinNameHint, type NameHint } from './display-name.ts';
+import { latinNameHint, type NameHint } from './display-name.ts';
 
 export interface RegistrationDraft {
   ownerName: string;
-  businessName: string;
   branchName: string;
   /** D225: each name in Arabic too — a new business, its first store and its Owner are created with both. */
   ownerNameAr: string;
-  businessNameAr: string;
   branchNameAr: string;
   city: string;
   /** Optional (the owner's brief of 2026-10-18): verified later, from the account, if the Owner wants a second channel. */
@@ -51,10 +49,8 @@ export interface RegistrationDraft {
 
 export const emptyRegistration: RegistrationDraft = {
   ownerName: '',
-  businessName: '',
   branchName: '',
   ownerNameAr: '',
-  businessNameAr: '',
   branchNameAr: '',
   city: '',
   email: '',
@@ -67,10 +63,8 @@ export const emptyRegistration: RegistrationDraft = {
 /** Which field a problem belongs to, so it can be shown beside its input. */
 export type RegistrationField =
   | 'ownerName'
-  | 'businessName'
   | 'branchName'
   | 'ownerNameAr'
-  | 'businessNameAr'
   | 'branchNameAr'
   | 'email'
   | 'phone'
@@ -84,7 +78,6 @@ export type RegistrationProblems = Partial<Record<RegistrationField, string>>;
 const NAME_HINT_KEY: Record<Exclude<NameHint, null>, string> = {
   latin_has_arabic: 'names.hint.latinHasArabic',
   latin_needs_letter: 'names.hint.latinNeedsLetter',
-  arabic_needs_arabic: 'names.hint.arabicNeedsArabic',
 };
 
 /** Mirrors the server's `MinLength(8)`. Kept here only to fail fast, not to decide. */
@@ -105,18 +98,11 @@ export function validateRegistration(draft: RegistrationDraft): RegistrationProb
   const problems: RegistrationProblems = {};
 
   if (!draft.ownerName.trim()) problems.ownerName = 'register.problem.ownerName';
-  if (!draft.businessName.trim()) problems.businessName = 'register.problem.businessName';
   if (!draft.branchName.trim()) problems.branchName = 'register.problem.branchName';
   // D225: each Latin name holds no Arabic letter, and each Arabic one at least one — the server's rule, said early.
-  for (const field of ['ownerName', 'businessName', 'branchName'] as const) {
+  for (const field of ['ownerName', 'branchName'] as const) {
     const latin = latinNameHint(draft[field]);
     if (!problems[field] && latin) problems[field] = NAME_HINT_KEY[latin];
-    const arabicField = `${field}Ar` as const;
-    if (!draft[arabicField].trim()) problems[arabicField] = 'names.error.blank';
-    else {
-      const arabic = arabicNameHint(draft[arabicField]);
-      if (arabic) problems[arabicField] = NAME_HINT_KEY[arabic];
-    }
   }
 
   const email = draft.email.trim();
@@ -161,10 +147,8 @@ export function registrationPayload(
   const body: Record<string, string> = {
     idempotencyKey,
     ownerName: draft.ownerName.trim(),
-    businessName: draft.businessName.trim(),
     branchName: draft.branchName.trim(),
     ownerNameAr: draft.ownerNameAr.trim(),
-    businessNameAr: draft.businessNameAr.trim(),
     branchNameAr: draft.branchNameAr.trim(),
     phone: draft.phone.trim(),
     password: draft.password,
@@ -201,7 +185,7 @@ export function sameRegistration(a: RegistrationDraft, b: RegistrationDraft): bo
  * and the one submission at the end is unchanged. City has no rule, so it appears in no step's list.
  */
 export const REGISTRATION_STEPS: readonly (readonly RegistrationField[])[] = [
-  ['businessName', 'businessNameAr', 'branchName', 'branchNameAr'],
+  ['branchName', 'branchNameAr'],
   ['ownerName', 'ownerNameAr'],
   ['phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'],
 ];

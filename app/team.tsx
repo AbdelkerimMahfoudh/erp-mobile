@@ -151,7 +151,6 @@ export default function TeamScreen() {
               subtitle={branchSummary(u)}
               accessory={
                 <View style={styles.rowChips}>
-                  {u.nameIncomplete ? <Chip tone="warning" label={t('names.incomplete')} /> : null}
                   <StatusChip domain="user" value={u.status} />
                 </View>
               }
@@ -267,7 +266,7 @@ function EditSheet({
     const normalizedPhone = phone.trim() === '' ? '' : cleanedPhone(phone);
 
     // D225: completing the Arabic name is optional here; a name given is held to its script's rule.
-    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr }, { arabicRequired: false });
+    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr });
     if (named.name) nextErrors.name = nameErrorText(named.name, t);
     if (named.nameAr) nextErrors.nameAr = nameErrorText(named.nameAr, t);
     if (normalizedPhone !== '' && !E164.test(normalizedPhone)) nextErrors.phone = t('team.error.phone');
@@ -337,7 +336,6 @@ function EditSheet({
               setNameAr(next.nameAr);
             }}
             errors={{ name: errors.name, nameAr: errors.nameAr }}
-            arabicRequired={false}
           />
 
           <TextField

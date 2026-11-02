@@ -130,12 +130,12 @@ afterEach(async () => {
 });
 
 describe('the names, in Business settings', () => {
-  it('the business name and each store, with the missing Arabic name marked', async () => {
+  it('the business name and each store, and nothing asks for an Arabic name', async () => {
     await open('/settings');
     expect(await screen.findByText('Boutique Kiffa')).toBeTruthy();
     expect(screen.getByText(translateIn('en', 'names.screen.title'))).toBeTruthy();
     expect(screen.getByText('Centre')).toBeTruthy();
-    expect(screen.getAllByText(translateIn('en', 'names.incomplete')).length).toBe(1);
+    expect(screen.queryByText('Arabic name missing')).toBeNull();
   });
 
   it('the business\'s Arabic name goes to the business, and only what changed is sent', async () => {

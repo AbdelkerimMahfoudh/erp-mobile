@@ -335,7 +335,8 @@ function receiptOf(
   return {
     invoiceNo: sale.invoiceNo,
     soldAt: new Date(sale.soldAt),
-    storeName: names?.business ? displayName(names.business, language) : storeName,
+    // D227: since 0111 the sale recorded its own answer, and none is an answer. A later name is never read into it.
+    storeName: names?.business ? displayName(names.business, language) : names?.branch ? null : storeName,
     branchName: displayName(names?.branch ?? sale.branch, language),
     cashierName: names?.seller ? displayName(names.seller, language) : nameIn(sale.soldBy, sale.soldByAr, language) || '',
     // The customer as named when the sale was confirmed (0108); an older server's answer falls back to the record.

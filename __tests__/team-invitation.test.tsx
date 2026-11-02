@@ -82,11 +82,12 @@ describe('adding a person', () => {
     });
   }
 
-  it('a new person needs an Arabic name too (D225): without one, nothing is created', async () => {
+  it('an Arabic name is optional (D227): without one, the person is still created', async () => {
+    (api.post as jest.Mock).mockResolvedValue({ created: true, user: { id: 'u', name: 'Fatima' }, invitation: { reference: 'R', expiresAt: '2026-11-03T00:00:00.000Z' }, seats: [] });
     await fill('+222 33 44 55 66', '');
     await press(t('team.create.submit'));
-    expect(screen.getByText(t('names.error.blank'))).toBeTruthy();
-    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.queryByText(t('names.error.blank'))).toBeNull();
+    expect(api.post).toHaveBeenCalled();
   });
 
   it('a WhatsApp number is required: without one, nothing is created', async () => {

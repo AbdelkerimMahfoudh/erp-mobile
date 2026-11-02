@@ -92,7 +92,7 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
     const trimmedEmail = email.trim();
     const normalizedPhone = phone.trim() === '' ? '' : cleanedPhone(phone);
     // D225: a new person is created with both names.
-    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr }, { arabicRequired: true });
+    const named = bilingualNameErrors({ name: trimmedName, nameAr: trimmedNameAr });
     if (named.name) next.name = named.name === 'blank' ? t('team.create.error.name') : nameErrorText(named.name, t);
     if (named.nameAr) next.nameAr = nameErrorText(named.nameAr, t);
     if (!normalizedPhone) next.phone = t('team.create.error.phone');
@@ -132,7 +132,6 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
               setNameAr(next.nameAr);
             }}
             errors={{ name: errors.name, nameAr: errors.nameAr }}
-            arabicRequired
           />
           <TextField
             label={t('team.field.phone')}

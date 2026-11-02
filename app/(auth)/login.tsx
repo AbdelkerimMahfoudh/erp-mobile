@@ -1,3 +1,4 @@
+import { compactStores } from '../../lib/store-list';
 import React, { useCallback, useState } from 'react';
 import { displayName } from '../../lib/display-name';
 import { View } from 'react-native';
@@ -155,8 +156,15 @@ export default function Login() {
           {choice.accounts.map((a) => (
             <Button
               key={a.accountRef}
-              title={displayName({ name: a.companyName, nameAr: a.companyNameAr }, language)}
+              title={
+                a.tradingName
+                  ? displayName({ name: a.tradingName, nameAr: a.tradingNameAr }, language)
+                  : a.stores?.length
+                    ? compactStores(a.stores, language, t)
+                    : displayName({ name: a.companyName, nameAr: a.companyNameAr }, language)
+              }
               variant="secondary"
+              wrap
               disabled={loading}
               onPress={() => void onChoose(a.accountRef)}
             />

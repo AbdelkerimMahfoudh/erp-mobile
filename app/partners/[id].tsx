@@ -1,3 +1,4 @@
+import { accountTitle, storesLine } from '../../lib/store-list';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -53,7 +54,7 @@ import {
  */
 export default function PartnerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const canManage = usePermission('connection.manage');
   const canLend = usePermission('loan.manage');
@@ -73,7 +74,7 @@ export default function PartnerDetailScreen() {
   const confirmRemove = async () => {
     if (!s) return;
     const ok = await dialog.confirm({
-      title: t('partners.remove.title', { store: s.store.name }),
+      title: t('partners.remove.title', { store: accountTitle(s.store, language, t) }),
       message: t('partners.remove.body'),
       confirmLabel: t('partners.remove.confirm'),
       tone: 'danger',
@@ -85,7 +86,7 @@ export default function PartnerDetailScreen() {
 
   return (
     <Screen scroll gap="xl" onRefresh={() => void summary.refetch()} refreshing={summary.isFetching}>
-      <Stack.Screen options={{ headerShown: true, title: s?.store.name ?? t('tab.partners') }} />
+      <Stack.Screen options={{ headerShown: true, title: s ? accountTitle(s.store, language, t) : t('tab.partners') }} />
 
       {error ? <InlineNotice tone="danger">{error}</InlineNotice> : null}
 
@@ -99,7 +100,13 @@ export default function PartnerDetailScreen() {
           <Card style={styles.card}>
             <View style={styles.head}>
               <View style={styles.headText}>
-                <Text variant="title">{s.store.name}</Text>
+                <Text variant="title">{accountTitle(s.store, language, t)}</Text>
+                {s.store.stores?.length ? (
+                  // A connection joins whole accounts: every store, none presented as the one that took part.
+                  <Text variant="caption" tone="secondary">
+                    {t('connection.stores')}: {storesLine(s.store.stores, language)}
+                  </Text>
+                ) : null}
                 <Text variant="caption" tone="secondary">
                   {[s.store.city, isolateLtr(s.store.publicStoreId)].filter(Boolean).join(' · ')}
                 </Text>

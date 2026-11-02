@@ -11,14 +11,14 @@
  */
 
 export interface BilingualName {
-  name: string;
+  name: string | null;
   nameAr?: string | null;
 }
 
 export function displayName(named: BilingualName | null | undefined, language: string): string {
   if (!named) return '';
   if (language === 'ar' && named.nameAr) return named.nameAr;
-  return named.name;
+  return named.name ?? '';
 }
 
 /**
@@ -39,7 +39,7 @@ export function nameIncomplete(named: BilingualName | null | undefined): boolean
 export function matchesName(named: BilingualName, query: string): boolean {
   const q = query.trim().toLocaleLowerCase();
   if (!q) return true;
-  return [named.name, named.nameAr ?? ''].some((n) => n.toLocaleLowerCase().includes(q));
+  return [named.name ?? '', named.nameAr ?? ''].some((n) => n.toLocaleLowerCase().includes(q));
 }
 
 /**
@@ -49,7 +49,7 @@ export function matchesName(named: BilingualName, query: string): boolean {
 const ARABIC_LETTER = /[ؠ-يٮ-ۓەۮۯۺ-ۼۿݐ-ݿࢠ-ࣉﭐ-ﷻﹰ-ﻼ]/u;
 const LATIN_LETTER_OR_DIGIT = /[A-Za-z0-9À-ÖØ-öø-ɏ]/u;
 
-export type NameHint = 'latin_has_arabic' | 'latin_needs_letter' | 'arabic_needs_arabic' | null;
+export type NameHint = 'latin_has_arabic' | 'latin_needs_letter' | null;
 
 export function latinNameHint(value: string): NameHint {
   const v = value.trim();
@@ -59,8 +59,3 @@ export function latinNameHint(value: string): NameHint {
   return null;
 }
 
-export function arabicNameHint(value: string): NameHint {
-  const v = value.trim();
-  if (!v) return null;
-  return ARABIC_LETTER.test(v) ? null : 'arabic_needs_arabic';
-}
