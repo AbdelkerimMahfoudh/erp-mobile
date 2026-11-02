@@ -197,6 +197,7 @@ export default function ApprovalDetailScreen() {
         </View>
 
         {row.identifier ? <Text variant="mono">{row.identifier}</Text> : null}
+        {row.cartGroupId ? <Text tone="secondary">{t('approvals.cart.together')}</Text> : null}
 
         <View style={styles.meta}>
           {nameIn(row.requesterName, row.requesterNameAr, language) ? (

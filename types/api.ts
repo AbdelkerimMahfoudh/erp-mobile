@@ -1435,7 +1435,8 @@ export interface ReturnDetail {
     serialNo: string | null;
     product: string;
     /** So a screen can say "held, not sellable" from the same fact inventory uses. */
-    unitStatus: string;
+    unitStatus: string | null;
+    returnedQuantity?: number | null;
   };
   policy: {
     windowHours: number;

@@ -18,7 +18,7 @@ import { useConnectivity } from '../../lib/connectivity';
 import { usePermission } from '../../lib/permissions';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
-import { useApprovalsForUnit, useRequestApproval } from '../../lib/discount-approvals';
+import { useApprovalsForUnit, useRequestApproval, useRequestCartApproval } from '../../lib/discount-approvals';
 import {
   approvalFor,
   discountPercent,
@@ -71,6 +71,8 @@ export interface ApprovalRequest {
   configuredPrice: number | null;
   proposedPrice: number;
   belowCost: boolean;
+  /** The whole sale (D227): one asking for every device below cost, good only while the sale stays exactly this. */
+  cart?: { hash: string; lines: unknown[]; saleDiscount?: number };
 }
 
 export interface ApprovalRequestSheetProps {
@@ -86,6 +88,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
   const online = useConnectivity((s) => s.online);
   const maySeeCost = usePermission('cost.view');
   const submit = useRequestApproval();
+  const submitCart = useRequestCartApproval();
   const [reason, setReason] = useState('');
 
   /*
@@ -98,7 +101,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
    */
   const keys = useRef(new Map<string, string>());
   const clientUuidFor = (r: ApprovalRequest): string => {
-    const asking = `${r.unitId}|${r.proposedPrice}`;
+    const asking = r.cart ? `cart|${r.cart.hash}` : `${r.unitId}|${r.proposedPrice}`;
     const known = keys.current.get(asking);
     if (known) return known;
     const fresh = uuidv4();
@@ -107,7 +110,8 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
   };
 
   const outstanding = useApprovalsForUnit(request?.unitId ?? null);
-  const rows = outstanding.data ?? [];
+  // An answer about another version of this sale is not an answer about this one.
+  const rows = (outstanding.data ?? []).filter((r) => !r.cartHash || r.cartHash === request?.cart?.hash);
   const now = new Date();
 
   const live = useMemo(() => {
@@ -152,6 +156,11 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
 
   const ask = async () => {
     try {
+      if (request.cart) {
+        await submitCart.mutateAsync({ ...request.cart, hash: undefined, reason: reason.trim(), clientUuid: clientUuidFor(request), unitId: request.unitId });
+        toast.success(t('approval.asked'));
+        return;
+      }
       await submit.mutateAsync({
         unitId: request.unitId,
         requestedPrice: request.proposedPrice,
@@ -167,7 +176,7 @@ export function ApprovalRequestSheet({ request, onClose, onApproved }: ApprovalR
   return (
     <BottomSheet scroll open onClose={onClose} title={t('approval.needed.title')}>
       <View style={styles.body}>
-        <Text tone="secondary">{t('approval.needed.body')}</Text>
+        <Text tone="secondary">{t(request.cart ? 'approval.cart.note' : 'approval.needed.body')}</Text>
 
         <View style={styles.item}>
           <Text variant="bodyStrong">{request.label}</Text>

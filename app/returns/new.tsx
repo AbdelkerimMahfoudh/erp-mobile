@@ -12,6 +12,7 @@ import {
   SegmentedControl,
   Text,
   TextField,
+  Stepper,
 } from '../../components/ui';
 import { ScannerSheet } from '../../components/scanner';
 import { ApiError } from '../../lib/api-client';
@@ -43,7 +44,9 @@ export default function NewReturnScreen() {
   const router = useRouter();
   const leave = useLeave('/returns/new');
   const canRequest = usePermission('return.request');
-  const params = useLocalSearchParams<{ saleItemId?: string; identifier?: string; product?: string }>();
+  const params = useLocalSearchParams<{ saleItemId?: string; identifier?: string; product?: string; maxQuantity?: string }>();
+  const maxQuantity = params.maxQuantity ? Number(params.maxQuantity) : null;
+  const [quantity, setQuantity] = useState(1);
 
   const [identifier, setIdentifier] = useState(params.identifier ?? '');
   const [scanning, setScanning] = useState(false);
@@ -103,7 +106,7 @@ export default function NewReturnScreen() {
   }
 
   const saleItemId = params.saleItemId;
-  const ready = Boolean(saleItemId) && identifier.trim().length > 0 && reason.trim().length > 0;
+  const ready = Boolean(saleItemId) && (maxQuantity !== null || identifier.trim().length > 0) && reason.trim().length > 0;
 
   const search = () => {
     setSearched(true);
@@ -115,10 +118,11 @@ export default function NewReturnScreen() {
     try {
       const detail = await create.mutateAsync({
         saleItemId,
-        identifier: identifier.trim(),
+        ...(maxQuantity !== null ? { quantity } : { identifier: identifier.trim() }),
         requestReason: reason.trim(),
         conditionNotes: conditionNotes.trim() || undefined,
-        custody,
+        // Counted pieces are handed over when the return is raised: there is nothing to scan later.
+        custody: maxQuantity !== null ? 'store_holds' : custody,
         clientUuid: clientUuid.current,
       });
       draft.clear();
@@ -211,6 +215,9 @@ export default function NewReturnScreen() {
           <Card>
             <Text variant="bodyStrong">{params.product ?? ''}</Text>
             {identifier ? <Identifier>{identifier}</Identifier> : null}
+            {maxQuantity !== null ? (
+              <Stepper value={quantity} onChange={setQuantity} min={1} max={maxQuantity} accessibilityLabel={t('returns.new.quantity')} />
+            ) : null}
           </Card>
         )}
 

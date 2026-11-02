@@ -121,7 +121,8 @@ function useRefundRefresh(id?: string) {
 
 export interface CreateReturnBody {
   saleItemId: string;
-  identifier: string;
+  identifier?: string;
+  quantity?: number;
   requestReason: string;
   conditionNotes?: string;
   custody: 'customer_holds' | 'store_holds';

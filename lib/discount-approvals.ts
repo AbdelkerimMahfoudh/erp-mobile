@@ -136,6 +136,19 @@ export function useRequestApproval() {
   });
 }
 
+/** One asking for a whole sale: the server finds every device below cost in these lines and hashes the cart itself. */
+export function useRequestCartApproval() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: ({ unitId: _unitId, hash: _hash, ...body }: { unitId: string; hash?: string; clientUuid: string; reason: string; lines: unknown[]; saleDiscount?: number }) =>
+      api.post<{ cartHash: string; rows: DiscountApproval[] }>('/discount-approvals/cart', body),
+    onSuccess: (result, input) => {
+      for (const row of result.rows) invalidate(row.id, row.unitId);
+      invalidate(undefined, input.unitId);
+    },
+  });
+}
+
 export interface DecideInput {
   id: string;
   approve: boolean;

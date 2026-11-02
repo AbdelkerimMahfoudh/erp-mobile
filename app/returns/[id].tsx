@@ -353,7 +353,8 @@ function Body({ detail, refetch }: { detail: ReturnDetail; refetch: () => void }
                 <Identifier>{detail.phone.imei ?? detail.phone.serialNo}</Identifier>
               ) : null}
               <View style={styles.inlineChips}>
-                <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" />
+                {detail.phone.unitStatus ? <StatusChip domain="unit" value={detail.phone.unitStatus} size="sm" /> : null}
+                {detail.phone.returnedQuantity ? <Text variant="caption" tone="secondary">{t('sales.detail.quantity', { count: detail.phone.returnedQuantity })}</Text> : null}
               </View>
             </View>
           </RowGroup>

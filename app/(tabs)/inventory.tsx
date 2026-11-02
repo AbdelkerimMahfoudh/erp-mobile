@@ -125,16 +125,20 @@ export default function InventoryScreen() {
   const [scannerOpen, setScannerOpen] = useState(false);
   // D227: choosing several for one sale. Visible and deliberate; there is no select-all, because a sale is not a stocktake.
   const [selecting, setSelecting] = useState(false);
-  const [picked, setPicked] = useState<Map<string, BasketPick & { price: number }>>(new Map());
+  const [picked, setPicked] = useState<Map<string, BasketPick & { price: number | null }>>(new Map());
+  if (useBasket((s) => s.wantsSelect)) {
+    useBasket.getState().askSelect(false);
+    setSelecting(true);
+  }
   const basketCount = useBasket((s) => s.count);
   const canSell = usePermission('sale.create');
-  const togglePick = (id: string, pick: BasketPick & { price: number }) =>
+  const togglePick = (id: string, pick: BasketPick & { price: number | null }) =>
     setPicked((current) => {
       const next = new Map(current);
       if (!next.delete(id)) next.set(id, pick);
       return next;
     });
-  const pickedTotal = [...picked.values()].reduce((sum, p) => sum + p.price, 0);
+  const pickedTotal = [...picked.values()].reduce((sum, p) => sum + (p.price ?? 0), 0);
   const addPicked = () => {
     useBasket.getState().queue([...picked.values()]);
     setPicked(new Map());
@@ -458,6 +462,8 @@ export default function InventoryScreen() {
   const selectBar = (
     <View>
       <MoneyValue value={pickedTotal} size="small" tone="muted" />
+      {/* Catalogue prices, not the sale's: the server's are shown before anyone confirms. */}
+      <Text variant="caption" tone="tertiary">{t('basket.estimate')}</Text>
       <Button
         title={t('basket.add', { count: String(picked.size) })}
         fullWidth
@@ -630,15 +636,15 @@ export default function InventoryScreen() {
                               ? t('inventory.availableOf', { available: formatQuantity(row.availableQuantity) })
                               : t('inventory.inStock')
                         }
-                        accessory={selecting && row.product?.defaultPrice != null && row.availableQuantity > 0 ? <PickMark on={picked.has(row.productId)} /> : undefined}
+                        accessory={selecting && row.availableQuantity > 0 ? <PickMark on={picked.has(row.productId)} /> : undefined}
                         onPress={() =>
-                          selecting && row.product?.defaultPrice != null && row.availableQuantity > 0
+                          selecting && row.availableQuantity > 0
                             ? togglePick(row.productId, {
                                 kind: 'quantity',
                                 productId: row.productId,
                                 label: productTitle(row.product),
                                 variant: variantSummary(row.product) || null,
-                                price: Number(row.product.defaultPrice),
+                                price: row.product?.defaultPrice != null ? Number(row.product.defaultPrice) : null,
                               })
                             : router.push(`/catalog/${row.productId}` as Href)
                         }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { displayName } from '../../lib/display-name';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigation } from 'expo-router';
+import { router, useNavigation, type Href } from 'expo-router';
 import { ScanLine, Trash2, UserRound } from 'lucide-react-native';
 import {
   Button,
@@ -27,7 +27,8 @@ import {
   ApprovalRequestSheet,
   type ApprovalRequest,
 } from '../../components/sell/ApprovalRequestSheet';
-import { mergeLines, useBasket } from '../../lib/basket';
+import { mergeLines, useBasket, type BasketPick } from '../../lib/basket';
+import { needsReview, priceDiffers, reviewKey, saleLines, type CartCheck } from '../../lib/cart-check';
 import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../components/sell/types';
 import { api, ApiError } from '../../lib/api-client';
 import { useActiveBranchName, useBranch } from '../../lib/branch';
@@ -146,6 +147,12 @@ function SellScreen() {
   /** The whole-sale discount, as typed on the Discount card (2026-10-17: decided before payment, not in the sheet). */
   const [discountText, setDiscountText] = useState('');
   const [pending, setPending] = useState<PendingScan | null>(null);
+  // Stock's choices with no set price, asked one at a time: an unpriced line never joins the sale at zero.
+  const [toPrice, setToPrice] = useState<Extract<BasketPick, { kind: 'quantity' }>[]>([]);
+  const [toPriceText, setToPriceText] = useState('');
+  // What the server would charge for exactly this cart, shown before payment.
+  const [review, setReview] = useState<{ key: string; check: CartCheck } | null>(null);
+  const [checking, setChecking] = useState(false);
   const [pendingPrice, setPendingPrice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
 
@@ -365,6 +372,10 @@ function SellScreen() {
           await onScanResult({ code: pick.identifier } as ScanResult);
         } else {
           const { kind, productId, label, variant, price } = pick;
+          if (price === null) {
+            setToPrice((current) => [...current, pick]);
+            continue;
+          }
           setLines((current) =>
             mergeLines(current, [{ key: uuidv4(), kind, productId, label, variant, trackingType: 'quantity' as const, quantity: 1, price }]),
           );
@@ -520,11 +531,7 @@ function SellScreen() {
     try {
       const response = await api.post<SaleResponse | WarningsPending>('/sales', {
         clientUuid: clientUuid.current,
-        lines: lines.map((line) =>
-          line.kind === 'unit'
-            ? { identifier: line.identifier, price: line.price }
-            : { productId: line.productId, quantity: line.quantity, price: line.price },
-        ),
+        lines: saleLines(lines),
         payments: payments.map((p) => ({
           method: p.method,
           amount: p.amount,
@@ -573,6 +580,7 @@ function SellScreen() {
               lineIndex?: number | null;
               unitId?: string | null;
               identifier?: string | null;
+              cartHash?: string | null;
             };
             const line =
               typeof body.lineIndex === 'number' ? lines[body.lineIndex] : undefined;
@@ -591,6 +599,7 @@ function SellScreen() {
               configuredPrice: body.configuredPrice ?? null,
               proposedPrice: line?.price ?? 0,
               belowCost: Boolean(body.belowCost),
+              cart: body.cartHash ? { hash: body.cartHash, lines: saleLines(lines), ...(discount > 0 ? { saleDiscount: discount } : {}) } : undefined,
             };
             setPaymentOpen(false);
             return;
@@ -721,6 +730,38 @@ function SellScreen() {
   };
 
   /** The payment sheet has left the screen; an approval it made way for may open now. */
+  const currentKey = reviewKey(lines, discount);
+  const shownReview = review?.key === currentKey ? review.check : null;
+
+  /** First press: the server's figures. Next press, on what they showed: payment. */
+  const charge = async () => {
+    if (shownReview) {
+      setPaymentOpen(true);
+      return;
+    }
+    setChecking(true);
+    try {
+      const check = await api.post<CartCheck>('/sales/check', { lines: saleLines(lines), ...(discount > 0 ? { saleDiscount: discount } : {}) });
+      if (needsReview(check)) setReview({ key: currentKey, check });
+      else setPaymentOpen(true);
+    } catch (e) {
+      toast.error(toErrorMessage(e));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const confirmToPrice = () => {
+    const [first, ...rest] = toPrice;
+    const price = Number(toPriceText);
+    if (!first || !(price > 0)) return;
+    setLines((current) =>
+      mergeLines(current, [{ key: uuidv4(), kind: 'quantity' as const, productId: first.productId, label: first.label, variant: first.variant, trackingType: 'quantity' as const, quantity: 1, price }]),
+    );
+    setToPrice(rest);
+    setToPriceText('');
+  };
+
   const onPaymentClosed = () => {
     setPaymentOpen(false);
     const next = pendingApproval.current;
@@ -890,6 +931,16 @@ function SellScreen() {
                 />
               ) : null}
             </View>
+            <Button
+              title={t('sell.addFromStock')}
+              variant="tertiary"
+              size="sm"
+              testID="sell-add-from-stock"
+              onPress={() => {
+                useBasket.getState().askSelect(true);
+                router.push('/(tabs)/inventory' as Href);
+              }}
+            />
             <ScanTarget
               onResult={onScanResult}
               onCodeCaptured={onCodeCaptured}
@@ -919,12 +970,45 @@ function SellScreen() {
                   {t('sell.offline.body')}
                 </InlineNotice>
               ) : null}
+              {shownReview ? (
+                <View testID="sell-review">
+                  <Text variant="bodyStrong">{t('sell.review.title')}</Text>
+                  {shownReview.lines.map((checked) => (
+                    <View key={checked.index} style={styles.totals}>
+                      <View style={styles.titleText}>
+                        <Text>
+                          {lines[checked.index]?.label}
+                          {checked.quantity > 1 ? ` × ${checked.quantity}` : ''}
+                        </Text>
+                        {checked.problem ? (
+                          <Text variant="caption" tone="danger">{t(`sell.review.problem.${checked.problem}` as never)}</Text>
+                        ) : priceDiffers(checked) ? (
+                          <Text variant="caption" tone="secondary">{t('sell.review.setPrice', { amount: isolateLtr(formatMoney(checked.setPrice ?? 0)) })}</Text>
+                        ) : null}
+                      </View>
+                      <MoneyValue value={checked.lineTotal} size="small" />
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               <View style={styles.totals}>
                 <Text variant="body" tone="secondary">
                   {t('sell.cart.count', { count: lines.length })}
                 </Text>
                 <MoneyValue value={total} size="display" />
               </View>
+              {shownReview ? (
+                <Button
+                  title={t('sell.review.continue', { amount: isolateLtr(formatMoney(shownReview.total)) })}
+                  size="lg"
+                  fullWidth
+                  wrap
+                  testID="sell-review-continue"
+                  disabled={offline || submitting || shownReview && !shownReview.ok}
+                  loading={submitting}
+                  onPress={() => void charge()}
+                />
+              ) : (
               <Button
                 // Isolated so "1 030 MRU" keeps its order inside an Arabic label.
                 title={t('sell.charge', { amount: isolateLtr(formatMoney(total)) })}
@@ -938,10 +1022,11 @@ function SellScreen() {
                  * refusing up front is the honest answer, and the banner above
                  * says why rather than leaving a dead button unexplained.
                  */
-                disabled={offline || submitting || discountState.problem !== null}
-                loading={submitting}
-                onPress={() => setPaymentOpen(true)}
+                disabled={offline || submitting || checking || discountState.problem !== null}
+                loading={submitting || checking}
+                onPress={() => void charge()}
               />
+              )}
             </>
           ) : undefined
         }
@@ -1017,6 +1102,16 @@ function SellScreen() {
               ) : null}
             </ProductConfirmationCard>
           </ScrollView>
+        ) : null}
+      </BottomSheet>
+
+      <BottomSheet open={toPrice.length > 0 && !pending} onClose={() => { setToPrice((rest) => rest.slice(1)); setToPriceText(''); }} title={t('basket.priceTitle')}>
+        {toPrice[0] ? (
+          <View style={styles.sheet}>
+            <Text variant="bodyStrong">{toPrice[0].label}</Text>
+            <MoneyField label={t('receipt.price')} hint={t('sell.priceRequired')} value={toPriceText} onChangeText={setToPriceText} />
+            <Button title={t('sell.addToSale')} fullWidth disabled={!(Number(toPriceText) > 0)} onPress={confirmToPrice} testID="sell-price-add" />
+          </View>
         ) : null}
       </BottomSheet>
 

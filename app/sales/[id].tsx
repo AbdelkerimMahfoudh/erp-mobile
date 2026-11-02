@@ -391,7 +391,7 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
    * exactly the behaviour `docs/27` §16.4 says cannot be inferred.
    */
   // A cancelled sale's phones are back in stock, not with a customer: nothing on it can be returned (0079).
-  const returnable = Boolean(line.unitId) && !line.voided && returnsOpen;
+  const returnable = !line.voided && returnsOpen;
 
   return (
     <View style={styles.line}>
@@ -442,6 +442,8 @@ function Line({ line, alone, returnsOpen }: { line: SaleLine; alone: boolean; re
                 saleItemId: line.id,
                 identifier: identifier ?? '',
                 product: line.product ?? '',
+                // A counted line has no identifier: the return names how many come back.
+                ...(line.unitId ? {} : { maxQuantity: String(line.quantity) }),
               },
             } as never)
           }

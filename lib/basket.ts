@@ -7,7 +7,8 @@ import { create } from 'zustand';
  */
 export type BasketPick =
   | { kind: 'unit'; identifier: string }
-  | { kind: 'quantity'; productId: string; label: string; variant: string | null; price: number };
+  // No price: the shop never set one, so the seller enters it when the item joins the sale.
+  | { kind: 'quantity'; productId: string; label: string; variant: string | null; price: number | null };
 
 interface BasketState {
   count: number;
@@ -16,6 +17,9 @@ interface BasketState {
   queue: (picks: BasketPick[]) => void;
   take: () => BasketPick[];
   setSummary: (count: number, total: number) => void;
+  /** Sell's "Add from stock": Stock opens already choosing. */
+  wantsSelect: boolean;
+  askSelect: (wanted: boolean) => void;
   reset: () => void;
 }
 
@@ -30,7 +34,9 @@ export const useBasket = create<BasketState>((set, get) => ({
     return picks;
   },
   setSummary: (count, total) => set({ count, total }),
-  reset: () => set({ count: 0, total: 0, picks: [] }),
+  wantsSelect: false,
+  askSelect: (wantsSelect) => set({ wantsSelect }),
+  reset: () => set({ count: 0, total: 0, picks: [], wantsSelect: false }),
 }));
 
 interface Identified {

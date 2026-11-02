@@ -51,6 +51,9 @@ export interface DiscountApproval {
   expiresAt: string;
   createdAt: string;
   version: number;
+  /** One asking for a whole sale (D227): decided together, and good only for that exact cart. */
+  cartGroupId?: string | null;
+  cartHash?: string | null;
   /** Stripped for anyone without `cost.view` — the gate does it, not this app. */
   unitCost?: number;
   product: { name: string; variant: string | null } | null;
