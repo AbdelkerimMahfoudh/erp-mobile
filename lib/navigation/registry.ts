@@ -58,6 +58,7 @@ export type IconName =
   | 'Receipt'
   | 'ClipboardCheck'
   | 'HandCoins'
+  | 'Wrench'
   | 'Building2'
   | 'Handshake'
   | 'BarChart3'
@@ -201,6 +202,8 @@ export const HUBS: readonly Hub[] = [
       // `expense.submit`, not `expense.manage`: the person who spent the money
       // reports it, and the list scopes them to their own. Every branch has expenses.
       { id: 'expenses', route: '/expenses', titleKey: 'nav.expenses', icon: 'Receipt', perm: 'expense.submit' },
+      // D227: money from a repair, apart from sales and stock. An Employee has it by per-store grant.
+      { id: 'maintenance', route: '/maintenance', titleKey: 'nav.maintenance', icon: 'Wrench', perm: 'maintenance.record' },
       { id: 'loans', route: '/loans', titleKey: 'nav.loans', icon: 'HandCoins', perm: 'loan.view' },
       // Balances customers and partner stores still owe (0074). `report.view`,
       // like the figures: the whole branch's receivables are an Owner and
@@ -585,7 +588,7 @@ export function partnersTabVisible(granted: ReadonlySet<string>): boolean {
  * (D157). Decided by the activity alone, so the bar and these rows never ask
  * each other.
  */
-const MONEY_ROW_ORDER = ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers'] as const;
+const MONEY_ROW_ORDER = ['money', 'agent-reports', 'expenses', 'maintenance', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers'] as const;
 
 export function moneyRows(granted: ReadonlySet<string>, activity: Activity = 'electronics'): Destination[] {
   const reportsOnTheBar = activity === 'money_agent';

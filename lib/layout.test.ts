@@ -83,9 +83,9 @@ it('Home: Receive then Sell side by side, no several-items link, and Open store 
   assert.match(home, /router\.push\('\/quick-sell' as Href\)/);
   assert.match(home, /router\.push\('\/quick-receive' as Href\)/);
   assert.ok(!home.includes("t('home.shortcut.fullSale')") && !/router\.push\('\/\(tabs\)\/sell'\)/.test(home), 'several items live inside Sell');
-  // Three since the money services counter (D157): Receive, Sell and New exchange all wait while the day is closed —
+  // Four with maintenance income (D227), three since the money services counter (D157): each waits while the day is closed —
   // the server refuses an exchange on a closed day as it refuses a sale (store_closed).
-  assert.equal((row.match(/disabled=\{!shortcutsReady \|\| gate\.locked\}/g) ?? []).length, 3, 'all three wait while the day is closed');
+  assert.equal((row.match(/disabled=\{!shortcutsReady \|\| gate\.locked\}/g) ?? []).length, 4, 'all four wait while the day is closed');
   assert.match(row, /router\.push\('\/agent\/new' as Href\)/, 'New exchange is among the counter actions');
   assert.match(home, /const gate = dayGate\(canCount \? businessDay\.data : undefined, canPerform, canCount\);/);
   assert.match(home, /\{gate\.locked \? <OpenStoreNow businessDate=\{gate\.businessDate\} reason=\{gate\.reason\} mayOpen=\{gate\.mayOpen\} \/> : null\}/);

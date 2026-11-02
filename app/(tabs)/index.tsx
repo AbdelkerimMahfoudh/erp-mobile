@@ -4,7 +4,7 @@ import { AppState, PixelRatio, View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format as formatDateFns } from 'date-fns';
-import { ArrowRightLeft, ChevronRight, ClipboardCheck, Handshake, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon } from 'lucide-react-native';
+import { ArrowRightLeft, ChevronRight, ClipboardCheck, Handshake, PackagePlus, ScanLine, Truck, Undo2, Wallet, type LucideIcon, Wrench } from 'lucide-react-native';
 import {
   Button,
   buttonChrome,
@@ -93,6 +93,7 @@ export default function HomeScreen() {
   const sells = activityAllows(activity, 'electronics');
   const canSell = usePermission('sale.create') && sells;
   const canReceive = usePermission('purchase.manage') && sells;
+  const canMaintain = usePermission('maintenance.record');
   /*
     The money services counter (D157): its one big action, New exchange, and the day at the counter — the drawer,
     the floats and, for whoever reads the reports, today's count and commission.
@@ -227,7 +228,7 @@ export default function HomeScreen() {
         of its own — the one big action of an agent counter, beneath the shop's two on a combined branch, so three
         never crowd one row at 320 points (D157). ──
       */}
-      {(canSell || canReceive || canExchange) && access.canWrite ? (
+      {(canSell || canReceive || canExchange || canMaintain) && access.canWrite ? (
         <View style={styles.shortcuts}>
           {canSell || canReceive ? (
             <View style={styles.actionRow}>
@@ -260,6 +261,9 @@ export default function HomeScreen() {
                 onWidth={(title, w) => setActionWidths((prev) => (prev[title] === w ? prev : { ...prev, [title]: w }))}
               />
             </View>
+          ) : null}
+          {canMaintain ? (
+            <Button title={t('maintenance.homeAction')} icon={Wrench} variant="secondary" fullWidth disabled={!shortcutsReady || gate.locked} onPress={() => router.push('/maintenance?new=1' as Href)} />
           ) : null}
           {canExchange ? (
             <Button

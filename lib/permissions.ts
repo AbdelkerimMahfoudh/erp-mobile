@@ -73,6 +73,7 @@ export const PERMISSIONS = [
   'cost.complete',
   // 0108: the return policy of a branch the person is assigned to (Owner, Store Manager, Store Employee).
   'return.policy.edit',
+  'maintenance.record',
   'unit.add',
   'unit.transfer',
   /**

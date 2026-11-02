@@ -63,13 +63,13 @@ const APP_DIR = path.join(MOBILE, 'app');
 // ── the real seeded role permission sets ─────────────────────────────────────
 
 const OWNER = new Set(
-  'branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
+  'maintenance.record,branch.manage,catalog.manage,closing.count,closing.perform,connection.manage,consignment.custody.receive,consignment.custody.send,consignment.forgive,consignment.payment.confirm,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,debt.manage,discount.apply,discount.override,expense.manage,expense.review,expense.submit,financial.correction.approve,financial.correction.request,import.run,integrations.manage,loan.forgive,loan.manage,loan.payment.confirm,loan.payment.report,loan.view,price.edit,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.exception,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,settings.manage,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add,unit.transfer,user.manage'.split(
     ',',
   ),
 );
 
 const MANAGER = new Set(
-  'catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
+  'maintenance.record,catalog.manage,closing.count,closing.perform,consignment.custody.receive,consignment.custody.send,consignment.payment.report,consignment.request,consignment.return.confirm,consignment.review,consignment.sell,consignment.view,cost.view,discount.apply,expense.submit,financial.correction.request,loan.payment.report,loan.view,purchase.manage,refund.confirm,refund.report,report.view,return.approve,return.policy.edit,return.policy.override,return.reject,return.request,return.review,return.view,sale.create,sale.return,sale.view,supplier.manage,supplier.payment.confirm,supplier.payment.report,transfer.approve,transfer.cancel,transfer.cancel_own,transfer.receive,transfer.request,transfer.ship,transfer.view,unit.add'.split(
     ',',
   ),
 );
@@ -262,7 +262,7 @@ it('an Owner sees the five business hubs — Money is a tab now, not a card', ()
   // Moved, not removed: the Owner reaches all four of its children — Results,
   // Expenses, Loans, and Outstanding payments (0074). The Daily closing is on Home (docs/63).
   assert.equal(hubById('money')?.placement, 'tab');
-  assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'loans', 'outstanding']);
+  assert.deepEqual(visibleChildren(hubById('money')!, OWNER).map((c) => c.id), ['money', 'expenses', 'maintenance', 'loans', 'outstanding']);
 });
 
 it('an Owner sees every destination on a combined branch', () => {
@@ -566,7 +566,7 @@ it('the whole hub moved — Results, Expenses, Loans and Outstanding payments; t
   const money = hubById('money');
   assert.deepEqual(
     money.children.map((c) => c.route),
-    ['/money', '/expenses', '/loans', '/outstanding'],
+    ['/money', '/expenses', '/maintenance', '/loans', '/outstanding'],
     'the Money section, its Daily closing row taken to Home',
   );
   // The permissions are the ones the hub always enforced. Widening any of them
@@ -574,7 +574,7 @@ it('the whole hub moved — Results, Expenses, Loans and Outstanding payments; t
   assert.deepEqual(
     money.children.map((c) => c.perm),
     // Outstanding needs report.view, like every branch-wide figure.
-    ['report.view', 'expense.submit', 'loan.view', 'report.view'],
+    ['report.view', 'expense.submit', 'maintenance.record', 'loan.view', 'report.view'],
   );
   // Still a route, reached from Home by everybody who counts, and never unclassified.
   assert.match(EXCLUDED_ROUTES['/closing'] ?? '', /Home/);
@@ -852,7 +852,7 @@ it('a shop shows no agent screen, whatever keys a role holds', () => {
     assert.ok(!moneyRows(granted, 'electronics').some((d) => d.id.startsWith('agent')), 'no agent row on Money');
   }
   // And the old rows, exactly: an electronics branch is unchanged.
-  assert.deepEqual(moneyRows(OWNER_ALL, 'electronics').map((d) => d.id), ['money', 'expenses', 'loans', 'outstanding']);
+  assert.deepEqual(moneyRows(OWNER_ALL, 'electronics').map((d) => d.id), ['money', 'expenses', 'maintenance', 'loans', 'outstanding']);
   assert.deepEqual(moneyRows(OWNER, 'electronics').map((d) => d.id), visibleChildren(hubById('money')!, OWNER).map((d) => d.id));
 });
 
@@ -871,10 +871,10 @@ it('an agent-only branch shows nothing of the store: no Sell, Stock, Catalog, Pa
 });
 
 it('Money carries the counter’s rows: reports beside Results on a combined branch, never twice', () => {
-  assert.deepEqual(moneyRows(OWNER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers']);
+  assert.deepEqual(moneyRows(OWNER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'maintenance', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers']);
   // On an agent-only branch the reports are a tab, so not a row as well; Results and Outstanding are the store's.
-  assert.deepEqual(moneyRows(OWNER_ALL, 'money_agent').map((d) => d.id), ['expenses', 'loans', 'agent-rebalance', 'agent-providers']);
-  assert.deepEqual(moneyRows(MANAGER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'loans', 'outstanding', 'agent-rebalance']);
+  assert.deepEqual(moneyRows(OWNER_ALL, 'money_agent').map((d) => d.id), ['expenses', 'maintenance', 'loans', 'agent-rebalance', 'agent-providers']);
+  assert.deepEqual(moneyRows(MANAGER_ALL, 'both').map((d) => d.id), ['money', 'agent-reports', 'expenses', 'maintenance', 'loans', 'outstanding', 'agent-rebalance']);
   // The providers are the Owner's alone (agent.provider.manage); an Employee reports expenses and nothing more.
   assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'money_agent').map((d) => d.id), ['expenses']);
   assert.deepEqual(moneyRows(EMPLOYEE_ALL, 'both').map((d) => d.id), ['expenses']);
