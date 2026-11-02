@@ -310,3 +310,8 @@ export const api = {
   patch: <T = unknown>(path: string, body?: Body) => request<T>('PATCH', path, body),
   delete: <T = unknown>(path: string, body?: Body) => request<T>('DELETE', path, body),
 };
+
+/** A new refresh token the server issued outside a refresh (a password change): the old one no longer works. */
+export async function adoptRefreshToken(token: string): Promise<void> {
+  await setItem(TOKEN_KEYS.REFRESH_TOKEN, token);
+}

@@ -90,6 +90,12 @@ export default function AccountScreen() {
         <WhatsAppSection me={me} />
       </Section>
 
+      <Section title={t('security.title')}>
+        <RowGroup>
+          <ListRow flat title={t('security.title')} leading={ShieldCheck} onPress={() => router.push('/account/security' as never)} />
+        </RowGroup>
+      </Section>
+
       <MessagesSection verified={me.whatsappVerified} />
 
       <Section title={t('account.delete.title')}>
@@ -161,6 +167,7 @@ function MessagesSection({ verified }: { verified: boolean }) {
  * refusal nobody gave, and never a chip left for the person to interpret.
  */
 function WhatsAppSection({ me }: { me: AccountView }) {
+  const router = useRouter();
   const { t, language } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -351,7 +358,8 @@ function WhatsAppSection({ me }: { me: AccountView }) {
           <Button
             title={me.whatsappVerified ? t('account.whatsapp.change') : t('account.whatsapp.verify')}
             variant={me.whatsappVerified ? 'secondary' : 'primary'}
-            onPress={() => setEditing(true)}
+            // A number already proven moves through Security and sign-in, with its holder's code too (D227).
+            onPress={() => (me.whatsappVerified ? router.push('/account/security' as never) : setEditing(true))}
           />
         )}
       </View>

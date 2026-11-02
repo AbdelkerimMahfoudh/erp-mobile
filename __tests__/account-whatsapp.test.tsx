@@ -117,27 +117,27 @@ it('a lost answer for a first number the server did verify is done: the account 
   expect(screen.queryByText(t('account.whatsapp.confirm'))).toBeNull();
 });
 
-it('changing a verified number: a lost answer the server never committed is not confirmed — beside the old, still verified number', async () => {
-  const account = { now: verified('+22241111111') };
+it('verifying a number: a lost answer the server never committed is not confirmed — beside the number as it was', async () => {
+  const account = { now: { ...none, phone: '+22241111111' } as AccountView };
   server(account, () => undefined);
   await renderScreen();
-  await confirmNumber(t('account.whatsapp.change'), '4999 8877');
+  await confirmNumber(t('account.whatsapp.verify'), '4999 8877');
 
   expect(await screen.findByText(t('account.whatsapp.notConfirmed'))).toBeTruthy();
   expect(screen.getByText('+22241111111')).toBeTruthy();
   expect(toasts()).toEqual([]);
   // Try again is the way on: the form again, with the number already typed.
-  expect(screen.queryByText(t('account.whatsapp.change'))).toBeNull();
+  expect(screen.queryByText(t('account.whatsapp.verify'))).toBeNull();
   await fireEvent.press(screen.getByText(t('action.retry')));
   expect(textInputs()[0].props.value).toBe('49998877');
   expect(screen.queryByText(t('account.whatsapp.notConfirmed'))).toBeNull();
 });
 
-it('changing a verified number: a lost answer the server did commit is done', async () => {
-  const account = { now: verified('+22241111111') };
+it('verifying a number: a lost answer the server did commit is done', async () => {
+  const account = { now: { ...none, phone: '+22241111111' } as AccountView };
   server(account, () => (account.now = verified('+22249998877')));
   await renderScreen();
-  await confirmNumber(t('account.whatsapp.change'), '+222 4999 8877');
+  await confirmNumber(t('account.whatsapp.verify'), '+222 4999 8877');
 
   await waitFor(() => expect(toasts()).toEqual([`success: ${t('account.whatsapp.done')}`]));
   expect(screen.getByText('+22249998877')).toBeTruthy();
@@ -194,10 +194,10 @@ it('a code the server refused is still said to be wrong', async () => {
 
 describe('a new number’s own consent (D213)', () => {
   it('starts unticked; without it no code is asked for; ticked, the server’s version and the language shown go with the number', async () => {
-    const account = { now: verified('+22249998877') };
+    const account = { now: { ...none, phone: '+22249998877' } as AccountView };
     server(account, () => undefined);
     await renderScreen();
-    await fireEvent.press(await screen.findByText(t('account.whatsapp.change')));
+    await fireEvent.press(await screen.findByText(t('account.whatsapp.verify')));
     const [phone, password] = textInputs();
     await fireEvent.changeText(phone, '36001122');
     await fireEvent.changeText(password, 'correct horse');
