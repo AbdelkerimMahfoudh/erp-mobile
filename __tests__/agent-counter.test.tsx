@@ -153,6 +153,9 @@ beforeEach(async () => {
 // Lets the cached reads settle inside act, so nothing updates after a test has ended.
 afterEach(async () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0))));
 
+// Random ids can contain any digits: the number is looked for in everything else.
+const withoutIds = (s: string) => s.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '');
+
 describe('the counter flow', () => {
   it('direction first in words, any provider switched on, the commission typed, one review, then Confirm — the number and the commission reach the server, never a person', async () => {
     (api.post as jest.Mock).mockImplementation(async (_path: string, body: { amount: number }) => recorded(body));
@@ -209,8 +212,8 @@ describe('the counter flow', () => {
 
     // Never in the queue file, never in the draft, never in the summary; gone from SecureStore once recorded.
     expect(mockQueueWrites.length).toBeGreaterThan(0);
-    for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|3456|customerNumber/);
-    for (const draft of mockDrafts.values()) expect(draft).not.toMatch(/3612|3456|customerNumber/);
+    for (const write of mockQueueWrites) expect(withoutIds(write)).not.toMatch(/3612|3456|customerNumber/);
+    for (const draft of mockDrafts.values()) expect(withoutIds(draft)).not.toMatch(/3612|3456|customerNumber/);
     expect(mockStore.has(numberKey(SCOPE, item.clientUuid))).toBe(false);
   });
 
@@ -229,7 +232,7 @@ describe('the counter flow', () => {
     expect(item.state).toBe('waiting_for_connection');
     // The number is kept, sealed to this company, branch and person, under the item's key.
     expect(JSON.parse(mockStore.get(numberKey(SCOPE, item.clientUuid))!)).toEqual({ companyId: 'c1', branchId: 'b1', userId: 'u1', customerNumber: NUMBER });
-    for (const write of mockQueueWrites) expect(write).not.toMatch(/3612|customerNumber/);
+    for (const write of mockQueueWrites) expect(withoutIds(write)).not.toMatch(/3612|customerNumber/);
 
     // A mistake noticed before it is sent: cancelled, asked twice; nothing is sent and the number leaves the phone.
     await fireEvent.press(screen.getByText(t('agent.action.cancel')));
@@ -322,7 +325,7 @@ describe('the counter flow', () => {
     expect(await screen.findByDisplayValue('10000')).toBeTruthy();
     expect(await screen.findByDisplayValue('36 12 34 56')).toBeTruthy();
     expect(screen.getByText(t('draft.restored.hint'))).toBeTruthy();
-    for (const draft of mockDrafts.values()) expect(draft).not.toMatch(/3612|customerNumber/);
+    for (const draft of mockDrafts.values()) expect(withoutIds(draft)).not.toMatch(/3612|customerNumber/);
   });
 
   it('while the business day is closed, the store is opened first — no form to fill', async () => {
