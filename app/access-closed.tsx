@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { Redirect, useRouter, Stack } from 'expo-router';
 import { LegalPageButtons } from '../components/legal/LegalPages';
 import { Button, ErrorState, Screen, SkeletonList, Text } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { closedReason } from '../lib/access';
+import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { makeStyles } from '../lib/design/theme';
 import { useTranslation } from '../lib/i18n';
@@ -51,7 +53,14 @@ export default function AccessClosed() {
   // One of six, from the server. If the state is something else entirely, the
   // app should not be on this screen at all.
   const reason = closedReason(entitlement?.state);
-  const runsBusiness = usePermission('settings.manage');
+  const inStore = usePermission('settings.manage');
+  // Before a first sign-in chooses a store the store's permissions have not been read, so ask for the person's own.
+  const own = useQuery({
+    queryKey: ['access-closed', 'permissions'],
+    queryFn: () => api.get<{ permissions: string[] }>('/auth/permissions'),
+    enabled: !inStore,
+  });
+  const runsBusiness = inStore || own.data?.permissions?.includes('settings.manage') === true;
   // Could not be read is not the same as not active: that reason keeps its own words.
   const neutral = runsBusiness && reason !== 'unknown';
 
@@ -75,7 +84,7 @@ export default function AccessClosed() {
 
   // Opened before the server's word arrived — straight after a business account
   // is created: wait for it, rather than guess a reason that may not be true.
-  if (!entitlement && query.isLoading) {
+  if ((!entitlement && query.isLoading) || (!inStore && own.isLoading)) {
     return (
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />
