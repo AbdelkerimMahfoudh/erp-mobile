@@ -58,6 +58,7 @@ describe('the store selector', () => {
     await show([centre, port]);
     await screen.findByText('Port');
     expect(useBranch.getState().branchId).toBe('b1');
+    expect(screen.getByText(t('action.cancel'))).toBeTruthy();
     expect(screen.getAllByText(new RegExp(t('branch.select.current'))).length).toBe(1);
     await fireEvent.press(screen.getByText('Port'));
     expect(useBranch.getState()).toMatchObject({ branchId: 'b2', role: 'manager' });

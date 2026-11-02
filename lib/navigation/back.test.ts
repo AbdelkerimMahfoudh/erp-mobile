@@ -86,7 +86,9 @@ it('the routes without an arrow: /stores is an invisible redirect; branch choice
   const branch = code(read('app/select-branch.tsx'));
   assert.match(branch, /title=\{t\('action\.signOut'\)\}[\s\S]*onPress=\{signOut\}/);
   assert.match(branch, /<ErrorState error=\{query\.error\} onRetry=/);
-  assert.match(branch, /onPress=\{\(\) => setBranch\(branch\)\}/);
+  assert.match(branch, /setBranch\(branch\);/);
+  // Opened to switch stores: a visible way out, with the current store kept (D227).
+  assert.match(branch, /branchId \? <Button title=\{t\('action\.cancel'\)\}/);
   const closed = code(read('app/access-closed.tsx'));
   assert.match(closed, /title=\{t\('access\.recheck'\)\}/);
   assert.match(closed, /title=\{t\('action\.signOut'\)\}/);

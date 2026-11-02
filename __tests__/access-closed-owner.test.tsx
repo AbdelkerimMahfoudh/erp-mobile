@@ -6,6 +6,7 @@ import { t } from '../lib/i18n';
 import { hasPermission } from '../lib/permissions';
 
 let mockUser: Record<string, unknown> = {};
+const mockRefresh = jest.fn(async () => undefined);
 jest.mock('../lib/api-client', () => ({
   __esModule: true,
   ApiError: class ApiError extends Error {},
@@ -14,7 +15,7 @@ jest.mock('../lib/api-client', () => ({
 }));
 jest.mock('../hooks/useAuth', () => ({
   __esModule: true,
-  useAuth: () => ({ user: mockUser, signOut: jest.fn() }),
+  useAuth: () => ({ user: mockUser, signOut: jest.fn(), refreshUser: mockRefresh }),
 }));
 
 import { api } from '../lib/api-client';
@@ -74,9 +75,11 @@ describe('the closed screen before a store is chosen', () => {
     expect(await screen.findByText(t('access.inactive.owner'))).toBeTruthy();
   });
 
-  it('an older server keeps the state’s words', async () => {
+  it('straight after sign-in the standing is read once; an older server keeps the state’s words', async () => {
+    mockRefresh.mockClear();
     await show({}, 'pending');
     expect(await screen.findByText(t('access.closed.pending.title'))).toBeTruthy();
     expect(screen.queryByText(t('access.inactive.owner'))).toBeNull();
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
   });
 });

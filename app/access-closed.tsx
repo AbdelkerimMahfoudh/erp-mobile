@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Redirect, useRouter, Stack } from 'expo-router';
 import { LegalPageButtons } from '../components/legal/LegalPages';
@@ -41,11 +41,26 @@ export default function AccessClosed() {
   const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, user, refreshUser } = useAuth();
   const query = useEntitlement();
   const entitlement = query.data;
 
   const [checking, setChecking] = useState(false);
+  // A sign-in's answer does not carry the account's standing: read it once, and choose no words until it is known.
+  const needsStanding = Boolean(user) && !user?.account;
+  const [standingRead, setStandingRead] = useState(!needsStanding);
+  useEffect(() => {
+    if (standingRead) return;
+    let live = true;
+    void refreshUser()
+      .catch(() => undefined)
+      .finally(() => {
+        if (live) setStandingRead(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, [standingRead, refreshUser]);
 
   // One of six, from the server. If the state is something else entirely, the
   // app should not be on this screen at all.
@@ -74,7 +89,7 @@ export default function AccessClosed() {
 
   // Opened before the server's word arrived — straight after a business account
   // is created: wait for it, rather than guess a reason that may not be true.
-  if (!entitlement && query.isLoading) {
+  if ((!entitlement && query.isLoading) || !standingRead) {
     return (
       <Screen>
         <Stack.Screen options={{ headerShown: false }} />

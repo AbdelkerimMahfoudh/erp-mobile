@@ -62,6 +62,9 @@ export default function SelectBranch() {
         />
       </View>
 
+      {/* Opened to switch: the current store is still chosen, so leaving is one tap and changes nothing. */}
+      {branchId ? <Button title={t('action.cancel')} variant="secondary" onPress={() => router.replace('/')} /> : null}
+
       {query.isLoading ? (
         <SkeletonList count={3} />
       ) : query.isError ? (
