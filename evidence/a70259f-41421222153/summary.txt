@@ -1,0 +1,19 @@
+suites 61/62, tests 506/508, failed 2
+FAIL __tests__/agent-counter.test.tsx :: the counter flow direction first in words, any provider switched on, the commission typed, one review, then Confirm — the number and the commission reach the server, never a person
+  Error: expect(received).not.toMatch(expected)
+  
+  Expected pattern: not /3612|3456|customerNumber/
+  Received string:      "[{\"id\":\"1dbbbcdc-1f50-4187-bf48-3e9964fb9e0c\",\"kind\":\"agent.exchange.record\",\"clientUuid\":\"7007f662-6feb-4cbd-999f-f8746fa9b9a9\",\"companyId\":\"c1\",\"branchId\":\"b1\",\"userId\":\"u1\",\"payloadVersion\":1,\"payload\":{\"providerId\":\"bankily\",\"direction\":\"cash_in_credit_out\",\"amount\":10000,\"commissionAmount\":200,\"deviceRecordedAt\":\"2026-11-02T09:36:27.380Z\"},\"state\":\"waiting_for_connection\",\"createdAt\":1793612187380,\"lastAttemptAt\":null,\"attempts\":0,\"summary\":\"Cash in, credit out · 10 000 MRU · Bankily\",\"lastError\":null}]"
+      at Object.toMatch (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/agent-counter.test.tsx:212:60)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+FAIL __tests__/agent-counter.test.tsx :: the counter flow offline, the exchange waits as Pending synchronization — kept apart in SecureStore, never shown as recorded
+  Error: expect(received).not.toMatch(expected)
+  
+  Expected pattern: not /3612|customerNumber/
+  Received string:      "[{\"id\":\"7e736b49-ad66-4034-92bc-cf47ce449ce5\",\"kind\":\"agent.exchange.record\",\"clientUuid\":\"9b9304e5-693d-412c-ac6d-c559ac447711\",\"companyId\":\"c1\",\"branchId\":\"b1\",\"userId\":\"u1\",\"payloadVersion\":1,\"payload\":{\"providerId\":\"bankily\",\"direction\":\"cash_in_credit_out\",\"amount\":10000,\"commissionAmount\":200,\"deviceRecordedAt\":\"2026-11-02T09:36:27.526Z\"},\"state\":\"waiting_for_connection\",\"createdAt\":1793612187527,\"lastAttemptAt\":null,\"attempts\":0,\"summary\":\"Cash in, credit out · 10 000 MRU · Bankily\",\"lastError\":null}]"
+      at Object.toMatch (/home/runner/work/erp-mobile/erp-mobile/app/__tests__/agent-counter.test.tsx:232:60)
+      at Generator.next (<anonymous>)
+      at asyncGeneratorStep (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (/home/runner/work/erp-mobile/erp-mobile/app/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
