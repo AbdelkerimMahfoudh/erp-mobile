@@ -235,14 +235,12 @@ for (const lang of ['en', 'fr', 'ar']) {
   check(`register ${lang}: Continue on an empty step focuses its first field`, focusedFirst);
   await boxes().nth(0).fill('Boutique Exemple');
   check(`register ${lang}: a refused field still accepts typing`, (await boxes().nth(0).inputValue()) === 'Boutique Exemple');
-  // D225: each name in Latin letters and in Arabic.
+  // D227: the first step is the store: its two names and its city; no business name.
   await boxes().nth(1).fill('بوتيك مثال');
-  await boxes().nth(2).fill('Centre');
-  await boxes().nth(3).fill('المركز');
-  await boxes().nth(4).fill('Rosso');
+  await boxes().nth(2).fill('Rosso');
   await page.getByTestId('theme-toggle').first().click();
   await settle(page);
-  check(`register ${lang}: switching theme keeps every value`, (await boxes().nth(0).inputValue()) === 'Boutique Exemple' && (await boxes().nth(4).inputValue()) === 'Rosso');
+  check(`register ${lang}: switching theme keeps every value`, (await boxes().nth(0).inputValue()) === 'Boutique Exemple' && (await boxes().nth(2).inputValue()) === 'Rosso');
   await next.click();
   await settle(page);
   check(`register ${lang}: step 2 of 3`, (await page.locator('input').count()) === 2);
@@ -250,7 +248,7 @@ for (const lang of ['en', 'fr', 'ar']) {
   await boxes().nth(1).fill('أمينتو');
   await page.goBack();
   await settle(page);
-  const backToStep1 = (await boxes().count()) === 5 && (await boxes().nth(0).inputValue()) === 'Boutique Exemple';
+  const backToStep1 = (await boxes().count()) === 3 && (await boxes().nth(0).inputValue()) === 'Boutique Exemple';
   check(`register ${lang}: the browser's Back goes to the previous step with its values`, backToStep1, `url ${new URL(page.url()).pathname}`);
   await next.click();
   await settle(page);
@@ -268,7 +266,7 @@ for (const lang of ['en', 'fr', 'ar']) {
   await settle(page);
   await page.goBack();
   await settle(page);
-  check(`register ${lang}: Back twice from the last step is the first step, still filled`, (await boxes().count()) === 5 && (await boxes().nth(4).inputValue()) === 'Rosso');
+  check(`register ${lang}: Back twice from the last step is the first step, still filled`, (await boxes().count()) === 3 && (await boxes().nth(2).inputValue()) === 'Rosso');
   await page.goBack();
   await settle(page);
   const asked = (await page.getByRole('dialog').count()) > 0 || (await page.locator('[aria-modal="true"]').count()) > 0;
@@ -324,8 +322,6 @@ for (const lang of ['en', 'fr', 'ar']) {
   const boxes = page.locator('input');
   await boxes.nth(0).fill('Boutique Exemple');
   await boxes.nth(1).fill('بوتيك مثال');
-  await boxes.nth(2).fill('Centre');
-  await boxes.nth(3).fill('المركز');
   await page.getByTestId('register-next').click();
   await settle(page);
   await boxes.nth(0).fill('Aminetou Exemple');
