@@ -320,6 +320,8 @@ export interface Unit {
 
 /** Product identity carried by every inventory row. */
 export interface InventoryProduct {
+  /** D227: the catalogue price, for a sale's running total; the server still prices the sale. Absent from an older server. */
+  defaultPrice?: number | string | null;
   brand: string;
   model: string;
   variant: string | null;

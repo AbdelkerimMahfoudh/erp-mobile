@@ -1,8 +1,9 @@
+import { useBasket, type BasketPick } from '../../lib/basket';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, FileSpreadsheet, PackagePlus, PackageSearch, X } from 'lucide-react-native';
+import { ArrowLeftRight, CheckCircle2, Circle, FileSpreadsheet, PackagePlus, PackageSearch, X } from 'lucide-react-native';
 import {
   Button,
   EmptyState,
@@ -122,6 +123,24 @@ export default function InventoryScreen() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  // D227: choosing several for one sale. Visible and deliberate; there is no select-all, because a sale is not a stocktake.
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Map<string, BasketPick & { price: number }>>(new Map());
+  const basketCount = useBasket((s) => s.count);
+  const canSell = usePermission('sale.create');
+  const togglePick = (id: string, pick: BasketPick & { price: number }) =>
+    setPicked((current) => {
+      const next = new Map(current);
+      if (!next.delete(id)) next.set(id, pick);
+      return next;
+    });
+  const pickedTotal = [...picked.values()].reduce((sum, p) => sum + p.price, 0);
+  const addPicked = () => {
+    useBasket.getState().queue([...picked.values()]);
+    setPicked(new Map());
+    setSelecting(false);
+    router.push('/(tabs)/sell' as Href);
+  };
   /**
    * One category, with its subcategories (D223). The server filters, so the
    * list and its count stay whole-branch rather than whatever page is loaded.
@@ -285,6 +304,15 @@ export default function InventoryScreen() {
         title={t('inventory.title')}
         actions={
           <>
+            {canSell ? (
+              <Button
+                title={basketCount > 0 ? t('basket.open', { count: String(basketCount) }) : t('basket.select')}
+                variant="tertiary"
+                size="sm"
+                onPress={() => (basketCount > 0 && !selecting ? router.push('/(tabs)/sell' as Href) : setSelecting((v) => !v))}
+                testID="stock-select"
+              />
+            ) : null}
             {canImport ? (
               <IconButton
                 icon={FileSpreadsheet}
@@ -427,6 +455,19 @@ export default function InventoryScreen() {
     </>
   );
 
+  const selectBar = (
+    <View>
+      <MoneyValue value={pickedTotal} size="small" tone="muted" />
+      <Button
+        title={t('basket.add', { count: String(picked.size) })}
+        fullWidth
+        disabled={picked.size === 0}
+        onPress={addPicked}
+        testID="stock-add-to-sale"
+      />
+    </View>
+  );
+
   const footer = canReceive ? (
     <Button
       title={t('stock.receive')}
@@ -445,7 +486,7 @@ export default function InventoryScreen() {
     ) : null;
 
   return (
-    <Screen scroll={false} padded={false} header={header} footer={footer}>
+    <Screen scroll={false} padded={false} header={header} footer={selecting ? selectBar : footer}>
       <ScannerSheet open={scannerOpen} onClose={() => setScannerOpen(false)} onResult={onScanResult} />
 
       {!branchId ? (
@@ -526,7 +567,13 @@ export default function InventoryScreen() {
                         title={productTitle(row.product, shownIdentifier(row.identifier))}
                         subtitle={variantSummary(row.product) || undefined}
                         identifier={shownIdentifier(row.identifier)}
-                        accessory={<StatusChip domain="unit" value={row.status} size="sm" />}
+                        accessory={
+                          selecting && row.status === 'in_stock' ? (
+                            <PickMark on={picked.has(row.id)} />
+                          ) : (
+                            <StatusChip domain="unit" value={row.status} size="sm" />
+                          )
+                        }
                         /*
                          * Cost, only when the server actually sent it — it is
                          * stripped without `cost.view`. Never a dash or a zero,
@@ -544,7 +591,9 @@ export default function InventoryScreen() {
                         }
                         valueCaption={row.cost !== undefined && row.cost !== null ? t('inventory.cost') : undefined}
                         onPress={() =>
-                          router.push({ pathname: '/unit/[identifier]', params: { identifier: row.identifier } })
+                          selecting && row.status === 'in_stock'
+                            ? togglePick(row.id, { kind: 'unit', identifier: row.identifier, price: Number(row.product?.defaultPrice ?? 0) })
+                            : router.push({ pathname: '/unit/[identifier]', params: { identifier: row.identifier } })
                         }
                       />
                     ))}
@@ -581,7 +630,18 @@ export default function InventoryScreen() {
                               ? t('inventory.availableOf', { available: formatQuantity(row.availableQuantity) })
                               : t('inventory.inStock')
                         }
-                        onPress={() => router.push(`/catalog/${row.productId}` as Href)}
+                        accessory={selecting && row.product?.defaultPrice != null && row.availableQuantity > 0 ? <PickMark on={picked.has(row.productId)} /> : undefined}
+                        onPress={() =>
+                          selecting && row.product?.defaultPrice != null && row.availableQuantity > 0
+                            ? togglePick(row.productId, {
+                                kind: 'quantity',
+                                productId: row.productId,
+                                label: productTitle(row.product),
+                                variant: variantSummary(row.product) || null,
+                                price: Number(row.product.defaultPrice),
+                              })
+                            : router.push(`/catalog/${row.productId}` as Href)
+                        }
                       />
                     ))}
                   </RowGroup>
@@ -795,3 +855,14 @@ const useStyles = makeStyles(() => ({
     paddingVertical: space.lg,
   },
 }));
+
+function PickMark({ on }: { on: boolean }) {
+  const colors = useColors();
+  const { t } = useTranslation();
+  const Icon = on ? CheckCircle2 : Circle;
+  return (
+    <View accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={t('basket.pick')}>
+      <Icon size={22} color={on ? colors.brand[600] : colors.text.tertiary} />
+    </View>
+  );
+}

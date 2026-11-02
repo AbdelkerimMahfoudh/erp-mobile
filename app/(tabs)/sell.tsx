@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { displayName } from '../../lib/display-name';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ import {
   ApprovalRequestSheet,
   type ApprovalRequest,
 } from '../../components/sell/ApprovalRequestSheet';
+import { mergeLines, useBasket } from '../../lib/basket';
 import { cartCost, cartSubtotal, type CartLine, type PaymentEntry } from '../../components/sell/types';
 import { api, ApiError } from '../../lib/api-client';
 import { useActiveBranchName, useBranch } from '../../lib/branch';
@@ -41,7 +42,6 @@ import { useTranslation } from '../../lib/i18n';
 import { qk } from '../../lib/query-keys';
 import type { ReceiptData } from '../../lib/receipt';
 import type { ReturnPolicySnapshot } from '../../lib/return-policy';
-import { usePermission } from '../../lib/permissions';
 import { useDraft } from '../../lib/offline/use-draft';
 import { toast } from '../../lib/toast';
 import { uuidv4 } from '../../lib/utils';
@@ -141,7 +141,8 @@ function SellScreen() {
    * CART only — it is not a sale, nothing is reserved by it, and Charge stays
    * shut until the server can answer.
    */
-  const cartDraft = useDraft<CartLine[]>('sell.cart', lines, setLines);
+  // Merged: Stock may already have added to the sale when the stored draft arrives (D227).
+  const cartDraft = useDraft<CartLine[]>('sell.cart', lines, (restored) => setLines((current) => mergeLines(restored, current)));
   /** The whole-sale discount, as typed on the Discount card (2026-10-17: decided before payment, not in the sheet). */
   const [discountText, setDiscountText] = useState('');
   const [pending, setPending] = useState<PendingScan | null>(null);
@@ -229,6 +230,10 @@ function SellScreen() {
    */
   const belowCost = totalCost !== undefined && total < totalCost;
   const offline = !useConnectivity((s) => s.online);
+
+  // Stock's badge reads this: how many lines the one current sale holds, and what they come to.
+  const setBasketSummary = useBasket((s) => s.setSummary);
+  useEffect(() => setBasketSummary(lines.length, total), [setBasketSummary, lines.length, total]);
 
   // ── Scanning ──────────────────────────────────────────────────────────────
 
@@ -349,6 +354,24 @@ function SellScreen() {
     },
     [addLine, lines, t],
   );
+
+  // What Stock chose: each device through the scan path, so a sold unit or a missing price is met exactly as at the scanner.
+  const picks = useBasket((s) => s.picks);
+  useEffect(() => {
+    if (picks.length === 0) return;
+    void (async () => {
+      for (const pick of useBasket.getState().take()) {
+        if (pick.kind === 'unit') {
+          await onScanResult({ code: pick.identifier } as ScanResult);
+        } else {
+          const { kind, productId, label, variant, price } = pick;
+          setLines((current) =>
+            mergeLines(current, [{ key: uuidv4(), kind, productId, label, variant, trackingType: 'quantity' as const, quantity: 1, price }]),
+          );
+        }
+      }
+    })();
+  }, [picks, onScanResult]);
 
   const confirmPending = () => {
     if (!pending) return;
