@@ -150,7 +150,7 @@ it('puts the summary under the inventory prefix so existing invalidations reach 
 /* ── receive stock ──────────────────────────────────────────────────────── */
 
 it('places Receive stock in the pinned footer, outside the list', () => {
-  assert.match(SCREEN, /footer=\{footer\}/);
+  assert.match(SCREEN, /footer=\{selecting \? selectBar : footer\}/);
   assert.match(SCREEN, /const footer = canReceive \?/);
   assert.match(SCREEN, /router\.push\('\/receive' as Href\)/);
 });
