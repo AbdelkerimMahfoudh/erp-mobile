@@ -1,3 +1,4 @@
+import { PhoneField } from '../components/PhoneField';
 import React, { useEffect, useState } from 'react';
 import { RoleChangeSheet, nextRoleOf } from '../components/team/RoleChangeSheet';
 import { Stack } from 'expo-router';
@@ -338,14 +339,12 @@ function EditSheet({
             errors={{ name: errors.name, nameAr: errors.nameAr }}
           />
 
-          <TextField
+          <PhoneField
             label={t('team.field.phone')}
             hint={t('team.field.phoneHint')}
             value={phone}
             error={errors.phone}
             onChangeText={setPhone}
-            keyboardType="phone-pad"
-            variant="identifier"
             maxLength={24}
           />
 

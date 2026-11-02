@@ -1,3 +1,4 @@
+import { PhoneField } from '../../components/PhoneField';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, type ScrollViewInstance, type TextInputInstance, type ViewInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -448,15 +449,13 @@ export default function RegisterScreen() {
               <Text variant="caption" tone="secondary">
                 {t('register.contact.hint')}
               </Text>
-              <TextField
+              <PhoneField
                 ref={(node) => {
                   inputs.current.phone = node;
                 }}
                 label={t('register.field.phone')}
                 value={draft.phone}
                 onChangeText={(v) => set('phone', v)}
-                keyboardType="phone-pad"
-                autoComplete="tel"
                 error={problem('phone')}
               />
               <WhatsAppConsentCheck

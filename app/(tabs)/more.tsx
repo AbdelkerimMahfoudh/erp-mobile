@@ -145,14 +145,12 @@ function BranchControl() {
   const colors = useColors();
   const { t } = useTranslation();
   const router = useRouter();
-  const { branchName, clear } = useBranch();
+  const { branchName } = useBranch();
 
   return (
     <Pressable
-      onPress={() => {
-        clear();
-        router.replace('/select-branch');
-      }}
+      // Nothing is cleared: the current store stays until another is chosen, and going back loses nothing (D227).
+      onPress={() => router.push('/select-branch')}
       accessibilityRole="button"
       accessibilityLabel={t('more.branch.switch')}
       accessibilityHint={branchName ?? undefined}

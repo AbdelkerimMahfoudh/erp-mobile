@@ -30,7 +30,10 @@ export const fr: Catalogue = {
   'action.signOut': 'Se déconnecter',
 
   // ── Branch selection ──────────────────────────────────────────────────────
-  'branch.select.title': 'Choisissez un site',
+  'branch.select.title': 'Choisir une boutique',
+  'branch.select.current': 'Boutique actuelle',
+  'phone.country.choose': 'Choisir l’indicatif du pays. Actuel : {country}',
+  'phone.country.title': 'Indicatif du pays',
   'branch.select.signedInAs': 'Connecté en tant que {name}',
   'branch.select.none.title': 'Aucun site pour le moment',
   'branch.select.none.body':

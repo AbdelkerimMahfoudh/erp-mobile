@@ -1,3 +1,4 @@
+import { PhoneField } from '../../components/PhoneField';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
@@ -382,7 +383,7 @@ function WhatsAppSection({ me }: { me: AccountView }) {
 
   return (
     <View style={styles.stack}>
-      <TextField
+      <PhoneField
         label={t('account.whatsapp.phone')}
         hint={t('account.whatsapp.phoneHint')}
         value={phone}
@@ -390,9 +391,6 @@ function WhatsAppSection({ me }: { me: AccountView }) {
           setPhone(v);
           setProblem(null);
         }}
-        keyboardType="phone-pad"
-        autoComplete="tel"
-        variant="identifier"
       />
       <TextField
         label={t('account.whatsapp.password')}

@@ -1,3 +1,4 @@
+import { PhoneField } from '../PhoneField';
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
@@ -82,13 +83,11 @@ export function DebtorPicker({
             </View>
             {/* No number saved yet: one is required, and the server keeps it on the customer. */}
             {!value.phone ? (
-              <TextField
+              <PhoneField
                 label={t('sellDebt.phoneFor', { name: value.name })}
                 accessibilityLabel={t('sellDebt.phoneFor', { name: value.name })}
                 value={value.typedPhone ?? ''}
                 onChangeText={(typedPhone) => onChange({ ...value, typedPhone })}
-                keyboardType="phone-pad"
-                textContentType="telephoneNumber"
                 maxLength={40}
                 required
               />
@@ -119,13 +118,11 @@ export function DebtorPicker({
               onChangeText={(name) => onChange({ kind: 'customer_new', name, phone: typed.phone })}
               required
             />
-            <TextField
+            <PhoneField
               label={t('sellDebt.phone')}
               accessibilityLabel={t('sellDebt.phone')}
               value={typed.phone}
               onChangeText={(phone) => onChange({ kind: 'customer_new', name: typed.name, phone })}
-              keyboardType="phone-pad"
-              textContentType="telephoneNumber"
               maxLength={40}
               required
             />

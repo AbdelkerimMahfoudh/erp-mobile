@@ -35,7 +35,7 @@ import type { UserBranch } from '../types/api';
  */
 export default function SelectBranch() {
   const { t, language } = useTranslation();
-  const { setBranch } = useBranch();
+  const { setBranch, branchId } = useBranch();
   const { signOut, user } = useAuth();
   const router = useRouter();
 
@@ -95,12 +95,18 @@ export default function SelectBranch() {
               leading={branch.type === 'warehouse' ? Warehouse : Store}
               title={displayName(branch, language)}
               subtitle={[
+                branch.id === branchId ? t('branch.select.current') : null,
                 t(`branch.type.${branch.type}` as never),
                 t(`team.role.${branch.role}` as never),
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              onPress={() => setBranch(branch)}
+              onPress={() => {
+                // A first choice is routed on by the app; a switch from inside it returns to the app in the new store.
+                const switching = branchId !== null;
+                setBranch(branch);
+                if (switching) router.replace('/');
+              }}
             />
           ))}
         </View>

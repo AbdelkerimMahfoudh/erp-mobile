@@ -21,7 +21,10 @@ export const en = {
   'action.signOut': 'Sign out',
 
   // ── Branch selection ──────────────────────────────────────────────────────
-  'branch.select.title': 'Choose a branch',
+  'branch.select.title': 'Choose a store',
+  'branch.select.current': 'Current store',
+  'phone.country.choose': 'Choose the country code. Now: {country}',
+  'phone.country.title': 'Country code',
   'branch.select.signedInAs': 'Signed in as {name}',
   'branch.select.none.title': 'No branch yet',
   'branch.select.none.body': 'Ask an owner to add you to a branch, then sign in again.',

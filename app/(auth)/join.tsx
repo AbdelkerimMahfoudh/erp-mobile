@@ -1,3 +1,4 @@
+import { PhoneField } from '../../components/PhoneField';
 import { storesLine } from '../../lib/store-list';
 import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
@@ -200,7 +201,7 @@ function TeamJoin() {
           {step === 'details' && invitation ? (
             <View style={styles.group}>
               <Text variant="body">{t('join.hello', { name: invitation.name, business: invitation.stores?.length ? storesLine(invitation.stores, language) : invitation.business })}</Text>
-              <TextField
+              <PhoneField
                 label={t('join.field.number')}
                 hint={t('join.field.number.hint', { ending: invitation.numberEnding })}
                 value={typedNumber}
@@ -209,9 +210,6 @@ function TeamJoin() {
                   setNumberProblem(null);
                   setFailure(null);
                 }}
-                keyboardType="phone-pad"
-                autoComplete="tel"
-                variant="identifier"
                 maxLength={24}
                 error={numberProblem ?? undefined}
               />

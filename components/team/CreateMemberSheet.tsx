@@ -1,3 +1,4 @@
+import { PhoneField } from '../PhoneField';
 import React, { useState } from 'react';
 import { BilingualNameFields, bilingualNameErrors, nameErrorText } from '../names/BilingualNameFields';
 import { displayName } from '../../lib/display-name';
@@ -133,14 +134,12 @@ function CreateMemberForm({ onClose }: { onClose: () => void }) {
             }}
             errors={{ name: errors.name, nameAr: errors.nameAr }}
           />
-          <TextField
+          <PhoneField
             label={t('team.field.phone')}
             hint={t('team.create.phoneHint')}
             value={phone}
             error={errors.phone}
             onChangeText={setPhone}
-            keyboardType="phone-pad"
-            variant="identifier"
             maxLength={24}
           />
           <TextField label={t('team.create.field.email')} value={email} error={errors.email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" maxLength={160} />

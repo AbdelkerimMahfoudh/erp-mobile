@@ -1,3 +1,4 @@
+import { PhoneField } from './PhoneField';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Building2, Store, User, UserPlus } from 'lucide-react-native';
@@ -140,11 +141,10 @@ export function CounterpartyPicker({
             {t('counterparty.add.hint')}
           </Text>
           <TextField label={t('counterparty.add.name')} value={name} onChangeText={setName} />
-          <TextField
+          <PhoneField
             label={t('counterparty.add.phone')}
             value={phone}
             onChangeText={setPhone}
-            keyboardType="phone-pad"
           />
           <View style={styles.actions}>
             <Button

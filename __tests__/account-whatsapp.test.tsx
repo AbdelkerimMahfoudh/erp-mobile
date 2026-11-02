@@ -129,7 +129,7 @@ it('changing a verified number: a lost answer the server never committed is not 
   // Try again is the way on: the form again, with the number already typed.
   expect(screen.queryByText(t('account.whatsapp.change'))).toBeNull();
   await fireEvent.press(screen.getByText(t('action.retry')));
-  expect(textInputs()[0].props.value).toBe('4999 8877');
+  expect(textInputs()[0].props.value).toBe('49998877');
   expect(screen.queryByText(t('account.whatsapp.notConfirmed'))).toBeNull();
 });
 

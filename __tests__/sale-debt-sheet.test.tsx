@@ -143,7 +143,7 @@ describe('a partial payment', () => {
     expect(asked()).toBeUndefined();
     const [payments, debtor, due] = onComplete.mock.calls[0];
     expect(payments).toEqual([expect.objectContaining({ method: 'cash', amount: 900 })]);
-    expect(debtor).toEqual({ kind: 'customer_new', name: 'Sidi Ahmed', phone: '22 33 44 55' });
+    expect(debtor).toEqual({ kind: 'customer_new', name: 'Sidi Ahmed', phone: '+22222334455' });
     expect(due).toBe(7);
   });
 
@@ -245,7 +245,7 @@ describe('an existing customer', () => {
     expect(disabled()).toBe(true);
     await fireEvent.changeText(screen.getByLabelText(t('sellDebt.phoneFor', { name: 'Brahim' })), '36 11 22 33');
     await confirm();
-    expect(onComplete.mock.calls[0][1]).toEqual({ kind: 'customer_existing', customerId: 'cus-2', name: 'Brahim', phone: null, typedPhone: '36 11 22 33' });
+    expect(onComplete.mock.calls[0][1]).toEqual({ kind: 'customer_existing', customerId: 'cus-2', name: 'Brahim', phone: null, typedPhone: '+22236112233' });
   });
 });
 

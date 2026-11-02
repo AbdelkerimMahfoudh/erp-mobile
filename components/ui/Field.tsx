@@ -39,6 +39,8 @@ export interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   icon?: IconComponent;
   /** Rendered at the trailing edge — a clear button, a unit, a scan affordance. */
   trailing?: React.ReactNode;
+  /** Rendered before the value, and the well then stays left to right in every language: a phone number's code. */
+  leading?: React.ReactNode;
   /**
    * `identifier` pins the input LTR with tabular figures, for IMEIs, serials
    * and barcodes. Those are machine values and must never be reordered by
@@ -63,6 +65,7 @@ export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function 
     required = false,
     icon: Icon,
     trailing,
+    leading,
     variant = 'default',
     script,
     containerStyle,
@@ -119,11 +122,13 @@ export const TextField = forwardRef<TextInputInstance, TextFieldProps>(function 
             backgroundColor: editable ? colors.surface.card : colors.surface.sunken,
             // Always a hairline: focus and errors are the ring's, drawn over it, so nothing moves.
             borderWidth: StyleSheet.hairlineWidth,
+            ...(leading ? { direction: 'ltr' as const } : null),
           },
         ]}
       >
         <FocusRing ring={ring} radius={radius.md} colors={colors} />
         {Icon ? <Icon color={focused ? colors.border.focus : colors.text.tertiary} size={18} /> : null}
+        {leading}
         <TextInput
           ref={ref}
           editable={editable}

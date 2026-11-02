@@ -25,7 +25,10 @@ export const ar: Catalogue = {
   'action.signOut': 'تسجيل الخروج',
 
   // ── اختيار الفرع ──────────────────────────────────────────────────────────
-  'branch.select.title': 'اختر فرعًا',
+  'branch.select.title': 'اختر متجرًا',
+  'branch.select.current': 'المتجر الحالي',
+  'phone.country.choose': 'اختر رمز البلد. الحالي: {country}',
+  'phone.country.title': 'رمز البلد',
   'branch.select.signedInAs': 'تم تسجيل الدخول باسم {name}',
   'branch.select.none.title': 'لا يوجد فرع بعد',
   'branch.select.none.body': 'اطلب من المالك إضافتك إلى فرع، ثم سجّل الدخول مرة أخرى.',
