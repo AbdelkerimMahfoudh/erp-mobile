@@ -24,6 +24,8 @@ export const en = {
   'branch.select.title': 'Choose a store',
   'branch.select.current': 'Current store',
   'phone.country.choose': 'Choose the country code. Now: {country}',
+  'phone.country.search': 'Search a country or code',
+  'phone.country.none': 'No country matches.',
   'phone.country.title': 'Country code',
   'branch.select.signedInAs': 'Signed in as {name}',
   'branch.select.none.title': 'No branch yet',
@@ -1903,9 +1905,9 @@ export const en = {
 
   // Security
   'settings.security.section': 'Security',
-  'settings.security.autoLock': 'Lock the app after',
+  'settings.security.autoLock': 'Require unlock after',
   'settings.security.autoLockHint':
-    'The longest anyone may choose. Staff can pick a shorter time, never a longer one.',
+    'Dukan stays open; after this time without use, or after leaving the app, your PIN or Face ID is asked again before anything is shown. The longest anyone may choose: staff can pick a shorter time, never a longer one.',
   'settings.security.immediate': 'Immediately',
   'settings.security.30s': '30 seconds',
   'settings.security.1m': '1 minute',

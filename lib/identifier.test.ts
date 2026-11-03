@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { credentialNamespace, looksSubmittable } from './identifier.ts';
+import { credentialNamespace, looksSubmittable, identifierKind } from './identifier.ts';
 
 let passed = 0;
 const it = (name: string, fn: () => void) => {
@@ -425,4 +425,11 @@ it('no server secret can reach the bundle through the app config', () => {
   ]) {
     assert.ok(!config.includes(banned), `${banned} must never appear in a bundled module`);
   }
+});
+
+it('the sign-in field: a staff ID and an email stay as typed; only a number is a phone (post-Build-4)', () => {
+  for (const id of ['U-23456789', 'u-abcdefgh', 'U-7K9M2P4Q']) assert.equal(identifierKind(id), 'text');
+  for (const email of ['owner@shop.mr', ' Owner@Shop.MR ']) assert.equal(identifierKind(email), 'email');
+  for (const phone of ['36 00 11 22', '+222 36 00 11 22', '00222-36-00-11-22', '(36) 00-11-22', '٣٦٠٠١١٢٢']) assert.equal(identifierKind(phone), 'phone');
+  for (const other of ['', '  ', '+', '-', 'ahmed']) assert.notEqual(identifierKind(other), 'phone');
 });

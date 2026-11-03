@@ -9,7 +9,9 @@ import { AuthLanguageSwitch, Button, Card, Field, InlineNotice, Text } from '../
 import { useAuth } from '../../hooks/useAuth';
 import { ApiError } from '../../lib/api-client';
 import { useTranslation } from '../../lib/i18n';
-import { looksSubmittable } from '../../lib/identifier';
+import { identifierKind, looksSubmittable } from '../../lib/identifier';
+import { composePhone, DEFAULT_COUNTRY, typedInternational } from '../../lib/phone-input';
+import { CountryCodeChooser } from '../../components/PhoneField';
 import { forgetContinuation } from '../../lib/registration-session';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
@@ -43,6 +45,9 @@ export default function Login() {
   const router = useRouter();
   const { signIn, chooseAccount } = useAuth();
   const [identifier, setIdentifier] = useState('');
+  // Post-Build-4: a number typed here gets the sign-up's country code beside it; an email or a staff ID stays as typed.
+  const [country, setCountry] = useState(DEFAULT_COUNTRY);
+  const phoneLike = identifierKind(identifier) === 'phone';
   const [password, setPassword] = useState('');
   const [failure, setFailure] = useState<LoginFailureKind | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,7 +72,8 @@ export default function Login() {
     setFailure(null);
     setLoading(true);
     try {
-      const ambiguous = await signIn(identifier.trim(), password);
+      // Normalised only now, for the request: what the person typed stays as they typed it.
+      const ambiguous = await signIn(phoneLike ? composePhone(country, identifier) : identifier.trim(), password);
       if (ambiguous) setChoice(ambiguous);
     } catch (e) {
       // A fail-closed device error is NEVER auto-recovered here (Stage 3.2): it
@@ -204,6 +210,7 @@ export default function Login() {
               textContentType="username"
               value={identifier}
               onChangeText={setIdentifier}
+              leading={phoneLike && !typedInternational(identifier) ? <CountryCodeChooser iso={country} onChange={setCountry} /> : undefined}
             />
             <Field
               label={t('auth.field.password')}

@@ -28,6 +28,8 @@ export const ar: Catalogue = {
   'branch.select.title': 'اختر متجرًا',
   'branch.select.current': 'المتجر الحالي',
   'phone.country.choose': 'اختر رمز البلد. الحالي: {country}',
+  'phone.country.search': 'ابحث عن بلد أو رمز',
+  'phone.country.none': 'لا يوجد بلد مطابق.',
   'phone.country.title': 'رمز البلد',
   'branch.select.signedInAs': 'تم تسجيل الدخول باسم {name}',
   'branch.select.none.title': 'لا يوجد فرع بعد',
@@ -1881,9 +1883,9 @@ export const ar: Catalogue = {
 
   // Security
   'settings.security.section': 'الأمان',
-  'settings.security.autoLock': 'قفل التطبيق بعد',
+  'settings.security.autoLock': 'طلب فتح التطبيق مجددًا بعد',
   'settings.security.autoLockHint':
-    'أطول مدة مسموح بها. يمكن للموظفين اختيار مدة أقصر، لا أطول.',
+    'يبقى دكان مفتوحًا؛ بعد هذه المدة دون استخدام، أو بعد الخروج من التطبيق، يُطلب رمزك أو Face ID مجددًا قبل عرض أي شيء. أطول مدة مسموح بها: يمكن للموظفين اختيار مدة أقصر، لا أطول.',
   'settings.security.immediate': 'فورًا',
   'settings.security.30s': '٣٠ ثانية',
   'settings.security.1m': 'دقيقة واحدة',

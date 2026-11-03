@@ -33,6 +33,8 @@ export const fr: Catalogue = {
   'branch.select.title': 'Choisir une boutique',
   'branch.select.current': 'Boutique actuelle',
   'phone.country.choose': 'Choisir l’indicatif du pays. Actuel : {country}',
+  'phone.country.search': 'Chercher un pays ou un indicatif',
+  'phone.country.none': 'Aucun pays ne correspond.',
   'phone.country.title': 'Indicatif du pays',
   'branch.select.signedInAs': 'Connecté en tant que {name}',
   'branch.select.none.title': 'Aucun site pour le moment',
@@ -2015,9 +2017,9 @@ export const fr: Catalogue = {
 
   // Security
   'settings.security.section': 'Sécurité',
-  'settings.security.autoLock': 'Verrouiller l’app après',
+  'settings.security.autoLock': 'Redemander le déverrouillage après',
   'settings.security.autoLockHint':
-    'Le délai maximal autorisé. Le personnel peut choisir plus court, jamais plus long.',
+    'Dukan reste ouvert ; après ce délai sans utilisation, ou après avoir quitté l’app, votre code ou Face ID est redemandé avant tout affichage. Le délai maximal autorisé : le personnel peut choisir plus court, jamais plus long.',
   'settings.security.immediate': 'Immédiatement',
   'settings.security.30s': '30 secondes',
   'settings.security.1m': '1 minute',

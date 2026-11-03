@@ -1,3 +1,5 @@
+import { getCountryCallingCode, parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js/min';
+import { COUNTRY_NAMES } from './phone-country-names.ts';
 /**
  * A contact's phone number as a person types it and as the server stores it (D227). The field holds a country and the
  * national digits; everything leaving it is one international string. The server's `normalisePhone` stays the authority.
@@ -15,33 +17,40 @@ export interface PhoneCountry {
 
 export const DEFAULT_COUNTRY = 'MR';
 
-export const PHONE_COUNTRIES: readonly PhoneCountry[] = [
-  { iso: 'MR', code: '222', en: 'Mauritania', fr: 'Mauritanie', ar: 'موريتانيا' },
-  { iso: 'SN', code: '221', en: 'Senegal', fr: 'Sénégal', ar: 'السنغال' },
-  { iso: 'ML', code: '223', en: 'Mali', fr: 'Mali', ar: 'مالي' },
-  { iso: 'MA', code: '212', en: 'Morocco', fr: 'Maroc', ar: 'المغرب' },
-  { iso: 'DZ', code: '213', en: 'Algeria', fr: 'Algérie', ar: 'الجزائر' },
-  { iso: 'TN', code: '216', en: 'Tunisia', fr: 'Tunisie', ar: 'تونس' },
-  { iso: 'GM', code: '220', en: 'Gambia', fr: 'Gambie', ar: 'غامبيا' },
-  { iso: 'GN', code: '224', en: 'Guinea', fr: 'Guinée', ar: 'غينيا' },
-  { iso: 'CI', code: '225', en: 'Côte d’Ivoire', fr: 'Côte d’Ivoire', ar: 'ساحل العاج' },
-  { iso: 'NG', code: '234', en: 'Nigeria', fr: 'Nigéria', ar: 'نيجيريا' },
-  { iso: 'SA', code: '966', en: 'Saudi Arabia', fr: 'Arabie saoudite', ar: 'السعودية' },
-  { iso: 'AE', code: '971', en: 'United Arab Emirates', fr: 'Émirats arabes unis', ar: 'الإمارات' },
-  { iso: 'QA', code: '974', en: 'Qatar', fr: 'Qatar', ar: 'قطر' },
-  { iso: 'TR', code: '90', en: 'Türkiye', fr: 'Turquie', ar: 'تركيا' },
-  { iso: 'CN', code: '86', en: 'China', fr: 'Chine', ar: 'الصين' },
-  { iso: 'FR', code: '33', en: 'France', fr: 'France', ar: 'فرنسا' },
-  { iso: 'ES', code: '34', en: 'Spain', fr: 'Espagne', ar: 'إسبانيا' },
-  { iso: 'IT', code: '39', en: 'Italy', fr: 'Italie', ar: 'إيطاليا' },
-  { iso: 'BE', code: '32', en: 'Belgium', fr: 'Belgique', ar: 'بلجيكا' },
-  { iso: 'DE', code: '49', en: 'Germany', fr: 'Allemagne', ar: 'ألمانيا' },
-  { iso: 'GB', code: '44', en: 'United Kingdom', fr: 'Royaume-Uni', ar: 'المملكة المتحدة' },
-  { iso: 'US', code: '1', en: 'United States / Canada', fr: 'États-Unis / Canada', ar: 'الولايات المتحدة / كندا' },
-];
+/*
+ * Every country and territory with a calling code (post-Build-4): the codes from `libphonenumber-js`, whose metadata
+ * derives from Google's libphonenumber project; the names in English, French and Arabic generated from `i18n-iso-countries`
+ * (`lib/phone-country-names.ts`, so only those three locales reach the app).
+ */
+export const PHONE_COUNTRIES: readonly PhoneCountry[] = COUNTRY_NAMES.map(([iso, en, fr, ar]) => ({ iso, code: getCountryCallingCode(iso as CountryCode), en, fr, ar }));
+
+const BY_ISO = new Map(PHONE_COUNTRIES.map((c) => [c.iso, c]));
 
 export function countryOf(iso: string): PhoneCountry {
-  return PHONE_COUNTRIES.find((c) => c.iso === iso) ?? PHONE_COUNTRIES[0]!;
+  return BY_ISO.get(iso) ?? BY_ISO.get(DEFAULT_COUNTRY)!;
+}
+
+/** Folded for search: case, accents and Arabic diacritics set aside. */
+const fold = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f\u064b-\u0652]/g, '').toLowerCase().trim();
+
+/** The list in the reading language's alphabetical order. */
+export function countriesFor(language: string): PhoneCountry[] {
+  const collator = new Intl.Collator(language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : 'en', { sensitivity: 'base' });
+  return [...PHONE_COUNTRIES].sort((a, b) => collator.compare(countryName(a, language), countryName(b, language)));
+}
+
+/**
+ * What a search finds: the name in the reading language or in English, the ISO code, or the calling code (`+1`, `1`,
+ * `00222`). A shared code finds every country that uses it.
+ */
+export function searchCountries(list: readonly PhoneCountry[], query: string, language: string): PhoneCountry[] {
+  const q = fold(query);
+  if (q === '') return [...list];
+  const digits = q.replace(/^(\+|00)/, '');
+  const dialing = /^(\+|00)?\d+$/.test(q);
+  return list.filter((c) =>
+    dialing ? c.code.startsWith(digits) : fold(countryName(c, language)).includes(q) || fold(c.en).includes(q) || c.iso.toLowerCase() === q,
+  );
 }
 
 export function countryName(country: PhoneCountry, language: string): string {
@@ -77,6 +86,11 @@ export function splitPhone(value: string, fallbackIso: string = DEFAULT_COUNTRY)
   const s = tidy(value);
   if (!s.startsWith('+')) return { iso: fallbackIso, national: value };
   const digits = s.slice(1);
+  // A shared code (+1, +7, +44…): the number itself says which country, when it can; else the one already chosen.
+  const parsed = parsePhoneNumberFromString(s);
+  if (parsed?.country && BY_ISO.has(parsed.country)) return { iso: parsed.country, national: digits.slice(BY_ISO.get(parsed.country)!.code.length) };
+  const fallback = BY_ISO.get(fallbackIso);
+  if (fallback && digits.startsWith(fallback.code)) return { iso: fallback.iso, national: digits.slice(fallback.code.length) };
   // Longest first: `1` must not take what belongs to a longer code.
   const match = [...PHONE_COUNTRIES].sort((a, b) => b.code.length - a.code.length).find((c) => digits.startsWith(c.code));
   return match ? { iso: match.iso, national: digits.slice(match.code.length) } : { iso: fallbackIso, national: s };

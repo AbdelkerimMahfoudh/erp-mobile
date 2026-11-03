@@ -42,3 +42,20 @@ export function credentialNamespace(identifier: string): string {
 export function looksSubmittable(identifier: string): boolean {
   return identifier.trim().length > 0;
 }
+
+/**
+ * What the one sign-in field holds (post-Build-4), for how the field shows it — never for what the server accepts:
+ * - `phone` — only digits and what people write between them (spaces, hyphens, parentheses, a leading + or 00), with
+ *   at least one digit: the country code is offered beside it, and it is sent as one international number;
+ * - `email` — it has an @: sent as typed;
+ * - `text` — anything else, a staff personal ID (`U-` and eight letters or digits) included: sent as typed.
+ * A personal ID always holds its `U-`, so a number can never be one, and no ID is ever read as a number.
+ */
+export type IdentifierKind = 'phone' | 'email' | 'text';
+
+export function identifierKind(raw: string): IdentifierKind {
+  const value = raw.trim();
+  if (value.includes('@')) return 'email';
+  if (/^[+0-9٠-٩۰-۹\s\-().]+$/.test(value) && /[0-9٠-٩۰-۹]/.test(value)) return 'phone';
+  return 'text';
+}
