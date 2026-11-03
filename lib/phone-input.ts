@@ -33,10 +33,11 @@ export function countryOf(iso: string): PhoneCountry {
 /** Folded for search: case, accents and Arabic diacritics set aside. */
 const fold = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f\u064b-\u0652]/g, '').toLowerCase().trim();
 
-/** The list in the reading language's alphabetical order. */
+/** Mauritania first (the owner, 2026-11-03), then every other country in the reading language's alphabetical order. */
 export function countriesFor(language: string): PhoneCountry[] {
   const collator = new Intl.Collator(language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : 'en', { sensitivity: 'base' });
-  return [...PHONE_COUNTRIES].sort((a, b) => collator.compare(countryName(a, language), countryName(b, language)));
+  const rest = PHONE_COUNTRIES.filter((c) => c.iso !== DEFAULT_COUNTRY).sort((a, b) => collator.compare(countryName(a, language), countryName(b, language)));
+  return [countryOf(DEFAULT_COUNTRY), ...rest];
 }
 
 /**

@@ -62,9 +62,11 @@ test('the names are the maintained dataset’s, regenerated — never edited by 
   assert.equal(countryOf('MR').ar, 'موريتانيا');
 });
 
-test('alphabetical in the reading language', () => {
+test('Mauritania first, then alphabetical in the reading language', () => {
   for (const language of ['en', 'fr', 'ar']) {
-    const names = countriesFor(language).map((c) => countryName(c, language));
+    const list = countriesFor(language);
+    assert.equal(list[0]!.iso, 'MR');
+    const names = list.slice(1).map((c) => countryName(c, language));
     const collator = new Intl.Collator(language, { sensitivity: 'base' });
     for (let i = 1; i < names.length; i++) assert.ok(collator.compare(names[i - 1]!, names[i]!) <= 0, `${language}: ${names[i - 1]} before ${names[i]}`);
   }
