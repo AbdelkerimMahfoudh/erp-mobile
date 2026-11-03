@@ -1031,6 +1031,11 @@ export const en = {
   'nav.access': 'Store access',
   'access.title': 'Store access',
   'access.details': 'See details',
+  'access.summary.test': 'Test business: nothing runs out',
+  'access.summary.days': '{days} days left',
+  'access.summary.graceDays': 'Grace · {days} days left',
+  'access.summary.graceHours': 'Grace · {hours} hours left',
+  'access.summary.coverage': '{stores} stores · {used}/{seats} seats',
   'access.state.pending': 'No access yet',
   'access.state.active': 'Active',
   'access.state.complimentary': 'Active',
@@ -2463,6 +2468,9 @@ export const en = {
   'transfers.new.discard.confirm': 'Leave',
   'transfers.new.keep': 'Keep editing',
   'transfers.new.created': 'Transfer {ref} created',
+  'transfers.new.sent': 'Transfer {ref} sent. The other store confirms what arrives.',
+  'transfers.new.notSent': 'Transfer {ref} approved but not sent. Send it from its page.',
+  'transfers.new.requested': 'Transfer {ref} requested. It waits for approval.',
 
   // Notification wording, composed from the fields the server stored
   'notifications.transfer.requested.title': 'Transfer {ref} needs approval',

@@ -4,8 +4,8 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter, Stack } from 'expo-router';
 import { useUnsavedChangesGuard } from '../lib/navigation/unsaved-changes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Landmark, Plus, Smartphone, Wallet } from 'lucide-react-native';
-import { Button, Card, Chip, EmptyState, ErrorState, Identifier, ListRow, PageIntro, Screen, Section, SegmentedControl, SkeletonList, Text, TextField, Toggle } from '../components/ui';
+import { Copy, Landmark, Plus, ShieldCheck, Smartphone, Wallet } from 'lucide-react-native';
+import { Button, Card, Chip, EmptyState, ErrorState, Identifier, ListRow, PageIntro, RowGroup, Screen, Section, SegmentedControl, SkeletonList, Text, TextField, Toggle } from '../components/ui';
 import { BottomSheet } from '../components/overlay';
 import { ApiError, api } from '../lib/api-client';
 import { space, type as typeScale } from '../lib/design/tokens';
@@ -189,12 +189,23 @@ export default function SettingsScreen() {
     </Section>
   );
 
+  // D227: business-wide, whatever store is selected; the Owner appoints here and the person appointed, often a Manager,
+  // reads their own. In both views, so moving it off More takes it from nobody.
+  const actingOwnerSection = (
+    <Section title={t('nav.actingOwner')}>
+      <RowGroup>
+        <ListRow flat title={t('nav.actingOwner')} leading={ShieldCheck} onPress={() => router.push('/acting-owner' as never)} />
+      </RowGroup>
+    </Section>
+  );
+
   if ((!owner || !canManage) && canEditReturns) {
     return (
       <Screen gap="xl">
         {header}
         <PageIntro description={t('settings.subtitle')} />
         {returnsSection}
+        {actingOwnerSection}
       </Screen>
     );
   }
@@ -242,6 +253,7 @@ export default function SettingsScreen() {
         stays the fallback for a branch that has not set its own.
       */}
       {returnsSection}
+      {actingOwnerSection}
 
       {/* ── Receiving accounts ──────────────────────────────────────────── */}
       <Section title={t('settings.accounts.section')} subtitle={t('settings.accounts.hint')}>

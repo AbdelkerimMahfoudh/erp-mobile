@@ -1097,6 +1097,11 @@ export const fr: Catalogue = {
   'nav.access': 'Accès aux boutiques',
   'access.title': 'Accès aux boutiques',
   'access.details': 'Voir le détail',
+  'access.summary.test': 'Entreprise de test : rien n’expire',
+  'access.summary.days': '{days} jours restants',
+  'access.summary.graceDays': 'Période de grâce · {days} jours restants',
+  'access.summary.graceHours': 'Période de grâce · {hours} heures restantes',
+  'access.summary.coverage': '{stores} magasins · {used}/{seats} places',
   'access.state.pending': 'Pas encore d’accès',
   'access.state.active': 'Actif',
   'access.state.complimentary': 'Actif',
@@ -2616,6 +2621,9 @@ export const fr: Catalogue = {
   'transfers.new.discard.confirm': 'Quitter',
   'transfers.new.keep': 'Continuer à modifier',
   'transfers.new.created': 'Transfert {ref} créé',
+  'transfers.new.sent': 'Transfert {ref} envoyé. L’autre magasin confirme ce qui arrive.',
+  'transfers.new.notSent': 'Transfert {ref} approuvé mais pas envoyé. Envoyez-le depuis sa page.',
+  'transfers.new.requested': 'Transfert {ref} demandé. Il attend une approbation.',
 
   // Notification wording, composed from the fields the server stored
   'notifications.transfer.requested.title': 'Le transfert {ref} demande une approbation',

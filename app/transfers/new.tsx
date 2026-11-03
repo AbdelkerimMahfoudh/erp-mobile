@@ -216,7 +216,12 @@ export default function NewTransferScreen() {
         lines: draftToBody(lines),
       });
       setSubmitted(true);
-      toast.success(t('transfers.new.created', { ref: result.transferNo ?? '' }));
+      // What actually happened, never more (D227): sent is not received; a request is not approved.
+      const ref = { ref: result.transferNo ?? '' };
+      if (result.sent) toast.success(t('transfers.new.sent', ref));
+      else if (result.sendFailed) toast.warning(t('transfers.new.notSent', ref));
+      else if (result.status === 'pending_approval') toast.success(t('transfers.new.requested', ref));
+      else toast.success(t('transfers.new.created', ref));
       router.replace(`/transfers/${result.id}` as never);
     } catch (error) {
       // Per-item refusals are shown as themselves; they are actionable.

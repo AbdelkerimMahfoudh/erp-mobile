@@ -714,6 +714,8 @@ it('More groups name every business and account destination exactly once, and no
   const expected = HUBS.filter((h) => h.placement !== 'tab')
     .flatMap((h) => h.children.map((c) => c.id))
     .filter((id) => id !== 'transfers')
+    // D227: Business access opens More on its own row, and Acting Owner is in Business settings (lib/access-summary.test.ts).
+    .filter((id) => id !== 'access' && id !== 'acting-owner')
     .sort();
   const grouped = MORE_GROUPS.flatMap((g) => g.destinationIds);
   assert.equal(new Set(grouped).size, grouped.length, 'a destination is in two More groups');
@@ -762,8 +764,8 @@ it('groups show only permitted destinations and never render empty', () => {
   assert.ok(!visibleGroups(EMPLOYEE).some((e) => e.group.id === 'reports'), 'an Employee has no report.view, so no reports');
   const manager = visibleGroups(MANAGER).find((e) => e.group.id === 'manage')!.destinations.map((d) => d.id);
   // The branch's return policy (0108, inside Business settings) and inviting someone to Dukan ERP (0103, D221) are a Manager's too.
-  // Acting Owner too (D225): the person appointed reads their own appointment there.
-  assert.deepEqual(manager, ['catalog', 'settings', 'acting-owner', 'invite'], 'a Manager holds return.policy.edit, not user.manage or import.run');
+  // Acting Owner (D225) is reached inside Business settings since D227, so it is no longer its own row here.
+  assert.deepEqual(manager, ['catalog', 'settings', 'invite'], 'a Manager holds return.policy.edit, not user.manage or import.run');
 });
 
 it('every More group name exists in all three catalogues', () => {
@@ -865,8 +867,9 @@ it('an agent-only branch shows nothing of the store: no Sell, Stock, Catalog, Pa
       ...moneyRows(granted, 'money_agent').map((d) => d.id),
     ];
     for (const id of store) assert.ok(!shown.includes(id), `${role} sees ${id} on an agent-only branch`);
-    // What every branch has stays: the account, business access, expenses where the role reports them.
-    assert.ok(shown.includes('account') && shown.includes('access') && shown.includes('expenses'), role);
+    // What every branch has stays: the account and expenses where the role reports them. Business access is More's own
+    // first row for every role and branch since D227, outside the groups (lib/access-summary.test.ts).
+    assert.ok(shown.includes('account') && shown.includes('expenses'), role);
   }
 });
 

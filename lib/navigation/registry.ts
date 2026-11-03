@@ -347,8 +347,9 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
   // Partner stores and consignments are listed here only while the Partners tab is off the bar (a combined branch).
   { id: 'activity', titleKey: 'more.group.activity', destinationIds: ['sales', 'returns', 'approvals', 'stores', 'consignments'] },
   { id: 'reports', titleKey: 'more.group.reports', destinationIds: ['analytics'] },
-  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings', 'acting-owner', 'invite'] },
-  { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'access', 'devices', 'sync'] },
+  // D227: Acting Owner lives in Business settings, and Business access opens More on its own row: neither is repeated here.
+  { id: 'manage', titleKey: 'more.group.manage', destinationIds: ['team', 'catalog', 'settings', 'invite'] },
+  { id: 'account', titleKey: 'more.group.account', destinationIds: ['account', 'appearance', 'devices', 'sync'] },
 ];
 
 /**

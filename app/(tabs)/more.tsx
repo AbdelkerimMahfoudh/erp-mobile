@@ -1,3 +1,4 @@
+import { BusinessAccessRow } from '../../components/access/BusinessAccessRow';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
@@ -73,6 +74,9 @@ export default function MoreScreen() {
       <TabHeader context={context} title={t('tab.more')} bell />
 
       <BranchControl />
+
+      {/* D227: the first thing to act on is the business's access, said in one line with what the server counts. */}
+      <BusinessAccessRow />
 
       <SyncNotice />
       {/* What the business may do right now, said once and the same way on every tab (lib/access.ts). */}

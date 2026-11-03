@@ -1222,6 +1222,10 @@ export interface CreateTransferBody {
 }
 
 export interface CreateTransferResult {
+  /** Sent on creation by someone who may approve and send (D227); absent from an older server. */
+  sent?: boolean;
+  /** Approved, but sending failed: the transfer's page sends it. */
+  sendFailed?: boolean;
   id: string;
   transferNo: string | null;
   status: TransferStatus;
