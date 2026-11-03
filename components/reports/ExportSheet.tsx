@@ -175,6 +175,7 @@ const KIND_KEY = {
   movers: 'reports.kind.movers',
   'dead-stock': 'reports.kind.deadStock',
   'debtors-creditors': 'reports.kind.debtorsCreditors',
+  'maintenance-income': 'nav.maintenance',
 } as const;
 
 const useStyles = makeStyles(() => ({

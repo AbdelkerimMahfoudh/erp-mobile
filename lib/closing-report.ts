@@ -42,6 +42,8 @@ export interface ReportWarning {
 }
 
 export interface ReportResult {
+  /** A repair's profit on the day (D227); absent from an older server. */
+  maintenanceNet?: number;
   status: 'ok' | 'cannot_calculate';
   reason: 'cost_missing' | null;
   missingCostLines: number;

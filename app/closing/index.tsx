@@ -278,6 +278,7 @@ function Report({
           <View style={styles.statementLines}>
             <Divider />
             {resultOk ? <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} signed /> : null}
+            {resultOk && result.maintenanceNet ? <Line label={t('maintenance.totalProfit')} value={result.maintenanceNet} signed /> : null}
             {report.expenses ? <Line label={t('dailyReport.expenses.title')} value={-report.expenses.total} signed /> : null}
             {resultOk ? <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed /> : null}
             {resultBlocked ? (
@@ -339,6 +340,7 @@ function Report({
                 <>
                   <Line label={t('dailyReport.result.cost')} value={-(result.costOfUnitsSold ?? 0)} signed />
                   <Line label={t('dailyReport.result.gross')} value={result.grossProfit ?? 0} strong signed />
+                  {result.maintenanceNet ? <Line label={t('maintenance.totalProfit')} value={result.maintenanceNet} signed /> : null}
                   <Line label={t('dailyReport.expenses.title')} value={-(result.variableExpenses + result.fixedExpenses)} signed />
                   <Line label={t('dailyReport.result.after')} value={result.resultAfterExpenses ?? 0} strong signed />
                 </>

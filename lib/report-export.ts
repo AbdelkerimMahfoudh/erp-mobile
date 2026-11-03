@@ -39,6 +39,7 @@ export const REPORT_KINDS = [
   'movers',
   'dead-stock',
   'debtors-creditors',
+  'maintenance-income',
 ] as const;
 
 export type ReportKind = (typeof REPORT_KINDS)[number];

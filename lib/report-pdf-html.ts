@@ -39,6 +39,7 @@ export type ReportPdfLanguage = 'en' | 'fr' | 'ar';
 /** Every catalogue key the page prints. The test checks all three catalogues carry each one. */
 export const REPORT_PDF_KEYS = [
   'reportPdf.daily.title',
+  'maintenance.totalProfit',
   'reportPdf.monthly.title',
   'reportPdf.generated',
   'reportPdf.window',
@@ -413,6 +414,7 @@ export function buildDailyReportHtml(doc: DailyReportDocument, ctx: ReportPdfCon
                   w.row(w.word('dailyReport.expenses.fixed'), w.less(r.fixedExpenses)),
                 ]
               : []),
+            ...(r.maintenanceNet ? [w.row(w.word('maintenance.totalProfit'), w.result(r.maintenanceNet))] : []),
             w.row(w.word('dailyReport.result.after'), w.result(r.resultAfterExpenses), 'total'),
           ]) + w.note(w.word('dailyReport.result.scope')),
         )

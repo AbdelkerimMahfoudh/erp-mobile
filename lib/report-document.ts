@@ -57,6 +57,7 @@ export type DailyResult =
       variableExpenses: number;
       resultBeforeFixed: number;
       fixedExpenses: number;
+      maintenanceNet?: number;
       resultAfterExpenses: number;
     };
 
