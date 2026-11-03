@@ -1985,6 +1985,8 @@ export const en = {
   'devices.status.active': 'Active',
   'devices.status.revoked': 'Removed',
   'devices.status.reverify': 'Will need a code next time',
+  'devices.status.codeRequired': 'Code required',
+  'devices.status.codeRequiredDetail': 'This device will need a code the next time it signs in.',
   'devices.revoke': 'Remove this device',
   'devices.revoke.title': 'Remove this device?',
   'devices.revoke.body': 'It will be signed out immediately and will need to sign in again.',

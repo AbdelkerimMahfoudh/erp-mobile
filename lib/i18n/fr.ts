@@ -2105,6 +2105,8 @@ export const fr: Catalogue = {
   'devices.status.active': 'Actif',
   'devices.status.revoked': 'Retiré',
   'devices.status.reverify': 'Demandera un code la prochaine fois',
+  'devices.status.codeRequired': 'Code requis',
+  'devices.status.codeRequiredDetail': 'Cet appareil demandera un code à sa prochaine connexion.',
   'devices.revoke': 'Retirer cet appareil',
   'devices.revoke.title': 'Retirer cet appareil ?',
   'devices.revoke.body':
