@@ -1960,6 +1960,8 @@ export const ar: Catalogue = {
   'devices.status.active': 'نشط',
   'devices.status.revoked': 'محذوف',
   'devices.status.reverify': 'سيحتاج رمزًا في المرة القادمة',
+  'devices.status.codeRequired': 'الرمز مطلوب',
+  'devices.status.codeRequiredDetail': 'سيحتاج هذا الجهاز إلى رمز عند تسجيل الدخول في المرة القادمة.',
   'devices.revoke': 'إزالة هذا الجهاز',
   'devices.revoke.title': 'إزالة هذا الجهاز؟',
   'devices.revoke.body': 'سيتم تسجيل خروجه فورًا وسيحتاج إلى تسجيل الدخول من جديد.',

@@ -4,7 +4,8 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react-native';
-import { Chip, EmptyState, ErrorState, ListRow, PageIntro, RowGroup, Screen, SkeletonList, Text } from '../components/ui';
+import { DeviceRow } from '../components/devices/DeviceRow';
+import { EmptyState, ErrorState, PageIntro, RowGroup, Screen, SkeletonList, Text } from '../components/ui';
 import { api } from '../lib/api-client';
 import { space } from '../lib/design/tokens';
 import { toFriendlyError } from '../lib/errors';
@@ -219,44 +220,6 @@ function BuildIdentifier() {
         </Text>
       ) : null}
     </View>
-  );
-}
-
-/** One device. Status is carried by a word as well as a colour. */
-function DeviceRow({ device, onRevoke }: { device: UserDeviceView; onRevoke?: () => void }) {
-  const { t } = useTranslation();
-
-  const when = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString() : null;
-
-  const lastSeen = when(device.lastSeenAt);
-  const subtitle = [
-    device.model ?? device.platform ?? null,
-    lastSeen ? t('devices.lastSeen', { when: lastSeen }) : t('devices.lastSeenNever'),
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  const trust = t(`devices.trust.${device.trustMethod}` as never);
-
-  return (
-    <ListRow
-      flat
-      title={device.label ?? trust}
-      subtitle={subtitle}
-      leading={Smartphone}
-      accessory={
-        device.revokedAt ? (
-          <Chip tone="danger" label={t('devices.status.revoked')} dot />
-        ) : device.reverifyRequired ? (
-          <Chip tone="warning" label={t('devices.status.reverify')} dot />
-        ) : (
-          <Chip tone="success" label={t('devices.status.active')} dot />
-        )
-      }
-      onPress={onRevoke}
-      chevron={false}
-    />
   );
 }
 
