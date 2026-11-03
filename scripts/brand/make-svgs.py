@@ -1,79 +1,66 @@
-# Every Dukan brand SVG, generated from the asset pack's vector paths with the repositories' design tokens
-# (erp-mobile lib/design/colors.ts; erp-control-web src/theme/tokens.css). The three layers keep their names.
+# Every Dukan brand SVG, generated from the owner's Offset Spiral pack (Concept B, 2026-11-03: two arcs around a "D")
+# with the mark tokens it defines (erp-mobile lib/design/colors.ts `identity`). The three layers keep their names, which
+# the launch animation moves: `spiral-first`, `spiral-second`, `spiral-letter`.
 import os
 OUT = os.path.dirname(os.path.abspath(__file__)) + os.sep + 'svg'
 os.makedirs(OUT, exist_ok=True)
 
 T = {
-    'navy': '#172033',        # text / org
-    'indigo': '#5146D9',      # brand 600
-    'indigo700': '#4238B8',   # brand 700
-    'indigo400': '#8B82EF',   # brand 400 (the dark-mode right ledger)
-    'lavender': '#A29BEA',    # brand 300
-    'light': '#F7F8FB',       # neutral 50
-    'lightText': '#F1F3F6',   # neutral 100 (dark-mode text)
-    'darkCanvas': '#0B0F17',  # dark canvas
+    'navy': '#1E1B4B',      # identity.navy: light mode's first arc and letter
+    'violet': '#7C3AED',    # identity.violet: light mode's second arc, dark mode's first
+    'lavender': '#A78BFA',  # identity.lavender: dark mode's second arc
+    'white': '#FFFFFF',     # identity.white: dark mode's letter; the light icon's field
+    'midnight': '#181735',  # identity.midnight: the dark icon's field
 }
 
-LEFT = 'M120 176c0-39 40-65 76-50l278 117c37 16 62 52 62 93v66l83 68c21 17 21 49 0 66l-83 68v193L196 654c-46-19-76-64-76-114V176z'
-RIGHT = 'M904 176c0-39-40-65-76-50L550 243c-37 16-62 52-62 93v66l-83 68c-21 17-21 49 0 66l83 68v193l340-143c46-19 76-64 76-114V176z'
-LCUT = '<rect x="176" y="314" width="230" height="54" rx="27" transform="rotate(23 176 314)" fill="black"/><rect x="176" y="468" width="188" height="54" rx="27" transform="rotate(23 176 468)" fill="black"/>'
-RCUT = '<rect x="660" y="314" width="188" height="54" rx="27" transform="rotate(-23 660 314)" fill="black"/><rect x="660" y="468" width="188" height="54" rx="27" transform="rotate(-23 660 468)" fill="black"/>'
-HL = 'M467 451l45 37 45-37'
+# The pack's paths, in its 512 grid.
+FIRST = 'M 256,40 A 216,216 0 0,1 472,256 A 216,216 0 0,1 426.6,396.4 L 380,352 A 152,152 0 0,0 408,256 A 152,152 0 0,0 256,104 Z'
+SECOND = 'M 256,472 A 216,216 0 0,1 40,256 A 216,216 0 0,1 85.4,115.6 L 132,160 A 152,152 0 0,0 104,256 A 152,152 0 0,0 256,408 Z'
+LETTER = 'M 190,160 L 260,160 C 310,160 350,195 350,256 C 350,317 310,352 260,352 L 190,352 Z M 230,195 L 230,317 L 258,317 C 288,317 310,295 310,256 C 310,217 288,195 258,195 Z'
 
-def masks(p):
-    return (f'<mask id="{p}l" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect width="1024" height="1024" fill="white"/>{LCUT}</mask>'
-            f'<mask id="{p}r" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect width="1024" height="1024" fill="white"/>{RCUT}</mask>')
+def layers(first, second, letter):
+    return (f'<g id="spiral-first" fill="{first}"><path d="{FIRST}"/></g>'
+            f'<g id="spiral-second" fill="{second}"><path d="{SECOND}"/></g>'
+            f'<g id="spiral-letter" fill="{letter}" fill-rule="evenodd"><path d="{LETTER}"/></g>')
 
-def layers(p, left, right, hl, hl_opacity=None):
-    op = f' opacity="{hl_opacity}"' if hl_opacity else ''
-    return (f'<g id="ledger-left" fill="{left}" mask="url(#{p}l)"><path d="{LEFT}"/></g>'
-            f'<g id="ledger-right" fill="{right}" mask="url(#{p}r)"><path d="{RIGHT}"/></g>'
-            f'<g id="interlock-highlight" fill="none" stroke="{hl}" stroke-width="18" stroke-linecap="round"{op}><path d="{HL}"/></g>')
+# The mark's ink (40..472) with a little clear space, centred on the pack's centre (256, 256).
+MARK_BOX = '24 24 464 464'
 
-# The mark's ink box inside the 1024 grid, so a mark-only file crops to it with clear space.
-MARK_BOX = '96 96 832 832'
+def write(name, svg):
+    open(os.path.join(OUT, name), 'w', encoding='utf-8', newline='\n').write(svg + '\n')
 
-def mark(name, left, right, hl, title):
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{MARK_BOX}" role="img" aria-labelledby="t"><title id="t">{title}</title>'
-           f'<defs>{masks("m")}</defs>{layers("m", left, right, hl)}</svg>\n')
-    open(os.path.join(OUT, name), 'w', encoding='utf-8', newline='\n').write(svg)
+def mark(name, first, second, letter):
+    write(name, f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{MARK_BOX}" role="img" aria-labelledby="t"><title id="t">Dukan ERP</title>{layers(first, second, letter)}</svg>')
 
-mark('dukan-mark.svg', T['navy'], T['indigo'], T['lavender'], 'Dukan ERP')
-mark('dukan-mark-dark.svg', T['lightText'], T['indigo400'], T['lavender'], 'Dukan ERP')
-mark('dukan-mark-mono.svg', 'currentColor', 'currentColor', 'currentColor', 'Dukan ERP')
+mark('dukan-mark.svg', T['navy'], T['violet'], T['navy'])
+mark('dukan-mark-dark.svg', T['violet'], T['lavender'], T['white'])
+mark('dukan-mark-mono.svg', 'currentColor', 'currentColor', 'currentColor')
 
-def lockup(name, ink, accent, left, right, hl, title):
+def lockup(name, first, second, letter, ink, accent):
     font = "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif"
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" role="img" aria-labelledby="t"><title id="t">{title}</title>'
-           f'<defs>{masks("k")}</defs><g id="mark" transform="translate(16 -10) scale(.43)">{layers("k", left, right, hl)}</g>'
-           f'<g id="wordmark"><text x="465" y="255" fill="{ink}" font-family="{font}" font-size="172" font-weight="760" letter-spacing="-7">Dukan</text>'
-           f'<text x="475" y="330" fill="{accent}" font-family="{font}" font-size="48" font-weight="650" letter-spacing="8">ERP</text></g></svg>\n')
-    open(os.path.join(OUT, name), 'w', encoding='utf-8', newline='\n').write(svg)
+    write(name, f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" role="img" aria-labelledby="t"><title id="t">Dukan ERP</title>'
+                f'<g id="mark" transform="translate(10 10) scale(.78)">{layers(first, second, letter)}</g>'
+                f'<g id="wordmark"><text x="465" y="255" fill="{ink}" font-family="{font}" font-size="172" font-weight="700" letter-spacing="-3">Dukan</text>'
+                f'<text x="475" y="330" fill="{accent}" font-family="{font}" font-size="48" font-weight="650" letter-spacing="8">ERP</text></g></svg>')
 
-lockup('dukan-lockup-light.svg', T['navy'], T['indigo'], T['navy'], T['indigo'], T['lavender'], 'Dukan ERP')
-lockup('dukan-lockup-dark.svg', T['lightText'], T['lavender'], T['lightText'], T['indigo400'], T['lavender'], 'Dukan ERP')
+lockup('dukan-lockup-light.svg', T['navy'], T['violet'], T['navy'], T['navy'], T['violet'])
+lockup('dukan-lockup-dark.svg', T['violet'], T['lavender'], T['white'], T['white'], T['lavender'])
 
-# The iOS icon: opaque, mark only, no text; the pack's indigo field (brand 700 → 600) and light ledgers.
-icon = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">'
-        f'<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{T["indigo700"]}"/><stop offset="1" stop-color="{T["indigo"]}"/></linearGradient>{masks("i")}</defs>'
-        f'<rect width="1024" height="1024" fill="url(#bg)"/>'
-        f'<g transform="translate(96 110) scale(.8125)">{layers("i", T["light"], T["lavender"], T["light"])}</g></svg>\n')
-open(os.path.join(OUT, 'dukan-app-icon.svg'), 'w', encoding='utf-8', newline='\n').write(icon)
+# The iOS icon: opaque, mark only, no text: the pack's light app icon on a full square (iOS rounds the corners itself).
+write('dukan-app-icon.svg', f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">'
+                            f'<rect width="512" height="512" fill="{T["white"]}"/>'
+                            f'<g transform="translate(70 70) scale(.726)">{layers(T["navy"], T["violet"], T["navy"])}</g></svg>')
 
-# Android adaptive icon foreground (mark in the 66 % safe zone, transparent) and monochrome.
-def adaptive(name, left, right, hl):
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs>{masks("a")}</defs>'
-           f'<g transform="translate(232 246) scale(.547)">{layers("a", left, right, hl)}</g></svg>\n')
-    open(os.path.join(OUT, name), 'w', encoding='utf-8', newline='\n').write(svg)
-adaptive('android-foreground.svg', T['light'], T['lavender'], T['light'])
+# Android adaptive icon: the mark in the 66 % safe zone on a transparent foreground; the field is the background image.
+def adaptive(name, first, second, letter):
+    write(name, f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">'
+                f'<g transform="translate(104 104) scale(.594)">{layers(first, second, letter)}</g></svg>')
+adaptive('android-foreground.svg', T['navy'], T['violet'], T['navy'])
 adaptive('android-monochrome.svg', '#000000', '#000000', '#000000')
 
 # The splash image: the mark alone, transparent; the native screen supplies the colour (light and dark).
-def splash(name, left, right, hl):
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{MARK_BOX}" width="1024" height="1024"><defs>{masks("s")}</defs>'
-           f'{layers("s", left, right, hl)}</svg>\n')
-    open(os.path.join(OUT, name), 'w', encoding='utf-8', newline='\n').write(svg)
-splash('splash-light.svg', T['navy'], T['indigo'], T['lavender'])
-splash('splash-dark.svg', T['lightText'], T['indigo400'], T['lavender'])
+def splash(name, first, second, letter):
+    write(name, f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{MARK_BOX}" width="1024" height="1024">{layers(first, second, letter)}</svg>')
+splash('splash-light.svg', T['navy'], T['violet'], T['navy'])
+splash('splash-dark.svg', T['violet'], T['lavender'], T['white'])
 print('\n'.join(sorted(os.listdir(OUT))))

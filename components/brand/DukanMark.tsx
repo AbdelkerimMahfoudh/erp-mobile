@@ -1,71 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
-import Svg, { G, Mask, Path, Rect } from 'react-native-svg';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
+import Svg, { G, Path } from 'react-native-svg';
 import { Text } from '../ui/Text';
 import { useColors } from '../../lib/design/theme';
 import { useReduceMotionSetting } from '../../lib/design/use-reduce-motion';
-import { BRAND_INTRO, LEDGER } from '../../lib/brand';
+import { BRAND_INTRO, SPIRAL } from '../../lib/brand';
 import { useTranslation } from '../../lib/i18n';
 
 /*
- * The Dukan interlocking-ledger mark (the owner's brand pack, 2026-10-29). Three layers, kept apart because the launch
- * animation moves them separately: `ledger-left`, `ledger-right` and `interlock-highlight`. Colours come from the design
- * tokens (`lib/brand.ts`), never from the pack's own hex values. The mark is never mirrored in Arabic: a logo is not a
+ * The Dukan Offset Spiral mark (the owner's brand pack, Concept B, 2026-11-03): two arcs around a "D". Three layers, kept
+ * apart because the launch animation moves them separately: `spiral-first`, `spiral-second` and `spiral-letter`. Colours
+ * come from the design tokens (`lib/design/colors.ts` `mark`). The mark is never mirrored in Arabic: a logo is not a
  * direction.
  */
 
-function Masks({ id }: { id: string }) {
+type Layer = 'arcs' | 'letter' | 'all';
+
+type MarkInk = { first: string; second: string; letter: string };
+
+/** One SVG of the mark: all three layers, the two arcs, or the letter (the animation stacks two). */
+function MarkSvg({ size, ink: c, layer = 'all' }: { size: number; ink: MarkInk; layer?: Layer }) {
   return (
-    <>
-      <Mask id={`${id}l`} maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
-        <Rect width="1024" height="1024" fill="white" />
-        {LEDGER.leftCuts.map((c) => (
-          <Rect key={c.y} x={c.x} y={c.y} width={c.w} height={54} rx={27} transform={`rotate(23 ${c.x} ${c.y})`} fill="black" />
-        ))}
-      </Mask>
-      <Mask id={`${id}r`} maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
-        <Rect width="1024" height="1024" fill="white" />
-        {LEDGER.rightCuts.map((c) => (
-          <Rect key={c.y} x={c.x} y={c.y} width={c.w} height={54} rx={27} transform={`rotate(-23 ${c.x} ${c.y})`} fill="black" />
-        ))}
-      </Mask>
-    </>
-  );
-}
-
-type Layer = 'left' | 'right' | 'highlight' | 'all';
-
-type MarkInk = { left: string; right: string; highlight: string };
-
-/** One SVG of the mark: all three layers, or one of them (the animation stacks three). */
-function MarkSvg({ size, ink: c, layer = 'all', id }: { size: number; ink: MarkInk; layer?: Layer; id: string }) {
-  return (
-    <Svg width={size} height={size} viewBox={LEDGER.viewBox} accessible={false}>
-      {layer === 'all' || layer === 'left' || layer === 'right' ? <Masks id={id} /> : null}
-      {layer === 'all' || layer === 'left' ? (
-        <G id="ledger-left" fill={c.left} mask={`url(#${id}l)`}>
-          <Path d={LEDGER.left} />
-        </G>
+    <Svg width={size} height={size} viewBox={SPIRAL.viewBox} accessible={false}>
+      {layer !== 'letter' ? (
+        <>
+          <G id="spiral-first" fill={c.first}>
+            <Path d={SPIRAL.first} />
+          </G>
+          <G id="spiral-second" fill={c.second}>
+            <Path d={SPIRAL.second} />
+          </G>
+        </>
       ) : null}
-      {layer === 'all' || layer === 'right' ? (
-        <G id="ledger-right" fill={c.right} mask={`url(#${id}r)`}>
-          <Path d={LEDGER.right} />
-        </G>
-      ) : null}
-      {layer === 'all' ? (
-        <G id="interlock-highlight" fill="none" stroke={c.highlight} strokeWidth={18} strokeLinecap="round">
-          <Path d={LEDGER.highlight} />
+      {layer !== 'arcs' ? (
+        <G id="spiral-letter" fill={c.letter}>
+          <Path d={SPIRAL.letter} fillRule="evenodd" />
         </G>
       ) : null}
     </Svg>
   );
-}
-
-let markSeq = 0;
-function useMarkId(prefix: string): string {
-  const [id] = useState(() => `${prefix}${++markSeq}`);
-  return id;
 }
 
 /**
@@ -74,11 +48,10 @@ function useMarkId(prefix: string): string {
  */
 export function DukanMark({ size = 24, mono, style }: { size?: number; mono?: string; style?: StyleProp<ViewStyle> }) {
   const colors = useColors();
-  const id = useMarkId('dm');
-  const ink = mono ? { left: mono, right: mono, highlight: mono } : colors.mark;
+  const ink = mono ? { first: mono, second: mono, letter: mono } : colors.mark;
   return (
     <View style={style} accessible={false} importantForAccessibility="no-hide-descendants">
-      <MarkSvg size={size} ink={ink} id={id} />
+      <MarkSvg size={size} ink={ink} />
     </View>
   );
 }
@@ -109,8 +82,6 @@ export function DukanLockup({ size = 32, style }: { size?: number; style?: Style
   );
 }
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
 /** Once per process: the intro is a launch, never a screen's decoration. */
 let introPlayed = false;
 export function resetBrandIntroForTests() {
@@ -119,23 +90,21 @@ export function resetBrandIntroForTests() {
 
 /**
  * The launch's first moment after the native splash (which stays static): the same mark at the same place on the same
- * colour, then the halves enter from opposite sides, overshoot a little, settle, and the connection draws — about one
- * second, once. With Reduce Motion the mark is shown still and the overlay goes. Covers the app, then fades out and
- * unmounts; it never blocks a tap after it has gone.
+ * colour. The arcs converge from a third of their size and a quarter turn back, pass their place and settle; the "D"
+ * scales up past its size and locks into the centre — about one second, once. With Reduce Motion the mark is shown still
+ * and the overlay goes. Covers the app, then fades out and unmounts; it never blocks a tap after it has gone.
  */
 export function BrandIntro() {
   const colors = useColors();
   const background = colors.surface.canvas;
   const reduce = useReduceMotionSetting();
   const [done, setDone] = useState(introPlayed);
-  const id = useMarkId('bi');
   const size = BRAND_INTRO.size;
-  const shift = (size * BRAND_INTRO.enterUnits) / LEDGER.span;
-  const over = (size * BRAND_INTRO.overshootUnits) / LEDGER.span;
-  const left = useSharedValue(reduce ? 0 : -shift);
-  const right = useSharedValue(reduce ? 0 : shift);
-  const halves = useSharedValue(reduce ? 1 : 0);
-  const dash = useSharedValue(reduce ? 0 : BRAND_INTRO.highlightLength);
+  const arcsScale = useSharedValue(reduce ? 1 : BRAND_INTRO.arcsFromScale);
+  const arcsTurn = useSharedValue(reduce ? 0 : BRAND_INTRO.arcsFromDegrees);
+  const arcsShown = useSharedValue(reduce ? 1 : 0);
+  const letterScale = useSharedValue(reduce ? 1 : 0);
+  const letterTurn = useSharedValue(reduce ? 0 : BRAND_INTRO.letterFromDegrees);
   const cover = useSharedValue(1);
 
   useEffect(() => {
@@ -150,38 +119,37 @@ export function BrandIntro() {
       return;
     }
     const ease = Easing.out(Easing.cubic);
-    const enter = BRAND_INTRO.enterMs;
-    const settle = BRAND_INTRO.settleMs;
-    halves.value = withTiming(1, { duration: BRAND_INTRO.appearMs });
-    left.value = withSequence(withTiming(over, { duration: enter, easing: ease }), withTiming(0, { duration: settle, easing: ease }));
-    right.value = withDelay(BRAND_INTRO.rightLagMs, withSequence(withTiming(-over, { duration: enter, easing: ease }), withTiming(0, { duration: settle, easing: ease })));
-    dash.value = withDelay(BRAND_INTRO.drawAtMs, withTiming(0, { duration: BRAND_INTRO.drawMs, easing: ease }));
+    const half = (ms: number) => Math.round(ms / 2);
+    // Stage 1: the arcs converge, past their place, then settle.
+    arcsShown.value = withTiming(1, { duration: half(BRAND_INTRO.arcsMs) });
+    arcsScale.value = withSequence(withTiming(BRAND_INTRO.arcsOvershootScale, { duration: half(BRAND_INTRO.arcsMs), easing: ease }), withTiming(1, { duration: half(BRAND_INTRO.arcsMs), easing: ease }));
+    arcsTurn.value = withSequence(withTiming(BRAND_INTRO.arcsOvershootDegrees, { duration: half(BRAND_INTRO.arcsMs), easing: ease }), withTiming(0, { duration: half(BRAND_INTRO.arcsMs), easing: ease }));
+    // Stage 2: the "D" scales up past its size and locks.
+    const lock = Math.round(BRAND_INTRO.letterMs * 0.6);
+    letterScale.value = withDelay(BRAND_INTRO.letterAtMs, withSequence(withTiming(BRAND_INTRO.letterOvershootScale, { duration: lock, easing: ease }), withTiming(1, { duration: BRAND_INTRO.letterMs - lock, easing: ease })));
+    letterTurn.value = withDelay(BRAND_INTRO.letterAtMs, withTiming(0, { duration: BRAND_INTRO.letterMs, easing: ease }));
+    // Stage 3: settled, then the overlay goes.
     fadeOut(BRAND_INTRO.totalMs);
     // The animation's own values are shared and stable for the component's life; it runs once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
-  const leftStyle = useAnimatedStyle(() => ({ opacity: halves.value, transform: [{ translateX: left.value }] }));
-  const rightStyle = useAnimatedStyle(() => ({ opacity: halves.value, transform: [{ translateX: right.value }] }));
-  const dashProps = useAnimatedProps(() => ({ strokeDashoffset: dash.value }));
+  const arcsStyle = useAnimatedStyle(() => ({ opacity: arcsShown.value, transform: [{ scale: arcsScale.value }, { rotate: `${arcsTurn.value}deg` }] }));
+  const letterStyle = useAnimatedStyle(() => ({ transform: [{ scale: letterScale.value }, { rotate: `${letterTurn.value}deg` }] }));
   const c = colors.mark;
 
   if (done) return null;
   return (
     <Animated.View testID="brand-intro" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
+      {/* Each layer turns about the mark's centre: the views are the mark's box, centred on the pack's (256, 256). */}
       <View style={{ width: size, height: size }}>
-        <Animated.View style={[StyleSheet.absoluteFill, leftStyle]}>
-          <MarkSvg size={size} ink={c} layer="left" id={`${id}a`} />
+        <Animated.View style={[StyleSheet.absoluteFill, arcsStyle]}>
+          <MarkSvg size={size} ink={c} layer="arcs" />
         </Animated.View>
-        <Animated.View style={[StyleSheet.absoluteFill, rightStyle]}>
-          <MarkSvg size={size} ink={c} layer="right" id={`${id}b`} />
+        <Animated.View style={[StyleSheet.absoluteFill, letterStyle]}>
+          <MarkSvg size={size} ink={c} layer="letter" />
         </Animated.View>
-        <Svg width={size} height={size} viewBox={LEDGER.viewBox} style={StyleSheet.absoluteFill}>
-          <G id="interlock-highlight" fill="none" stroke={c.highlight} strokeWidth={18} strokeLinecap="round">
-            <AnimatedPath d={LEDGER.highlight} strokeDasharray={[BRAND_INTRO.highlightLength, BRAND_INTRO.highlightLength]} animatedProps={dashProps} />
-          </G>
-        </Svg>
       </View>
     </Animated.View>
   );

@@ -1,54 +1,47 @@
 /**
- * The Dukan interlocking-ledger mark as data (the owner's brand pack, 2026-10-29): the vector geometry of its three
- * layers, the colours each tone takes from the design tokens, and the launch animation's timing. Pure, so a node test
- * can hold it to the contract without a renderer.
+ * The Dukan Offset Spiral mark as data (the owner's brand pack, Concept B, 2026-11-03): the vector geometry of its three
+ * layers (two arcs around a "D"), the colours each tone takes from the design tokens, and the launch animation's
+ * timing. Pure, so a node test can hold it to the contract without a renderer.
  */
 import { lightColors, darkColors } from './design/colors.ts';
 
-export const LEDGER = {
-  /** The mark's ink box in the pack's 1024 grid, with clear space; the splash image is cut to the same box. */
-  viewBox: '96 96 832 832',
-  span: 832,
-  left: 'M120 176c0-39 40-65 76-50l278 117c37 16 62 52 62 93v66l83 68c21 17 21 49 0 66l-83 68v193L196 654c-46-19-76-64-76-114V176z',
-  right: 'M904 176c0-39-40-65-76-50L550 243c-37 16-62 52-62 93v66l-83 68c-21 17-21 49 0 66l83 68v193l340-143c46-19 76-64 76-114V176z',
-  highlight: 'M467 451l45 37 45-37',
-  leftCuts: [
-    { x: 176, y: 314, w: 230 },
-    { x: 176, y: 468, w: 188 },
-  ],
-  rightCuts: [
-    { x: 660, y: 314, w: 188 },
-    { x: 660, y: 468, w: 188 },
-  ],
+export const SPIRAL = {
+  /** The mark's ink (40..472 in the pack's 512 grid) with clear space, centred on (256, 256); the splash image is cut to the same box. */
+  viewBox: '24 24 464 464',
+  span: 464,
+  first: 'M 256,40 A 216,216 0 0,1 472,256 A 216,216 0 0,1 426.6,396.4 L 380,352 A 152,152 0 0,0 408,256 A 152,152 0 0,0 256,104 Z',
+  second: 'M 256,472 A 216,216 0 0,1 40,256 A 216,216 0 0,1 85.4,115.6 L 132,160 A 152,152 0 0,0 104,256 A 152,152 0 0,0 256,408 Z',
+  letter: 'M 190,160 L 260,160 C 310,160 350,195 350,256 C 350,317 310,352 260,352 L 190,352 Z M 230,195 L 230,317 L 258,317 C 288,317 310,295 310,256 C 310,217 288,195 258,195 Z',
 } as const;
 
 export type MarkTone = 'light' | 'dark' | 'mono';
 
-/** The mark's colours per surface, from the palettes' `mark` tokens: navy and indigo on light, light ink and a lighter indigo on dark. */
-export function markColours(tone: MarkTone, mono = '#000000'): { left: string; right: string; highlight: string } {
-  if (tone === 'mono') return { left: mono, right: mono, highlight: mono };
+/** The mark's colours per surface, from the palettes' `mark` tokens: navy and violet on light, violet, lavender and white on dark. */
+export function markColours(tone: MarkTone, mono = '#000000'): { first: string; second: string; letter: string } {
+  if (tone === 'mono') return { first: mono, second: mono, letter: mono };
   return tone === 'dark' ? darkColors.mark : lightColors.mark;
 }
 
 /**
- * The launch animation (the pack's motion contract): the halves enter from opposite sides, overshoot by a few units,
- * settle, then the connection draws — 800–1100 ms in all, once. Units are the pack's 1024 grid.
+ * The launch animation (the pack's three stages, about one second, once):
+ * 1. the arcs converge: from a third of their size and a quarter turn back, past their place, then settle;
+ * 2. the "D" scales up, past its size, and locks into the centre;
+ * 3. the mark rests in its static state, then the overlay fades.
  */
 export const BRAND_INTRO = {
   /** The same width as the native splash image (app.json `imageWidth`), so the hand-over does not move the mark. */
   size: 200,
-  enterUnits: 170,
-  overshootUnits: 18,
-  appearMs: 190,
-  enterMs: 650,
-  settleMs: 250,
-  rightLagMs: 50,
-  drawAtMs: 720,
-  drawMs: 340,
-  /** The animation's end: the last of the halves settles at 950 ms, the connection is drawn at 1060 ms. */
-  totalMs: 1060,
+  arcsFromScale: 0.3,
+  arcsFromDegrees: -90,
+  arcsOvershootScale: 1.1,
+  arcsOvershootDegrees: 15,
+  arcsMs: 700,
+  letterAtMs: 450,
+  letterOvershootScale: 1.2,
+  letterFromDegrees: -180,
+  letterMs: 600,
+  /** The animation's end: the "D" locks at 450 + 600 ms, the arcs settled at 700. */
+  totalMs: 1050,
   fadeMs: 180,
   reducedHoldMs: 250,
-  /** Longer than the chevron's path (two 58-unit strokes), so it starts fully hidden. */
-  highlightLength: 130,
 } as const;

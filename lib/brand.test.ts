@@ -1,13 +1,13 @@
 /**
- * The Dukan brand system in the app (the owner's brand pack, 2026-10-29), proved without a renderer:
+ * The Dukan brand system in the app (the owner's Offset Spiral pack, 2026-11-03), proved without a renderer:
  *
  *   node lib/brand.test.ts
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { BRAND_INTRO, LEDGER, markColours } from './brand.ts';
-import { lightColors, darkColors } from './design/colors.ts';
+import { BRAND_INTRO, SPIRAL, markColours } from './brand.ts';
+import { identity, lightColors, darkColors } from './design/colors.ts';
 
 const require = createRequire(import.meta.url);
 const { PNG } = require('pngjs') as { PNG: { sync: { read(b: Buffer): { width: number; height: number; data: Buffer } } } };
@@ -40,33 +40,35 @@ it('the App Store icon is 1024 × 1024, opaque RGB with no alpha channel, and ca
 it('the vector sources keep the three named layers the animation moves', () => {
   for (const f of ['dukan-mark.svg', 'dukan-mark-dark.svg', 'dukan-mark-mono.svg', 'dukan-lockup-light.svg', 'dukan-lockup-dark.svg', 'dukan-app-icon.svg']) {
     const svg = read(`assets/brand/${f}`);
-    for (const id of ['ledger-left', 'ledger-right', 'interlock-highlight']) assert.match(svg, new RegExp(`id="${id}"`), `${f}: ${id}`);
+    for (const id of ['spiral-first', 'spiral-second', 'spiral-letter']) assert.match(svg, new RegExp(`id="${id}"`), `${f}: ${id}`);
+    // The pack's own geometry, unchanged.
+    for (const d of [SPIRAL.first, SPIRAL.second, SPIRAL.letter]) assert.ok(svg.includes(d), `${f}: the pack's path`);
   }
   assert.match(read('assets/brand/dukan-mark-mono.svg'), /currentColor/);
 });
 
 it('the mark’s colours are the design tokens, in light and in dark', () => {
-  assert.deepEqual(markColours('light'), { left: lightColors.text.primary, right: lightColors.brand[600], highlight: lightColors.brand[300] });
-  assert.deepEqual(markColours('dark'), { left: darkColors.text.primary, right: darkColors.brand[400], highlight: darkColors.brand[300] });
-  assert.equal(lightColors.brand[600], '#5146D9');
-  assert.equal(lightColors.text.primary, '#172033');
+  assert.deepEqual(markColours('light'), { first: identity.navy, second: identity.violet, letter: identity.navy });
+  assert.deepEqual(markColours('dark'), { first: identity.violet, second: identity.lavender, letter: identity.white });
+  // The pack's colours, exactly (DUKAN_BRAND_USAGE_GUIDE §2).
+  assert.deepEqual({ ...identity }, { navy: '#1E1B4B', violet: '#7C3AED', lavender: '#A78BFA', white: '#FFFFFF', midnight: '#181735' });
   // Every colour in the shipped SVGs is a token's.
-  const tokens = new Set([lightColors.text.primary, lightColors.brand[600], lightColors.brand[700], lightColors.brand[300], darkColors.text.primary, darkColors.brand[400], '#F7F8FB'].map((c) => c.toUpperCase()));
+  const tokens = new Set(Object.values(identity).map((c) => c.toUpperCase()));
   for (const f of ['dukan-mark.svg', 'dukan-mark-dark.svg', 'dukan-lockup-light.svg', 'dukan-lockup-dark.svg', 'dukan-app-icon.svg']) {
     for (const hex of read(`assets/brand/${f}`).match(/#[0-9A-Fa-f]{6}/g) ?? []) assert.ok(tokens.has(hex.toUpperCase()), `${f}: ${hex} is not a token`);
   }
 });
 
-it('the launch animation is 800–1100 ms, the connection drawn last, and the same size as the native splash image', () => {
+it('the launch animation is the pack’s three stages in about a second, the D locking last, at the native splash image’s size', () => {
   assert.ok(BRAND_INTRO.totalMs >= 800 && BRAND_INTRO.totalMs <= 1100, `${BRAND_INTRO.totalMs}`);
-  assert.ok(BRAND_INTRO.drawAtMs >= BRAND_INTRO.enterMs, 'the connection draws after the halves arrive');
-  assert.equal(BRAND_INTRO.drawAtMs + BRAND_INTRO.drawMs, BRAND_INTRO.totalMs);
-  assert.ok(BRAND_INTRO.rightLagMs + BRAND_INTRO.enterMs + BRAND_INTRO.settleMs <= BRAND_INTRO.totalMs);
-  assert.ok(BRAND_INTRO.overshootUnits > 0 && BRAND_INTRO.overshootUnits < BRAND_INTRO.enterUnits / 4, 'a slight overshoot');
+  assert.ok(BRAND_INTRO.letterAtMs < BRAND_INTRO.arcsMs, 'the D starts while the arcs settle');
+  assert.equal(BRAND_INTRO.letterAtMs + BRAND_INTRO.letterMs, BRAND_INTRO.totalMs, 'the D locks last');
+  assert.ok(BRAND_INTRO.arcsMs <= BRAND_INTRO.totalMs);
+  assert.ok(BRAND_INTRO.arcsOvershootScale > 1 && BRAND_INTRO.letterOvershootScale > 1, 'both pass their size, then settle');
   const app = JSON.parse(read('app.json')).expo;
   const splash = app.plugins.find((p: unknown) => Array.isArray(p) && p[0] === 'expo-splash-screen')[1];
   assert.equal(splash.imageWidth, BRAND_INTRO.size);
-  assert.equal(LEDGER.viewBox, '96 96 832 832');
+  assert.equal(SPIRAL.viewBox, '24 24 464 464');
 });
 
 it('the native splash is static, light and dark, on the app’s own canvas colours — no flash at the hand-over', () => {

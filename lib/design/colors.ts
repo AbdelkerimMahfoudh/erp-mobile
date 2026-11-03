@@ -32,6 +32,18 @@
  *   600 on canvas ........ 6.13:1
  *   700 on white ......... 8.44:1   (pressed)
  */
+/**
+ * The Dukan identity (the owner's Offset Spiral pack, Concept B, 2026-11-03): the mark's own colours, used for the mark
+ * and nothing else. The app's interface keeps its accent ramp below.
+ */
+export const identity = {
+  navy: '#1E1B4B',
+  violet: '#7C3AED',
+  lavender: '#A78BFA',
+  white: '#FFFFFF',
+  midnight: '#181735',
+} as const;
+
 const brand = {
   50: '#EEECFC',
   100: '#DEDBF8',
@@ -159,8 +171,8 @@ export interface Palette {
     };
   };
   brand: typeof brand;
-  /** The Dukan ledger mark's three layers (the owner's brand pack, 2026-10-29): read here, never chosen by a screen. */
-  mark: { left: string; right: string; highlight: string };
+  /** The Dukan mark's three layers (the Offset Spiral pack, 2026-11-03): read here, never chosen by a screen. */
+  mark: { first: string; second: string; letter: string };
   neutral: typeof neutral;
   intent: Record<'neutral' | 'info' | 'success' | 'warning' | 'danger', IntentColor>;
   /**
@@ -311,7 +323,7 @@ export const lightColors: Palette = {
 
   /** The accent ramp, for the rare case a component needs a specific step. */
   brand,
-  mark: { left: '#172033', right: brand[600], highlight: brand[300] },
+  mark: { first: identity.navy, second: identity.violet, letter: identity.navy },
   neutral,
 
   /**
@@ -459,7 +471,7 @@ export const darkColors: Palette = {
   },
 
   brand,
-  mark: { left: neutral[100], right: brand[400], highlight: brand[300] },
+  mark: { first: identity.violet, second: identity.lavender, letter: identity.white },
   neutral,
 
   intent: {

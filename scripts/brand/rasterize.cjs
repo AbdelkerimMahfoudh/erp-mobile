@@ -11,22 +11,22 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const JOBS = [
   // [svg, png, size, opaque background or null]
-  ['dukan-app-icon.svg', 'icon.png', 1024, '#5146D9'],
+  ['dukan-app-icon.svg', 'icon.png', 1024, '#FFFFFF'],
   ['android-foreground.svg', 'android-icon-foreground.png', 1024, null],
   ['android-monochrome.svg', 'android-icon-monochrome.png', 1024, null],
-  [null, 'android-icon-background.png', 1024, '#5146D9'],
+  [null, 'android-icon-background.png', 1024, '#FFFFFF'],
   ['splash-light.svg', 'splash-icon.png', 1024, null],
   ['splash-dark.svg', 'splash-icon-dark.png', 1024, null],
-  ['dukan-app-icon.svg', 'favicon.png', 48, '#5146D9'],
-  ['dukan-app-icon.svg', 'dukan-icon-192.png', 192, '#5146D9'],
-  ['dukan-app-icon.svg', 'dukan-icon-512.png', 512, '#5146D9'],
-  ['dukan-app-icon.svg', 'dukan-apple-touch-icon.png', 180, '#5146D9'],
+  ['dukan-app-icon.svg', 'favicon.png', 48, '#FFFFFF'],
+  ['dukan-app-icon.svg', 'dukan-icon-192.png', 192, '#FFFFFF'],
+  ['dukan-app-icon.svg', 'dukan-icon-512.png', 512, '#FFFFFF'],
+  ['dukan-app-icon.svg', 'dukan-apple-touch-icon.png', 180, '#FFFFFF'],
   // Small-size legibility review sheet sizes.
   ['dukan-mark.svg', 'review-mark-16.png', 16, '#F7F8FB'],
   ['dukan-mark.svg', 'review-mark-24.png', 24, '#F7F8FB'],
   ['dukan-mark-dark.svg', 'review-mark-dark-16.png', 16, '#0B0F17'],
   ['dukan-mark-dark.svg', 'review-mark-dark-24.png', 24, '#0B0F17'],
-  ['dukan-app-icon.svg', 'review-icon-29.png', 29, '#5146D9'],
+  ['dukan-app-icon.svg', 'review-icon-29.png', 29, '#FFFFFF'],
 ];
 
 function toRgb(file) {
