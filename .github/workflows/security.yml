@@ -57,10 +57,17 @@ jobs:
       - run: npx tsc --noEmit -p tsconfig.json
       - run: npx expo lint --max-warnings 40
       # Two pure tests hold the app's bundled Storage and Colour lists to the server's own source, and fail when either
-      # side moves: they read the backend beside this checkout, as on a developer's machine. The repository is public.
+      # side moves: they read the backend beside this checkout, as on a developer's machine. The repository is private:
+      # BACKEND_READ_KEY is a read-only deploy key on erp-backend (2026-11-03), used for this clone and nothing else.
       - name: the backend beside this checkout
         # inventory-general (D223) pairs with the backend branch of the same name: the built-in categories it reads live there.
-        run: git clone --depth 1 --branch inventory-general https://github.com/AbdelkerimMahfoudh/erp-backend.git ../erp-backend
+        env:
+          BACKEND_READ_KEY: ${{ secrets.BACKEND_READ_KEY }}
+        run: |
+          key=$(mktemp); trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$BACKEND_READ_KEY" > "$key"; chmod 600 "$key"
+          mkdir -p ~/.ssh; ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes" git clone --depth 1 --branch inventory-general git@github.com:AbdelkerimMahfoudh/erp-backend.git ../erp-backend
       - name: pure tests
         run: for f in $(find lib components -name '*.test.ts' | sort); do node "$f" || exit 1; done
       # The rendered screens under jest-expo — what a person sees and can press: the Owner's trial card with nothing
