@@ -52,7 +52,8 @@ jobs:
           { echo "BACKEND=$BACKEND"; echo "MOBILE=$MOBILE"; } >> "$GITHUB_ENV"
           echo "backend $BACKEND, mobile $MOBILE"
       - uses: actions/checkout@v4
-        with: { repository: AbdelkerimMahfoudh/erp-backend, ref: '${{ env.BACKEND }}', path: api }
+        # erp-backend is private: its read-only deploy key (2026-11-03).
+        with: { repository: AbdelkerimMahfoudh/erp-backend, ref: '${{ env.BACKEND }}', path: api, ssh-key: '${{ secrets.BACKEND_READ_KEY }}' }
       - uses: actions/checkout@v4
         with: { repository: AbdelkerimMahfoudh/erp-mobile, ref: '${{ env.MOBILE }}', path: app }
       - uses: actions/setup-node@v4
