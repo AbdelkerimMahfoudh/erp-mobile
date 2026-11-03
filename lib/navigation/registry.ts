@@ -199,6 +199,8 @@ export const HUBS: readonly Hub[] = [
       // `/money` is the Results screen: profit for the period Money shows — the
       // store's sales less what they cost, which an agent counter has none of.
       { id: 'money', route: '/money', titleKey: 'nav.results', icon: 'BarChart3', perm: 'report.view', activity: 'electronics' },
+      // D227: which money the store treats as its own; the Owner's, as a declared balance is.
+      { id: 'balances', route: '/money-balances', titleKey: 'nav.balances', icon: 'HandCoins', perm: 'money.anchor.record' },
       // `expense.submit`, not `expense.manage`: the person who spent the money
       // reports it, and the list scopes them to their own. Every branch has expenses.
       { id: 'expenses', route: '/expenses', titleKey: 'nav.expenses', icon: 'Receipt', perm: 'expense.submit' },
@@ -588,7 +590,7 @@ export function partnersTabVisible(granted: ReadonlySet<string>): boolean {
  * (D157). Decided by the activity alone, so the bar and these rows never ask
  * each other.
  */
-const MONEY_ROW_ORDER = ['money', 'agent-reports', 'expenses', 'maintenance', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers'] as const;
+const MONEY_ROW_ORDER = ['money', 'agent-reports', 'balances', 'expenses', 'maintenance', 'loans', 'outstanding', 'agent-rebalance', 'agent-providers'] as const;
 
 export function moneyRows(granted: ReadonlySet<string>, activity: Activity = 'electronics'): Destination[] {
   const reportsOnTheBar = activity === 'money_agent';

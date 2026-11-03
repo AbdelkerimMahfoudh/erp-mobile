@@ -47,6 +47,7 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/money': TABS.money,
   '/sales/period': TABS.money,
   '/maintenance': TABS.money,
+  '/money-balances': TABS.money,
   '/maintenance/[id]': '/maintenance',
   '/expenses': TABS.money,
   '/expenses/[id]': '/expenses',

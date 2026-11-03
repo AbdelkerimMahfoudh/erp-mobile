@@ -170,7 +170,7 @@ it('the day’s expenses say which day (docs/55 D42); the card of today’s move
 it('one card at the top: the server’s total, or no figure at all while a method is unknown (docs/63)', () => {
   // Changed 2026-10-09 (docs/73 §5.3, D155): on a branch with the money services counter the card also says what the
   // drawer comes to with this phone's unsent exchanges, as Provisional beside the server's figure — the one new prop.
-  assert.match(overview, /<ExpectedMoneyCard\s+held=\{held\}\s+canReview=\{canAnchor\}\s+dayOpen=\{dayQuery\.data\?\.door === 'open'\}\s+onReview=\{\(\) => setReviewing\(true\)\}\s+onSetAccounts=\{\(\) => setCompanyOpen\(true\)\}\s+provisionalCash=\{provisionalCash\}\s*\/>/);
+  assert.match(overview, /<TrackedBalancesCard \/>/); // D227: only what the Owner chose to track.
   // An unknown account's day movement is shown as its own line, from the server's figure — never as a balance (2026-10-07).
   assert.match(card, /const net = m\.movement\?\.net \?\? 0;\s*if \(m\.known \|\| net === 0\) return null;/);
   assert.match(card, /t\('moneyTab\.held\.unknownMoved', \{ amount: isolateLtr\(amount\) \}\)/);

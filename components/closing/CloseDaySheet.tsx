@@ -141,6 +141,8 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
   const staleFloat = (providerId: string) => toRecount?.floats.some((f) => f.providerId === providerId) ?? false;
   const recountLeft = (toRecount?.channels.length ?? 0) + (toRecount?.floats.length ?? 0);
   const cashUnanchored = report.expected.cash.opening.anchorDate === null;
+  // Untracked cash (D227): no expected drawer is claimed anywhere on this sheet.
+  const cashTracked = report.money.channels.find((c) => c.channel === 'cash')?.countable !== false;
   /** The countable channels, as the live view has them — the drawer first. */
   const rows = (day?.channels ?? []).filter((c) => c.countable && !c.isUnattributed);
   type Row = (typeof rows)[number];
@@ -444,7 +446,7 @@ export function CloseDaySheet({ open, onClose, report, day, freshness, refreshin
             <Line label={t('closeReview.received')} value={report.money.totals.in} />
             <Line label={t('closeReview.paidOut')} value={report.money.totals.out} />
             <Divider />
-            <Line label={t(cashUnanchored ? 'dailyReport.expected.movementFromZero' : 'closeReview.expected')} value={report.expected.cash.expected} strong />
+            {cashTracked ? <Line label={t(cashUnanchored ? 'dailyReport.expected.movementFromZero' : 'closeReview.expected')} value={report.expected.cash.expected} strong /> : null}
             {report.result.status === 'ok' ? <Line label={t('closeReview.result')} value={report.result.resultAfterExpenses ?? 0} strong signed /> : null}
           </View>
           {warnings.map((w) => (

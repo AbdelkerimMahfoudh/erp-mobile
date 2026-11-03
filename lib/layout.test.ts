@@ -235,7 +235,7 @@ it('Money totals add channels up and say they are recorded, not a bank balance',
   // One card at the top (docs/63): the money expected in the store today — today's movement is no longer a card there.
   // Changed 2026-10-09 (docs/73 §5.3, D155): on a branch with the money services counter the card also says what the
   // drawer comes to with this phone's unsent exchanges, as Provisional beside the server's figure — the one new prop.
-  assert.match(src, /<ExpectedMoneyCard\s+held=\{held\}\s+canReview=\{canAnchor\}\s+dayOpen=\{dayQuery\.data\?\.door === 'open'\}\s+onReview=\{\(\) => setReviewing\(true\)\}\s+onSetAccounts=\{\(\) => setCompanyOpen\(true\)\}\s+provisionalCash=\{provisionalCash\}\s*\/>/);
+  assert.match(src, /<TrackedBalancesCard \/>/); // D227: only what the Owner chose to track.
   assert.ok(!/moneyToday|MethodLine|HeldLine/.test(src), 'no second card, no per-method explanations at the top');
   // One focal figure: the server's total — or the drawer's own, for anybody but the Owner — in display size, once.
   const card = code(read('../components/money/ExpectedMoneyCard.tsx'));

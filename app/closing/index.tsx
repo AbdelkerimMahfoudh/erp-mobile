@@ -362,7 +362,7 @@ function Report({
           .filter((c) => c.countable || c.net !== 0)
           .map((c) => (
             // The drawer is named as the closing popup names it, so the two read as one.
-            <Line key={c.key} label={c.channel === 'cash' ? t('dailyReport.expected.cash') : channelLabel(c, words)} value={c.net} signed tone="auto" />
+            <Line key={c.key} label={c.channel === 'cash' && c.countable ? t('dailyReport.expected.cash') : c.channel === 'cash' ? t('balances.cash') : channelLabel(c, words)} value={c.net} signed tone="auto" />
           ))}
         {/* The counter's exchanges are the drawer's cash too (docs/73 §4.5): said inside its line, never added again. */}
         {agentIn !== 0 || agentOut !== 0 ? (

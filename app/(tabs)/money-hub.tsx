@@ -20,7 +20,7 @@ import { AccessNotice } from '../../components/access';
 import { MoneyFloats } from '../../components/agent/MoneyFloats';
 import { OpeningMoneySheet } from '../../components/day/OpeningMoneySheet';
 import { CompanyAccountsSheet } from '../../components/money/CompanyAccountsSheet';
-import { ExpectedMoneyCard } from '../../components/money/ExpectedMoneyCard';
+import { TrackedBalancesCard } from '../../components/money/TrackedBalancesCard';
 import { DayRow } from '../../components/money/DayRow';
 import { ExpenseLine } from '../../components/money/ExpenseLine';
 import { LinkRow } from '../../components/money/LinkRow';
@@ -212,14 +212,7 @@ export default function MoneyTabScreen() {
             </InlineNotice>
           ) : (
             // 1. Expected money in store today: one card, the server's figures, short lines (docs/63).
-            <ExpectedMoneyCard
-              held={held}
-              canReview={canAnchor}
-              dayOpen={dayQuery.data?.door === 'open'}
-              onReview={() => setReviewing(true)}
-              onSetAccounts={() => setCompanyOpen(true)}
-              provisionalCash={provisionalCash}
-            />
+            <TrackedBalancesCard />
           )}
 
           {floats}
