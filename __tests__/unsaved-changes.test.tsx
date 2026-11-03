@@ -157,6 +157,32 @@ describe.each<Language>(['en', 'fr', 'ar'])('the unsaved-changes guard in %s', (
     expect(underneathPresses).toBe(1);
     expect(saved).toEqual([]);
   });
+
+  it('open, change, Discard, three times over: each time the question, each time out, never a layer left behind', async () => {
+    for (let round = 0; round < 3; round++) {
+      await openForm();
+      // The discarded value never comes back: each visit starts from what is saved.
+      expect(screen.getByText('value:en')).toBeTruthy();
+      await fireEvent.press(screen.getByText('Change'));
+      await back();
+      expect(screen.getByText(say('unsaved.title'))).toBeTruthy();
+      await fireEvent.press(screen.getByText(say('unsaved.discard')));
+      await settle();
+      expect(currentRoute()).toBe('index');
+      expect(visibleModals()).toHaveLength(0);
+      expect(useDialogStore.getState().presented).toBe(false);
+    }
+    await fireEvent.press(screen.getByText('Underneath'));
+    expect(underneathPresses).toBe(1);
+    expect(saved).toEqual([]);
+  });
+});
+
+describe('the dialog in Arabic', () => {
+  it('lays out by the language’s direction: no physical left or right in the host that draws it', () => {
+    const host = readFileSync('components/overlay/DialogHost.tsx', 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+    expect(host).not.toMatch(/marginLeft|marginRight|paddingLeft|paddingRight|textAlign: 'left'|textAlign: 'right'|\bleft:|\bright:/);
+  });
 });
 
 describe('the unsaved-changes guard under pressure', () => {
