@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card, MoneyValue, Text } from '../ui';
 import { BALANCES_KEY, type TrackedBalances } from '../../app/money-balances';
 import { api } from '../../lib/api-client';
+import { useBranch } from '../../lib/branch';
 import { space } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { usePermission } from '../../lib/permissions';
@@ -30,6 +31,35 @@ export function TrackedBalancesCard() {
       ))}
       {on.length > 0 ? <Text variant="caption" tone="tertiary">{t('balances.notLive', { date: on[0]!.effectiveDate ?? '' })}</Text> : <Text variant="caption" tone="tertiary">{t('balances.off')}</Text>}
       <Button title={t('nav.balances')} variant="tertiary" size="sm" onPress={() => router.push('/money-balances' as Href)} />
+    </Card>
+  );
+}
+
+export interface TrackedCash {
+  asOf: string;
+  on: boolean;
+  effectiveDate?: string;
+  expected?: number;
+}
+
+/**
+ * The Manager's card (D227, the owner's option A): this store's tracked cash, the same figure and words as the Owner's,
+ * read-only. Never an account and never the settings. Cash untracked, no card: nothing is claimed.
+ */
+export function TrackedCashCard() {
+  const { t } = useTranslation();
+  const canRead = usePermission('report.view');
+  const branchId = useBranch((s) => s.branchId);
+  const cash = useQuery({ queryKey: [...BALANCES_KEY, 'cash', branchId], queryFn: () => api.get<TrackedCash>('/money/tracking/cash'), enabled: canRead });
+  if (!canRead || !cash.data?.on) return null;
+  return (
+    <Card style={styles.card} testID="tracked-cash">
+      <Text variant="heading">{t('balances.title')}</Text>
+      <View style={styles.line}>
+        <Text tone="secondary" style={styles.flex}>{t('balances.cash')}</Text>
+        <MoneyValue value={cash.data.expected ?? 0} />
+      </View>
+      <Text variant="caption" tone="tertiary">{t('balances.notLive', { date: cash.data.effectiveDate ?? '' })}</Text>
     </Card>
   );
 }

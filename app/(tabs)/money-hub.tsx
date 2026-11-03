@@ -20,8 +20,7 @@ import { AccessNotice } from '../../components/access';
 import { MoneyFloats } from '../../components/agent/MoneyFloats';
 import { OpeningMoneySheet } from '../../components/day/OpeningMoneySheet';
 import { CompanyAccountsSheet } from '../../components/money/CompanyAccountsSheet';
-import { ExpectedMoneyCard } from '../../components/money/ExpectedMoneyCard';
-import { TrackedBalancesCard } from '../../components/money/TrackedBalancesCard';
+import { TrackedBalancesCard, TrackedCashCard } from '../../components/money/TrackedBalancesCard';
 import { DayRow } from '../../components/money/DayRow';
 import { ExpenseLine } from '../../components/money/ExpenseLine';
 import { LinkRow } from '../../components/money/LinkRow';
@@ -29,8 +28,7 @@ import { PeriodSelector } from '../../components/money/PeriodSelector';
 import { SaleRow } from '../../components/money/SaleRow';
 import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { activityAllows } from '../../lib/activity';
-import { useAgentPositions, useAgentProviders, useQueuedCash } from '../../lib/agent';
-import { provisionalFigure } from '../../lib/agent-positions';
+import { useAgentPositions } from '../../lib/agent';
 import { useActiveBranchName } from '../../lib/branch';
 import { useConnectivity } from '../../lib/connectivity';
 import { space } from '../../lib/design/tokens';
@@ -127,6 +125,7 @@ export default function MoneyTabScreen() {
   // The server's word on business writes (lib/access.ts): a read-only business records nothing new here.
   const access = useBusinessAccess();
   // Only the Owner records money positions: the review of a carried opening, and the company's accounts.
+  const canSeeAllBalances = usePermission('money.anchor.record');
   const canAnchor = usePermission('money.anchor.record') && access.canWrite;
   const review = useReviewOpening();
   const [reviewing, setReviewing] = useState(false);
@@ -157,16 +156,11 @@ export default function MoneyTabScreen() {
   const actions = moneyRows(granted, activity);
   /*
     The money services counter's floats (D157): the branch's own, on their own card, never among the company's
-    accounts. The drawer is one — the top card's — so while this phone holds exchanges for the branch the top card
-    says what the drawer comes to with them, as Provisional, beside the server's figure (docs/73 §5.3).
+    accounts. Since D227 the top card claims only tracked money, so the counter's queued exchanges are told on the
+    floats card alone.
   */
   const canSeeFloats = usePermission('agent.transaction.view') && activityAllows(activity, 'money_agent');
-  const agentProviders = useAgentProviders({ enabled: canSeeFloats });
   const agentPositions = useAgentPositions({ enabled: canSeeFloats });
-  const queued = useQueuedCash(agentProviders.data?.providers ?? []);
-  const drawer = held?.methods.find((m) => m.channel === 'cash');
-  const withQueued = activityAllows(activity, 'money_agent') && queued.count > 0 && drawer?.known ? provisionalFigure(drawer.position, queued.cashNet) : null;
-  const provisionalCash = withQueued !== null ? { count: queued.count, position: withQueued } : null;
   const floats = canSeeFloats ? <MoneyFloats withCash={!canViewFigures} /> : null;
   const expenses = actions.find((c) => c.id === 'expenses');
   const data = overview.data;
@@ -213,19 +207,9 @@ export default function MoneyTabScreen() {
             </InlineNotice>
           ) : (
             // 1. Expected money in store today: one card, the server's figures, short lines (docs/63).
-            canAnchor ? (
-              <TrackedBalancesCard />
-            ) : (
-              // Unchanged for everyone else until the owner decides (D227, before/after in the handoff).
-              <ExpectedMoneyCard
-                held={held}
-                canReview={canAnchor}
-                dayOpen={dayQuery.data?.door === 'open'}
-                onReview={() => setReviewing(true)}
-                onSetAccounts={() => setCompanyOpen(true)}
-                provisionalCash={provisionalCash}
-              />
-            )
+            // Everyone who reads the figures (D227, the owner's option A): the Owner every tracked location, a Manager this
+            // store's tracked cash only. Nothing tracked, no card.
+            canSeeAllBalances ? <TrackedBalancesCard /> : <TrackedCashCard />
           )}
 
           {floats}
