@@ -670,7 +670,7 @@ function trialWording(file: string): string[] {
  * exactly what the app must not carry, and it would arrive as an import.
  */
 const PACKAGES = [
-  '@tanstack/react-query', 'date-fns', 'expo-camera', 'expo-clipboard', 'expo-constants', 'expo-document-picker', 'expo-file-system',
+  '@tanstack/react-query', 'date-fns', 'expo-camera', 'libphonenumber-js', 'expo-clipboard', 'expo-constants', 'expo-document-picker', 'expo-file-system',
   'expo-haptics', 'expo-image', 'expo-image-picker', 'expo-localization', 'expo-notifications', 'expo-print', 'expo-router', 'expo-secure-store', 'expo-sharing',
   'expo-splash-screen', 'expo-status-bar', 'lucide-react-native', 'react', 'react-native', 'react-native-gesture-handler',
   'react-native-reanimated', 'react-native-safe-area-context', 'react-native-svg', 'zustand',
