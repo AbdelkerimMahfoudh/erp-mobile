@@ -95,8 +95,11 @@ const labelOf = (c: { key: string; name: string }) => (hasKey(`category.builtin.
 const OK = { purchaseId: 'p1', unitsCreated: 1, stockLines: 0, total: 0, createdProducts: [{ productId: 'new1' }], accepted: { identifiers: [SERIAL], stockProductIds: [] } };
 
 let client: QueryClient;
-async function open(kind: 'serial' | 'barcode' = 'serial', mode: 'quick' | 'delivery' = 'quick') {
-  holdPendingIntake(pendingFrom(SCOPE, kind === 'serial' ? { serial: SERIAL } : { productBarcode: '2000000000052' }));
+const IMEI = '356938035643809';
+async function open(kind: 'serial' | 'barcode' | 'imei' = 'serial', mode: 'quick' | 'delivery' = 'quick') {
+  holdPendingIntake(
+    pendingFrom(SCOPE, kind === 'serial' ? { serial: SERIAL } : kind === 'imei' ? { imei: { primary: IMEI, secondary: null } } : { productBarcode: '2000000000052' }),
+  );
   for (const k of Object.keys(mockParams)) delete mockParams[k];
   if (mode === 'quick') mockParams.intake = 'quick';
   if (kind === 'barcode') mockParams.barcode = '2000000000052';
@@ -341,6 +344,43 @@ describe('one action creates the product with its stock', () => {
     await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '450'));
     await press(cta());
     expect(post.mock.calls[0][1].items[0]).toMatchObject({ quantity: 10, unitCost: 450, newProduct: { trackingType: 'quantity', barcode: '2000000000052' } });
+  });
+});
+
+describe('the buying cost appears for every kind of item (D227)', () => {
+  it('a phone by IMEI: its IMEI, the second-IMEI field and the buying cost', async () => {
+    await open('imei');
+    await pickCategory(SMARTPHONES);
+    expect(screen.getByText(IMEI)).toBeTruthy();
+    expect(screen.getByText(t('receive.imei2.label'))).toBeTruthy();
+    expect(screen.getByText(t('cost.optional.label'))).toBeTruthy();
+    expect(screen.queryByText(t('intake.stock.quantity'))).toBeNull();
+  });
+
+  it('a serialized accessory: one unit by its serial, with its cost, in ONE purchase', async () => {
+    post.mockResolvedValueOnce(OK);
+    await open();
+    await pickCategory(EARBUDS);
+    expect(screen.getByText(t('cost.optional.label'))).toBeTruthy();
+    expect(screen.queryByText(t('intake.stock.quantity'))).toBeNull();
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.brand')), 'Fictiva'));
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.model')), 'QA Buds Pro'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '900'));
+    await press(cta());
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0][1].items[0]).toMatchObject({ unitCost: 900, units: [{ identifier: SERIAL }], newProduct: { trackingType: 'serial' } });
+  });
+
+  it('a counted accessory: How many and the buying cost, and a bad count sends nothing', async () => {
+    await open('barcode');
+    await pickCategory(EARBUDS);
+    expect(screen.getByText(t('cost.optional.label'))).toBeTruthy();
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.brand')), 'Fictiva'));
+    await act(async () => fireEvent.changeText(inputFor(t('catalog.form.model')), 'QA Buds'));
+    await act(async () => fireEvent.changeText(inputFor(t('intake.stock.quantity')), '0'));
+    await act(async () => fireEvent.changeText(inputFor(t('cost.optional.label')), '450'));
+    await press(cta());
+    expect(post).not.toHaveBeenCalled();
   });
 });
 
