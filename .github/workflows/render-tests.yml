@@ -50,10 +50,16 @@ jobs:
       # The pure suites, every file run even after a failure (the security workflow stops at the first), each with
       # its own output. Two of them read the backend beside the checkout, as the security workflow provides it.
       - name: Pure tests
+        # erp-backend is private: BACKEND_READ_KEY is its read-only deploy key (2026-11-03), used for this clone only.
+        env:
+          BACKEND_READ_KEY: ${{ secrets.BACKEND_READ_KEY }}
         run: |
           set -a; source "$GITHUB_WORKSPACE/tools/target.env"; set +a
           # BACKEND_BRANCH in target.env pairs a mobile feature branch with its backend branch; reports-export otherwise.
-          git clone -q --depth 1 --branch "${BACKEND_BRANCH:-reports-export}" https://github.com/AbdelkerimMahfoudh/erp-backend.git erp-backend
+          key=$(mktemp); printf '%s\n' "$BACKEND_READ_KEY" > "$key"; chmod 600 "$key"
+          mkdir -p ~/.ssh; ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes" git clone -q --depth 1 --branch "${BACKEND_BRANCH:-reports-export}" git@github.com:AbdelkerimMahfoudh/erp-backend.git erp-backend
+          rm -f "$key"
           mkdir -p "$EV/pure"
           pass=0; fail=0
           cd app
