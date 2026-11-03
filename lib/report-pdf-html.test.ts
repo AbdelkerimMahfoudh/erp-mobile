@@ -371,6 +371,17 @@ it('monthly, English: the month, whole, then sales, the result to the net result
   assert.ok(text.includes(`Total ${m(68_000)}`));
 });
 
+it('monthly: repairs apart from sales; cost and profit only when the server sent them (D227)', () => {
+  const withCost = textOf(buildReportHtml(monthly({ maintenance: { revenue: 800, cost: 300, profit: 500 } }), ctx('en')));
+  assert.match(withCost, /Maintenance income/);
+  assert.match(withCost, /Repair cost/);
+  assert.match(withCost, /Result with repairs/);
+  const without = textOf(buildReportHtml(monthly({ maintenance: { revenue: 800 } }), ctx('en')));
+  assert.match(without, /Customer paid/);
+  assert.doesNotMatch(without, /Repair cost|Result with repairs/);
+  assert.doesNotMatch(textOf(buildReportHtml(monthly(), ctx('en'))), /Maintenance income/);
+});
+
 it('monthly: refunds, what is owed (branch and whole business), and commissions said to be unrecorded', () => {
   const text = textOf(buildReportHtml(monthly(), ctx('en')));
   assert.ok(text.includes(`Refunds paid this month (1) ${m(30_000)}`));

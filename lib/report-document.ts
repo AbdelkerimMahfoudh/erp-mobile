@@ -125,6 +125,8 @@ export type MonthlyResult =
 
 export interface MonthlyReportDocument {
   kind: 'monthly';
+  /** Money from repairs (D227). Cost and profit only with cost.view; absent from an older server. */
+  maintenance?: { revenue: number; cost?: number; profit?: number };
   version: number;
   identity: ReportIdentity;
   month: string;

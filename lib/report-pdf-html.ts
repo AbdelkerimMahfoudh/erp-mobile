@@ -40,6 +40,12 @@ export type ReportPdfLanguage = 'en' | 'fr' | 'ar';
 export const REPORT_PDF_KEYS = [
   'reportPdf.daily.title',
   'maintenance.totalProfit',
+  'maintenance.netWith',
+  'maintenance.income',
+  'maintenance.customerPaid',
+  'maintenance.repairCost',
+  'maintenance.profit',
+  'maintenance.separate',
   'reportPdf.monthly.title',
   'reportPdf.generated',
   'reportPdf.window',
@@ -550,6 +556,7 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
             w.row(w.word('reportPdf.monthly.fixed'), w.less(r.fixedExpenses)),
             w.row(w.word('reportPdf.monthly.salaries'), w.less(r.salaries)),
             w.row(w.word('reportPdf.monthly.net'), w.result(r.netOperatingProfit), 'total'),
+            ...(doc.maintenance?.profit ? [w.row(w.word('maintenance.totalProfit'), w.result(doc.maintenance.profit)), w.row(w.word('maintenance.netWith'), w.result(r.netOperatingProfit + doc.maintenance.profit), 'total')] : []),
           ]),
         )
       : w.section(w.word('dailyReport.result.title'), `<p class="notice">${w.word('reportPdf.hidden.result')}</p>`);
@@ -566,6 +573,17 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
   );
 
   const now = w.note(w.fill('reportPdf.now', { time: esc(ctx.formatDateTime(doc.generatedAt)) }));
+  // Money from repairs (D227), apart from sales. What it cost, and so its profit, only reach a reader with cost.view: the server sends neither otherwise.
+  const repairs = doc.maintenance?.revenue
+    ? w.section(
+        w.word('maintenance.income'),
+        w.lines([
+          w.row(w.word('maintenance.customerPaid'), w.money(doc.maintenance.revenue)),
+          ...(doc.maintenance.cost !== undefined ? [w.row(w.word('maintenance.repairCost'), w.less(doc.maintenance.cost))] : []),
+          ...(doc.maintenance.profit !== undefined ? [w.row(w.word('maintenance.profit'), w.result(doc.maintenance.profit), 'total')] : []),
+        ]) + w.note(w.word('maintenance.separate')),
+      )
+    : '';
   const refunds = doc.refunds
     ? w.section(
         w.word('reportPdf.refunds.title'),
@@ -603,7 +621,7 @@ export function buildMonthlyReportHtml(doc: MonthlyReportDocument, ctx: ReportPd
   );
 
   const footer = `<footer>${w.word('reportPdf.footer')} · ${generated}</footer>`;
-  return page(ctx, title, [head, tiles, sales, result, expenses, refunds, owed, commissions, days, w.warnings(doc.warnings, true), footer].join('\n'));
+  return page(ctx, title, [head, tiles, sales, result, expenses, repairs, refunds, owed, commissions, days, w.warnings(doc.warnings, true), footer].join('\n'));
 }
 
 // ── The file ─────────────────────────────────────────────────────────────────

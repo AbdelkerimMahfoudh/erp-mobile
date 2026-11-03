@@ -1225,6 +1225,8 @@ export const en = {
   'balances.saved': 'Saved',
   'balances.stale': 'Someone changed this first. Look again.',
   'nav.maintenance': 'Maintenance',
+  'maintenance.netWith': 'Result with repairs',
+  'maintenance.income': 'Maintenance income',
   'maintenance.title': 'Maintenance',
   'maintenance.add': 'Record a repair',
   'maintenance.homeAction': 'Maintenance income',

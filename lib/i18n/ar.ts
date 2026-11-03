@@ -1217,6 +1217,8 @@ export const ar: Catalogue = {
   'balances.saved': 'تم الحفظ',
   'balances.stale': 'غيّر شخص هذا قبلك. تحقق مرة أخرى.',
   'nav.maintenance': 'الصيانة',
+  'maintenance.netWith': 'النتيجة مع الإصلاحات',
+  'maintenance.income': 'دخل الصيانة',
   'maintenance.title': 'الصيانة',
   'maintenance.add': 'تسجيل إصلاح',
   'maintenance.homeAction': 'دخل الصيانة',

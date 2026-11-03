@@ -1305,6 +1305,8 @@ export const fr: Catalogue = {
   'balances.saved': 'Enregistré',
   'balances.stale': 'Quelqu’un a modifié ceci avant vous. Vérifiez à nouveau.',
   'nav.maintenance': 'Réparations',
+  'maintenance.netWith': 'Résultat avec les réparations',
+  'maintenance.income': 'Revenus de maintenance',
   'maintenance.title': 'Réparations',
   'maintenance.add': 'Enregistrer une réparation',
   'maintenance.homeAction': 'Revenus de maintenance',
