@@ -58,7 +58,7 @@ const hexToRgb = (h) => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(
 
 // ── 1. configuration ─────────────────────────────────────────────────────────────────────────────────────────────────
 {
-  check('the brand contract was read from the checkout', /^#/.test(TOKENS.light.right) && /^#/.test(TOKENS.dark.left) && INTRO.size > 0 && INTRO.totalMs > 0, JSON.stringify(INTRO));
+  check('the brand contract was read from the checkout', /^#/.test(TOKENS.light.second ?? '') && /^#/.test(TOKENS.dark.first ?? '') && INTRO.size > 0 && INTRO.totalMs > 0, JSON.stringify(INTRO));
   check('the launch animation lasts 800–1100 ms (the pack’s motion contract)', INTRO.totalMs >= 800 && INTRO.totalMs <= 1100, `${INTRO.totalMs}`);
   const png = readFileSync(join(APPDIR, 'assets/images/icon.png'));
   const sig = png.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
