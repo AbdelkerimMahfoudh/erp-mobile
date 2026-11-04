@@ -420,11 +420,17 @@ function AddStoreSheet({ open, onClose }: { open: boolean; onClose: () => void }
     onClose();
   };
 
+  // Post-Build-4: each answer of the lookup in the reader's language — never the server's English.
+  const LOOKUP_ERRORS: Record<string, string> = {
+    store_code_invalid: 'partners.add.invalid',
+    store_code_unknown: 'partners.add.notFound',
+    connection_self: 'partners.add.own',
+    store_unavailable: 'partners.add.unavailable',
+    connection_already_connected: 'partners.add.alreadyPartner',
+  };
   const lookupError =
     lookup.error instanceof ApiError
-      ? lookup.error.status === 404
-        ? t('partners.add.notFound')
-        : lookup.error.message
+      ? t((LOOKUP_ERRORS[lookup.error.code ?? ''] ?? (lookup.error.status === 404 ? 'partners.add.notFound' : 'partners.add.failed')) as never)
       : null;
 
   const relationship = lookup.data?.relationship;
