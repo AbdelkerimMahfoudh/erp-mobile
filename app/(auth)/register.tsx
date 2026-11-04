@@ -521,7 +521,8 @@ export default function RegisterScreen() {
                 {t('register.contactTaken')}
               </Text>
               <Button title={t('register.contactTaken.signIn')} onPress={() => router.replace('/(auth)/login' as never)} />
-              <Button variant="secondary" title={t('register.contactTaken.recover')} onPress={() => router.push('/(auth)/setup' as never)} />
+              {/* No Recover access yet: /(auth)/setup is the first password of a console-created Owner, not a recovery
+                  (no fresh verified challenge). A real recovery screen is required work (docs/117 §10.3). */}
               <Button
                 variant="ghost"
                 title={t('register.contactTaken.other')}

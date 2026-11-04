@@ -2871,7 +2871,6 @@ export const fr: Catalogue = {
   'register.creating': 'Création de votre compte…',
   'register.contactTaken': 'Ce numéro est déjà associé à un compte Dukan. Connectez-vous ou récupérez votre accès.',
   'register.contactTaken.signIn': 'Se connecter',
-  'register.contactTaken.recover': 'Récupérer l’accès',
   'register.contactTaken.other': 'Utiliser un autre numéro',
   'register.failed': 'Impossible de créer le compte. Rien n’a été enregistré — réessayez.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).

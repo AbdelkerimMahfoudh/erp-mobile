@@ -2642,7 +2642,6 @@ export const ar: Catalogue = {
   'register.creating': 'جارٍ إنشاء حسابك…',
   'register.contactTaken': 'هذا الرقم مرتبط بالفعل بحساب دكان. سجّل الدخول أو استعد الوصول إلى حسابك.',
   'register.contactTaken.signIn': 'تسجيل الدخول',
-  'register.contactTaken.recover': 'استعادة الوصول',
   'register.contactTaken.other': 'استخدام رقم آخر',
   'register.failed': 'تعذّر إنشاء الحساب. لم يُحفظ شيء — حاول مرّة أخرى.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
