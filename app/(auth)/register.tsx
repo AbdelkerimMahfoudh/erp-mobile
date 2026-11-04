@@ -342,7 +342,10 @@ export default function RegisterScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('register.title') }} />
+      {/* iOS: the native swipe would slide to sign-in before the step guard could turn it into a step back (a flash
+          of sign-in, then the step again). While a step back or a confirmation is due, the arrow does it; the swipe
+          leaves only from an untouched first step. */}
+      <Stack.Screen options={{ title: t('register.title'), gestureEnabled: !!leaving || !(step > 0 || dirty) }} />
       <AuthPage
         scrollRef={scrollRef}
         footer={
