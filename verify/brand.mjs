@@ -241,7 +241,8 @@ const INTRO_RECORDER = () => {
       if (rec.seenAt === null) {
         rec.seenAt = t;
         rec.bg = getComputedStyle(el).backgroundColor;
-        const box = el.querySelector('svg')?.getBoundingClientRect();
+        // The mark's own frame, not a layer: the Offset Spiral's arcs start at 30 % scale and rotate (BRAND_INTRO).
+        const box = el.firstElementChild?.getBoundingClientRect();
         rec.size = box ? Math.round(box.width) : 0;
       }
       const halves = [...el.querySelectorAll('g#spiral-first, g#spiral-letter')].map((g) => Math.round(g.getBoundingClientRect().left * 10) / 10);
