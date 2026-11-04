@@ -1,9 +1,9 @@
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { TextInputInstance } from 'react-native';
 import { ListRow, Text, TextField, type TextFieldProps } from './ui';
 import { BottomSheet } from './overlay';
-import { space } from '../lib/design/tokens';
+import { space, type as typeScale } from '../lib/design/tokens';
 import { useColors } from '../lib/design/theme';
 import { useTranslation } from '../lib/i18n';
 import { composePhone, countriesFor, countryName, countryOf, searchCountries, splitPhone, typedInternational, type PhoneCountry } from '../lib/phone-input';
@@ -136,9 +136,15 @@ export function CountryCodeChooser({ iso, onChange }: { iso: string; onChange: (
 }
 
 const styles = StyleSheet.create({
-  // The code's own area: one width whatever the code (+1 or +1868), the number's height, centred, a divider after it.
-  code: { minHeight: 44, minWidth: 64, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs, borderEndWidth: StyleSheet.hairlineWidth, marginEnd: space.xs },
-  codeText: { fontVariant: ['tabular-nums'] },
+  // The code's own area: one width whatever the code (+1 or +1868), the number's height and divider after it. Its text
+  // takes the input's exact metrics (Field.tsx `input`): the same size, line height and vertical padding, so the code and
+  // the number share one baseline — centring it instead left it higher than the number on iOS.
+  code: { minHeight: 44, minWidth: 64, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-start', paddingVertical: space.md, paddingHorizontal: space.xs, borderEndWidth: StyleSheet.hairlineWidth, marginEnd: space.xs },
+  codeText: {
+    fontVariant: ['tabular-nums'],
+    fontSize: Platform.OS === 'web' ? typeScale.inputWeb.fontSize : typeScale.body.fontSize,
+    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : typeScale.body.lineHeight,
+  },
   sheet: { gap: space.sm, flexShrink: 1, minHeight: 320 },
   row: { height: ROW, justifyContent: 'center' },
 });
