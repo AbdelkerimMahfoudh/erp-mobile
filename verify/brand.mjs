@@ -232,7 +232,7 @@ for (const s of [
 // Recorded from the document's first instant every 16 ms: when the overlay appears and goes, its background, its mark's
 // width, and where its two halves are — so nothing depends on catching it with a later query.
 const INTRO_RECORDER = () => {
-  const rec = { seenAt: null, goneAt: null, bg: null, size: null, poses: [] };
+  const rec = { seenAt: null, goneAt: null, bg: null, size: null, poses: [], arcs: [], settled: null, vw: window.innerWidth };
   window.__intro = rec;
   const sample = () => {
     const el = document.querySelector('[data-testid="brand-intro"]');
@@ -244,6 +244,12 @@ const INTRO_RECORDER = () => {
         // The mark's own frame, not a layer: the Offset Spiral's arcs start at 30 % scale and rotate (BRAND_INTRO).
         const box = el.firstElementChild?.getBoundingClientRect();
         rec.size = box ? Math.round(box.width) : 0;
+      }
+      // What is on screen: the arcs layer as drawn, scaled and turned by the animation, from its first frame to its last.
+      const drawn = el.firstElementChild?.querySelector('svg')?.getBoundingClientRect();
+      if (drawn) {
+        rec.arcs.push(Math.round(drawn.width));
+        rec.settled = { width: Math.round(drawn.width), left: Math.round(drawn.left), right: Math.round(drawn.right) };
       }
       const halves = [...el.querySelectorAll('g#spiral-first, g#spiral-letter')].map((g) => Math.round(g.getBoundingClientRect().left * 10) / 10);
       if (halves.length === 2) rec.poses.push(halves.join(','));
@@ -276,6 +282,11 @@ const watchIntro = (page) =>
   check('the animation’s background is the light canvas, as the static splash', r.bg === hexToRgb(TOKENS.light.canvas), r.bg);
   check(`the animation’s mark is ${INTRO.size} wide, as the splash image`, r.size === INTRO.size, `${r.size}`);
   check('the halves move (the animation plays)', distinct > 2, `${distinct} distinct poses of ${r.poses.length}`);
+  // The Offset Spiral's motion as users see it: the arcs begin at the approved smaller scale and settle at the mark's size.
+  const first = r.arcs[0] ?? 0;
+  check(`the arcs begin small (about ${Math.round(INTRO.size * 0.3)} of ${INTRO.size}, the approved 30 %, turned)`, first > 0 && first < INTRO.size * 0.75, `${first}`);
+  check(`the arcs settle at ${INTRO.size} wide, as drawn on screen`, !!r.settled && Math.abs(r.settled.width - INTRO.size) <= 2, JSON.stringify(r.settled));
+  check('the settled mark stays inside the window', !!r.settled && r.settled.left >= 0 && r.settled.right <= r.vw, `${JSON.stringify(r.settled)} in ${r.vw}`);
   const ms = r.goneAt !== null && r.seenAt !== null ? r.goneAt - r.seenAt : null;
   check(`the animation ends and goes (~${INTRO.totalMs} ms + ${INTRO.fadeMs} ms fade)`, ms !== null && ms >= INTRO.totalMs * 0.8 && ms <= INTRO.totalMs + INTRO.fadeMs + 1200, `${ms === null ? 'never went' : `${ms} ms`}`);
   // Ordinary navigation inside the app: never again. Sign-in's "Create a business account" pushes the route.
