@@ -43,7 +43,7 @@ const scale = (name) => {
 const brand = scale('brand');
 const neutral = scale('neutral');
 // The Offset Spiral (Build 4, the owner's pack of 2026-11-03): two arcs and a "D", from the `identity` tokens.
-const identity = Object.fromEntries([...(colorsTs.match(/export const identity = {([^}]*)}/)?.[1] ?? '').matchAll(/(w+): '(#[0-9A-Fa-f]{6})'/g)].map((m) => [m[1], m[2].toUpperCase()]));
+const identity = Object.fromEntries([...(colorsTs.match(/export const identity = \{([^}]*)\}/)?.[1] ?? '').matchAll(/(\w+): '(#[0-9A-Fa-f]{6})'/g)].map((m) => [m[1], m[2].toUpperCase()]));
 const TOKENS = {
   light: { first: identity.navy, second: identity.violet, letter: identity.navy, canvas: '#F1F3F8' },
   dark: { first: identity.violet, second: identity.lavender, letter: identity.white, canvas: '#0B0F17' },
