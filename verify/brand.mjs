@@ -42,10 +42,14 @@ const scale = (name) => {
 };
 const brand = scale('brand');
 const neutral = scale('neutral');
+// The Offset Spiral (Build 4, the owner's pack of 2026-11-03): two arcs and a "D", from the `identity` tokens.
+const identity = Object.fromEntries([...(colorsTs.match(/export const identity = {([^}]*)}/)?.[1] ?? '').matchAll(/(w+): '(#[0-9A-Fa-f]{6})'/g)].map((m) => [m[1], m[2].toUpperCase()]));
 const TOKENS = {
-  light: { left: '#172033', right: brand['600'], highlight: brand['300'], canvas: '#F1F3F8' },
-  dark: { left: neutral['100'], right: brand['400'], highlight: brand['300'], canvas: '#0B0F17' },
+  light: { first: identity.navy, second: identity.violet, letter: identity.navy, canvas: '#F1F3F8' },
+  dark: { first: identity.violet, second: identity.lavender, letter: identity.white, canvas: '#0B0F17' },
 };
+void brand;
+void neutral;
 const num = (key) => Number(brandTs.match(new RegExp(`${key}: (\\d+)`))?.[1]);
 const INTRO = { size: num('size'), totalMs: num('totalMs'), fadeMs: num('fadeMs'), reducedHoldMs: num('reducedHoldMs') };
 const SMALL = 28; // AuthHeader's <DukanMark size={28} />
@@ -98,14 +102,14 @@ const introGone = (page, timeout = 4000) => page.waitForSelector('[data-testid="
 // ── 2. the matrix ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const HEADER = () => {
   const vw = window.innerWidth;
-  const left = document.querySelector('header g#ledger-left, g#ledger-left');
+  const left = document.querySelector('header g#spiral-first, g#spiral-first');
   const svg = left?.closest('svg');
   if (!svg) return { found: false };
   const r = svg.getBoundingClientRect();
   const lr = left.getBoundingClientRect();
-  const right = svg.querySelector('g#ledger-right');
+  const right = svg.querySelector('g#spiral-second');
   const rr = right?.getBoundingClientRect();
-  const hl = svg.querySelector('g#interlock-highlight');
+  const hl = svg.querySelector('g#spiral-letter');
   const mirrored = (() => {
     for (let n = svg; n && n !== document.documentElement; n = n.parentElement) {
       const t = getComputedStyle(n).transform;
@@ -127,8 +131,8 @@ const HEADER = () => {
     masks: svg.querySelectorAll('mask').length,
     leftFill: getComputedStyle(left).fill,
     rightFill: right ? getComputedStyle(right).fill : '',
-    highlightStroke: hl ? getComputedStyle(hl).stroke : '',
-    leftIsLeft: !!rr && lr.left + lr.width / 2 < rr.left + rr.width / 2,
+    letterFill: hl ? getComputedStyle(hl).fill : '',
+    leftIsLeft: !!rr && lr.left + lr.width / 2 > rr.left + rr.width / 2,
     mirrored,
     word: word?.textContent?.trim() ?? '',
     wordWhole: !!word && word.scrollWidth <= word.clientWidth + 1 && !/…$/.test(word.textContent.trim()),
@@ -146,7 +150,7 @@ for (const width of [320, 375, 390]) {
       const label = `${width}px ${scheme} ${lang}`;
       const { context, page } = await open({ lang, scheme, width, reducedMotion: 'reduce' });
       await page.goto(`${APP}/login`, { waitUntil: 'load' });
-      await page.waitForSelector('g#ledger-left', { timeout: 15000 }).catch(() => null);
+      await page.waitForSelector('g#spiral-first', { timeout: 15000 }).catch(() => null);
       await introGone(page);
       await page.waitForTimeout(250);
       const f = await page.evaluate(HEADER);
@@ -156,10 +160,9 @@ for (const width of [320, 375, 390]) {
       else {
         if (Math.abs(f.w - SMALL) > 1 || Math.abs(f.h - SMALL) > 1) fails.push(`mark ${f.w}×${f.h}, expected ${SMALL}×${SMALL}`);
         if (f.layers !== 3) fails.push(`${f.layers} layers`);
-        if (f.masks !== 2) fails.push(`${f.masks} masks (the ledger cuts)`);
-        if (f.leftFill !== hexToRgb(t.left)) fails.push(`ledger-left ${f.leftFill} ≠ ${t.left}`);
-        if (f.rightFill !== hexToRgb(t.right)) fails.push(`ledger-right ${f.rightFill} ≠ ${t.right}`);
-        if (f.highlightStroke !== hexToRgb(t.highlight)) fails.push(`interlock-highlight ${f.highlightStroke} ≠ ${t.highlight}`);
+        if (f.leftFill !== hexToRgb(t.first)) fails.push(`spiral-first ${f.leftFill} ≠ ${t.first}`);
+        if (f.rightFill !== hexToRgb(t.second)) fails.push(`spiral-second ${f.rightFill} ≠ ${t.second}`);
+        if (f.letterFill !== hexToRgb(t.letter)) fails.push(`spiral-letter ${f.letterFill} ≠ ${t.letter}`);
         if (!f.leftIsLeft || f.mirrored) fails.push('the mark is mirrored');
         if (!f.inside) fails.push('the mark leaves the viewport');
         if (!f.word) fails.push('no wordmark beside the mark');
@@ -241,7 +244,7 @@ const INTRO_RECORDER = () => {
         const box = el.querySelector('svg')?.getBoundingClientRect();
         rec.size = box ? Math.round(box.width) : 0;
       }
-      const halves = [...el.querySelectorAll('g#ledger-left, g#ledger-right')].map((g) => Math.round(g.getBoundingClientRect().left * 10) / 10);
+      const halves = [...el.querySelectorAll('g#spiral-first, g#spiral-letter')].map((g) => Math.round(g.getBoundingClientRect().left * 10) / 10);
       if (halves.length === 2) rec.poses.push(halves.join(','));
     } else if (rec.seenAt !== null && rec.goneAt === null) rec.goneAt = t;
     if (t < 8000 && rec.goneAt === null) setTimeout(sample, 16);
@@ -310,7 +313,7 @@ const watchIntro = (page) =>
     `${r.seenAt === null ? 'never painted' : ms === null ? 'never went' : `${ms} ms`}`,
   );
   check('Reduce Motion: if it is shown, it is on the dark canvas', r.seenAt === null || r.bg === hexToRgb(TOKENS.dark.canvas), `${r.bg}`);
-  const signIn = await page.evaluate(() => !!document.querySelector('g#ledger-left') && !document.querySelector('[data-testid="brand-intro"]'));
+  const signIn = await page.evaluate(() => !!document.querySelector('g#spiral-first') && !document.querySelector('[data-testid="brand-intro"]'));
   check('Reduce Motion: the sign-in screen is there, with its mark, and no overlay remains', signIn);
   await context.close();
 }
