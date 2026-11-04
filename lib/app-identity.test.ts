@@ -3,7 +3,7 @@
  *
  *   node lib/app-identity.test.ts
  *
- * Dukan ERP, developed and operated by TSX-MR: Expo slug `dukan-erp`, URL scheme `dukanerp`, iOS bundle
+ * Dukan ERP, developed and operated by TSXMR: Expo slug `dukan-erp`, URL scheme `dukanerp`, iOS bundle
  * identifier and Android package `mr.tsxmr.dukanerp`. The configuration is resolved the way a build
  * resolves it (`@expo/config`: `app.config.js` over `app.json`) under each EAS profile's environment, and
  * the native files are read the way `expo prebuild` writes them (Expo's own introspection): the

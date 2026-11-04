@@ -1997,7 +1997,7 @@ export const ar: Catalogue = {
 
   // ── تسجيل الدخول ───────────────────────────────────────────────────────────
   'auth.title': 'تطبيق دكان',
-  'auth.byline': 'تطوّره TSX-MR وتشغّله',
+  'auth.byline': 'تطوّره TSXMR وتشغّله',
   'auth.subtitle': 'سجّل الدخول إلى متجرك',
   'auth.field.identifier': 'البريد الإلكتروني أو رقم واتساب',
   'auth.field.identifier.hint': 'أدخل بريدك الإلكتروني أو رقم واتساب.',
@@ -2708,8 +2708,8 @@ export const ar: Catalogue = {
   'consent.withdraw': 'سحب موافقتي',
   'consent.withdraw.title': 'سحب الموافقة',
   'consent.withdraw.explain': 'إذا سحبت موافقتك، يوقف تطبيق دكان رسائله عبر واتساب. تذهب التذكيرات والإشعارات الخاصة باشتراكك إلى بريدك الإلكتروني الموثّق، إن كان لديك بريد. أما الرموز، مثل رمز تأكيد حذف حسابك، فلا تمرّ عبر البريد الإلكتروني أبدًا: تبقى غير متاحة ما دامت موافقتك مسحوبة. يبقى حسابك ورقمك وبيانات متجرك كما هي.',
-  'consent.withdraw.onlyContact': 'واتساب هو جهة الاتصال الموثّقة الوحيدة في حسابك. بدونه لا يستطيع تطبيق دكان التواصل معك، واستعادة الدخول إلى حسابك تتم عبر دعم TSX-MR.',
-  'consent.withdraw.acknowledge': 'أفهم أن استعادة حسابي ستتم عبر دعم TSX-MR',
+  'consent.withdraw.onlyContact': 'واتساب هو جهة الاتصال الموثّقة الوحيدة في حسابك. بدونه لا يستطيع تطبيق دكان التواصل معك، واستعادة الدخول إلى حسابك تتم عبر دعم TSXMR.',
+  'consent.withdraw.acknowledge': 'أفهم أن استعادة حسابي ستتم عبر دعم TSXMR',
   'consent.withdraw.acknowledged': 'مفهوم',
   'consent.withdraw.notAcknowledged': 'لم يتم التأكيد',
   'consent.withdraw.confirm': 'سحب',
@@ -3877,7 +3877,7 @@ export const ar: Catalogue = {
   'reportPdf.severity.info': 'ملاحظة',
   'reportPdf.severity.warning': 'للتحقق',
   'reportPdf.severity.error': 'مشكلة',
-  'reportPdf.footer': 'تطبيق دكان من TSX-MR — أرقام من سجلات المتجر على الخادم',
+  'reportPdf.footer': 'تطبيق دكان من TSXMR — أرقام من سجلات المتجر على الخادم',
   'agent.credit.digital': 'رقمي',
   'agent.direction.question': 'ماذا يريد العميل؟',
   'agent.direction.cash_in_credit_out': 'استلام النقد ← إرسال رصيد {provider}',

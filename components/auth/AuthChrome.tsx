@@ -29,7 +29,7 @@ const KEYBOARD_DISMISS = Platform.OS === 'ios' ? 'interactive' : Platform.OS ===
  * is the stack's header (`app/(auth)/_layout.tsx`), so a screen keeps declaring
  * only its title, and no screen re-implements the bar.
  *
- * Not the public TSX-MR website's header: no navigation, no links, no company
+ * Not the public TSXMR website's header: no navigation, no links, no company
  * menu. These pages have one job each.
  */
 

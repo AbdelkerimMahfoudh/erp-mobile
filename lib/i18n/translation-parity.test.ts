@@ -25,7 +25,7 @@ const R = ar as unknown as Record<string, string>;
 const ARABIC = /[؀-ۿ]/;
 
 /** What is left of a value once placeholders, figures, punctuation and the shared technical terms are taken out. */
-const TECHNICAL = /\b(IMEI|USB-C|Micro-USB|Lightning|HDMI|iPhone|Pro|Max|PDF|SIM|RAM|Bankily|Sedad|BIM|Bank|TSX-MR)\b/g;
+const TECHNICAL = /\b(IMEI|USB-C|Micro-USB|Lightning|HDMI|iPhone|Pro|Max|PDF|SIM|RAM|Bankily|Sedad|BIM|Bank|TSXMR)\b/g;
 function wordsToTranslate(value: string): string {
   return value
     .replace(/\{[a-zA-Z0-9_]+\}/g, '')

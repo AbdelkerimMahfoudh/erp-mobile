@@ -2021,7 +2021,7 @@ export const en = {
 
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Dukan ERP',
-  'auth.byline': 'Developed and operated by TSX-MR',
+  'auth.byline': 'Developed and operated by TSXMR',
   'auth.subtitle': 'Sign in to your store',
   'auth.field.identifier': 'Email or WhatsApp number',
   'auth.field.identifier.hint': 'Enter either your email or WhatsApp number.',
@@ -2773,8 +2773,8 @@ export const en = {
   'consent.withdraw': 'Withdraw my agreement',
   'consent.withdraw.title': 'Withdrawing your agreement',
   'consent.withdraw.explain': 'If you withdraw, Dukan ERP stops its WhatsApp messages to you. Reminders and notices about your subscription go to your verified email address instead, if you have one. Codes, such as the one that confirms deleting your account, are never sent by email: they stay unavailable while your agreement is withdrawn. Your account, your number and your business data stay as they are.',
-  'consent.withdraw.onlyContact': 'WhatsApp is the only verified contact on your account. Without it Dukan ERP cannot reach you, and getting back into your account goes through TSX-MR support.',
-  'consent.withdraw.acknowledge': 'I understand that recovering my account will go through TSX-MR support',
+  'consent.withdraw.onlyContact': 'WhatsApp is the only verified contact on your account. Without it Dukan ERP cannot reach you, and getting back into your account goes through TSXMR support.',
+  'consent.withdraw.acknowledge': 'I understand that recovering my account will go through TSXMR support',
   'consent.withdraw.acknowledged': 'Understood',
   'consent.withdraw.notAcknowledged': 'Not confirmed',
   'consent.withdraw.confirm': 'Withdraw',
@@ -3942,7 +3942,7 @@ export const en = {
   'reportPdf.severity.info': 'Note',
   'reportPdf.severity.warning': 'Check',
   'reportPdf.severity.error': 'Problem',
-  'reportPdf.footer': 'Dukan ERP, by TSX-MR — figures from the shop’s records on the server',
+  'reportPdf.footer': 'Dukan ERP, by TSXMR — figures from the shop’s records on the server',
   'agent.credit.digital': 'digital',
   'agent.direction.question': 'What is the customer doing?',
   'agent.direction.cash_in_credit_out': 'Receive cash → send {provider} credit',

@@ -2143,7 +2143,7 @@ export const fr: Catalogue = {
 
   // ── Authentication ─────────────────────────────────────────────────────────
   'auth.title': 'Dukan ERP',
-  'auth.byline': 'Développé et exploité par TSX-MR',
+  'auth.byline': 'Développé et exploité par TSXMR',
   'auth.subtitle': 'Connectez-vous à votre boutique',
   'auth.field.identifier': 'E-mail ou numéro WhatsApp',
   'auth.field.identifier.hint': 'Saisissez votre e-mail ou votre numéro WhatsApp.',
@@ -2937,8 +2937,8 @@ export const fr: Catalogue = {
   'consent.withdraw': 'Retirer mon accord',
   'consent.withdraw.title': 'Retrait de votre accord',
   'consent.withdraw.explain': 'Si vous retirez votre accord, Dukan ERP arrête ses messages WhatsApp. Les rappels et avis sur votre abonnement vont à votre adresse e-mail vérifiée, si vous en avez une. Les codes, comme celui qui confirme la suppression de votre compte, ne passent jamais par e-mail : ils restent indisponibles tant que votre accord est retiré. Votre compte, votre numéro et les données de votre commerce restent tels quels.',
-  'consent.withdraw.onlyContact': 'WhatsApp est le seul contact vérifié de votre compte. Sans lui, Dukan ERP ne peut pas vous joindre, et la récupération de votre compte passe par le support TSX-MR.',
-  'consent.withdraw.acknowledge': 'Je comprends que la récupération de mon compte passera par le support TSX-MR',
+  'consent.withdraw.onlyContact': 'WhatsApp est le seul contact vérifié de votre compte. Sans lui, Dukan ERP ne peut pas vous joindre, et la récupération de votre compte passe par le support TSXMR.',
+  'consent.withdraw.acknowledge': 'Je comprends que la récupération de mon compte passera par le support TSXMR',
   'consent.withdraw.acknowledged': 'Compris',
   'consent.withdraw.notAcknowledged': 'Non confirmé',
   'consent.withdraw.confirm': 'Retirer',
@@ -4106,7 +4106,7 @@ export const fr: Catalogue = {
   'reportPdf.severity.info': 'Info',
   'reportPdf.severity.warning': 'À vérifier',
   'reportPdf.severity.error': 'Problème',
-  'reportPdf.footer': 'Dukan ERP, par TSX-MR — chiffres issus des registres de la boutique sur le serveur',
+  'reportPdf.footer': 'Dukan ERP, par TSXMR — chiffres issus des registres de la boutique sur le serveur',
   'agent.credit.digital': 'numérique',
   'agent.direction.question': 'Que fait le client ?',
   'agent.direction.cash_in_credit_out': 'Recevoir des espèces → envoyer du crédit {provider}',
