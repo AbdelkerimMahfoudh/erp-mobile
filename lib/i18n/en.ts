@@ -2696,6 +2696,10 @@ export const en = {
   'register.problem.passwordConfirm': 'The two passwords are not the same.',
   'register.submit': 'Continue',
   'register.creating': 'Creating your account…',
+  'register.contactTaken': 'This number is already connected to a Dukan account. Sign in or recover access.',
+  'register.contactTaken.signIn': 'Sign in',
+  'register.contactTaken.recover': 'Recover access',
+  'register.contactTaken.other': 'Use another number',
   'register.failed': 'We could not create the account. Nothing was saved — try again.',
   // The server refuses before anything is created when no code can be sent (503 registration_unavailable).
   'register.unavailable': 'Account creation is not available right now. Nothing was saved. Please try again later.',

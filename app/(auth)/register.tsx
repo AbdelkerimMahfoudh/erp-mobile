@@ -107,6 +107,8 @@ export default function RegisterScreen() {
   const [leaving, setLeaving] = useState<{ destination: string } | null>(null);
   const [problems, setProblems] = useState<RegistrationProblems>({});
   const [failure, setFailure] = useState<string | null>(null);
+  // Post-Build-4: the contact already has an account — stopped before any code; three ways on.
+  const [contactTaken, setContactTaken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   /** One identity per attempt, however many times it is retried — and the form and source it was sent with. */
@@ -299,6 +301,10 @@ export default function RegisterScreen() {
         const found = { whatsappConsent: outdated ? 'consent.problem.outdated' : 'register.problem.whatsappConsent' };
         setProblems(found);
         focusFirst(found);
+        return;
+      }
+      if (e instanceof ApiError && e.code === 'CONTACT_UNAVAILABLE_FOR_SIGNUP') {
+        setContactTaken(true);
         return;
       }
       // The source stopped being usable since it was checked (0103): nothing was saved; back to it, to remove it.
@@ -507,6 +513,25 @@ export default function RegisterScreen() {
                 error={problem('passwordConfirm')}
               />
             </>
+          ) : null}
+
+          {contactTaken ? (
+            <View testID="contact-taken" style={styles.actions}>
+              <Text variant="body" tone="danger" align="center" accessibilityRole="alert">
+                {t('register.contactTaken')}
+              </Text>
+              <Button title={t('register.contactTaken.signIn')} onPress={() => router.replace('/(auth)/login' as never)} />
+              <Button variant="secondary" title={t('register.contactTaken.recover')} onPress={() => router.push('/(auth)/setup' as never)} />
+              <Button
+                variant="ghost"
+                title={t('register.contactTaken.other')}
+                onPress={() => {
+                  setContactTaken(false);
+                  setDraft((d) => ({ ...d, phone: '', email: '' }));
+                  goToStep(firstStepWithProblem({ phone: 'register.contactTaken' }));
+                }}
+              />
+            </View>
           ) : null}
 
           {failure ? (
