@@ -1,47 +1,50 @@
 /**
- * The Dukan Offset Spiral mark as data (the owner's brand pack, Concept B, 2026-11-03): the vector geometry of its three
- * layers (two arcs around a "D"), the colours each tone takes from the design tokens, and the launch animation's
- * timing. Pure, so a node test can hold it to the contract without a renderer.
+ * The Dukan ERP identity as data (the owner's approved logo pack, Dukan-ERP-Logo-Pack, 2026-11-04): which artwork, which
+ * colours on which surface, and the launch animation's timing — the pack's README, as numbers. The paths themselves are
+ * the pack's (`lib/brand-pack.ts`, generated). Pure, so a node test can hold it to the contract without a renderer.
  */
-import { lightColors, darkColors } from './design/colors.ts';
+import { PACK, PACK_COLOURS } from './brand-pack.ts';
 
-export const SPIRAL = {
-  /** The mark's ink (40..472 in the pack's 512 grid) with clear space, centred on (256, 256); the splash image is cut to the same box. */
-  viewBox: '24 24 464 464',
-  span: 464,
-  first: 'M 256,40 A 216,216 0 0,1 472,256 A 216,216 0 0,1 426.6,396.4 L 380,352 A 152,152 0 0,0 408,256 A 152,152 0 0,0 256,104 Z',
-  second: 'M 256,472 A 216,216 0 0,1 40,256 A 216,216 0 0,1 85.4,115.6 L 132,160 A 152,152 0 0,0 104,256 A 152,152 0 0,0 256,408 Z',
-  letter: 'M 190,160 L 260,160 C 310,160 350,195 350,256 C 350,317 310,352 260,352 L 190,352 Z M 230,195 L 230,317 L 258,317 C 288,317 310,295 310,256 C 310,217 288,195 258,195 Z',
-} as const;
+export { PACK, PACK_COLOURS };
 
 export type MarkTone = 'light' | 'dark' | 'mono';
 
-/** The mark's colours per surface, from the palettes' `mark` tokens: navy and violet on light, violet, lavender and white on dark. */
-export function markColours(tone: MarkTone, mono = '#000000'): { first: string; second: string; letter: string } {
-  if (tone === 'mono') return { first: mono, second: mono, letter: mono };
-  return tone === 'dark' ? darkColors.mark : lightColors.mark;
+/**
+ * The pack's artwork is for dark surfaces (white lettering, the accent swoosh). On light, the same artwork with its
+ * lettering in launch navy (owner, 2026-11-04); the accent never changes. `mono` draws both in one ink.
+ */
+export function markColours(tone: MarkTone, mono = '#000000'): { lettering: string; accent: string } {
+  if (tone === 'mono') return { lettering: mono, accent: mono };
+  return tone === 'dark' ? { lettering: PACK_COLOURS.lettering, accent: PACK_COLOURS.accent } : { lettering: PACK_COLOURS.lightLettering, accent: PACK_COLOURS.accent };
 }
 
+/** The fill a pack layer takes in a tone: its white becomes the tone's lettering, its accent stays the accent. */
+export function layerFill(fill: string, tone: { lettering: string; accent: string }): string {
+  return fill.toUpperCase() === PACK_COLOURS.lettering ? tone.lettering : tone.accent;
+}
+
+const unitsOf = (viewBox: string) => viewBox.split(/\s+/).map(Number) as [number, number, number, number];
+/** The wordmark canvas the three motion layers share (1540 × 238), and the D's own width on it (335). */
+export const CANVAS = { width: unitsOf(PACK.motionD.viewBox)[2], height: unitsOf(PACK.motionD.viewBox)[3], symbolWidth: unitsOf(PACK.symbol.viewBox)[2] } as const;
+
 /**
- * The launch animation (the pack's three stages, about one second, once):
- * 1. the arcs converge: from a third of their size and a quarter turn back, past their place, then settle;
- * 2. the "D" scales up, past its size, and locks into the centre;
- * 3. the mark rests in its static state, then the overlay fades.
+ * The launch (the pack's README, "Launch timing, 1.2 seconds total"):
+ * 0–150 ms the D centred; 150–800 ms the D eases left while UKAN slides right and is revealed left to right;
+ * 700–950 ms ERP fades in beside the N; 950–1200 ms a brief hold, then the fade into the app.
+ * The pack scales nothing, so the D is drawn at its place in the final wordmark from the first frame, and the native
+ * splash shows it at that same width (`size`, app.json `imageWidth`): the hand-over does not move it.
  */
+const WORDMARK_WIDTH = 280;
 export const BRAND_INTRO = {
-  /** The same width as the native splash image (app.json `imageWidth`), so the hand-over does not move the mark. */
-  size: 200,
-  arcsFromScale: 0.3,
-  arcsFromDegrees: -90,
-  arcsOvershootScale: 1.1,
-  arcsOvershootDegrees: 15,
-  arcsMs: 700,
-  letterAtMs: 450,
-  letterOvershootScale: 1.2,
-  letterFromDegrees: -180,
-  letterMs: 600,
-  /** The animation's end: the "D" locks at 450 + 600 ms, the arcs settled at 700. */
-  totalMs: 1050,
-  fadeMs: 180,
+  wordmarkWidth: WORDMARK_WIDTH,
+  /** The D's width at the start, and the splash image's: its share of the wordmark. */
+  size: Math.round((WORDMARK_WIDTH * 335) / 1540),
+  holdMs: 150,
+  moveEndMs: 800,
+  erpFromMs: 700,
+  erpEndMs: 950,
+  fadeAtMs: 1050,
+  totalMs: 1200,
+  fadeMs: 150,
   reducedHoldMs: 250,
 } as const;

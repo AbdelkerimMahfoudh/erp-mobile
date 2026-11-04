@@ -1,12 +1,19 @@
-# Dukan brand assets
+# Brand assets
 
-Generated from the owner's interlocking-ledger pack (2026-10-29) with the design tokens (`lib/design/colors.ts`), never
-the pack's own hex values:
+The identity is the owner's approved logo pack, **Dukan-ERP-Logo-Pack** (2026-11-04). It is the source of truth: nothing
+is redrawn here.
 
-1. `py -3 scripts/brand/make-svgs.py` writes the SVG variants (mark light/dark/mono, lockups, app icon, Android
-   adaptive layers, splash) into `scripts/brand/svg/`, keeping the layers `ledger-left`, `ledger-right` and
-   `interlock-highlight`.
-2. `node scripts/brand/rasterize.cjs` renders every PNG size with headless Chrome (Playwright, `channel: 'chrome'`;
-   run it where `playwright` resolves) and re-encodes the opaque ones as RGB with no alpha channel (`pngjs`).
-3. Copy `png/icon.png`, `android-icon-*.png`, `splash-icon*.png` and `favicon.png` into `assets/images/`, and the mark
-   and lockup SVGs into `assets/brand/`. `lib/brand.test.ts` holds the result to the contract.
+    node scripts/brand/import-pack.cjs "<path to Dukan-ERP-Logo-Pack>"
+
+writes:
+
+| Output | From the pack |
+|---|---|
+| `assets/images/icon.png` | `Icon/Home-icon-1024.png`, byte for byte (iOS home icon; the pack supplies one icon, used for light and dark) |
+| `assets/images/splash-icon-dark.png` | `Logo/D-symbol-640.png`, byte for byte (dark launch, on launch navy `#000A37`) |
+| `assets/images/splash-icon.png` | the same PNG with its white lettering turned launch navy, accent and edges kept (light launch) |
+| `assets/brand/pack/*.svg` | every SVG as supplied, and its `-light` variant (lettering `#FFFFFF` → `#000A37`, nothing else) |
+| `lib/brand-pack.ts` | the SVGs' paths, fills and offsets, which the app draws (`components/brand/DukanMark.tsx`) |
+
+Not in the pack, so not invented: an iOS tinted icon, and Android-specific icon artwork (the Android icons and the web
+favicon still carry the previous mark until the pack supplies them or the owner decides).

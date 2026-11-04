@@ -41,8 +41,8 @@ it('the mark and the lockup render; the lockup is one accessible image named Duk
     </Harness>,
   );
   expect(screen.getByLabelText('Dukan ERP')).toBeTruthy();
-  expect(screen.getByText('Dukan')).toBeTruthy();
-  expect(screen.getByText('ERP')).toBeTruthy();
+  // The pack's lockup: the D and the name as one text (it reads at any font size).
+  expect(screen.getAllByText('Dukan ERP').length).toBeGreaterThan(0);
 });
 
 it('the authentication header carries the Dukan mark beside the name', async () => {

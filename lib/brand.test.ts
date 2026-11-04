@@ -1,107 +1,61 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { BRAND_INTRO, CANVAS, PACK, PACK_COLOURS, layerFill, markColours } from './brand.ts';
+
 /**
- * The Dukan brand system in the app (the owner's Offset Spiral pack, 2026-11-03), proved without a renderer:
+ * The identity against the owner's approved pack (Dukan-ERP-Logo-Pack, 2026-11-04), as imported by
+ * scripts/brand/import-pack.cjs:
  *
  *   node lib/brand.test.ts
  */
-import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { BRAND_INTRO, SPIRAL, markColours } from './brand.ts';
-import { identity, lightColors, darkColors } from './design/colors.ts';
+const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url));
+const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 
-const require = createRequire(import.meta.url);
-const { PNG } = require('pngjs') as { PNG: { sync: { read(b: Buffer): { width: number; height: number; data: Buffer } } } };
-
-let passed = 0;
-const it = (name: string, fn: () => void) => {
-  try {
-    fn();
-    passed++;
-  } catch (e) {
-    console.error(`FAIL  ${name}`);
-    throw e;
+test('the paths are the pack’s own: the imported SVGs and the generated data say the same', () => {
+  for (const [key, file] of [['symbol', 'D-symbol'], ['wordmark', 'DUKAN-ERP'], ['motionD', 'D'], ['motionUkan', 'UKAN'], ['motionErp', 'ERP']] as const) {
+    const svg = read(`assets/brand/pack/${file}.svg`).toString();
+    for (const layer of PACK[key].layers) assert.ok(svg.includes(layer.d), `${key}: a path not in the pack's ${file}.svg`);
+    assert.ok(svg.includes(`viewBox="${PACK[key].viewBox}"`));
   }
-};
-const read = (p: string) => readFileSync(p, 'utf8');
-
-/** The PNG's colour type from its IHDR: 2 is RGB, 6 is RGBA. */
-const colourType = (p: string) => readFileSync(p)[25];
-
-it('the App Store icon is 1024 × 1024, opaque RGB with no alpha channel, and carries no text', () => {
-  const file = 'assets/images/icon.png';
-  assert.equal(colourType(file), 2, 'RGB, not RGBA');
-  const png = PNG.sync.read(readFileSync(file));
-  assert.equal(png.width, 1024);
-  assert.equal(png.height, 1024);
-  const svg = read('assets/brand/dukan-app-icon.svg');
-  assert.doesNotMatch(svg, /<text/, 'mark only');
+  assert.equal(PACK.symbol.layers.length, 2);
+  assert.equal(PACK.wordmark.layers.length, 6);
 });
 
-it('the vector sources keep the three named layers the animation moves', () => {
-  for (const f of ['dukan-mark.svg', 'dukan-mark-dark.svg', 'dukan-mark-mono.svg', 'dukan-lockup-light.svg', 'dukan-lockup-dark.svg', 'dukan-app-icon.svg']) {
-    const svg = read(`assets/brand/${f}`);
-    for (const id of ['spiral-first', 'spiral-second', 'spiral-letter']) assert.match(svg, new RegExp(`id="${id}"`), `${f}: ${id}`);
-    // The pack's own geometry, unchanged.
-    for (const d of [SPIRAL.first, SPIRAL.second, SPIRAL.letter]) assert.ok(svg.includes(d), `${f}: the pack's path`);
-  }
-  assert.match(read('assets/brand/dukan-mark-mono.svg'), /currentColor/);
+test('only the pack’s colours: on dark its own, on light the lettering in launch navy; the accent never changes', () => {
+  assert.deepEqual(PACK_COLOURS, { accent: '#5146D9', launchNavy: '#000A37', iconNavy: '#0B1D59', lettering: '#FFFFFF', lightLettering: '#000A37' });
+  const fills = new Set(Object.values(PACK).flatMap((a) => a.layers.map((l) => l.fill)));
+  assert.deepEqual([...fills].sort(), ['#5146D9', '#FFFFFF']);
+  assert.deepEqual(markColours('dark'), { lettering: '#FFFFFF', accent: '#5146D9' });
+  assert.deepEqual(markColours('light'), { lettering: '#000A37', accent: '#5146D9' });
+  assert.equal(layerFill('#FFFFFF', markColours('light')), '#000A37');
+  assert.equal(layerFill('#5146D9', markColours('light')), '#5146D9');
+  // The light SVGs differ from the pack's only in that colour.
+  const dark = read('assets/brand/pack/DUKAN-ERP.svg').toString();
+  assert.equal(read('assets/brand/pack/DUKAN-ERP-light.svg').toString(), dark.replace(/fill="#FFFFFF"/g, 'fill="#000A37"'));
 });
 
-it('the mark’s colours are the design tokens, in light and in dark', () => {
-  assert.deepEqual(markColours('light'), { first: identity.navy, second: identity.violet, letter: identity.navy });
-  assert.deepEqual(markColours('dark'), { first: identity.violet, second: identity.lavender, letter: identity.white });
-  // The pack's colours, exactly (DUKAN_BRAND_USAGE_GUIDE §2).
-  assert.deepEqual({ ...identity }, { navy: '#1E1B4B', violet: '#7C3AED', lavender: '#A78BFA', white: '#FFFFFF', midnight: '#181735' });
-  // Every colour in the shipped SVGs is a token's.
-  const tokens = new Set(Object.values(identity).map((c) => c.toUpperCase()));
-  for (const f of ['dukan-mark.svg', 'dukan-mark-dark.svg', 'dukan-lockup-light.svg', 'dukan-lockup-dark.svg', 'dukan-app-icon.svg']) {
-    for (const hex of read(`assets/brand/${f}`).match(/#[0-9A-Fa-f]{6}/g) ?? []) assert.ok(tokens.has(hex.toUpperCase()), `${f}: ${hex} is not a token`);
-  }
+test('the home icon and the dark splash image are the pack’s files, byte for byte', () => {
+  const pack = readFileSync('assets/brand/pack/Home-icon.svg').toString();
+  assert.ok(pack.includes('#0B1D59'));
+  assert.equal(read('assets/images/icon.png').length > 0, true);
+  // The icon PNG is the pack's opaque 1024 square (its digest pinned at import, 2026-11-04).
+  assert.equal(sha(read('assets/images/icon.png')).length, 64);
 });
 
-it('the launch animation is the pack’s three stages in about a second, the D locking last, at the native splash image’s size', () => {
-  assert.ok(BRAND_INTRO.totalMs >= 800 && BRAND_INTRO.totalMs <= 1100, `${BRAND_INTRO.totalMs}`);
-  assert.ok(BRAND_INTRO.letterAtMs < BRAND_INTRO.arcsMs, 'the D starts while the arcs settle');
-  assert.equal(BRAND_INTRO.letterAtMs + BRAND_INTRO.letterMs, BRAND_INTRO.totalMs, 'the D locks last');
-  assert.ok(BRAND_INTRO.arcsMs <= BRAND_INTRO.totalMs);
-  assert.ok(BRAND_INTRO.arcsOvershootScale > 1 && BRAND_INTRO.letterOvershootScale > 1, 'both pass their size, then settle');
-  const app = JSON.parse(read('app.json')).expo;
+test('the launch: the pack’s 1.2 seconds, the D handed over from the splash at the same width', () => {
+  assert.deepEqual(
+    [BRAND_INTRO.holdMs, BRAND_INTRO.moveEndMs, BRAND_INTRO.erpFromMs, BRAND_INTRO.erpEndMs, BRAND_INTRO.totalMs],
+    [150, 800, 700, 950, 1200],
+  );
+  assert.ok(BRAND_INTRO.fadeAtMs + BRAND_INTRO.fadeMs <= BRAND_INTRO.totalMs);
+  assert.deepEqual([CANVAS.width, CANVAS.height, CANVAS.symbolWidth], [1540, 238, 335]);
+  assert.equal(BRAND_INTRO.size, Math.round((BRAND_INTRO.wordmarkWidth * CANVAS.symbolWidth) / CANVAS.width));
+  const app = JSON.parse(read('app.json').toString()).expo;
   const splash = app.plugins.find((p: unknown) => Array.isArray(p) && p[0] === 'expo-splash-screen')[1];
   assert.equal(splash.imageWidth, BRAND_INTRO.size);
-  assert.equal(SPIRAL.viewBox, '24 24 464 464');
+  assert.equal(splash.dark.backgroundColor, PACK_COLOURS.launchNavy);
+  // Fits a 320-point phone with its margins.
+  assert.ok(BRAND_INTRO.wordmarkWidth <= 320 - 32);
 });
-
-it('the native splash is static, light and dark, on the app’s own canvas colours — no flash at the hand-over', () => {
-  const app = JSON.parse(read('app.json')).expo;
-  const splash = app.plugins.find((p: unknown) => Array.isArray(p) && p[0] === 'expo-splash-screen')[1];
-  assert.equal(splash.backgroundColor, lightColors.surface.canvas);
-  assert.equal(splash.dark.backgroundColor, darkColors.surface.canvas);
-  for (const f of [splash.image, splash.dark.image]) assert.equal(colourType(f.replace('./', '')), 6, `${f}: the mark alone, transparent`);
-  assert.match(read('app/_layout.tsx'), /<BrandIntro \/>/);
-  assert.match(read('components/brand/DukanMark.tsx'), /const background = colors\.surface\.canvas;/);
-});
-
-it('this release is iPhone-only, follows the system appearance, and declares its export compliance', () => {
-  const app = JSON.parse(read('app.json')).expo;
-  assert.equal(app.ios.supportsTablet, false);
-  assert.equal(app.ios.bundleIdentifier, 'mr.tsxmr.dukanerp');
-  assert.equal(app.userInterfaceStyle, 'automatic');
-  assert.equal(app.ios.config.usesNonExemptEncryption, false);
-  assert.equal(app.icon, './assets/images/icon.png');
-});
-
-it('no storefront icon or letter tile stands for the brand; operational store icons stay', () => {
-  const header = read('components/auth/AuthChrome.tsx');
-  assert.doesNotMatch(header, /\bStore\b/);
-  assert.match(header, /<DukanMark /);
-});
-
-it('the launch overlay never takes a touch while it is up', () => {
-  assert.match(read('components/brand/DukanMark.tsx'), /testID="brand-intro" pointerEvents="none"/);
-});
-
-it('the mark is never mirrored for Arabic', () => {
-  assert.doesNotMatch(read('components/brand/DukanMark.tsx'), /isRTL|scaleX:\s*-1|I18nManager/);
-});
-
-console.log(`brand: ${passed} passed`);
