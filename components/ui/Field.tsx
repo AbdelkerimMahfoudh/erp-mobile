@@ -253,7 +253,9 @@ const useStyles = makeStyles((colors) => ({
     paddingVertical: space.md,
     // `inputWeb` in a browser: below 16px Safari on an iPhone zooms the page into the field and stays zoomed.
     fontSize: Platform.OS === 'web' ? typeScale.inputWeb.fontSize : typeScale.body.fontSize,
-    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : typeScale.body.lineHeight,
+    // No line height on iOS: a single-line UITextField given one draws its text below the field's centre, so anything
+    // beside it (a phone's country code) could never share its baseline (post-Build-4). iOS centres it by itself.
+    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : Platform.OS === 'ios' ? undefined : typeScale.body.lineHeight,
     // Android draws its own underline and inner padding on TextInput.
     padding: 0,
   },

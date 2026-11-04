@@ -137,13 +137,13 @@ export function CountryCodeChooser({ iso, onChange }: { iso: string; onChange: (
 
 const styles = StyleSheet.create({
   // The code's own area: one width whatever the code (+1 or +1868), the number's height and divider after it. Its text
-  // takes the input's exact metrics (Field.tsx `input`): the same size, line height and vertical padding, so the code and
-  // the number share one baseline — centring it instead left it higher than the number on iOS.
-  code: { minHeight: 44, minWidth: 64, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-start', paddingVertical: space.md, paddingHorizontal: space.xs, borderEndWidth: StyleSheet.hairlineWidth, marginEnd: space.xs },
+  // takes the input's exact metrics (Field.tsx `input`), and both are centred in the row, so the code and the number
+  // share one line in every platform.
+  code: { minHeight: 44, minWidth: 64, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs, borderEndWidth: StyleSheet.hairlineWidth, marginEnd: space.xs },
   codeText: {
     fontVariant: ['tabular-nums'],
     fontSize: Platform.OS === 'web' ? typeScale.inputWeb.fontSize : typeScale.body.fontSize,
-    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : typeScale.body.lineHeight,
+    lineHeight: Platform.OS === 'web' ? typeScale.inputWeb.lineHeight : Platform.OS === 'ios' ? undefined : typeScale.body.lineHeight,
   },
   sheet: { gap: space.sm, flexShrink: 1, minHeight: 320 },
   row: { height: ROW, justifyContent: 'center' },
