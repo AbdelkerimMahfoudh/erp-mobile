@@ -462,8 +462,9 @@ if (OWNER) {
     }
     await context.close();
   }
-  // More (Build 6): the Branch card and the Store access card are two cards — the same left and right edges, a real gap
-  // between them, never touching — and the Branch card opens the branch list, which stays open (one store included)
+  // More (Build 6): the Branch row and the Store access row are ONE card of two rows, like Team and Catalogue (owner,
+  // 2026-11-05) — inside the same card, the same left and right edges, one under the other with only the divider between,
+  // never overlapping — and the Branch card opens the branch list, which stays open (one store included)
   // until a store is chosen there, then Home. EN/FR/AR (RTL), light and dark, 320 and 375 wide.
   for (const width of [320, 375]) {
     for (const theme of ['light', 'dark']) {
@@ -477,11 +478,13 @@ if (OWNER) {
           const box = (id) => document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect() ?? null;
           const b = box('more-branch');
           const a = box('more-access');
-          if (!b || !a) return { found: false };
-          return { found: true, left: Math.abs(b.left - a.left), right: Math.abs(b.right - a.right), gap: Math.round((a.top - b.bottom) * 10) / 10, overlap: a.top < b.bottom };
+          const card = box('more-context');
+          if (!b || !a || !card) return { found: false };
+          const inside = (r) => r.left >= card.left - 1 && r.right <= card.right + 1 && r.top >= card.top - 1 && r.bottom <= card.bottom + 1;
+          return { found: true, left: Math.abs(b.left - a.left), right: Math.abs(b.right - a.right), gap: Math.round((a.top - b.bottom) * 10) / 10, overlap: a.top < b.bottom - 0.5, sameCard: inside(b) && inside(a) };
         });
-        check(`${label}: the Branch and Store access cards share their left and right edges`, cards.found && cards.left <= 1 && cards.right <= 1, JSON.stringify(cards));
-        check(`${label}: the two cards are apart (a gap of at least 4, never overlapping)`, cards.found && !cards.overlap && cards.gap >= 4, JSON.stringify(cards));
+        check(`${label}: the Branch and Store access rows are one card, with the same left and right edges`, cards.found && cards.sameCard && cards.left <= 1 && cards.right <= 1, JSON.stringify(cards));
+        check(`${label}: one row under the other, only the divider between, never overlapping`, cards.found && !cards.overlap && cards.gap >= 0 && cards.gap <= 2, JSON.stringify(cards));
         await pageFacts(page, label);
         // The Branch card: the list opens and stays open — no redirect to Home.
         await page.locator('[data-testid="more-branch"]').click();
