@@ -488,8 +488,8 @@ if (OWNER) {
         await page.waitForURL(/select-branch/, { timeout: 10000 }).catch(() => null);
         await page.waitForTimeout(2500);
         check(`${label}: the Branch card opens the branch list, and it stays open (one store)`, /select-branch/.test(page.url()), page.url());
-        // Chosen there: Home.
-        await page.locator('[role="button"]').filter({ hasText: /Zeina|Tevragh|تفرغ زينة/ }).first().click();
+        // Chosen there: Home. Only the list's own rows — More's Branch card, still mounted under it, names the store too.
+        await page.locator('[role="button"]:visible:not([data-testid="more-branch"])').filter({ hasText: /Zeina|Tevragh|تفرغ زينة/ }).first().click({ timeout: 10000 });
         await page.waitForTimeout(1500);
         check(`${label}: choosing the store opens Home`, !['/select-branch', '/more'].includes(new URL(page.url()).pathname), page.url());
         await context.close();
