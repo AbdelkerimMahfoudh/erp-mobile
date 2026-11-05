@@ -133,6 +133,8 @@ export function BrandIntro() {
 
 const styles = StyleSheet.create({
   lockup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  intro: { alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  // Clipped at the screen's edge: the D's canvas starts shifted right (the D centred), and its transparent remainder must
+  // not widen the page while the overlay is up. Nothing visible changes.
+  intro: { alignItems: 'center', justifyContent: 'center', zIndex: 1000, overflow: 'hidden' },
   clip: { overflow: 'hidden' },
 });
