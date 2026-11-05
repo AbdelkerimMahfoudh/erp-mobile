@@ -32,6 +32,14 @@ it('the splash waits while the session is restored, then always moves on', () =>
   assert.equal(entryRoute(state({ segment: undefined, closed: true })), ACCESS_CLOSED);
 });
 
+it('the branch list opened on purpose stays open, with a store chosen or not — never redirected to Home (Build 6)', () => {
+  assert.equal(entryRoute(state({ segment: 'select-branch', branchChosen: true })), null);
+  assert.equal(entryRoute(state({ segment: 'select-branch', branchChosen: false })), null);
+  // Sign-in and the splash still move on once a store is chosen.
+  assert.equal(entryRoute(state({ segment: '(auth)', branchChosen: true })), APP_HOME);
+  assert.equal(entryRoute(state({ segment: undefined, branchChosen: true })), APP_HOME);
+});
+
 it('the /stores redirect: its session expired — to sign-in, from the redirect or from where it landed', () => {
   for (const segment of ['stores', '(tabs)']) {
     assert.equal(entryRoute(state({ segment, signedIn: false, branchChosen: false })), LOGIN);

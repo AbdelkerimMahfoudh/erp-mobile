@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '../lib/design/theme';
 import { t, translateIn, useI18n } from '../lib/i18n';
 
+jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => ({ user: { id: 'me' } }) }));
 jest.mock('../lib/api-client', () => {
   class ApiError extends Error {
     status = 500;

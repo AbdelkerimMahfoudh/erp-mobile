@@ -4784,6 +4784,7 @@ export const en = {
   'notifications.open.unavailableBody': 'What this notification was about has been removed or is no longer shared with you.',
   'notifications.open.unauthorized': 'Not available to you',
   'notifications.open.unauthorizedBody': 'Your role no longer lets you open this. Ask the Owner if you need it.',
+  'notifications.open.failed': 'Couldn’t open this notification. Check your connection and try again.',
   'push.offer.sheetTitle': 'Notifications',
   'push.offer.title': 'Know the moment something needs you',
   'push.offer.benefit.approvals': 'Prices, returns and transfers waiting for your decision.',

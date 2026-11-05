@@ -128,14 +128,22 @@ describe('registration', () => {
   });
 });
 
-describe('a tapped push opens the opening screen, once', () => {
+const SALE = '0192f0c4-7b1a-7c3e-9a55-000000000099';
+
+describe('a tapped push opens its record directly, once — never an opening screen (Build 6)', () => {
+  beforeEach(() => {
+    (api.get as jest.Mock).mockImplementation(async (path: string) =>
+      path === `/notifications/${ID}/open` ? { status: 'ok', target: { kind: 'sale', id: SALE, detail: null }, branchId: null } : [],
+    );
+  });
+
   it('in the foreground or background: the same tap reported twice navigates once', async () => {
     await mount();
     await act(async () => {
       N.__tap('resp-1', { notificationId: ID, type: 'sale.recorded', link: 'https://example.invalid' });
       N.__tap('resp-1', { notificationId: ID, type: 'sale.recorded' });
     });
-    expect(routerPush.mock.calls).toEqual([[{ pathname: '/notification-open', params: { id: ID } }]]);
+    await waitFor(() => expect(routerPush.mock.calls).toEqual([[`/sales/${SALE}`]]));
   });
 
   it('a push whose data carries no notification id opens nothing', async () => {
@@ -158,6 +166,6 @@ describe('a tapped push opens the opening screen, once', () => {
         </QueryClientProvider>
       </ThemeProvider>,
     );
-    await waitFor(() => expect(routerPush.mock.calls).toEqual([[{ pathname: '/notification-open', params: { id: ID } }]]));
+    await waitFor(() => expect(routerPush.mock.calls).toEqual([[`/sales/${SALE}`]]));
   });
 });

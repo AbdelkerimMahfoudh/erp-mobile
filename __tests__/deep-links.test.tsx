@@ -175,9 +175,9 @@ describe('the sign-in guard decides where a link lands', () => {
     expect(entryRoute(state({}, await open(link(RECORD))))).toBeNull();
   });
 
-  it('signed in: the sign-in and branch links move on to the app', async () => {
+  it('signed in: the sign-in link moves on to the app; the branch list, opened on purpose, stays open (Build 6)', async () => {
     expect(entryRoute(state({}, await open(link('login'))))).toBe(APP_HOME);
-    expect(entryRoute(state({}, await open(link('select-branch'))))).toBe(APP_HOME);
+    expect(entryRoute(state({}, await open(link('select-branch'))))).toBe(null);
   });
 
   it('a closed business: a record link shows the refusal, the person’s own account stays open', async () => {

@@ -22,6 +22,10 @@ import { t } from '../lib/i18n';
 import { toFriendlyError } from '../lib/errors';
 import { push as routerPush } from './mocks/expo-router';
 
+// The centre is where these rows are tapped (Build 6: a refusal stays here, with the reason).
+jest.mock('expo-router', () => ({ ...jest.requireActual('./mocks/expo-router'), usePathname: () => '/notifications' }));
+jest.mock('../hooks/useAuth', () => ({ __esModule: true, useAuth: () => ({ user: { id: 'me' } }) }));
+
 jest.mock('../lib/api-client', () => {
   class ApiError extends Error {
     status: number;
@@ -163,15 +167,21 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/notifications/n1/read'));
   });
 
-  it('a row with a destination opens the opening screen, which asks the server — the stored link itself is never followed', async () => {
+  it('a row with a destination goes straight to its record once the server allows it — never through an opening screen, and the stored link is never followed (Build 6)', async () => {
     routerPush.mockClear();
-    (api.get as jest.Mock).mockResolvedValue({
+    const TRANSFER = '0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a';
+    const list = {
       rows: [
         { ...row('n1', true), actionLink: '/transfers/0190f5a2-7c1e-7d3a-9b2c-1f2e3d4c5b6a' },
         { ...row('n2', true), actionLink: 'https://example.invalid/account/trial#t=token' },
         { ...row('n3', true), actionLink: null },
       ],
       nextCursor: null,
+    };
+    (api.get as jest.Mock).mockImplementation(async (path: string) => {
+      if (path === '/notifications/n1/open') return { status: 'ok', target: { kind: 'transfer', id: TRANSFER, detail: null }, branchId: null };
+      if (path === '/notifications/n2/open') return { status: 'unavailable' };
+      return list;
     });
     await render(
       <Harness>
@@ -179,12 +189,13 @@ describe('Notifications: the list is the only vertical scrolling surface', () =>
       </Harness>,
     );
     await fireEvent.press(await screen.findByText(titled('n1')));
+    await waitFor(() => expect(routerPush.mock.calls).toEqual([[`/transfers/${TRANSFER}`]]));
     await fireEvent.press(screen.getByText(titled('n2')));
     await fireEvent.press(screen.getByText(titled('n3')));
-    expect(routerPush.mock.calls).toEqual([
-      [{ pathname: '/notification-open', params: { id: 'n1' } }],
-      [{ pathname: '/notification-open', params: { id: 'n2' } }],
-    ]);
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/notifications/n2/open'));
+    // n2 cannot be opened: the person stays on the centre (nothing pushed), told why; n3 has nowhere to go.
+    expect(routerPush.mock.calls).toEqual([[`/transfers/${TRANSFER}`]]);
+    expect(routerPush.mock.calls.flat().some((c) => JSON.stringify(c).includes('notification-open'))).toBe(false);
   });
 
   it('every row reads in the app’s language with its body, never the stored English (D225)', async () => {

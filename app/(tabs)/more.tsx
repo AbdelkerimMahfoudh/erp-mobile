@@ -76,7 +76,10 @@ export default function MoreScreen() {
       <BranchControl />
 
       {/* D227: the first thing to act on is the business's access, said in one line with what the server counts. */}
-      <BusinessAccessRow />
+      {/* Its own card, a standard gap below the branch card — never touching it (Build 6). */}
+      <View testID="more-access" style={styles.accessCard}>
+        <BusinessAccessRow />
+      </View>
 
       <SyncNotice />
       {/* What the business may do right now, said once and the same way on every tab (lib/access.ts). */}
@@ -159,6 +162,7 @@ function BranchControl() {
       accessibilityLabel={t('more.branch.switch')}
       accessibilityHint={branchName ?? undefined}
       style={styles.branchPress}
+      testID="more-branch"
     >
       <Card style={styles.branch}>
         <Store size={18} color={colors.brand[600]} />
@@ -242,6 +246,8 @@ const useStyles = makeStyles((colors) => ({
   // On the pressable, not the card inside it: the whole control keeps its distance from the title above.
   branchPress: { marginTop: space.md },
   branchText: { flex: 1, gap: space.xs },
+  // The gap this screen keeps between separate cards (the hubs, the account rows): the two cards never touch.
+  accessCard: { marginTop: space.sm },
   notice: { marginTop: space.sm },
   sectionLabel: { marginTop: space.lg, marginBottom: space.xs, textTransform: 'uppercase' },
   hubs: { gap: space.sm },

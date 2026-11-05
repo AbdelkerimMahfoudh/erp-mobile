@@ -4948,6 +4948,7 @@ export const fr: Catalogue = {
   'notifications.open.unavailableBody': 'Ce dont parlait cette notification a été supprimé ou ne vous est plus partagé.',
   'notifications.open.unauthorized': 'Pas accessible pour vous',
   'notifications.open.unauthorizedBody': 'Votre rôle ne vous permet plus de l’ouvrir. Demandez au Propriétaire si vous en avez besoin.',
+  'notifications.open.failed': 'Impossible d’ouvrir cette notification. Vérifiez votre connexion et réessayez.',
   'push.offer.sheetTitle': 'Notifications',
   'push.offer.title': 'Sachez tout de suite quand on a besoin de vous',
   'push.offer.benefit.approvals': 'Les prix, retours et transferts qui attendent votre décision.',

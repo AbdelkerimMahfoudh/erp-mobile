@@ -4719,6 +4719,7 @@ export const ar: Catalogue = {
   'notifications.open.unavailableBody': 'ما يتعلق به هذا الإشعار حُذف أو لم يعد مشتركًا معك.',
   'notifications.open.unauthorized': 'غير متاح لك',
   'notifications.open.unauthorizedBody': 'دورك لم يعد يسمح لك بفتحه. اسأل المالك إن احتجت إليه.',
+  'notifications.open.failed': 'تعذّر فتح هذا الإشعار. تحقّق من اتصالك ثم أعد المحاولة.',
   'push.offer.sheetTitle': 'الإشعارات',
   'push.offer.title': 'اعرف فورًا متى يحتاجك المتجر',
   'push.offer.benefit.approvals': 'الأسعار والمرتجعات وعمليات النقل التي تنتظر قرارك.',

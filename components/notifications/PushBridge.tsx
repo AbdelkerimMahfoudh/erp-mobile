@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { BellRing } from 'lucide-react-native';
 import { BottomSheet } from '../overlay';
@@ -24,6 +23,7 @@ import { usePushOffer } from '../../lib/push-offer';
 import { shouldOfferPush } from '../../lib/push-policy';
 import { qk } from '../../lib/query-keys';
 import { useAuth } from '../../hooks/useAuth';
+import { useOpenNotification } from './useOpenNotification';
 
 /** One navigation per tap, across the listener and "the last response" at a cold start (D225). */
 const opened = createOpenGate();
@@ -33,15 +33,14 @@ const opened = createOpenGate();
  *  - registers this phone after sign-in, again when its token rotates or the app's language changes;
  *  - offers notifications once, right after a sign-in, in the app's own words — "Enable notifications" opens iOS's
  *    prompt, "Not now" is remembered and never asked again by the app;
- *  - opens a tapped push — app in the foreground, in the background or closed — through the opening screen, which
- *    asks the server whether the person may still open it. A tap before sign-in waits for the sign-in;
+ *  - opens a tapped push — app in the foreground, in the background or closed — straight to its record, once the
+ *    server has said the person may still open it (`useOpenNotification`); otherwise the notifications say why. A tap before sign-in waits for the sign-in;
  *  - refreshes the centre when a push arrives with the app open.
  * It renders nothing but the one-time explanation.
  */
 export function PushBridge() {
   const { user } = useAuth();
   const { t, language } = useTranslation();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const justSignedIn = usePushOffer((s) => s.justSignedIn);
   const offerDone = usePushOffer((s) => s.done);
@@ -49,6 +48,7 @@ export function PushBridge() {
   const pending = useRef<string | null>(null);
   const signedIn = useRef(false);
   const userId = user?.id ?? null;
+  const openNotification = useOpenNotification();
 
   // Register (idempotent) for this person in this language; a rotated token re-registers and revokes the old one.
   useEffect(() => {
@@ -73,7 +73,8 @@ export function PushBridge() {
     if (!id || !signedIn.current) return;
     pending.current = null;
     forgetLaunchPush();
-    router.push({ pathname: '/notification-open', params: { id } });
+    // Straight to the record once the server has said it may be opened — never through an opening screen (Build 6).
+    void openNotification(id);
   };
 
   // A tapped push: now, or as soon as somebody is signed in.

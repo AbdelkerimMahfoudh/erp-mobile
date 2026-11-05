@@ -16,6 +16,10 @@ export const push = jest.fn();
 export const replace = jest.fn();
 export const back = jest.fn();
 export const setParams = jest.fn();
+export const dismissTo = jest.fn();
+export const canGoBack = jest.fn(() => true);
+export const dismiss = jest.fn();
+export const canDismiss = jest.fn(() => true);
 
 export function Stack({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
@@ -53,7 +57,7 @@ export function Link({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export const useRouter = () => ({ push, replace, back, navigate: push, setParams });
+export const useRouter = () => ({ push, replace, back, navigate: push, setParams, dismissTo, canGoBack, dismiss, canDismiss });
 export const useLocalSearchParams = () => ({});
 export const useGlobalSearchParams = () => ({});
 export const useSegments = () => [];

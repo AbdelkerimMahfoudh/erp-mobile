@@ -33,6 +33,9 @@ import type { UserBranch } from '../types/api';
  * translated rather than being raw enum values with the underscores swapped for
  * spaces.
  */
+/** The Home tab: the tabs' first screen. */
+const HOME = '/(tabs)' as const;
+
 export default function SelectBranch() {
   const { t, language } = useTranslation();
   const { setBranch, branchId } = useBranch();
@@ -62,8 +65,8 @@ export default function SelectBranch() {
         />
       </View>
 
-      {/* Opened to switch: the current store is still chosen, so leaving is one tap and changes nothing. */}
-      {branchId ? <Button title={t('action.cancel')} variant="secondary" onPress={() => router.replace('/')} /> : null}
+      {/* Opened to switch: the current store is still chosen, so leaving is one tap, back where it came from, and changes nothing. */}
+      {branchId ? <Button title={t('action.cancel')} variant="secondary" onPress={() => (router.canDismiss() ? router.dismiss() : router.dismissTo(HOME))} /> : null}
 
       {query.isLoading ? (
         <SkeletonList count={3} />
@@ -105,10 +108,11 @@ export default function SelectBranch() {
                 .filter(Boolean)
                 .join(' · ')}
               onPress={() => {
-                // A first choice is routed on by the app; a switch from inside it returns to the app in the new store.
-                const switching = branchId !== null;
+                // Chosen on purpose: the store becomes active and the Home tab opens. `dismissTo` closes this list and
+                // shows the existing tabs on Home — nothing is pushed, so there is no second Home and no way "back" to
+                // More from it (Build 6). On a first choice, with no tabs yet, it replaces this list with them.
                 setBranch(branch);
-                if (switching) router.replace('/');
+                router.dismissTo(HOME);
               }}
             />
           ))}

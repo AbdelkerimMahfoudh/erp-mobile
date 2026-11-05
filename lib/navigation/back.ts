@@ -118,7 +118,6 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/sync': TABS.more,
   '/notifications': TABS.more,
   '/notification-settings': '/notifications',
-  '/notification-open': '/notifications',
   '/hub/[id]': TABS.more,
   '/dev/gallery': TABS.more,
   // The Money Services Agent counter (docs/21 D157). The counter flow is Home's big action, as Quick sell is; one
@@ -164,7 +163,7 @@ export const AUTH_ROOTS: Readonly<Record<string, string>> = {
   '/setup': 'An Owner choosing a first password with the platform’s setup code (D217), from sign-in, with its own way back (Back to sign in).',
   '/verify': 'The code check that finishes a business account: Confirm, ask for the code again, or use a different contact.',
   '/select-branch':
-    'Choosing the branch — the last step of signing in. The app cannot be entered without a branch: switching from More clears the branch first, so the guard would bring any arrow straight back here. Choose one, or Sign out (always shown).',
+    'Choosing the branch — the last step of signing in, and the list More opens to switch stores (it stays open until a store is chosen, Build 6). Choosing one opens the Home tab; Cancel (when a store is already chosen) closes the list where it was opened; Sign out is always shown. No arrow: its own ways out are explicit.',
   '/+not-found':
     'An address the app does not have (a mistyped or old link): no arrow to an unknown history, one way on — the start, where the sign-in guard decides.',
   '/access-closed':

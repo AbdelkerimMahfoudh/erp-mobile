@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useOpenNotification } from '../components/notifications/useOpenNotification';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -68,10 +69,12 @@ export default function NotificationsScreen() {
 
   const rows = page.data?.pages.flatMap((p) => p.rows) ?? [];
 
+  const openNotification = useOpenNotification();
   const open = (n: AppNotification) => {
     void haptics.tap();
-    // The server decides, now, where it leads and whether this person may open it (D225): the opening screen asks.
-    if (n.actionLink) return router.push({ pathname: '/notification-open', params: { id: n.id } });
+    // The server decides, now, where it leads and whether this person may open it (D225) — asked BEFORE navigating, so
+    // the person goes straight to the record, never through an opening screen (Build 6).
+    if (n.actionLink) return void openNotification(n.id);
     if (!n.isRead) markRead.mutate(n.id);
   };
 

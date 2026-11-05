@@ -50,8 +50,10 @@ export function entryRoute(s: EntryState): string | null {
   if (!s.signedIn && !inAuth) return LOGIN;
   // Their own account needs no branch: a login assigned to none can still verify a number or delete itself there.
   if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen && !onAccount) return SELECT_BRANCH;
-  // The splash at the root, sign-in and the branch choice all move on once there is a session and a branch.
-  if (s.signedIn && s.branchChosen && (inAuth || onSelectBranch || s.segment === undefined)) return APP_HOME;
+  // The splash at the root and sign-in move on once there is a session and a branch. The branch list does NOT: opened on
+  // purpose from More to switch or manage stores, it stays open until a store is chosen there (Build 6) — its own choice
+  // then leads to Home (`app/select-branch.tsx`). Redirecting from it here pushed a second Home above More.
+  if (s.signedIn && s.branchChosen && (inAuth || s.segment === undefined)) return APP_HOME;
   // A screen whose only purpose is a business write is not opened for a read-only
   // business: the access screen explains, instead of a form that fails at the end.
   if (s.signedIn && s.branchChosen && s.readOnly && s.pathname !== undefined && isWriteOnlyRoute(s.pathname)) return ACCESS_STATUS;
