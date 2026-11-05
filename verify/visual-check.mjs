@@ -462,6 +462,40 @@ if (OWNER) {
     }
     await context.close();
   }
+  // More (Build 6): the Branch card and the Store access card are two cards — the same left and right edges, a real gap
+  // between them, never touching — and the Branch card opens the branch list, which stays open (one store included)
+  // until a store is chosen there, then Home. EN/FR/AR (RTL), light and dark, 320 and 375 wide.
+  for (const width of [320, 375]) {
+    for (const theme of ['light', 'dark']) {
+      for (const lang of ['en', 'fr', 'ar']) {
+        const label = `more ${lang} ${theme} ${width}`;
+        const { context, page } = await open({ lang, theme, width });
+        await signIn(page);
+        await page.goto(`${APP}/more`);
+        await settle(page);
+        const cards = await page.evaluate(() => {
+          const box = (id) => document.querySelector(`[data-testid="${id}"]`)?.getBoundingClientRect() ?? null;
+          const b = box('more-branch');
+          const a = box('more-access');
+          if (!b || !a) return { found: false };
+          return { found: true, left: Math.abs(b.left - a.left), right: Math.abs(b.right - a.right), gap: Math.round((a.top - b.bottom) * 10) / 10, overlap: a.top < b.bottom };
+        });
+        check(`${label}: the Branch and Store access cards share their left and right edges`, cards.found && cards.left <= 1 && cards.right <= 1, JSON.stringify(cards));
+        check(`${label}: the two cards are apart (a gap of at least 4, never overlapping)`, cards.found && !cards.overlap && cards.gap >= 4, JSON.stringify(cards));
+        await pageFacts(page, label);
+        // The Branch card: the list opens and stays open — no redirect to Home.
+        await page.locator('[data-testid="more-branch"]').click();
+        await page.waitForURL(/select-branch/, { timeout: 10000 }).catch(() => null);
+        await page.waitForTimeout(2500);
+        check(`${label}: the Branch card opens the branch list, and it stays open (one store)`, /select-branch/.test(page.url()), page.url());
+        // Chosen there: Home.
+        await page.locator('[role="button"]').filter({ hasText: /Zeina|Tevragh|تفرغ زينة/ }).first().click();
+        await page.waitForTimeout(1500);
+        check(`${label}: choosing the store opens Home`, !['/select-branch', '/more'].includes(new URL(page.url()).pathname), page.url());
+        await context.close();
+      }
+    }
+  }
   // Every exported route, signed in: overflow and touching text, light and dark, a phone and a desktop.
   if (ROUTES.length) {
     for (const [theme, width] of [['light', 320], ['dark', 640], ['light', 390], ['dark', 1280]]) {
