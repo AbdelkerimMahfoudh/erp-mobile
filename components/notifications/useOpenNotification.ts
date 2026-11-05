@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { usePathname, useRouter, type Href } from 'expo-router';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api-client';
@@ -66,15 +67,18 @@ export function useOpenNotification(): (id: string) => Promise<unknown> {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useTranslation();
-  live.toRecord = (target) => {
-    // The record's own screen, from the registry of the app's paths: a kind it does not know opens nothing.
-    const route = notificationRoute(target, user?.id ?? null);
-    if (route) router.push(route as Href);
-  };
-  live.toCentre = () => router.push('/notifications');
-  live.queryClient = queryClient;
-  live.pathname = pathname;
-  live.me = user?.id ?? null;
-  live.t = (key) => t(key);
+  // Kept current after every render (an effect, not during render): the opener reads it when a tap resolves.
+  useEffect(() => {
+    live.toRecord = (target) => {
+      // The record's own screen, from the registry of the app's paths: a kind it does not know opens nothing.
+      const route = notificationRoute(target, user?.id ?? null);
+      if (route) router.push(route as Href);
+    };
+    live.toCentre = () => router.push('/notifications');
+    live.queryClient = queryClient;
+    live.pathname = pathname;
+    live.me = user?.id ?? null;
+    live.t = (key) => t(key);
+  });
   return open;
 }
