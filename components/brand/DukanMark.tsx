@@ -5,7 +5,7 @@ import Svg, { G, Path } from 'react-native-svg';
 import { Text } from '../ui/Text';
 import { useColors, useTheme } from '../../lib/design/theme';
 import { useReduceMotionSetting } from '../../lib/design/use-reduce-motion';
-import { BRAND_INTRO, CANVAS, PACK, layerFill, markColours } from '../../lib/brand';
+import { BRAND_INTRO, CANVAS, PACK, PACK_COLOURS, layerFill, markColours, toneFor } from '../../lib/brand';
 import type { PackArt, PackLayer } from '../../lib/brand-pack';
 import { useTranslation } from '../../lib/i18n';
 
@@ -34,7 +34,7 @@ function PackSvg({ art, width, tone, testID }: { art: PackArt; width: number; to
 /** The D alone: the app's headers and anywhere the name is said beside it. `mono` draws it in one ink. */
 export function DukanMark({ size = 24, mono, style }: { size?: number; mono?: string; style?: StyleProp<ViewStyle> }) {
   const { isDark } = useTheme();
-  const tone = mono ? markColours('mono', mono) : markColours(isDark ? 'dark' : 'light');
+  const tone = mono ? markColours('mono', mono) : markColours(toneFor(isDark));
   return (
     <View style={style} accessible={false} importantForAccessibility="no-hide-descendants">
       <PackSvg testID="dukan-mark" art={PACK.symbol} width={size} tone={tone} />
@@ -72,7 +72,7 @@ export function BrandIntro() {
   const colors = useColors();
   const dark = useTheme().isDark;
   // The pack's launch navy behind its own artwork; on light, the light canvas, as the light splash.
-  const background = dark ? '#000A37' : colors.surface.canvas;
+  const background = dark ? PACK_COLOURS.launchNavy : colors.surface.canvas;
   const tone = markColours(dark ? 'dark' : 'light');
   const reduce = useReduceMotionSetting();
   const [done, setDone] = useState(introPlayed);

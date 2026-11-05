@@ -18,6 +18,11 @@ export function markColours(tone: MarkTone, mono = '#000000'): { lettering: stri
   return tone === 'dark' ? { lettering: PACK_COLOURS.lettering, accent: PACK_COLOURS.accent } : { lettering: PACK_COLOURS.lightLettering, accent: PACK_COLOURS.accent };
 }
 
+/** The pack's tone for the surface's theme: decided here, in the brand layer, never by a screen (lib/design/theme.test.ts). */
+export function toneFor(dark: boolean): Exclude<MarkTone, 'mono'> {
+  return dark ? 'dark' : 'light';
+}
+
 /** The fill a pack layer takes in a tone: its white becomes the tone's lettering, its accent stays the accent. */
 export function layerFill(fill: string, tone: { lettering: string; accent: string }): string {
   return fill.toUpperCase() === PACK_COLOURS.lettering ? tone.lettering : tone.accent;

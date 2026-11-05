@@ -12,6 +12,7 @@ import { DialogHost, ToastHost } from '../components/overlay';
 import { EmptyState, OfflineBanner } from '../components/ui';
 import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
 import { ActingOwnerBanner } from '../components/ui/ActingOwnerBanner';
+import { RenewalReminderBanner } from '../components/ui/RenewalReminderBanner';
 import { PushBridge } from '../components/notifications/PushBridge';
 import { BrandIntro } from '../components/brand/DukanMark';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
@@ -142,6 +143,8 @@ function AppShell() {
           <TestBusinessBanner />
           {/* The person appointed Acting Owner, while it is in force (D225). */}
           <ActingOwnerBanner />
+          {/* The Owner's 3/2/1-day reminder before access ends (owner, 2026-11-05): the server's count, no link. */}
+          <RenewalReminderBanner />
           {/*
             The back-swipe is the native stack's own gesture, and on iOS it
             belongs to UINavigationController's push transition. Naming an
