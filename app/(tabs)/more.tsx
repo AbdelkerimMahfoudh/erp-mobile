@@ -2,7 +2,7 @@ import { BusinessAccessRow } from '../../components/access/BusinessAccessRow';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { ChevronRight, LogOut, RefreshCw, Store } from 'lucide-react-native';
+import { LogOut, RefreshCw, Store } from 'lucide-react-native';
 import {
   Card,
   InlineNotice,
@@ -17,8 +17,7 @@ import { HUB_ICONS } from '../../components/navigation/hub-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useBranch } from '../../lib/branch';
 import { useBranchActivity, useCompanySells } from '../../lib/entitlement';
-import { radius, space, touch } from '../../lib/design/tokens';
-import { mirror } from '../../lib/design/direction';
+import { space, touch } from '../../lib/design/tokens';
 import { useTranslation } from '../../lib/i18n';
 import { syncNotice } from '../../lib/navigation/notices';
 import { visibleGroups } from '../../lib/navigation/registry';
@@ -73,12 +72,19 @@ export default function MoreScreen() {
       */}
       <TabHeader context={context} title={t('tab.more')} bell />
 
-      <BranchControl />
-
-      {/* D227: the first thing to act on is the business's access, said in one line with what the server counts. */}
-      {/* Its own card, a standard gap below the branch card — never touching it (Build 6). */}
-      <View testID="more-access" style={styles.accessCard}>
-        <BusinessAccessRow />
+      {/*
+        The store and the business's access, one card of two rows like every group below (owner, 2026-11-05): which
+        store this is, then — D227 — the business's access in one line with what the server counts.
+      */}
+      <View testID="more-context" style={styles.contextCard}>
+        <RowGroup>
+          <View testID="more-branch">
+            <BranchRow />
+          </View>
+          <View testID="more-access">
+            <BusinessAccessRow />
+          </View>
+        </RowGroup>
       </View>
 
       <SyncNotice />
@@ -147,45 +153,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
  * `select-branch` flow, which lists only the branches this signed-in user was
  * granted, so a branch from another company cannot appear here.
  */
-function BranchControl() {
-  const styles = useStyles();
-  const colors = useColors();
+function BranchRow() {
   const { t } = useTranslation();
   const router = useRouter();
   const { branchName } = useBranch();
-
+  // Nothing is cleared: the current store stays until another is chosen, and going back loses nothing (D227).
   return (
-    <Pressable
-      // Nothing is cleared: the current store stays until another is chosen, and going back loses nothing (D227).
+    <ListRow
+      flat
+      title={branchName ?? t('home.branch.unknown')}
+      titleLines={1}
+      subtitle={t('nav.branch')}
+      leading={Store}
       onPress={() => router.push('/select-branch')}
-      accessibilityRole="button"
-      accessibilityLabel={t('more.branch.switch')}
-      accessibilityHint={branchName ?? undefined}
-      style={styles.branchPress}
-      testID="more-branch"
-    >
-      <Card style={styles.branch}>
-        <Store size={18} color={colors.brand[600]} />
-        <View style={styles.branchText}>
-          <Text variant="caption" tone="tertiary">
-            {t('nav.branch')}
-          </Text>
-          <Text variant="bodyStrong" numberOfLines={1}>
-            {branchName ?? t('home.branch.unknown')}
-          </Text>
-        </View>
-        {/*
-          Directional: this points, so it must mirror in RTL — and the mirror
-          goes on a wrapping View, never on the icon itself. A transform set on
-          an SVG element does not flip it here; it only moved the drawing out of
-          its own box, where the SVG's overflow clipped it away and the chevron
-          vanished in Arabic. Every list row already mirrors a wrapper.
-        */}
-        <View style={mirror()}>
-          <ChevronRight size={18} color={colors.text.tertiary} />
-        </View>
-      </Card>
-    </Pressable>
+    />
   );
 }
 
@@ -236,18 +217,8 @@ function SyncNotice() {
 }
 
 const useStyles = makeStyles((colors) => ({
-  branch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
-    borderRadius: radius.md,
-  },
-  // On the pressable, not the card inside it: the whole control keeps its distance from the title above.
-  branchPress: { marginTop: space.md },
-  branchText: { flex: 1, gap: space.xs },
-  // The gap this screen keeps between separate cards (the hubs, the account rows): the two cards never touch.
-  accessCard: { marginTop: space.sm },
+  // The store-and-access card keeps its distance from the title above, as the branch card did.
+  contextCard: { marginTop: space.md },
   notice: { marginTop: space.sm },
   sectionLabel: { marginTop: space.lg, marginBottom: space.xs, textTransform: 'uppercase' },
   hubs: { gap: space.sm },

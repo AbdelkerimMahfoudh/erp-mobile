@@ -484,22 +484,24 @@ it('the More and hub screens use no physical direction styles', () => {
   }
 });
 
-it('the one directional glyph on More is mirrored explicitly', () => {
+it('every chevron on More is mirrored explicitly — the branch row is a list row, whose chevron mirrors', () => {
   const src = fs.readFileSync(path.join(MOBILE, 'app', '(tabs)', 'more.tsx'), 'utf8');
   // Chevrons point. A chevron that does not mirror points the wrong way in
   // Arabic, which is worse than no chevron at all.
+  //
+  // Since Build 6 the branch is a row of the store-and-access card (owner, 2026-11-05): More draws no chevron of its
+  // own; every one is a ListRow's, and ListRow mirrors it.
+  assert.doesNotMatch(src, /<ChevronRight/, 'More draws no chevron of its own: its rows are list rows');
+  assert.match(src, /function BranchRow\(\)[\s\S]*?<ListRow[\s\S]*?onPress=\{\(\) => router\.push\('\/select-branch'\)\}/, 'the branch is a list row opening the branch list');
   /*
    * The mirror goes on a WRAPPING VIEW, not on the icon. A transform set on the
    * SVG element itself does not flip it in this stack — it moved the drawing
    * outside its own box, where the SVG's overflow clipped it, and the chevron
    * disappeared in Arabic rather than pointing the other way.
    */
-  assert.match(
-    src,
-    /<View style=\{mirror\(\)\}>\s*<ChevronRight/,
-    'the branch chevron must be wrapped in a mirrored View',
-  );
-  assert.doesNotMatch(src, /<ChevronRight[^>]*style=\{mirror\(\)\}/, 'mirroring the icon itself does not flip it');
+  const row = fs.readFileSync(path.join(MOBILE, 'components', 'ui', 'ListRow.tsx'), 'utf8');
+  assert.match(row, /<View style=\{mirror\(\)\}>\s*<ChevronRight/, 'the list row’s chevron must be wrapped in a mirrored View');
+  assert.doesNotMatch(row, /<ChevronRight[^>]*style=\{mirror\(\)\}/, 'mirroring the icon itself does not flip it');
 });
 
 // ── 11. notifications ────────────────────────────────────────────────────────
