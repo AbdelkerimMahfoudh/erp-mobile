@@ -39,7 +39,12 @@ async function open({ lang = 'en', theme, width = 390, height = 844, scheme = 'l
   const page = await context.newPage();
   return { context, page };
 }
-const settle = (page) => page.waitForTimeout(700);
+// The launch overlay (brand-intro, 1.2 s, checked on its own by verify/brand.mjs) covers the screen at first: a screen's
+// layout is measured once it has gone, never through it — its layers are clipped, but their boxes are not.
+const settle = async (page) => {
+  await page.waitForTimeout(700);
+  await page.waitForSelector('[data-testid="brand-intro"]', { state: 'detached', timeout: 5000 }).catch(() => null);
+};
 
 // ── page facts, measured in the page ─────────────────────────────────────────────────────────────────────────────────
 const FACTS = () => {
