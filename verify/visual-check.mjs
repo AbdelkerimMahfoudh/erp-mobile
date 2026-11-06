@@ -39,7 +39,7 @@ async function open({ lang = 'en', theme, width = 390, height = 844, scheme = 'l
   const page = await context.newPage();
   return { context, page };
 }
-// The launch overlay (brand-intro, 1.2 s, checked on its own by verify/brand.mjs) covers the screen at first: a screen's
+// The launch overlay (brand-intro, 2 s, checked on its own by verify/brand.mjs) covers the screen at first: a screen's
 // layout is measured once it has gone, never through it — its layers are clipped, but their boxes are not.
 const settle = async (page) => {
   await page.waitForTimeout(700);
@@ -282,6 +282,64 @@ for (const lang of ['en', 'fr', 'ar']) {
   await page.waitForTimeout(1200);
   check(`register ${lang}: confirming Leave reaches sign-in`, new URL(page.url()).pathname.endsWith('/login'), new URL(page.url()).pathname);
   await context.close();
+}
+
+// ── 3a. the trial disclosure (0131): the last registration step and the code screen, every language, both themes, ──
+// 320 and 375 points, and each at 150% (large text, as the 1280-at-200% check does): read in full, inside the screen,
+// no sideways scroll, and above the button that completes the registration — never under it.
+const DISCLOSURE = async (page) =>
+  page.evaluate(() => {
+    const d = document.querySelector('[data-testid="registration-disclosure"]');
+    if (!d) return null;
+    d.scrollIntoView({ block: 'center' });
+    const r = d.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const buttons = [...document.querySelectorAll('[role="button"], button')].filter((b) => {
+      const x = b.getBoundingClientRect();
+      return x.width > 0 && x.height > 0;
+    });
+    const overlaps = buttons.some((b) => {
+      const x = b.getBoundingClientRect();
+      return !(x.right <= r.left || x.left >= r.right || x.bottom <= r.top || x.top >= r.bottom) && !d.contains(b) && !b.contains(d);
+    });
+    const text = (d.textContent ?? '').trim();
+    const clipped = [...d.querySelectorAll('*')].some((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow === 'hidden');
+    return { left: r.left, right: r.right, width: r.width, vw, sideways: document.scrollingElement.scrollWidth > vw + 1, overlaps, text, clipped };
+  });
+for (const lang of ['en', 'fr', 'ar']) {
+  for (const theme of ['light', 'dark']) {
+    for (const [width, zoom] of [[320, 1], [375, 1], [320, 1.5], [375, 1.5]]) {
+      const label = `disclosure ${lang} ${theme} ${width}${zoom > 1 ? ' at 150%' : ''}`;
+      const { context, page } = await open({ lang, theme, width: Math.round(width / zoom), height: Math.round(844 / zoom) });
+      await page.goto(`${APP}/register`);
+      await settle(page);
+      const boxes = () => page.locator('input:not([data-testid^="promo-digit-"])');
+      await boxes().nth(0).fill('Boutique Exemple');
+      await boxes().nth(1).fill('بوتيك مثال');
+      await boxes().nth(2).fill('Rosso');
+      await page.getByTestId('register-next').click();
+      await settle(page);
+      await boxes().nth(0).fill('Aminetou Exemple');
+      await boxes().nth(1).fill('أمينتو');
+      await page.getByTestId('register-next').click();
+      await settle(page);
+      for (const screen of ['register', 'verify']) {
+        if (screen === 'verify') {
+          await page.goto(`${APP}/verify`);
+          await settle(page);
+        }
+        const f = await DISCLOSURE(page);
+        check(`${label} ${screen}: the disclosure is shown`, !!f && f.text.length > 40, f ? `${f.text.length} characters` : 'missing');
+        if (!f) continue;
+        check(`${label} ${screen}: inside the screen`, f.left >= -1 && f.right <= f.vw + 1, `${Math.round(f.left)}–${Math.round(f.right)} of ${f.vw}`);
+        check(`${label} ${screen}: no sideways scroll`, !f.sideways);
+        check(`${label} ${screen}: no clipped line`, !f.clipped);
+        check(`${label} ${screen}: no button over it`, !f.overlaps);
+        check(`${label} ${screen}: ${lang === 'ar' ? 'Arabic' : 'Latin'} text`, lang === 'ar' ? /[\u0600-\u06FF]/.test(f.text) : /[a-z]/i.test(f.text));
+      }
+      await context.close();
+    }
+  }
 }
 
 // ── 3b. the routes not edited by this phase get the shared header, and switching theme keeps what is typed ─────────────

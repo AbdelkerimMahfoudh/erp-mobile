@@ -13,7 +13,7 @@
 //   - the symbol (`dukan-mark`): the pack's D, lettering in launch navy on light and white on dark, the accent violet;
 //   - the launch (`brand-intro`, `brand-intro-frame`, `brand-intro-d`, `brand-intro-ukan`, `brand-intro-erp`): the D
 //     centred, then easing left as UKAN is revealed from the left; ERP fading in beside the N; a brief hold; the fade —
-//     settled 280 wide, 1.2 s in all; the native splash shows the D at the same width (`imageWidth`).
+//     settled 280 wide, 2 s in all (motion 1.4 s); the native splash shows the D at the same width (`imageWidth`).
 //
 // Checks, signed out (no account is used and nothing is sent):
 //   1. configuration: an opaque RGB 1024×1024 icon; iPhone only; light/dark; the splash's colours and its width;
@@ -21,7 +21,7 @@
 //      colours for the surface, never mirrored, inside the viewport; the wordmark whole; the canvas; no sideways scroll;
 //   3. no theme-boot flash: every frame of the start is painted in the theme the page will settle in;
 //   4. the launch animation: the D starts centred and ends left, UKAN is revealed, ERP fades in, it settles 280 wide
-//      inside the window and goes after ~1.2 s; ordinary navigation never plays it again;
+//      inside the window and goes after ~2 s (a tap skips it); ordinary navigation never plays it again;
 //   5. Reduce Motion: nothing moves, and nothing is held.
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -73,7 +73,8 @@ const hexToRgb = (h) => `rgb(${parseInt(h.slice(1, 3), 16)}, ${parseInt(h.slice(
 // ── 1. configuration ─────────────────────────────────────────────────────────────────────────────────────────────────
 {
   check('the brand contract was read from the checkout', Object.values(PACK).every((v) => /^#/.test(v)) && Object.values(INTRO).every((v) => Number.isFinite(v) && v > 0) && SMALL > 0, JSON.stringify({ PACK, INTRO, SMALL }));
-  check('the launch settles 280 wide and lasts 1.2 s (the pack’s README)', INTRO.wordmarkWidth === 280 && INTRO.totalMs === 1200, JSON.stringify(INTRO));
+  // The owner's timing, measured on an iPhone (2026-11-06): the D-to-wordmark motion 1.4 s, 2 s in all.
+  check('the launch settles 280 wide; the motion 1.4 s, 2 s in all (owner, 2026-11-06)', INTRO.wordmarkWidth === 280 && INTRO.totalMs === 2000 && INTRO.moveEndMs - INTRO.holdMs === 1400, JSON.stringify(INTRO));
   check('its phases are in order: hold, move, ERP, fade, end', INTRO.holdMs < INTRO.moveEndMs && INTRO.erpFromMs < INTRO.erpEndMs && INTRO.erpEndMs <= INTRO.fadeAtMs && INTRO.fadeAtMs + INTRO.fadeMs === INTRO.totalMs, JSON.stringify(INTRO));
   for (const id of ['brand-intro', 'brand-intro-frame', 'brand-intro-d', 'brand-intro-ukan', 'brand-intro-erp', 'dukan-mark']) {
     check(`the component names ${id}`, markTsx.includes(`testID="${id}"`));
@@ -316,6 +317,22 @@ const watchIntro = (page) =>
     await page.goBack();
     await page.waitForURL(/\/login/, { timeout: 10000 }).catch(() => null);
     check('navigating back does not play it again', /\/login/.test(page.url()) && !(await watchIntro(page)), page.url());
+  }
+  await context.close();
+}
+// A tap skips forward (owner, 2026-11-06): the wordmark completes and the overlay is gone well before its 2 s.
+{
+  const { context, page } = await open({ scheme: 'light', reducedMotion: 'no-preference', init: INTRO_RECORDER });
+  await page.goto(`${APP}/login`, { waitUntil: 'load' });
+  const skip = page.getByTestId('brand-intro-skip');
+  const shown = await skip.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+  check('the intro offers a tap to skip it', shown);
+  if (shown) {
+    const at = Date.now();
+    await skip.click({ timeout: 2000 }).catch(() => null);
+    const gone = await page.waitForSelector('[data-testid="brand-intro"]', { state: 'detached', timeout: 3000 }).then(() => true).catch(() => false);
+    const ms = Date.now() - at;
+    check('a tap skips forward: the overlay goes within 0.8 s', gone && ms <= 800, `${ms} ms`);
   }
   await context.close();
 }
