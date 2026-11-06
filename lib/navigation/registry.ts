@@ -399,6 +399,9 @@ export function visibleGroups(
  */
 export const EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   '/': 'Bottom tab — Home.',
+  '/branch-new': 'Adding a store (0130): the Owner opens it from the store list, its one entry point.',
+  '/branch-request/[id]': 'A store waiting for activation, read-only (0130): opened from its row in the store list.',
+  '/branch-setup': 'A newly active store’s setup checklist (0130): offered once, on its first opening from the store list.',
   '/+not-found': 'An address the app does not have — reached only by a wrong link, never from a menu.',
   '/sell': 'The full sale — no longer a tab, still a route. Reached from Quick Sell (Home’s Sell, docs/59 D75); kept so links and the saved cart keep working.',
   '/stores': 'Legacy link — redirects to the Partners tab.',

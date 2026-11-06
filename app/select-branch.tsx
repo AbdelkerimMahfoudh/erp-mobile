@@ -3,10 +3,11 @@ import { displayName } from '../lib/display-name';
 import { StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { CircleUserRound, LogOut, Store, Warehouse } from 'lucide-react-native';
+import { CircleUserRound, Clock, LogOut, Plus, Store, Warehouse } from 'lucide-react-native';
 import { LegalPageButtons } from '../components/legal/LegalPages';
 import {
   Button,
+  Chip,
   EmptyState,
   ErrorState,
   ListRow,
@@ -14,6 +15,8 @@ import {
   SkeletonList,
   Text,
 } from '../components/ui';
+import { BRANCH_REQUESTS_KEY, checklistDoneKey, isWaiting, offersChecklist, stateLabelKey, type BranchRequest } from '../lib/branch-requests';
+import { getItem } from '../lib/storage';
 import { api } from '../lib/api-client';
 import { qk } from '../lib/query-keys';
 import { useBranch } from '../lib/branch';
@@ -46,6 +49,25 @@ export default function SelectBranch() {
     queryKey: qk.branches,
     queryFn: () => api.get<UserBranch[]>('/auth/branches'),
   });
+  // 0130: the Owner adds stores here, and sees the ones waiting for activation. Owner of any store in the business.
+  const isOwner = !!query.data?.some((b) => b.role === 'owner');
+  const requests = useQuery({
+    queryKey: BRANCH_REQUESTS_KEY,
+    queryFn: () => api.get<BranchRequest[]>('/branches/requests'),
+    enabled: isOwner,
+  });
+  const waiting = (requests.data ?? []).filter(isWaiting);
+
+  const choose = async (branch: UserBranch) => {
+    // Chosen on purpose: the store becomes active and the Home tab opens. `dismissTo` closes this list and
+    // shows the existing tabs on Home — nothing is pushed, so there is no second Home and no way "back" to
+    // More from it (Build 6). On a first choice, with no tabs yet, it replaces this list with them.
+    setBranch(branch);
+    // A store just activated from a request, opened for the first time: its setup checklist, once (0130).
+    const done = (await getItem(checklistDoneKey(branch.id)).catch(() => null)) === '1';
+    router.dismissTo(HOME);
+    if (offersChecklist(branch.id, requests.data, done)) router.push('/branch-setup');
+  };
 
   return (
     <Screen gap="lg">
@@ -107,15 +129,21 @@ export default function SelectBranch() {
               ]
                 .filter(Boolean)
                 .join(' · ')}
-              onPress={() => {
-                // Chosen on purpose: the store becomes active and the Home tab opens. `dismissTo` closes this list and
-                // shows the existing tabs on Home — nothing is pushed, so there is no second Home and no way "back" to
-                // More from it (Build 6). On a first choice, with no tabs yet, it replaces this list with them.
-                setBranch(branch);
-                router.dismissTo(HOME);
-              }}
+              onPress={() => void choose(branch)}
             />
           ))}
+          {/* Waiting for activation: shown, never chosen — the row opens its read-only status page. */}
+          {waiting.map((r) => (
+            <ListRow
+              key={r.id}
+              leading={Clock}
+              title={r.name}
+              subtitle={[r.address, t(stateLabelKey(r.state))].filter(Boolean).join(' · ')}
+              accessory={<Chip label={t('branchRequest.badge')} tone="warning" size="sm" dot={false} />}
+              onPress={() => router.push({ pathname: '/branch-request/[id]', params: { id: r.id } })}
+            />
+          ))}
+          {isOwner ? <Button title={t('branchRequest.add')} variant="secondary" icon={Plus} onPress={() => router.push('/branch-new')} /> : null}
         </View>
       )}
     </Screen>

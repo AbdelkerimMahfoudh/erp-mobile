@@ -108,6 +108,10 @@ export const BACK_PARENTS: Readonly<Record<string, string>> = {
   '/acting-owner': TABS.more,
   '/return-policy': TABS.more,
   '/invite': TABS.more,
+  // 0130: adding a store, from the store list; a waiting store's status page; a new store's setup checklist (Home).
+  '/branch-new': TABS.more,
+  '/branch-request/[id]': TABS.more,
+  '/branch-setup': TABS.home,
   // The person's own account (docs/64), and its detail screens: deletion, communication preferences (D213).
   '/account': TABS.more,
   '/account/delete': '/account',
