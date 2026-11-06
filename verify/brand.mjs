@@ -320,19 +320,21 @@ const watchIntro = (page) =>
   }
   await context.close();
 }
-// A tap skips forward (owner, 2026-11-06): the wordmark completes and the overlay is gone well before its 2 s.
+// A touch skips forward (owner, 2026-11-06): the overlay never takes the tap — it reaches the screen — and the intro
+// completes and goes well before its 2 s.
 {
   const { context, page } = await open({ scheme: 'light', reducedMotion: 'no-preference', init: INTRO_RECORDER });
   await page.goto(`${APP}/login`, { waitUntil: 'load' });
-  const skip = page.getByTestId('brand-intro-skip');
-  const shown = await skip.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
-  check('the intro offers a tap to skip it', shown);
+  const shown = await page.waitForSelector('[data-testid="brand-intro"]', { state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
+  check('the intro covers the first moment (for the skip check)', shown);
   if (shown) {
+    const passThrough = await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="brand-intro"]')).pointerEvents === 'none');
+    check('the intro never takes a tap (touches pass through to the screen)', passThrough);
     const at = Date.now();
-    await skip.click({ timeout: 2000 }).catch(() => null);
+    await page.mouse.click(195, 600);
     const gone = await page.waitForSelector('[data-testid="brand-intro"]', { state: 'detached', timeout: 3000 }).then(() => true).catch(() => false);
     const ms = Date.now() - at;
-    check('a tap skips forward: the overlay goes within 0.8 s', gone && ms <= 800, `${ms} ms`);
+    check('a touch skips forward: the overlay goes within 0.8 s', gone && ms <= 800, `${ms} ms`);
   }
   await context.close();
 }
