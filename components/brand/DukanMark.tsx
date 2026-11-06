@@ -63,7 +63,7 @@ export function resetBrandIntroForTests() {
 }
 
 /**
- * The launch's first moment after the native splash (the pack's 1.2 seconds): the D centred where the splash left it;
+ * The launch's first moment after the native splash (2.6 seconds, the motion 1.8 — lib/brand.ts): the D centred where the splash left it;
  * then it eases left as UKAN slides right and is revealed from the left; ERP fades in beside the N; a brief hold; the
  * fade into the app. The three layers share the wordmark's canvas, as the pack's Motion/ folder does. With Reduce
  * Motion the full wordmark is shown still and the overlay goes.

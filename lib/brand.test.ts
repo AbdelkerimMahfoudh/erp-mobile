@@ -44,12 +44,14 @@ test('the home icon and the dark splash image are the pack’s files, byte for b
   assert.equal(sha(read('assets/images/icon.png')).length, 64);
 });
 
-test('the launch: the pack’s 1.2 seconds, the D handed over from the splash at the same width', () => {
+test('the launch: the D-to-wordmark motion takes 1.8 seconds (owner, 2026-11-06), the D handed over from the splash at the same width', () => {
   assert.deepEqual(
     [BRAND_INTRO.holdMs, BRAND_INTRO.moveEndMs, BRAND_INTRO.erpFromMs, BRAND_INTRO.erpEndMs, BRAND_INTRO.totalMs],
-    [150, 800, 700, 950, 1200],
+    [200, 2000, 1800, 2200, 2600],
   );
   assert.ok(BRAND_INTRO.fadeAtMs + BRAND_INTRO.fadeMs <= BRAND_INTRO.totalMs);
+  const motion = BRAND_INTRO.moveEndMs - BRAND_INTRO.holdMs;
+  assert.ok(motion >= 1600 && motion <= 2000);
   assert.deepEqual([CANVAS.width, CANVAS.height, CANVAS.symbolWidth], [1540, 238, 335]);
   assert.equal(BRAND_INTRO.size, Math.round((BRAND_INTRO.wordmarkWidth * CANVAS.symbolWidth) / CANVAS.width));
   const app = JSON.parse(read('app.json').toString()).expo;

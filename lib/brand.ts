@@ -33,9 +33,9 @@ const unitsOf = (viewBox: string) => viewBox.split(/\s+/).map(Number) as [number
 export const CANVAS = { width: unitsOf(PACK.motionD.viewBox)[2], height: unitsOf(PACK.motionD.viewBox)[3], symbolWidth: unitsOf(PACK.symbol.viewBox)[2] } as const;
 
 /**
- * The launch (the pack's README, "Launch timing, 1.2 seconds total"):
- * 0–150 ms the D centred; 150–800 ms the D eases left while UKAN slides right and is revealed left to right;
- * 700–950 ms ERP fades in beside the N; 950–1200 ms a brief hold, then the fade into the app.
+ * The launch (owner, 2026-11-06: the pack's 1.2 s moved too fast; the D-to-wordmark motion now takes 1.8 s):
+ * 0–200 ms the D centred; 200–2000 ms the D eases left while UKAN slides right and is revealed left to right;
+ * 1800–2200 ms ERP fades in beside the N; 2200–2600 ms a brief hold, then the fade into the app.
  * The pack scales nothing, so the D is drawn at its place in the final wordmark from the first frame, and the native
  * splash shows it at that same width (`size`, app.json `imageWidth`): the hand-over does not move it.
  */
@@ -44,12 +44,12 @@ export const BRAND_INTRO = {
   wordmarkWidth: WORDMARK_WIDTH,
   /** The D's width at the start, and the splash image's: its share of the wordmark. */
   size: Math.round((WORDMARK_WIDTH * 335) / 1540),
-  holdMs: 150,
-  moveEndMs: 800,
-  erpFromMs: 700,
-  erpEndMs: 950,
-  fadeAtMs: 1050,
-  totalMs: 1200,
-  fadeMs: 150,
+  holdMs: 200,
+  moveEndMs: 2000,
+  erpFromMs: 1800,
+  erpEndMs: 2200,
+  fadeAtMs: 2400,
+  totalMs: 2600,
+  fadeMs: 200,
   reducedHoldMs: 250,
 } as const;
