@@ -1,4 +1,5 @@
 import React from 'react';
+import { useEntitlement } from '../lib/entitlement';
 import { displayName } from '../lib/display-name';
 import { StyleSheet, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -45,6 +46,13 @@ export default function SelectBranch() {
   const { signOut, user } = useAuth();
   const router = useRouter();
 
+  // 0132 (docs/122): each store's own access, shown beside it. Information only: activation stays outside the app.
+  const access = useEntitlement();
+  const storeNote = (id: string): string | null => {
+    const s = access.data?.branches?.find((b) => b.branchId === id);
+    if (!s || s.canWrite) return null;
+    return t(`access.branch.state.${s.state}` as never);
+  };
   const query = useQuery({
     queryKey: qk.branches,
     queryFn: () => api.get<UserBranch[]>('/auth/branches'),
@@ -124,6 +132,8 @@ export default function SelectBranch() {
               title={displayName(branch, language)}
               subtitle={[
                 branch.id === branchId ? t('branch.select.current') : null,
+                // 0132: a store that cannot record says so in words — its access is its own.
+                storeNote(branch.id),
                 t(`branch.type.${branch.type}` as never),
                 t(`team.role.${branch.role}` as never),
               ]

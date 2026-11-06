@@ -110,7 +110,22 @@ export interface GraceView {
   nextUseRestoredAt: string | null;
 }
 
+/** 0132 (docs/122): one store's own access — its state and end, from the server. No price, no payment. */
+export interface StoreAccess {
+  branchId: string;
+  name: string;
+  nameAr?: string | null;
+  state: 'suspended' | 'locked' | 'complimentary' | 'trial_active' | 'active' | 'grace' | 'trial_expired' | 'expired';
+  canWrite: boolean;
+  trialEndsAt: string | null;
+  paidUntil: string | null;
+  complimentaryUntil: string | null;
+  graceEndsAt: string | null;
+}
+
 export interface Entitlement {
+  /** 0132: each store this person may see — an Owner every store, anyone else their own. Absent from older servers. */
+  branches?: StoreAccess[];
   state: EntitlementState;
   periodEnd: string | null;
   graceEnd: string | null;

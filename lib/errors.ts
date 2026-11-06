@@ -65,6 +65,18 @@ export function toFriendlyError(error: unknown): FriendlyError {
     if (error.status === 409 && error.code === 'write_conflict') {
       return { titleKey: 'error.writeConflict.title', title: t('error.writeConflict.title'), body: t('error.writeConflict.body'), retryable: true, permissionDenied: false };
     }
+    // 0132 (docs/122): each store is its own subscription — this store is locked, or its access ended.
+    if (error.status === 403 && (error.code === 'BRANCH_LOCKED' || error.code === 'BRANCH_ENTITLEMENT_WRITE_BLOCKED')) {
+      const key = error.code === 'BRANCH_LOCKED' ? 'access.branch.locked' : 'access.branch.ended';
+      return {
+        titleKey: `${key}.title`,
+        title: t(`${key}.title` as never),
+        body: t(`${key}.body` as never),
+        retryable: false,
+        permissionDenied: false,
+        status: error.status,
+      };
+    }
     if (error.status === 403 && error.code === 'ENTITLEMENT_WRITE_BLOCKED') {
       return {
         titleKey: 'access.blocked.title',

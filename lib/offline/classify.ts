@@ -59,7 +59,7 @@ export function classifyError(error: unknown, online = true): ClassifiedError {
         subscribed to the activity (D156) is the same kind of thing: what the
         business has, not what the person may do.
       */
-      if (e.code === 'ENTITLEMENT_WRITE_BLOCKED' || e.code === 'activity_not_subscribed') {
+      if (e.code === 'ENTITLEMENT_WRITE_BLOCKED' || e.code === 'activity_not_subscribed' || e.code === 'BRANCH_LOCKED' || e.code === 'BRANCH_ENTITLEMENT_WRITE_BLOCKED') {
         return withCode({ kind: 'entitlement_blocked', message, status });
       }
       return withCode({ kind: 'permission_denied', message, status });
