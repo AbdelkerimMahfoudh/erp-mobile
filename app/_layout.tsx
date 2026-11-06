@@ -14,7 +14,7 @@ import { TestBusinessBanner } from '../components/ui/TestBusinessBanner';
 import { ActingOwnerBanner } from '../components/ui/ActingOwnerBanner';
 import { RenewalReminderBanner } from '../components/ui/RenewalReminderBanner';
 import { PushBridge } from '../components/notifications/PushBridge';
-import { BrandIntro } from '../components/brand/DukanMark';
+import { BrandIntro, skipBrandIntro } from '../components/brand/DukanMark';
 import { API_ORIGIN_REFUSAL } from '../constants/config';
 import { headerBackFor } from '../components/navigation/HeaderBack';
 import { BACK_PARENTS, routeOfName } from '../lib/navigation/back';
@@ -122,7 +122,14 @@ function AppShell() {
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.surface.canvas }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: colors.surface.canvas }}
+      // The first touch skips the launch intro forward and still reaches what it touched (never claimed here).
+      onStartShouldSetResponderCapture={() => {
+        skipBrandIntro();
+        return false;
+      }}
+    >
       <NavigationThemeProvider value={navigationTheme}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>

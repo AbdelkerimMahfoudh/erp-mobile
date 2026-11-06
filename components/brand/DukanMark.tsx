@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { G, Path } from 'react-native-svg';
 import { Text } from '../ui/Text';
@@ -58,6 +58,16 @@ export function DukanLockup({ size = 32, style }: { size?: number; style?: Style
 
 /** Once per process: the intro is a launch, never a screen's decoration. */
 let introPlayed = false;
+/** The playing intro's skip, while it plays. */
+let skipIntro: (() => void) | null = null;
+
+/**
+ * Any touch on the app skips the intro forward (owner, 2026-11-06) — and still reaches what it touched: the overlay never
+ * takes a tap, so a ready app never waits and the first tap is never lost. Called by the root's touch capture.
+ */
+export function skipBrandIntro() {
+  skipIntro?.();
+}
 export function resetBrandIntroForTests() {
   introPlayed = false;
 }
@@ -117,6 +127,15 @@ export function BrandIntro() {
     cover.value = withTiming(0, { duration: BRAND_INTRO.skipFadeMs }, (ok) => ok && runOnJS(setDone)(true));
   };
 
+  useEffect(() => {
+    if (done) return;
+    skipIntro = skip;
+    return () => {
+      skipIntro = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done]);
+
   const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
   const dStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
   // UKAN slides in from under the D and is uncovered from the left: its window widens as it moves.
@@ -126,8 +145,7 @@ export function BrandIntro() {
   if (done) return null;
   const height = width * (CANVAS.height / CANVAS.width);
   return (
-    <Animated.View testID="brand-intro" style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
-      <Pressable testID="brand-intro-skip" accessibilityRole="button" accessibilityLabel={t('brand.skipIntro')} onPressIn={skip} style={[StyleSheet.absoluteFill, styles.intro]}>
+    <Animated.View testID="brand-intro" pointerEvents="none" accessibilityLabel={t('brand.skipIntro')} style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
       <View testID="brand-intro-frame" style={{ width, height }}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.clip, ukanStyle]}>
           <PackSvg testID="brand-intro-ukan" art={PACK.motionUkan} width={width} tone={tone} />
@@ -139,7 +157,6 @@ export function BrandIntro() {
           <PackSvg testID="brand-intro-d" art={PACK.motionD} width={width} tone={tone} />
         </Animated.View>
       </View>
-      </Pressable>
     </Animated.View>
   );
 }

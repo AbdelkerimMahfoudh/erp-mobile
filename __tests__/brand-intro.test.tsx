@@ -15,7 +15,7 @@ function Harness({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => resetBrandIntroForTests());
 
-it('plays once (a tap skips it forward), and is gone when it has played', async () => {
+it('plays once, lets every touch through (a touch skips it forward), and is gone when it has played', async () => {
   const first = await render(
     <Harness>
       <BrandIntro />
