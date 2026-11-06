@@ -1097,6 +1097,8 @@ export const en = {
   'access.state.trial_available': 'Not active',
   'access.state.trial_active': 'Active',
   'access.state.trial_expired': 'Access ended',
+  // 0131 (owner's wording, 2026-11-06): shown before the registration is completed.
+  'access.state.trial_disclosure': 'Your 7-day trial starts immediately after registration. No payment is taken automatically.',
   'access.active.until': 'Your business access is active until {date}.',
   'access.active.open': 'Your business access is active.',
   'access.grace.body': 'Your business is in its grace period. Changes are accepted until {deadline}.',

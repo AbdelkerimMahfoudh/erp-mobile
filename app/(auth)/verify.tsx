@@ -194,6 +194,11 @@ export default function VerifyScreen() {
             </View>
           ) : null}
 
+          {/* 0131: confirming the code completes the registration — the trial starts then; said before it is pressed. */}
+          <InlineNotice tone="info" testID="registration-disclosure">
+            {t('access.state.trial_disclosure')}
+          </InlineNotice>
+
           <View style={styles.group}>
             <Button
               title={t('register.verify.confirm')}

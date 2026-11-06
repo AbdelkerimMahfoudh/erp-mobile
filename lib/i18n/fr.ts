@@ -1163,6 +1163,8 @@ export const fr: Catalogue = {
   'access.state.trial_available': 'Non actif',
   'access.state.trial_active': 'Actif',
   'access.state.trial_expired': 'Accès terminé',
+  // 0131 (owner's wording, 2026-11-06): shown before the registration is completed.
+  'access.state.trial_disclosure': 'Votre période d’essai de 7 jours commence immédiatement après l’inscription. Aucun paiement n’est prélevé automatiquement.',
   'access.active.until': 'L’accès de votre entreprise est actif jusqu’au {date}.',
   'access.active.open': 'L’accès de votre entreprise est actif.',
   'access.grace.body': 'Votre entreprise est dans sa période de grâce. Les modifications sont acceptées jusqu’au {deadline}.',

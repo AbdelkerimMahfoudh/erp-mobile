@@ -691,16 +691,19 @@ const TRIAL_COPY: Record<string, Record<string, string>> = {
     'access.state.trial_available': 'Not active',
     'access.state.trial_active': 'Active',
     'access.state.trial_expired': 'Access ended',
+    'access.state.trial_disclosure': 'Your 7-day trial starts immediately after registration. No payment is taken automatically.',
   },
   fr: {
     'access.state.trial_available': 'Non actif',
     'access.state.trial_active': 'Actif',
     'access.state.trial_expired': 'Accès terminé',
+    'access.state.trial_disclosure': 'Votre période d’essai de 7 jours commence immédiatement après l’inscription. Aucun paiement n’est prélevé automatiquement.',
   },
   ar: {
     'access.state.trial_available': 'غير مفعّل',
     'access.state.trial_active': 'نشط',
     'access.state.trial_expired': 'انتهى الوصول',
+    'access.state.trial_disclosure': 'تبدأ فترة التجربة لمدة 7 أيام فور إكمال التسجيل. لن يتم تحصيل أي مبلغ تلقائيًا.',
   },
 };
 
@@ -943,6 +946,8 @@ describe('the words', () => {
     for (const lang of LANGS) {
       for (const [key, value] of entries(lang)) {
         if (!/^(access\.|nav\.access|auth\.|register\.|trialSetup\.|legal\.|sync\.reason\.entitlement_blocked|hub\.business\.desc|more\.group\.account)/.test(key)) continue;
+        // 0131: the owner's own disclosure says nothing is charged — held word for word by the trial-copy check below.
+        if (key === 'access.state.trial_disclosure' && value === TRIAL_COPY[lang][key]) continue;
         assert.doesNotMatch(value, forbidden, `${lang} ${key}: ${value}`);
       }
     }

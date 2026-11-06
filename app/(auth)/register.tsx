@@ -4,7 +4,7 @@ import { Platform, View, type ScrollViewInstance, type TextInputInstance, type V
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthPage } from '../../components/auth/AuthChrome';
-import { AuthLanguageSwitch, Button, Card, TextField } from '../../components/ui';
+import { AuthLanguageSwitch, Button, Card, InlineNotice, TextField } from '../../components/ui';
 import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
 import { PromoCodeField, useAcquisition } from '../../components/registration/PromoCodeField';
 import { acquisitionPending, claimOf } from '../../lib/acquisition';
@@ -542,6 +542,13 @@ export default function RegisterScreen() {
             <Text variant="body" tone="danger" align="center">
               {failure}
             </Text>
+          ) : null}
+
+          {/* 0131: read before the account is created — the trial starts by itself, and nothing is charged. */}
+          {last ? (
+            <InlineNotice tone="info" testID="registration-disclosure">
+              {t('access.state.trial_disclosure')}
+            </InlineNotice>
           ) : null}
 
           <View style={styles.actions}>

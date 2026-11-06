@@ -1089,6 +1089,8 @@ export const ar: Catalogue = {
   'access.state.trial_available': 'غير مفعّل',
   'access.state.trial_active': 'نشط',
   'access.state.trial_expired': 'انتهى الوصول',
+  // 0131 (owner's wording, 2026-11-06): shown before the registration is completed.
+  'access.state.trial_disclosure': 'تبدأ فترة التجربة لمدة 7 أيام فور إكمال التسجيل. لن يتم تحصيل أي مبلغ تلقائيًا.',
   'access.active.until': 'صلاحية وصول متجرك سارية حتى {date}.',
   'access.active.open': 'صلاحية وصول متجرك سارية.',
   'access.grace.body': 'متجرك في فترة السماح. تُقبل التغييرات حتى {deadline}.',

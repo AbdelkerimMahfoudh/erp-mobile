@@ -115,7 +115,8 @@ function screenText(): string {
     else if (node && typeof node === 'object') walk((node as { children?: unknown }).children ?? []);
   };
   walk(screen.toJSON());
-  const copies = Object.values(CONSENT_COPY).flatMap((c) => [c.agreement, c.body]);
+  // The server's consent copy, and the owner's trial disclosure (0131) — each held word for word by its own check.
+  const copies = [...Object.values(CONSENT_COPY).flatMap((c) => [c.agreement, c.body]), t('access.state.trial_disclosure')];
   return texts.filter((text) => !copies.includes(text)).join(' ');
 }
 
@@ -757,5 +758,21 @@ describe('the code check', () => {
     expect(screen.queryByText(/Forbidden resource/)).toBeNull();
     await screen.unmount();
     await useI18n.getState().setLanguage('en');
+  });
+});
+
+describe('the trial disclosure (0131, the owner’s wording of 2026-11-06)', () => {
+  it('is read on the last step, before the account is created — and not before', async () => {
+    await renderWith(<RegisterScreen />);
+    expect(screen.queryByTestId('registration-disclosure')).toBeNull();
+    await toLastStep();
+    expect(screen.getByTestId('registration-disclosure')).toBeTruthy();
+    expect(JSON.stringify(screen.toJSON())).toContain('Your 7-day trial starts immediately after registration. No payment is taken automatically.');
+  });
+
+  it('is read again above the code’s confirmation, which completes the registration', async () => {
+    (api.post as jest.Mock).mockImplementation(async (path: string) => (path === '/auth/register/verify/start' ? { delivery: 'sent' } : {}));
+    await renderWith(<VerifyScreen />);
+    expect(await screen.findByTestId('registration-disclosure')).toBeTruthy();
   });
 });
