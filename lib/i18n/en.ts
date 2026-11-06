@@ -4649,6 +4649,7 @@ export const en = {
   'register.field.ownerNameAr': 'Your name in Arabic (اسمك بالعربية)',
   // ── Product name (D225) ──
   'brand.name': 'Dukan ERP',
+  'brand.skipIntro': 'Skip the intro',
   // ── Permission explanations (D225) ──
   'scanner.permission.benefit.scan': 'Scan an IMEI, serial or barcode in a second instead of typing it.',
   'scanner.permission.benefit.mistakes': 'No mistyped digit: the code is read exactly.',

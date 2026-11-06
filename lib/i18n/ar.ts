@@ -4584,6 +4584,7 @@ export const ar: Catalogue = {
   'register.field.ownerNameAr': 'اسمك بالعربية',
   // ── Product name (D225) ──
   'brand.name': 'تطبيق دكان',
+  'brand.skipIntro': 'تخطي المقدمة',
   // ── Permission explanations (D225) ──
   'scanner.permission.benefit.scan': 'امسح رقم IMEI أو الرقم التسلسلي أو الرمز الشريطي في ثانية بدل كتابته.',
   'scanner.permission.benefit.mistakes': 'لا رقم مكتوب خطأً: يُقرأ الرمز كما هو تمامًا.',

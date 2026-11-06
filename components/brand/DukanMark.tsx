@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { G, Path } from 'react-native-svg';
 import { Text } from '../ui/Text';
 import { useColors, useTheme } from '../../lib/design/theme';
@@ -71,6 +71,7 @@ export function resetBrandIntroForTests() {
 export function BrandIntro() {
   const colors = useColors();
   const dark = useTheme().isDark;
+  const { t } = useTranslation();
   // The pack's launch navy behind its own artwork; on light, the light canvas, as the light splash.
   const background = dark ? PACK_COLOURS.launchNavy : colors.surface.canvas;
   const tone = markColours(dark ? 'dark' : 'light');
@@ -106,6 +107,16 @@ export function BrandIntro() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A tap skips forward (owner, 2026-11-06): the wordmark completes at once and the overlay fades — a ready app never
+  // waits for the full intro.
+  const skip = () => {
+    for (const v of [shift, reveal, erp, cover]) cancelAnimation(v);
+    shift.value = 0;
+    reveal.value = 1;
+    erp.value = 1;
+    cover.value = withTiming(0, { duration: BRAND_INTRO.skipFadeMs }, (ok) => ok && runOnJS(setDone)(true));
+  };
+
   const coverStyle = useAnimatedStyle(() => ({ opacity: cover.value }));
   const dStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
   // UKAN slides in from under the D and is uncovered from the left: its window widens as it moves.
@@ -115,7 +126,8 @@ export function BrandIntro() {
   if (done) return null;
   const height = width * (CANVAS.height / CANVAS.width);
   return (
-    <Animated.View testID="brand-intro" pointerEvents="none" style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
+    <Animated.View testID="brand-intro" style={[StyleSheet.absoluteFill, styles.intro, { backgroundColor: background }, coverStyle]}>
+      <Pressable testID="brand-intro-skip" accessibilityRole="button" accessibilityLabel={t('brand.skipIntro')} onPressIn={skip} style={[StyleSheet.absoluteFill, styles.intro]}>
       <View testID="brand-intro-frame" style={{ width, height }}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.clip, ukanStyle]}>
           <PackSvg testID="brand-intro-ukan" art={PACK.motionUkan} width={width} tone={tone} />
@@ -127,6 +139,7 @@ export function BrandIntro() {
           <PackSvg testID="brand-intro-d" art={PACK.motionD} width={width} tone={tone} />
         </Animated.View>
       </View>
+      </Pressable>
     </Animated.View>
   );
 }

@@ -51,5 +51,7 @@ export const BRAND_INTRO = {
   fadeAtMs: 2400,
   totalMs: 2600,
   fadeMs: 200,
+  /** A tap skips forward: the wordmark completes and the overlay fades this fast. */
+  skipFadeMs: 150,
   reducedHoldMs: 250,
 } as const;

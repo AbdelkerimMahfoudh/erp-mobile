@@ -4813,6 +4813,7 @@ export const fr: Catalogue = {
   'register.field.ownerNameAr': 'Votre nom en arabe (اسمك بالعربية)',
   // ── Product name (D225) ──
   'brand.name': 'Dukan ERP',
+  'brand.skipIntro': 'Passer l’introduction',
   // ── Permission explanations (D225) ──
   'scanner.permission.benefit.scan': 'Scannez un IMEI, un numéro de série ou un code-barres en une seconde, sans le saisir.',
   'scanner.permission.benefit.mistakes': 'Aucun chiffre mal tapé : le code est lu exactement.',

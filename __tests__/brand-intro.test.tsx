@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 /**
- * The launch's brand moment (the owner's brand pack, 2026-10-29): once per process, never blocking a tap, gone after it
- * plays — and the auth pages wear the mark, not a storefront.
+ * The launch's brand moment (the owner's brand pack, 2026-10-29): once per process, gone after it
+ * plays, a tap skipping it forward — and the auth pages wear the mark, not a storefront.
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
@@ -15,7 +15,7 @@ function Harness({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => resetBrandIntroForTests());
 
-it('plays once, lets every touch through, and is gone when it has played', async () => {
+it('plays once (a tap skips it forward), and is gone when it has played', async () => {
   const first = await render(
     <Harness>
       <BrandIntro />
