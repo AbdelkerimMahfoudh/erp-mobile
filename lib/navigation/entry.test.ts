@@ -40,6 +40,19 @@ it('the branch list opened on purpose stays open, with a store chosen or not —
   assert.equal(entryRoute(state({ segment: undefined, branchChosen: true })), APP_HOME);
 });
 
+it('adding a store and reading a store request stay open before a store is chosen (owner, iPhone, 2026-11-07)', () => {
+  // Opened from the branch list right after sign-in: sending them back to that list looped forever.
+  for (const segment of ['branch-new', 'branch-request']) {
+    assert.equal(entryRoute(state({ segment, branchChosen: false })), null);
+    assert.equal(entryRoute(state({ segment, branchChosen: true })), null);
+    assert.equal(entryRoute(state({ segment, signedIn: false, branchChosen: false })), LOGIN);
+    assert.equal(entryRoute(state({ segment, closed: true })), ACCESS_CLOSED);
+  }
+  // Every store's own screen still needs a store first.
+  assert.equal(entryRoute(state({ segment: 'branch-setup', branchChosen: false })), SELECT_BRANCH);
+  assert.equal(entryRoute(state({ segment: 'sales', branchChosen: false })), SELECT_BRANCH);
+});
+
 it('the /stores redirect: its session expired — to sign-in, from the redirect or from where it landed', () => {
   for (const segment of ['stores', '(tabs)']) {
     assert.equal(entryRoute(state({ segment, signedIn: false, branchChosen: false })), LOGIN);

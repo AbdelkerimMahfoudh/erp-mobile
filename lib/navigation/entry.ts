@@ -42,6 +42,9 @@ export function entryRoute(s: EntryState): string | null {
   // account are rights the business's access cannot withhold, so the closed
   // screen may lead there and the guard leaves them there.
   const onAccount = s.segment === 'account';
+  // Adding a store and reading a store request belong to the business, not to a store (0130): the Owner opens them
+  // from the branch list before choosing a store, so the guard must not send them back to that list.
+  const onStoreRequest = s.segment === 'branch-new' || s.segment === 'branch-request';
 
   if (s.closed) return onStateScreen || onAccount ? null : ACCESS_CLOSED;
   // The design-system gallery renders without a session (development only).
@@ -49,7 +52,7 @@ export function entryRoute(s: EntryState): string | null {
 
   if (!s.signedIn && !inAuth) return LOGIN;
   // Their own account needs no branch: a login assigned to none can still verify a number or delete itself there.
-  if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen && !onAccount) return SELECT_BRANCH;
+  if (s.signedIn && !s.branchChosen && !onSelectBranch && !onStateScreen && !onAccount && !onStoreRequest) return SELECT_BRANCH;
   // The splash at the root and sign-in move on once there is a session and a branch. The branch list does NOT: opened on
   // purpose from More to switch or manage stores, it stays open until a store is chosen there (Build 6) — its own choice
   // then leads to Home (`app/select-branch.tsx`). Redirecting from it here pushed a second Home above More.
