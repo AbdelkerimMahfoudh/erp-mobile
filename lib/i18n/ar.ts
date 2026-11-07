@@ -1937,7 +1937,7 @@ export const ar: Catalogue = {
   'settings.whatsapp.dailyHint': 'موجز قصير في نهاية كل يوم.',
   'settings.whatsapp.monthly': 'ملخّص شهري',
   'settings.whatsapp.monthlyHint': 'صورة أوضح في نهاية كل شهر.',
-  'settings.whatsapp.notYet': 'يُرسل عند إقفال اليوم، والشهري عند إقفال آخر يوم في الشهر. ويظهر كلٌّ منهما أيضًا في إشعاراتك.',
+  'settings.whatsapp.notYet': 'يُرسل عند إقفال اليوم، والشهري عند إقفال آخر يوم من الشهر. ويظهر كلٌّ منهما أيضًا في إشعاراتك.',
 
   // Security
   'settings.security.section': 'الأمان',

@@ -121,10 +121,10 @@ export function BrandIntro() {
   // waits for the full intro.
   const skip = () => {
     for (const v of [shift, reveal, erp, cover]) cancelAnimation(v);
-    shift.value = 0;
-    reveal.value = 1;
-    erp.value = 1;
-    cover.value = withTiming(0, { duration: BRAND_INTRO.skipFadeMs }, (ok) => ok && runOnJS(setDone)(true));
+    shift.set(0);
+    reveal.set(1);
+    erp.set(1);
+    cover.set(withTiming(0, { duration: BRAND_INTRO.skipFadeMs }, (ok) => ok && runOnJS(setDone)(true)));
   };
 
   useEffect(() => {
