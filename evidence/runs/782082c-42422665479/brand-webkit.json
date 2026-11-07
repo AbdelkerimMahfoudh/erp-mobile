@@ -1,0 +1,302 @@
+{
+ "browser": "webkit",
+ "passed": 59,
+ "failed": 0,
+ "results": [
+  {
+   "what": "the brand contract was read from the checkout",
+   "ok": true,
+   "detail": "{\"PACK\":{\"accent\":\"#5146D9\",\"launchNavy\":\"#000A37\",\"lettering\":\"#FFFFFF\",\"lightLettering\":\"#000A37\"},\"INTRO\":{\"wordmarkWidth\":280,\"size\":61,\"holdMs\":150,\"moveEndMs\":1550,\"erpFromMs\":1350,\"erpEndMs\":1700,\"fadeAtMs\":1800,\"totalMs\":2000,\"fadeMs\":200,\"reducedHoldMs\":250},\"SMALL\":28}"
+  },
+  {
+   "what": "the launch settles 280 wide; the motion 1.4 s, 2 s in all (owner, 2026-11-06)",
+   "ok": true,
+   "detail": "{\"wordmarkWidth\":280,\"size\":61,\"holdMs\":150,\"moveEndMs\":1550,\"erpFromMs\":1350,\"erpEndMs\":1700,\"fadeAtMs\":1800,\"totalMs\":2000,\"fadeMs\":200,\"reducedHoldMs\":250}"
+  },
+  {
+   "what": "its phases are in order: hold, move, ERP, fade, end",
+   "ok": true,
+   "detail": "{\"wordmarkWidth\":280,\"size\":61,\"holdMs\":150,\"moveEndMs\":1550,\"erpFromMs\":1350,\"erpEndMs\":1700,\"fadeAtMs\":1800,\"totalMs\":2000,\"fadeMs\":200,\"reducedHoldMs\":250}"
+  },
+  {
+   "what": "the component names brand-intro",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the component names brand-intro-frame",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the component names brand-intro-d",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the component names brand-intro-ukan",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the component names brand-intro-erp",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the component names dukan-mark",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the iOS icon is a PNG of 1024×1024",
+   "ok": true,
+   "detail": "1024×1024"
+  },
+  {
+   "what": "the iOS icon is opaque RGB: colour type 2, 8-bit, no alpha channel",
+   "ok": true,
+   "detail": "type 2, depth 8"
+  },
+  {
+   "what": "the iOS icon carries no transparency chunk (tRNS)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "iPhone only: ios.supportsTablet is false",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "light and dark follow the device: userInterfaceStyle automatic",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the static splash is the D on the light canvas, as the launch’s first frame",
+   "ok": true,
+   "detail": "#F1F3F8 ./assets/images/splash-icon.png"
+  },
+  {
+   "what": "the static splash’s dark variant is on launch navy, as the dark launch",
+   "ok": true,
+   "detail": "{\"image\":\"./assets/images/splash-icon-dark.png\",\"backgroundColor\":\"#000A37\"}"
+  },
+  {
+   "what": "the splash image is 61 wide, the D’s width in the launch: the hand-over does not move it",
+   "ok": true,
+   "detail": "61 vs 61"
+  },
+  {
+   "what": "Android has the adaptive icon’s layers",
+   "ok": true,
+   "detail": "foregroundImage,backgroundImage,monochromeImage,backgroundColor"
+  },
+  {
+   "what": "matrix 320px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 320px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 375px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "matrix 390px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "no theme-boot flash: a dark phone, no stored choice — every sample painted dark (71 samples, 14 before the app was ready)",
+   "ok": true,
+   "detail": "71 samples, 14 before ready"
+  },
+  {
+   "what": "no theme-boot flash: a light phone, dark chosen in the app — every sample painted dark (69 samples, 12 before the app was ready)",
+   "ok": true,
+   "detail": "69 samples, 12 before ready"
+  },
+  {
+   "what": "no theme-boot flash: a dark phone, light chosen in the app — every sample painted light (72 samples, 16 before the app was ready)",
+   "ok": true,
+   "detail": "72 samples, 16 before ready"
+  },
+  {
+   "what": "the launch animation covers the first moment",
+   "ok": true,
+   "detail": "101 samples"
+  },
+  {
+   "what": "the animation’s background is the light canvas, as the static splash",
+   "ok": true,
+   "detail": "rgb(241, 243, 248)"
+  },
+  {
+   "what": "the wordmark’s frame is 280 wide",
+   "ok": true,
+   "detail": "280"
+  },
+  {
+   "what": "the D starts centred, where the splash left it",
+   "ok": true,
+   "detail": "{\"t\":0,\"frameW\":280,\"dLeft\":109.5,\"ukanW\":0,\"erp\":0}"
+  },
+  {
+   "what": "the D ends at the left of the wordmark",
+   "ok": true,
+   "detail": "{\"t\":2002,\"frameW\":280,\"dLeft\":0,\"ukanW\":280,\"erp\":1}"
+  },
+  {
+   "what": "the D moves left only, never back",
+   "ok": true,
+   "detail": "109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.5,109.4,109.3,109.2,108.9,108.7,108.4,108.1,107.3,106.8,106.3,105.7,104.2,103.4,102.5,101.5,99.2,97.9,96.5,95,91.7,89.7,87.7,81.8,78.5,75.9,73.1,70.2,63.6,60.2,56.6,52.9,45.9,42.7,39.6,36.6,33.8,28.6,26.3,23.9,21.8,18,16.3,14.6,13.1,10.5,9.3,8.2,7.1,5.3,4.6,3.9,3.3,2.3,1.8,1.5,1.2,0.7,0.5,0.4,0.2,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+  },
+  {
+   "what": "UKAN is revealed from nothing to the whole wordmark, widening only",
+   "ok": true,
+   "detail": "0 → 280"
+  },
+  {
+   "what": "ERP fades in, after the D has begun to move",
+   "ok": true,
+   "detail": "0 → 1, from 1422 ms"
+  },
+  {
+   "what": "the settled wordmark stays inside the window",
+   "ok": true,
+   "detail": "{\"width\":280,\"left\":55,\"right\":335} in 390"
+  },
+  {
+   "what": "the animation ends and goes (~2000 ms)",
+   "ok": true,
+   "detail": "2022 ms"
+  },
+  {
+   "what": "sign-in offers registration inside the app (for the navigation check)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "navigating to registration does not play the animation again",
+   "ok": true,
+   "detail": "http://127.0.0.1:4320/register"
+  },
+  {
+   "what": "navigating back does not play it again",
+   "ok": true,
+   "detail": "http://127.0.0.1:4320/login"
+  },
+  {
+   "what": "the intro covers the first moment (for the skip check)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "the intro never takes a tap (touches pass through to the screen)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "what": "a touch skips forward: the overlay goes within 0.8 s",
+   "ok": true,
+   "detail": "244 ms"
+  },
+  {
+   "what": "Reduce Motion: nothing moves (no overlay painted, or one still pose)",
+   "ok": true,
+   "detail": "1 distinct poses of 1"
+  },
+  {
+   "what": "Reduce Motion: nothing is held for the animation (gone within 2000 ms, if shown at all)",
+   "ok": true,
+   "detail": "18 ms"
+  },
+  {
+   "what": "Reduce Motion: if it is shown, it is on launch navy, as the dark splash",
+   "ok": true,
+   "detail": "rgb(0, 10, 55)"
+  },
+  {
+   "what": "Reduce Motion: the sign-in screen is there, with its symbol, and no overlay remains",
+   "ok": true,
+   "detail": ""
+  }
+ ]
+}
