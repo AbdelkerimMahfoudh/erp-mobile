@@ -2071,7 +2071,7 @@ export const fr: Catalogue = {
   'settings.whatsapp.monthly': 'Résumé mensuel',
   'settings.whatsapp.monthlyHint': 'Un tableau plus complet à la fin de chaque mois.',
   'settings.whatsapp.notYet':
-    'Enregistré maintenant, envoyé une fois WhatsApp connecté.',
+    'Envoyé à la clôture de la journée, et le mensuel à la clôture du dernier jour du mois. Chacun apparaît aussi dans vos notifications.',
 
   // Security
   'settings.security.section': 'Sécurité',

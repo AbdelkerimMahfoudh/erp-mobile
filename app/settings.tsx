@@ -334,7 +334,7 @@ export default function SettingsScreen() {
             hint={t('settings.whatsapp.dailyHint')}
             onLabel={t('settings.toggle.on')}
             offLabel={t('settings.toggle.off')}
-            value={draft?.dailyEnabled ?? false}
+            value={draft?.dailyEnabled ?? true}
             onValueChange={(v) => setDraft((d) => (d ? { ...d, dailyEnabled: v } : d))}
           />
           <Toggle
@@ -342,7 +342,7 @@ export default function SettingsScreen() {
             hint={t('settings.whatsapp.monthlyHint')}
             onLabel={t('settings.toggle.on')}
             offLabel={t('settings.toggle.off')}
-            value={draft?.monthlyEnabled ?? false}
+            value={draft?.monthlyEnabled ?? true}
             onValueChange={(v) => setDraft((d) => (d ? { ...d, monthlyEnabled: v } : d))}
           />
         </View>

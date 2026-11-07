@@ -1959,7 +1959,7 @@ export const en = {
   'settings.whatsapp.dailyHint': 'A short recap at the end of each day.',
   'settings.whatsapp.monthly': 'Monthly summary',
   'settings.whatsapp.monthlyHint': 'A fuller picture at the end of each month.',
-  'settings.whatsapp.notYet': 'Saved now, sent once WhatsApp is connected.',
+  'settings.whatsapp.notYet': 'Sent when the day is closed, and the monthly one when the month’s last day is closed. Each also appears in your notifications.',
 
   // Security
   'settings.security.section': 'Security',
