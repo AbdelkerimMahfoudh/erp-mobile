@@ -36,7 +36,7 @@ const PKG = 'expo-camera';
  * analysis body, the emitter and `CommonEvents`' barcode event are unchanged
  * upstream (a recording-progress event was appended). Not yet run on a device.
  */
-const PATCHED_VERSION = '58.0.12';
+const PATCHED_VERSION = '58.0.14';
 
 const red = (s) => `[31m${s}[0m`;
 const problems = [];
