@@ -1,0 +1,61 @@
+PASS  the brand contract was read from the checkout
+PASS  the launch settles 280 wide; the motion 1.4 s, 2 s in all (owner, 2026-11-06)
+PASS  its phases are in order: hold, move, ERP, fade, end
+PASS  the component names brand-intro
+PASS  the component names brand-intro-frame
+PASS  the component names brand-intro-d
+PASS  the component names brand-intro-ukan
+PASS  the component names brand-intro-erp
+PASS  the component names dukan-mark
+PASS  the iOS icon is a PNG of 1024×1024
+PASS  the iOS icon is opaque RGB: colour type 2, 8-bit, no alpha channel
+PASS  the iOS icon carries no transparency chunk (tRNS)
+PASS  iPhone only: ios.supportsTablet is false
+PASS  light and dark follow the device: userInterfaceStyle automatic
+PASS  the static splash is the D on the light canvas, as the launch’s first frame
+PASS  the static splash’s dark variant is on launch navy, as the dark launch
+PASS  the splash image is 61 wide, the D’s width in the launch: the hand-over does not move it
+PASS  Android has the adaptive icon’s layers
+PASS  matrix 320px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 320px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 320px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL
+PASS  matrix 320px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 320px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 320px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL
+PASS  matrix 375px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 375px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 375px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL
+PASS  matrix 375px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 375px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 375px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL
+PASS  matrix 390px light en: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 390px light fr: small symbol in the pack’s light colours, not mirrored, wordmark whole, LTR
+PASS  matrix 390px light ar: small symbol in the pack’s light colours, not mirrored, wordmark whole, RTL
+PASS  matrix 390px dark en: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 390px dark fr: small symbol in the pack’s dark colours, not mirrored, wordmark whole, LTR
+PASS  matrix 390px dark ar: small symbol in the pack’s dark colours, not mirrored, wordmark whole, RTL
+PASS  no theme-boot flash: a dark phone, no stored choice — every sample painted dark (75 samples, 19 before the app was ready)
+PASS  no theme-boot flash: a light phone, dark chosen in the app — every sample painted dark (73 samples, 18 before the app was ready)
+PASS  no theme-boot flash: a dark phone, light chosen in the app — every sample painted light (69 samples, 15 before the app was ready)
+PASS  the launch animation covers the first moment
+PASS  the animation’s background is the light canvas, as the static splash
+PASS  the wordmark’s frame is 280 wide
+PASS  the D starts centred, where the splash left it
+PASS  the D ends at the left of the wordmark
+PASS  the D moves left only, never back
+PASS  UKAN is revealed from nothing to the whole wordmark, widening only
+PASS  ERP fades in, after the D has begun to move
+PASS  the settled wordmark stays inside the window
+PASS  the animation ends and goes (~2000 ms)
+PASS  sign-in offers registration inside the app (for the navigation check)
+PASS  navigating to registration does not play the animation again
+PASS  navigating back does not play it again
+PASS  the intro covers the first moment (for the skip check)
+PASS  the intro never takes a tap (touches pass through to the screen)
+PASS  a touch skips forward: the overlay goes within 0.8 s
+PASS  Reduce Motion: nothing moves (no overlay painted, or one still pose)
+PASS  Reduce Motion: nothing is held for the animation (gone within 2000 ms, if shown at all)
+PASS  Reduce Motion: if it is shown, it is on launch navy, as the dark splash
+PASS  Reduce Motion: the sign-in screen is there, with its symbol, and no overlay remains
+
+webkit: brand 59/59 checks passed (matrix 18/18)
