@@ -250,7 +250,10 @@ it('the sign-in screen offers Create a business account — a screen of this app
   assert.match(code, /router\.push\('\/\(auth\)\/register' as never\)/);
   assert.match(code, /auth\.accounts\.managed/);
   // `Platform.OS` is React Native's; a browser sign-up and the console's route and keys are what must be absent.
-  assert.ok(!/signup|\/platform|auth\.action\.platform/i.test(code), 'no browser sign-up and no console entry');
+  // Not on iOS (App Store guideline 3.1.1, owner 2026-11-15): the button is behind the one switch, lib/app-signup.ts.
+  assert.match(code, /APP_SIGNUP_ENABLED \? \(/);
+  const rest = code.replace(/APP_SIGNUP_ENABLED|lib\/app-signup/g, '');
+  assert.ok(!/signup|\/platform|auth\.action\.platform/i.test(rest), 'no browser sign-up and no console entry');
   assert.ok(!/Linking\./.test(code), 'and nothing opens a browser');
 });
 
