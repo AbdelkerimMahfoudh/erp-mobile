@@ -1,7 +1,9 @@
 import { compactStores } from '../../lib/store-list';
 import React, { useCallback, useState } from 'react';
 import { displayName } from '../../lib/display-name';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { KeyRound, Users } from 'lucide-react-native';
+import { usePressed } from '../../components/ui/use-pressed';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { APP_SIGNUP_ENABLED } from '../../lib/app-signup';
 import { LegalPageButtons } from '../../components/legal/LegalPages';
@@ -16,8 +18,8 @@ import { CountryCodeChooser } from '../../components/PhoneField';
 import { forgetContinuation } from '../../lib/registration-session';
 import type { AccountChoice } from '../../types/api';
 import { classifyLoginFailure, type LoginFailureKind } from '../../lib/sign-in-decision';
-import { makeStyles } from '../../lib/design/theme';
-import { space } from '../../lib/design/tokens';
+import { makeStyles, useColors } from '../../lib/design/theme';
+import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 
 /**
  * Signing in.
@@ -269,21 +271,19 @@ export default function Login() {
               the business owner, in Team. One honest sentence, so staff do not
               start a second business by mistake. No price, no link.
             */}
+            {/*
+              Two tiles side by side (the owner's choice B, 2026-11-15). An Owner whose business the platform created
+              (D217): the one-time setup code the platform handed over privately, and a password of their own. The
+              employee's own way in (D213): prove the contact the Owner gave, and choose a password. Neither creates a
+              business.
+            */}
+            <View style={styles.links}>
+              <WayInTile icon={KeyRound} label={t('auth.action.setup')} testID="auth-setup-tile" onPress={() => router.push('/(auth)/setup' as never)} />
+              <WayInTile icon={Users} label={t('auth.action.join')} testID="auth-join-tile" onPress={() => router.push('/(auth)/join' as never)} />
+            </View>
             <Text variant="caption" tone="secondary" align="center" style={styles.managed}>
               {t('auth.accounts.managed')}
             </Text>
-            <View style={styles.links}>
-              {/*
-                The employee's own way in (D213): prove the contact the Owner gave, agree to WhatsApp messages on this
-                phone if it is a number, and choose a password.
-              */}
-              <Button title={t('auth.action.join')} variant="tertiary" onPress={() => router.push('/(auth)/join' as never)} />
-              {/*
-                An Owner whose business the platform created (D217): the one-time setup code the platform handed over
-                privately, and a password of their own. Nothing is sent to them.
-              */}
-              <Button title={t('auth.action.setup')} variant="tertiary" onPress={() => router.push('/(auth)/setup' as never)} />
-            </View>
           </View>
         </>
       )}
@@ -291,7 +291,29 @@ export default function Login() {
   );
 }
 
-const useStyles = makeStyles(() => ({
+/** One way in that is not the sign-in form: an icon above its words, the whole tile one button. */
+function WayInTile({ icon: Icon, label, testID, onPress }: { icon: typeof Users; label: string; testID: string; onPress: () => void }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+      onPress={onPress}
+      {...pressHandlers}
+      style={[styles.tile, pressed && { opacity: pressedOpacity }]}
+    >
+      <Icon size={24} color={colors.text.accent} />
+      <Text variant="labelStrong" align="center">
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+const useStyles = makeStyles((colors) => ({
   heading: {
     gap: space.xs,
   },
@@ -308,6 +330,20 @@ const useStyles = makeStyles(() => ({
     marginTop: space.xs,
   },
   links: {
-    gap: space.xs,
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  tile: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    minHeight: touch.comfortable * 2,
+    paddingVertical: space.base,
+    paddingHorizontal: space.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.card,
   },
 }));

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
-import { space } from '../../lib/design/tokens';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Check, ChevronDown, Globe } from 'lucide-react-native';
+import { pressedOpacity, radius, space, touch } from '../../lib/design/tokens';
 import { InlineNotice } from './InlineNotice';
-import { SegmentedControl } from './SegmentedControl';
+import { usePressed } from './use-pressed';
 import { Text } from './Text';
 import {
   LANGUAGES,
@@ -11,7 +12,7 @@ import {
   useTranslation,
   type Language,
 } from '../../lib/i18n';
-import { makeStyles } from '../../lib/design/theme';
+import { makeStyles, useColors } from '../../lib/design/theme';
 import { DIRECTION_NOTICE_KEYS } from '../../lib/design/direction-restart';
 
 /**
@@ -22,12 +23,12 @@ import { DIRECTION_NOTICE_KEYS } from '../../lib/design/direction-restart';
  * Somebody handed a phone showing a language they cannot read cannot sign in to
  * change the language, and cannot change the language without signing in.
  *
- * So this is deliberately not the settings control. It is compact, it sits on
- * the screens somebody meets first, and it changes the words immediately.
- *
- * Every language is written in its own words and **there are no flags**. A flag
- * is a country, not a language: Arabic is not one country's, and a French flag
- * on a screen in Nouakchott says something nobody meant to say.
+ * A globe button showing the language in use, which opens the three languages
+ * (the owner's choice B, 2026-11-15). The globe is recognisable whatever the
+ * language on screen, and every language is written in its own words — **there
+ * are no flags**. A flag is a country, not a language: Arabic is not one
+ * country's, and a French flag on a screen in Nouakchott says something nobody
+ * meant to say.
  *
  * The preference is the same one the settings row writes — `erp.language`,
  * ordinary preference storage, never the secure store. It is not a secret, and
@@ -40,12 +41,13 @@ import { DIRECTION_NOTICE_KEYS } from '../../lib/design/direction-restart';
  */
 export interface AuthLanguageSwitchProps {
   style?: StyleProp<ViewStyle>;
-  /** Hide the label above the control where the screen is already tight. */
+  /** Kept for the screens that pass it; the globe button is compact on every screen. */
   compact?: boolean;
 }
 
-export function AuthLanguageSwitch({ style, compact = false }: AuthLanguageSwitchProps) {
+export function AuthLanguageSwitch({ style }: AuthLanguageSwitchProps) {
   const styles = useStyles();
+  const colors = useColors();
   const { t } = useTranslation();
   const language = useI18n((s) => s.language);
   const setLanguage = useI18n((s) => s.setLanguage);
@@ -61,35 +63,46 @@ export function AuthLanguageSwitch({ style, compact = false }: AuthLanguageSwitc
    * had not switched anything, which is worse than saying nothing.
    */
   const [switched, setSwitched] = useState(false);
+  const [open, setOpen] = useState(false);
+  const button = usePressed();
 
-  const options = LANGUAGES.map((lang: Language) => ({
-    value: lang,
-    label: LANGUAGE_LABELS[lang],
-  }));
+  /*
+   * Fire and forget, deliberately. `setLanguage` writes a preference and
+   * updates a store; awaiting it here would mean a spinner on a control whose
+   * whole job is to feel instant. Nothing on these screens depends on the write
+   * having landed — and nothing here is a form submission, so a language change
+   * cannot become a second sign-in attempt.
+   */
+  const choose = (lang: Language) => {
+    setOpen(false);
+    if (lang === language) return;
+    setSwitched(true);
+    void setLanguage(lang);
+  };
 
   return (
     <View style={[styles.wrap, style]}>
-      {compact ? null : (
-        <Text variant="caption" tone="secondary" style={styles.label}>
-          {t('settings.language')}
-        </Text>
-      )}
-      <SegmentedControl
-        options={options}
-        value={language}
-        size="sm"
-        /*
-         * Fire and forget, deliberately. `setLanguage` writes a preference and
-         * updates a store; awaiting it here would mean a spinner on a control
-         * whose whole job is to feel instant. Nothing on these screens depends
-         * on the write having landed — and nothing here is a form submission,
-         * so a language change cannot become a second sign-in attempt.
-         */
-        onChange={(lang) => {
-          setSwitched(true);
-          void setLanguage(lang);
-        }}
-      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t('settings.language')}: ${LANGUAGE_LABELS[language]}`}
+        accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        testID="auth-language-button"
+        onPress={() => setOpen((o) => !o)}
+        {...button.pressHandlers}
+        style={[styles.button, button.pressed && styles.pressed]}
+      >
+        <Globe size={16} color={colors.text.accent} />
+        <Text variant="label">{LANGUAGE_LABELS[language]}</Text>
+        <ChevronDown size={16} color={colors.text.tertiary} />
+      </Pressable>
+      {open ? (
+        <View style={styles.list} accessibilityRole="radiogroup">
+          {LANGUAGES.map((lang) => (
+            <LanguageOption key={lang} lang={lang} isCurrent={lang === language} onChoose={choose} />
+          ))}
+        </View>
+      ) : null}
       {switched && direction !== 'ok' ? (
         <InlineNotice tone="info" title={t(DIRECTION_NOTICE_KEYS[direction].title)}>
           <Text variant="caption" tone="secondary">
@@ -101,7 +114,61 @@ export function AuthLanguageSwitch({ style, compact = false }: AuthLanguageSwitc
   );
 }
 
-const useStyles = makeStyles(() => ({
-  wrap: { gap: space.xs },
-  label: { textAlign: 'center' },
+/** One language in the list: a radio, checked with a tick as well as a tint. */
+function LanguageOption({ lang, isCurrent, onChoose }: { lang: Language; isCurrent: boolean; onChoose: (lang: Language) => void }) {
+  const styles = useStyles();
+  const colors = useColors();
+  const { pressed, pressHandlers } = usePressed();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: isCurrent }}
+      aria-checked={isCurrent}
+      onPress={() => onChoose(lang)}
+      {...pressHandlers}
+      style={[styles.option, isCurrent && styles.optionCurrent, pressed && styles.pressed]}
+    >
+      <Text variant="body" style={lang === 'ar' ? styles.rtl : undefined}>
+        {LANGUAGE_LABELS[lang]}
+      </Text>
+      {isCurrent ? <Check size={18} color={colors.text.accent} /> : null}
+    </Pressable>
+  );
+}
+
+const useStyles = makeStyles((colors) => ({
+  wrap: { gap: space.sm, alignItems: 'center' },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: touch.min,
+    paddingHorizontal: space.base,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.card,
+  },
+  list: {
+    alignSelf: 'stretch',
+    maxWidth: 320,
+    width: '100%',
+    marginHorizontal: 'auto',
+    padding: space.xs,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    backgroundColor: colors.surface.card,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: touch.min,
+    paddingHorizontal: space.md,
+    borderRadius: radius.sm,
+  },
+  optionCurrent: { backgroundColor: colors.surface.hover },
+  pressed: { opacity: pressedOpacity },
+  rtl: { writingDirection: 'rtl' },
 }));

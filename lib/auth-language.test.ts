@@ -100,13 +100,15 @@ it('uses design tokens, never a raw colour', () => {
 });
 
 it('is a real control for a screen reader, not a row of taps', () => {
-  // `SegmentedControl` is the shared primitive: it declares `tablist`, sizes to
-  // the minimum touch target, and marks selection with more than colour.
+  // The globe button (owner's choice B, 2026-11-15): a button that says it opens a list and whether it is open, then
+  // one radio per language, each at least the minimum touch target, the chosen one marked with a check, not colour alone.
   const code = withoutComments(source(SWITCH));
-  assert.match(code, /SegmentedControl/);
-  const primitive = withoutComments(source('components/ui/SegmentedControl.tsx'));
-  assert.match(primitive, /accessibilityRole="tablist"/);
-  assert.match(primitive, /touch\.min/);
+  assert.match(code, /accessibilityRole="button"/);
+  assert.match(code, /expanded: open/);
+  assert.match(code, /accessibilityRole="radio"/);
+  assert.match(code, /checked: isCurrent/);
+  assert.match(code, /touch\.min/);
+  assert.match(code, /<Check /);
 });
 
 // ── What it must not disturb ──────────────────────────────────────────────
