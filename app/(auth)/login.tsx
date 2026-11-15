@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { displayName } from '../../lib/display-name';
 import { View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { APP_SIGNUP_ENABLED } from '../../lib/app-signup';
 import { LegalPageButtons } from '../../components/legal/LegalPages';
 import { AuthPage } from '../../components/auth/AuthChrome';
 import { AuthLanguageSwitch, Button, Card, Field, InlineNotice, Text } from '../../components/ui';
@@ -255,11 +256,14 @@ export default function Login() {
             is saved.
           */}
           <View style={styles.others}>
-            <Button
-              title={t('auth.action.createAccount')}
-              variant="secondary"
-              onPress={() => router.push('/(auth)/register' as never)}
-            />
+            {/* Not on iOS (App Store guideline 3.1.1, owner 2026-11-15): there, the app only signs in. */}
+            {APP_SIGNUP_ENABLED ? (
+              <Button
+                title={t('auth.action.createAccount')}
+                variant="secondary"
+                onPress={() => router.push('/(auth)/register' as never)}
+              />
+            ) : null}
             {/*
               Who does not sign up here: an employee's account is created by
               the business owner, in Team. One honest sentence, so staff do not

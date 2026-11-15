@@ -1,3 +1,11 @@
+// The in-app registration as Android has it (iOS signs in only: lib/app-signup.ts, App Store 3.1.1).
+const mockSignup = { enabled: true };
+jest.mock('../lib/app-signup', () => ({
+  get APP_SIGNUP_ENABLED() {
+    return mockSignup.enabled;
+  },
+}));
+const mockRedirects: unknown[] = [];
 /// <reference types="jest" />
 /**
  * Creating a business account, on the phone (restored 2026-10-13), as the
@@ -31,6 +39,10 @@ const mockStore = new Map<string, string>();
 // runs its focus effect, as the navigator does.
 jest.mock('expo-router', () => ({
   ...jest.requireActual('./mocks/expo-router'),
+  Redirect: ({ href }: { href: unknown }) => {
+    mockRedirects.push(href);
+    return null;
+  },
   useSegments: () => ['(auth)'],
   useLocalSearchParams: () => ({ destination: 'a•••@example.com' }),
   useFocusEffect: (effect: () => void) => jest.requireActual('react').useEffect(effect, [effect]),
@@ -166,6 +178,30 @@ beforeEach(() => {
     if (path.startsWith('/entitlement')) return { state: 'trial_available', canRead: false, canWrite: false, status: 'pending_activation', isComplimentary: false, calculatedAt: '2026-10-13T09:00:00.000Z' };
     if (consentCopyFor(path)) return consentCopyFor(path);
     return {};
+  });
+});
+
+describe('on iOS the app only signs in (App Store guideline 3.1.1, owner 2026-11-15)', () => {
+  beforeEach(() => {
+    mockSignup.enabled = false;
+    mockRedirects.length = 0;
+  });
+  afterEach(() => {
+    mockSignup.enabled = true;
+  });
+
+  it('the sign-in screen offers no business account and names no other way to get one; the staff sentence stays', async () => {
+    await renderWith(<LoginScreen />);
+    expect(await screen.findByText(t('auth.accounts.managed'))).toBeTruthy();
+    expect(screen.queryByText(t('auth.action.createAccount'))).toBeNull();
+    expect(routerPush).not.toHaveBeenCalledWith('/(auth)/register');
+  });
+
+  it('the registration screen, reached any way, leads to sign-in and asks the server nothing', async () => {
+    await renderWith(<RegisterScreen />);
+    expect(mockRedirects).toEqual(['/(auth)/login']);
+    expect(api.get).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalled();
   });
 });
 

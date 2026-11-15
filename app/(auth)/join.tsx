@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { APP_SIGNUP_ENABLED } from '../../lib/app-signup';
 import { useQuery } from '@tanstack/react-query';
 import { AuthLanguageSwitch, Button, InlineNotice, TextField } from '../../components/ui';
 import { Text } from '../../components/ui/Text';
@@ -39,7 +40,11 @@ export default function JoinScreen() {
    * shares this path with the team's own link (`?ref=`). It is a new business, not a new team member: the
    * registration takes it, and nothing here reads it.
    */
-  if (typeof r === 'string' && r !== '' && ref === undefined) return <Redirect href={{ pathname: '/(auth)/register', params: { r } }} />;
+  if (typeof r === 'string' && r !== '' && ref === undefined) {
+    // On iOS the app does not create a business (App Store guideline 3.1.1): a registration address leads to sign-in.
+    if (!APP_SIGNUP_ENABLED) return <Redirect href={'/(auth)/login' as never} />;
+    return <Redirect href={{ pathname: '/(auth)/register', params: { r } }} />;
+  }
   return <TeamJoin />;
 }
 

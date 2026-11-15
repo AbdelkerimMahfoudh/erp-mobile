@@ -2,7 +2,8 @@ import { PhoneField } from '../../components/PhoneField';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View, type ScrollViewInstance, type TextInputInstance, type ViewInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { APP_SIGNUP_ENABLED } from '../../lib/app-signup';
 import { AuthPage } from '../../components/auth/AuthChrome';
 import { AuthLanguageSwitch, Button, Card, InlineNotice, TextField } from '../../components/ui';
 import { WhatsAppConsentCheck } from '../../components/consent/WhatsAppConsentCheck';
@@ -92,7 +93,13 @@ const STEP_TITLES = ['register.section.business', 'register.section.owner', 'reg
 /** The order of the fields on screen: the first one with a problem is where a screen reader is taken. */
 const FIELD_ORDER: (keyof RegistrationProblems)[] = ['branchName', 'branchNameAr', 'ownerName', 'ownerNameAr', 'phone', 'whatsappConsent', 'email', 'password', 'passwordConfirm'];
 
+/** On iOS the app does not create a business (App Store guideline 3.1.1, owner 2026-11-15): any way here leads to sign-in. */
 export default function RegisterScreen() {
+  if (!APP_SIGNUP_ENABLED) return <Redirect href={'/(auth)/login' as never} />;
+  return <RegisterForm />;
+}
+
+function RegisterForm() {
   const { t, language } = useTranslation();
   const router = useRouter();
   const styles = useStyles();

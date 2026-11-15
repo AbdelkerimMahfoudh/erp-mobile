@@ -1,3 +1,5 @@
+// The in-app registration as Android has it (iOS signs in only: lib/app-signup.ts, App Store 3.1.1).
+jest.mock('../lib/app-signup', () => ({ APP_SIGNUP_ENABLED: true }));
 /// <reference types="jest" />
 /**
  * Joining a team from an invitation (D213, D214): the employee activates the account their business Owner created.
